@@ -27,7 +27,8 @@ DEFAULTS = {
     # Tests
     "test_befehle": [],   # {"slug","name","cmd": [..]}
     # Navigation
-    "menu": [],           # [{label, icon, url} | {label, icon, items:[{label, icon, url}]}]
+    "menu": [],           # [{label, icon, url} | {label, icon, untermenu:[{label, icon, url}]}]
+                          #  (Untermenü-Key heißt "untermenu", NICHT "items" -> dict.items-Kollision!)
     # djangoBase-eigene Menue-Gruppen im Nav-Block (djangobase/_nav.html):
     # Einstellungen (Website/djangoBase) + Hilfe. Projekte mit eigener Sidebar
     # koennen den Block per {% include "djangobase/_nav.html" %} einhaengen und

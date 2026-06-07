@@ -61,6 +61,18 @@
 {% endblock %}
 
 {% block body_scripts %}{{ block.super }}
+<script>
+// Auge-Icon: Sichtbarkeit der "Neu"-Passwort-Eingabe je Zeile umschalten.
+document.addEventListener('click', function (e) {
+    var eye = e.target.closest('.bk-eye');
+    if (!eye) return;
+    var inp = eye.closest('.bk-pw') && eye.closest('.bk-pw').querySelector('.bk-pwinput');
+    if (!inp) return;
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+    var ic = eye.querySelector('i');
+    if (ic) ic.className = inp.type === 'text' ? 'bi bi-eye-slash' : 'bi bi-eye';
+});
+</script>
 {% if modal_offen %}
 <script>document.addEventListener('DOMContentLoaded',function(){
     try{ new bootstrap.Modal(document.getElementById('addModal')).show(); }catch(e){}

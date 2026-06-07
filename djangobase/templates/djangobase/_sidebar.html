@@ -6,8 +6,11 @@
         </div>{% endif %}
     </div>
     <ul class="nav flex-column">
+        {% comment %}WICHTIG: Untermenü-Schlüssel heißt "untermenu" (NICHT "items"),
+        da it.items in Django-Templates auf die dict.items-Methode auflöst und
+        damit immer truthy wäre -> jeder Punkt würde fälschlich aufklappbar.{% endcomment %}
         {% for it in djangobase.menu %}
-            {% if it.items %}
+            {% if it.untermenu %}
             <li class="nav-item">
                 <a class="nav-link menu-toggle" data-bs-toggle="collapse" href="#m{{ forloop.counter }}">
                     <i class="bi {{ it.icon }}"></i> {{ it.label }}
@@ -15,7 +18,7 @@
                 </a>
                 <div class="collapse" id="m{{ forloop.counter }}">
                     <ul class="nav flex-column submenu">
-                        {% for s in it.items %}
+                        {% for s in it.untermenu %}
                         <li><a class="nav-link" href="{{ s.url }}"><i class="bi {{ s.icon }}"></i> {{ s.label }}</a></li>
                         {% endfor %}
                     </ul>

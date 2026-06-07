@@ -21,6 +21,10 @@ from ..models import Provider, Teilnehmer
 
 User = get_user_model()
 
+# Auswählbare Avatar-Emojis (wie bei Cleanorga – einfach anklicken).
+AVATAR_EMOJIS = ["🧑", "👩", "👨", "🧑‍💼", "👩‍💼", "👨‍💼", "🧑‍🔧", "👷",
+                 "🧑‍🍳", "🧑‍🏫", "🧑‍💻", "🦸", "🧑‍🎨", "🏠", "🌟", "🚲"]
+
 
 def _zeile(user, profil, ist_provider):
     return {
@@ -28,10 +32,14 @@ def _zeile(user, profil, ist_provider):
         "profil": profil,
         "ist_provider": ist_provider,
         "avatar_url": profil.avatar.url if (profil and profil.avatar) else "",
+        "avatar_emoji": profil.avatar_emoji if profil else "",
         "initialen": profil.initialen if profil else (user.get_username()[:2] or "?").upper(),
+        "sprache_code": profil.sprache if profil else "de",
         "sprache": profil.get_sprache_display() if profil else "",
         "adresse": profil.adresse_kurz if profil else "",
         "online": bool(profil and profil.eingeloggt),
+        "anwesend": bool(profil and profil.anwesend),
+        "ui": profil.ui if profil else 1,
     }
 
 
@@ -62,6 +70,8 @@ def _context(form=None, modal_offen=False):
         "django_nutzer": django_nutzer,
         "form": form or BenutzerForm(),
         "modal_offen": modal_offen,
+        "sprachen": Teilnehmer.SPRACHEN,
+        "avatar_emojis": AVATAR_EMOJIS,
     }
 
 
@@ -102,10 +112,18 @@ class BenutzerBearbeitenView(ZugriffMixin, View):
             "verifiziert": getattr(prov, "verifiziert", False),
         }
 
+    def _avatar_ctx(self, user):
+        t = Teilnehmer.objects.filter(user=user).first()
+        return {
+            "aktueller_avatar": t.avatar.url if (t and t.avatar) else "",
+            "aktuelle_initialen": t.initialen if t else (user.get_username()[:2] or "?").upper(),
+        }
+
     def get(self, request, pk):
         user = get_object_or_404(User, pk=pk)
         form = BenutzerForm(instance=user, initial=self._initial(user))
-        return render(request, self.template_name, {"form": form, "ziel": user})
+        return render(request, self.template_name,
+                      {"form": form, "ziel": user, **self._avatar_ctx(user)})
 
     def post(self, request, pk):
         user = get_object_or_404(User, pk=pk)
@@ -114,7 +132,8 @@ class BenutzerBearbeitenView(ZugriffMixin, View):
             form.speichern()
             messages.success(request, "Benutzer aktualisiert.")
             return redirect(reverse("djangobase:benutzer"))
-        return render(request, self.template_name, {"form": form, "ziel": user})
+        return render(request, self.template_name,
+                      {"form": form, "ziel": user, **self._avatar_ctx(user)})
 
 
 class BenutzerStatusView(ZugriffMixin, View):
@@ -127,4 +146,53 @@ class BenutzerStatusView(ZugriffMixin, View):
         user.save(update_fields=["is_active"])
         zustand = "aktiv" if user.is_active else "inaktiv"
         messages.success(request, f"{user.get_full_name() or user.username} ist jetzt {zustand}.")
+        return redirect(reverse("djangobase:benutzer"))
+
+
+class BenutzerInlineView(ZugriffMixin, View):
+    """Inline-Schnellbearbeitung aus der Tabelle: Passwort/Sprache/UI/Anwesend."""
+    def post(self, request, pk):
+        user = get_object_or_404(User, pk=pk)
+        feld = request.POST.get("feld")
+        wert = (request.POST.get("wert") or "").strip()
+        t, _ = Teilnehmer.objects.get_or_create(user=user)
+
+        if feld == "passwort":
+            if wert:
+                user.set_password(wert)
+                user.save(update_fields=["password"])
+                messages.success(request, f"Passwort von {user.get_username()} geändert.")
+            else:
+                messages.error(request, "Kein neues Passwort angegeben.")
+        elif feld == "sprache":
+            gueltig = dict(Teilnehmer.SPRACHEN)
+            if wert in gueltig:
+                t.sprache = wert
+                t.save(update_fields=["sprache"])
+                messages.success(request, f"Sprache: {gueltig[wert]}.")
+        elif feld == "ui":
+            try:
+                t.ui = max(0, int(wert))
+                t.save(update_fields=["ui"])
+                messages.success(request, "UI gespeichert.")
+            except ValueError:
+                messages.error(request, "UI muss eine Zahl sein.")
+        elif feld == "anwesend":
+            t.anwesend = not t.anwesend
+            t.save(update_fields=["anwesend"])
+        elif feld == "avatar_emoji":
+            t.avatar_emoji = wert[:8]
+            t.save(update_fields=["avatar_emoji"])
+        return redirect(reverse("djangobase:benutzer"))
+
+
+class BenutzerLoeschenView(ZugriffMixin, View):
+    def post(self, request, pk):
+        user = get_object_or_404(User, pk=pk)
+        if user == request.user:
+            messages.error(request, "Du kannst dein eigenes Konto nicht löschen.")
+            return redirect(reverse("djangobase:benutzer"))
+        name = user.get_full_name() or user.get_username()
+        user.delete()
+        messages.success(request, f"Benutzer {name} gelöscht.")
         return redirect(reverse("djangobase:benutzer"))

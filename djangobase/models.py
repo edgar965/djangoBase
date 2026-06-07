@@ -28,7 +28,8 @@ class BasisProfil(models.Model):
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
                                 related_name="profil", verbose_name="Benutzer")
-    avatar = models.ImageField("Avatar", upload_to="avatare/", blank=True)
+    avatar = models.ImageField("Avatar-Bild", upload_to="avatare/", blank=True)
+    avatar_emoji = models.CharField("Avatar (Emoji)", max_length=8, blank=True)
     sprache = models.CharField("Sprache", max_length=5, choices=SPRACHEN, default="de")
     telefon = models.CharField("Telefon", max_length=60, blank=True)
     strasse = models.CharField("Straße", max_length=200, blank=True)
@@ -37,6 +38,8 @@ class BasisProfil(models.Model):
     land = models.CharField("Land", max_length=120, blank=True)
     # eingeloggtZuletzt = user.last_login (von Django gepflegt)
     eingeloggt = models.BooleanField("Eingeloggt", default=False)
+    anwesend = models.BooleanField("Anwesend", default=False)
+    ui = models.PositiveIntegerField("UI", default=1)
 
     class Meta:
         abstract = True

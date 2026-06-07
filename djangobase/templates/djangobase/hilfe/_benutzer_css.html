@@ -1,5 +1,5 @@
 <style>
-.bk-page { padding: 1.25rem 1.5rem 4rem; max-width: 1200px; }
+.bk-page { padding: 1.25rem 1.5rem 4rem; max-width: 1500px; }
 .bk-toolbar { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
 .bk-tabs { display: flex; gap: .4rem; border: 0; list-style: none; padding: 0; margin: 0; }
 .bk-tabs .nav-link { color: #9fb4cc; background: #142136; border: 1px solid #1e3a5f;
@@ -12,7 +12,36 @@
     align-items: center; gap: .4rem; }
 .btn-bk-add:hover { background: #2767cc; }
 
-.bk-tablewrap { background: #142136; border: 1px solid #1e3a5f; border-radius: 10px; overflow: hidden; }
+.bk-tablewrap { background: #142136; border: 1px solid #1e3a5f; border-radius: 10px; overflow-x: auto; }
+
+/* ---- Cleanorga-Inline-Controls (im dunklen Stil) ---- */
+/* Anwesend-Umschalter */
+.bk-anw { border: 0; border-radius: 20px; padding: .2rem .7rem; font-size: .74rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.bk-anw.an { background: #1f7a3d; color: #cdf5d6; }
+.bk-anw.ab { background: #3a4d68; color: #cdddf0; }
+.bk-anw.online { outline: 2px dashed #e0b000; outline-offset: 1px; }
+/* Inline-Formulare Passwort/Sprache/UI */
+.bk-pw { display: flex; align-items: center; gap: .3rem; }
+.bk-pw-dots { color: #7f97b3; letter-spacing: 1px; }
+.bk-pwform, .bk-langform, .bk-uiform { display: inline-flex; align-items: center; gap: .25rem; margin: 0; }
+.bk-pw input, .bk-uiform input, .bk-langform select {
+    background: #0f1d31; color: #e9f0f8; border: 1px solid #2a466e; border-radius: 6px;
+    padding: .25rem .4rem; font-size: .82rem; }
+.bk-pwinput { width: 84px; }
+.bk-uiinput { width: 58px; }
+.bk-icon { width: 28px; height: 28px; border-radius: 6px; border: 1px solid #2a466e; background: #0f1d31;
+    color: #9fc1e8; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.bk-icon:hover { background: #14365f; color: #fff; }
+/* Aktionen – gefärbte Buttons wie Cleanorga */
+.bk-actions { white-space: nowrap; }
+.bk-actions form { display: inline; margin: 0; }
+.bk-act { display: inline-flex; align-items: center; gap: .3rem; border: 0; border-radius: 7px;
+    padding: .35rem .7rem; font-size: .78rem; font-weight: 600; cursor: pointer; color: #fff;
+    text-decoration: none; margin-left: .25rem; white-space: nowrap; }
+.bk-act-warn { background: #e08a1e; } .bk-act-warn:hover { background: #f59c2c; }
+.bk-act-ok { background: #1f9d4d; } .bk-act-ok:hover { background: #27b85a; }
+.bk-act-edit { background: #1e5bb8; } .bk-act-edit:hover { background: #2767cc; }
+.bk-act-del { background: #d23f4d; } .bk-act-del:hover { background: #e44c5a; }
 .bk-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
 .bk-table thead th { text-align: left; background: #102a4c; color: #9fc1e8;
     font-weight: 600; font-size: .76rem; text-transform: uppercase; letter-spacing: .04em;
@@ -60,6 +89,12 @@
 .bk-field.bk-check input { width: auto; }
 .bk-field .errorlist { color: #ff8a8a; font-size: .78rem; margin: .1rem 0 0; padding-left: 1rem; }
 .bk-errs .errorlist { color: #ff8a8a; list-style: none; padding: 0; margin: .4rem 0 0; }
+
+/* Avatar-Bearbeitung (Cleanorga-Stil): runde Vorschau + Datei-Upload */
+.bk-avataredit { display: flex; align-items: center; gap: 1rem; }
+.bk-avatar-lg { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
+    font-size: 1.4rem; border: 2px solid #2a466e; }
+.bk-avataredit > div { display: flex; flex-direction: column; gap: .25rem; flex: 1; min-width: 0; }
 
 .bk-modal .modal-content { background: #0f1b2e; border: 1px solid #1e3a5f; color: #e0e8f0; }
 .bk-modal .modal-header, .bk-modal .modal-footer { border-color: #1e3a5f; }

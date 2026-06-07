@@ -1,13 +1,23 @@
-{% comment %}Formularfelder Benutzer anlegen/bearbeiten (erwartet `form`).{% endcomment %}
+{% comment %}Formularfelder Benutzer anlegen/bearbeiten (erwartet `form`;
+optional aktueller_avatar + aktuelle_initialen für die Avatar-Vorschau).{% endcomment %}
 <div class="bk-grid">
+    <div class="bk-field bk-col-2"><label for="{{ form.avatar.id_for_label }}">Avatar</label>
+        <div class="bk-avataredit">
+            <img id="bk-av-img" class="bk-avatar bk-avatar-lg" alt="" src="{{ aktueller_avatar|default:'' }}"
+                 {% if not aktueller_avatar %}style="display:none;"{% endif %}>
+            <span id="bk-av-fb" class="bk-avatar bk-avatar-lg bk-avatar-fb"
+                  {% if aktueller_avatar %}style="display:none;"{% endif %}>{{ aktuelle_initialen|default:"?" }}</span>
+            <div>{{ form.avatar }}<small>PNG/JPG – wird rund angezeigt.</small></div>
+        </div>
+        {{ form.avatar.errors }}
+    </div>
     <div class="bk-field"><label for="{{ form.vorname.id_for_label }}">Vorname</label>{{ form.vorname }}{{ form.vorname.errors }}</div>
     <div class="bk-field"><label for="{{ form.name.id_for_label }}">Name</label>{{ form.name }}{{ form.name.errors }}</div>
     <div class="bk-field"><label for="{{ form.email.id_for_label }}">E-Mail *</label>{{ form.email }}{{ form.email.errors }}</div>
-    <div class="bk-field"><label for="{{ form.passwort.id_for_label }}">Passwort</label>{{ form.passwort }}<small>{{ form.passwort.help_text }}</small>{{ form.passwort.errors }}</div>
+    <div class="bk-field"><label for="{{ form.passwort.id_for_label }}">Passwort ändern</label>{{ form.passwort }}<small>{{ form.passwort.help_text }}</small>{{ form.passwort.errors }}</div>
     <div class="bk-field"><label for="{{ form.rolle.id_for_label }}">Rolle</label>{{ form.rolle }}{{ form.rolle.errors }}</div>
     <div class="bk-field"><label for="{{ form.sprache.id_for_label }}">Sprache</label>{{ form.sprache }}{{ form.sprache.errors }}</div>
     <div class="bk-field"><label for="{{ form.telefon.id_for_label }}">Telefon</label>{{ form.telefon }}</div>
-    <div class="bk-field"><label for="{{ form.avatar.id_for_label }}">Avatar</label>{{ form.avatar }}{{ form.avatar.errors }}</div>
     <div class="bk-field bk-col-2"><label for="{{ form.strasse.id_for_label }}">Straße</label>{{ form.strasse }}</div>
     <div class="bk-field"><label for="{{ form.plz.id_for_label }}">PLZ</label>{{ form.plz }}</div>
     <div class="bk-field"><label for="{{ form.stadt.id_for_label }}">Stadt</label>{{ form.stadt }}</div>
@@ -21,3 +31,14 @@
     <div class="bk-field bk-check">{{ form.aktiv }}<label for="{{ form.aktiv.id_for_label }}">Aktiv</label></div>
 </div>
 {% if form.non_field_errors %}<div class="bk-errs">{{ form.non_field_errors }}</div>{% endif %}
+<script>(function(){
+    var inp = document.getElementById('{{ form.avatar.id_for_label }}');
+    if (!inp) return;
+    inp.addEventListener('change', function () {
+        var f = inp.files && inp.files[0];
+        if (!f) return;
+        var img = document.getElementById('bk-av-img'), fb = document.getElementById('bk-av-fb');
+        if (img) { img.src = URL.createObjectURL(f); img.style.display = ''; }
+        if (fb) { fb.style.display = 'none'; }
+    });
+})();</script>

@@ -1,50 +1,103 @@
-{% comment %}Benutzer-Tabelle (erwartet `zeilen` = Liste von Zeilen-Dicts).{% endcomment %}
+{% comment %}Benutzer-Tabelle im Cleanorga-Stil (Funktionen), dunkles Layout.
+Erwartet `zeilen` (Liste von Zeilen-Dicts) und `sprachen` (Choices).{% endcomment %}
 <div class="bk-tablewrap">
 <table class="bk-table">
     <thead>
         <tr>
-            <th>Benutzer</th><th>E-Mail</th><th>Sprache</th><th>Adresse</th>
-            <th>Status</th><th class="bk-center">Eingeloggt</th><th>Zuletzt</th><th></th>
+            <th>Avatar</th><th>Anwesend</th><th>Name</th><th>E-Mail</th>
+            <th>Passwort</th><th>Sprache</th><th>UI</th><th>Zuletzt</th><th class="bk-actions">Aktionen</th>
         </tr>
     </thead>
     <tbody>
     {% for z in zeilen %}
         <tr class="{% if not z.user.is_active %}bk-inaktiv{% endif %}">
+            {# Avatar – anklicken zum Auswählen (Emoji-Picker) #}
             <td>
-                <span class="bk-user">
-                    {% if z.avatar_url %}
-                        <img class="bk-avatar" src="{{ z.avatar_url }}" alt="">
-                    {% else %}
-                        <span class="bk-avatar bk-avatar-fb">{{ z.initialen }}</span>
-                    {% endif %}
-                    <span class="bk-name">
-                        <strong>{% if z.user.first_name or z.user.last_name %}{{ z.user.first_name }} {{ z.user.last_name }}{% else %}{{ z.user.username }}{% endif %}</strong>
-                        <small>@{{ z.user.username }}</small>
-                    </span>
-                </span>
-            </td>
-            <td>{{ z.user.email|default:"—" }}</td>
-            <td>{{ z.sprache|default:"—" }}</td>
-            <td class="bk-addr">{{ z.adresse|default:"—" }}</td>
-            <td>{% if z.user.is_active %}<span class="bk-badge bk-on">Aktiv</span>{% else %}<span class="bk-badge bk-off">Inaktiv</span>{% endif %}</td>
-            <td class="bk-center">
-                {% if z.online %}<span class="bk-dot bk-dot-on" title="eingeloggt"></span>
-                {% else %}<span class="bk-dot" title="nicht eingeloggt"></span>{% endif %}
-            </td>
-            <td><small>{{ z.user.last_login|date:"d.m.Y H:i"|default:"nie" }}</small></td>
-            <td class="bk-actions">
-                <a class="bk-btn" href="{% url 'djangobase:benutzer_bearbeiten' z.user.pk %}" title="Bearbeiten"><i class="bi bi-pencil"></i></a>
-                <form method="post" action="{% url 'djangobase:benutzer_status' z.user.pk %}" style="display:inline">
-                    {% csrf_token %}
-                    <button class="bk-btn {% if z.user.is_active %}bk-btn-warn{% else %}bk-btn-ok{% endif %}" type="submit"
-                            title="{% if z.user.is_active %}Auf inaktiv setzen{% else %}Aktivieren{% endif %}">
-                        <i class="bi {% if z.user.is_active %}bi-pause-circle{% else %}bi-play-circle{% endif %}"></i>
+                <div class="dropdown bk-avwrap">
+                    <button type="button" class="bk-avbtn" data-bs-toggle="dropdown" aria-expanded="false" title="Avatar wählen">
+                        {% if z.avatar_url %}<img class="bk-avatar" src="{{ z.avatar_url }}" alt="">
+                        {% elif z.avatar_emoji %}<span class="bk-avatar bk-avatar-emoji">{{ z.avatar_emoji }}</span>
+                        {% else %}<span class="bk-avatar bk-avatar-fb">{{ z.initialen }}</span>{% endif %}
                     </button>
+                    <div class="dropdown-menu bk-avmenu">
+                        <form method="post" action="{% url 'djangobase:benutzer_inline' z.user.pk %}">
+                            {% csrf_token %}<input type="hidden" name="feld" value="avatar_emoji">
+                            {% for e in avatar_emojis %}
+                            <button type="submit" name="wert" value="{{ e }}" class="bk-avopt">{{ e }}</button>
+                            {% endfor %}
+                            <button type="submit" name="wert" value="" class="bk-avopt bk-avopt-clear" title="Zurücksetzen">✕</button>
+                        </form>
+                    </div>
+                </div>
+            </td>
+            {# Anwesend-Umschalter #}
+            <td>
+                <form method="post" action="{% url 'djangobase:benutzer_inline' z.user.pk %}">
+                    {% csrf_token %}<input type="hidden" name="feld" value="anwesend">
+                    <button type="submit" class="bk-anw {% if z.anwesend %}an{% else %}ab{% endif %}{% if z.online %} online{% endif %}"
+                            title="{% if z.online %}aktuell eingeloggt{% endif %}">
+                        {% if z.anwesend %}Anwesend{% else %}Abwesend{% endif %}
+                    </button>
+                </form>
+            </td>
+            {# Name #}
+            <td><span class="bk-name">
+                <strong>{% if z.user.first_name or z.user.last_name %}{{ z.user.first_name }} {{ z.user.last_name }}{% else %}{{ z.user.username }}{% endif %}</strong>
+                <small>@{{ z.user.username }}</small>
+            </span></td>
+            {# E-Mail #}
+            <td>{{ z.user.email|default:"–" }}</td>
+            {# Passwort: Maske + Auge + Neu + Speichern #}
+            <td>
+                <div class="bk-pw">
+                    <span class="bk-pw-dots">●●●●●●</span>
+                    <button type="button" class="bk-icon bk-eye" title="Eingabe anzeigen"><i class="bi bi-eye"></i></button>
+                    <form method="post" action="{% url 'djangobase:benutzer_inline' z.user.pk %}" class="bk-pwform">
+                        {% csrf_token %}<input type="hidden" name="feld" value="passwort">
+                        <input type="password" name="wert" class="bk-pwinput" placeholder="Neu" autocomplete="new-password">
+                        <button type="submit" class="bk-icon" title="Passwort speichern"><i class="bi bi-save"></i></button>
+                    </form>
+                </div>
+            </td>
+            {# Sprache (sofort speichern bei Auswahl) #}
+            <td>
+                <form method="post" action="{% url 'djangobase:benutzer_inline' z.user.pk %}" class="bk-langform">
+                    {% csrf_token %}<input type="hidden" name="feld" value="sprache">
+                    <select name="wert" onchange="this.form.submit()">
+                        {% for code, label in sprachen %}
+                        <option value="{{ code }}" {% if code == z.sprache_code %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </form>
+            </td>
+            {# UI-Nummer #}
+            <td>
+                <form method="post" action="{% url 'djangobase:benutzer_inline' z.user.pk %}" class="bk-uiform">
+                    {% csrf_token %}<input type="hidden" name="feld" value="ui">
+                    <input type="number" name="wert" class="bk-uiinput" value="{{ z.ui }}" min="0" step="1">
+                    <button type="submit" class="bk-icon" title="UI speichern"><i class="bi bi-save"></i></button>
+                </form>
+            </td>
+            {# Zuletzt eingeloggt #}
+            <td><small>{{ z.user.last_login|date:"d.m.Y H:i"|default:"nie" }}</small></td>
+            {# Aktionen #}
+            <td class="bk-actions">
+                <form method="post" action="{% url 'djangobase:benutzer_status' z.user.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="bk-act {% if z.user.is_active %}bk-act-warn{% else %}bk-act-ok{% endif %}">
+                        <i class="bi bi-power"></i> {% if z.user.is_active %}Inaktiv setzen{% else %}Aktiv setzen{% endif %}
+                    </button>
+                </form>
+                <a class="bk-act bk-act-edit" href="{% url 'djangobase:benutzer_bearbeiten' z.user.pk %}"><i class="bi bi-pencil-square"></i> Bearbeiten</a>
+                <form method="post" action="{% url 'djangobase:benutzer_loeschen' z.user.pk %}"
+                      onsubmit="return confirm('Benutzer „{{ z.user.username|escapejs }}“ wirklich löschen?');">
+                    {% csrf_token %}
+                    <button type="submit" class="bk-act bk-act-del"><i class="bi bi-trash"></i> Löschen</button>
                 </form>
             </td>
         </tr>
     {% empty %}
-        <tr><td colspan="8" class="bk-empty">Keine Einträge.</td></tr>
+        <tr><td colspan="9" class="bk-empty">Keine Einträge.</td></tr>
     {% endfor %}
     </tbody>
 </table>
