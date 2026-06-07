@@ -1,0 +1,73 @@
+{% extends "djangobase/_shell.html" %}
+{% comment %}App-Base: erbt _shell.html und fuegt Toast-Stack (Django-
+Messages) + Theme-Switcher-Dropdown im Topbar hinzu.
+
+Projekte, die das Inhaltsgebiet mit eigenen Wrappern (z.B. mail-shell-
+grid) umrahmen wollen, ueberschreiben einfach content_wrapper-Block in
+ihrem app-base.html. Der content-Block darin bleibt als Standard-Hook
+erhalten.{% endcomment %}
+
+{% block topbar_extras %}
+    {# Theme-Switcher, falls DJANGOBASE["theme_modes"] gesetzt. #}
+    {% if djangobase.theme_modes %}
+    <div class="dropdown db-theme-pick" style="display:inline-block;">
+        <button type="button" class="btn btn-sm btn-outline-light"
+                title="Theme" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-palette"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end"
+            style="background:#1a2940; border:1px solid rgba(78,168,246,0.3);">
+            {% for slug, label, color in djangobase.theme_modes %}
+            <li><button type="button" class="dropdown-item theme-pick" data-theme="{{ slug }}"
+                        style="color:#e0e8f0;">
+                <i class="bi bi-circle-fill" style="color:{{ color }};"></i> {{ label }}
+            </button></li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+    {{ block.super }}
+{% endblock %}
+
+{% block toast_stack %}
+    {% if djangobase.toast_stack and messages %}
+    <div id="toast-stack" aria-live="polite">
+      {% for m in messages %}
+        <div class="toast-item toast-{{ m.tags|default:'info' }}"
+             onclick="this.classList.add('hide');setTimeout(()=>this.remove(),300)">
+            <i class="bi
+               {% if 'success' in m.tags %}bi-check-circle-fill
+               {% elif 'error' in m.tags %}bi-exclamation-triangle-fill
+               {% elif 'warning' in m.tags %}bi-exclamation-circle-fill
+               {% else %}bi-info-circle-fill{% endif %}"></i>
+            <span>{{ m }}</span>
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+{% endblock %}
+
+{% block body_scripts %}
+    {% comment %}Theme-Switcher-Handler: speichert Wahl in localStorage
+    und setzt body[data-theme]. Wirkungsvoll nur wenn die Projekt-CSS
+    Themes anhand von data-theme stylet.{% endcomment %}
+    {% if djangobase.theme_modes %}
+    <script>
+    (function () {
+        try {
+            var stored = localStorage.getItem('djangobase.theme');
+            if (stored) document.body.setAttribute('data-theme', stored);
+        } catch (e) {}
+        document.addEventListener('click', function (e) {
+            var btn = e.target.closest('.theme-pick');
+            if (!btn) return;
+            var t = btn.getAttribute('data-theme');
+            if (!t) return;
+            document.body.setAttribute('data-theme', t);
+            try { localStorage.setItem('djangobase.theme', t); } catch (e) {}
+        });
+    })();
+    </script>
+    {% endif %}
+    {{ block.super }}
+{% endblock %}

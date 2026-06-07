@@ -30,6 +30,26 @@ DEFAULTS = {
     "menu": [],           # [{label, icon, url} | {label, icon, items:[{label, icon, url}]}]
     # Zugriff: "staff" | "login" | "none"
     "zugriff": "staff",
+    # ----- Layout-Erweiterungen (von Apps konsumiert) ----------------------
+    # Pfade fuer {% static %}. Werden NACH djangoBase-CSS geladen
+    # (Cascade-Override moeglich).
+    "extra_css": [],            # ["mail/css/mail.css", ...]
+    # Frueh-im-Head-Scripts (htmx, importmap-Snippet etc.). Roh-Strings
+    # oder Static-Pfade: {"static": "search/js/htmx.min.js"} bzw.
+    # {"raw": "<script>...</script>"}.
+    "extra_js_head": [],
+    # Sidebar-Override: wenn gesetzt, wird statt djangobase/_sidebar.html
+    # dieses Template per {% include %} eingehaengt — Projekte koennen
+    # ihre eigene Live-Sidebar weiterverwenden.
+    "sidebar_template": None,   # z.B. "search/_sidebar.html"
+    # Theme-Switcher im Topbar von base_app.html. Liste von
+    # (slug, label, indicator_hex). Bei [] kein Switcher.
+    "theme_modes": [],          # [("dark", "Dark", "#4ea8f6"), ...]
+    # Default-Theme (body data-theme="..."). Fallback: erstes Element
+    # aus theme_modes, sonst "".
+    "theme_default": "",
+    # Toast-Stack fuer Django-Messages. False = kein Stack rendern.
+    "toast_stack": True,
 }
 
 
@@ -42,4 +62,7 @@ def conf():
     c["farben"] = farben
     if not c.get("version"):
         c["version"] = getattr(settings, "VERSION", "")
+    if not c.get("theme_default") and c.get("theme_modes"):
+        first = c["theme_modes"][0]
+        c["theme_default"] = first[0] if isinstance(first, (list, tuple)) else str(first)
     return c

@@ -1,0 +1,77 @@
+{% load static %}{% spaceless %}{% block doctype %}<!DOCTYPE html>{% endblock %}{% endspaceless %}
+<html {% block html_attrs %}lang="de"{% endblock %}>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ djangobase.titel }}{% endblock %}{% block title_extra %}{% endblock %}</title>
+    {% block head_meta %}{% endblock %}
+
+    {% comment %}Default-CSS: Bootstrap + Icons (CDN) + djangoBase-
+    sidebar.css. Projekte koennen via head_css-Block komplett ersetzen
+    oder via DJANGOBASE["extra_css"] ergaenzen (laedt NACH den Defaults).
+    {% endcomment %}
+    {% block head_css %}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'djangobase/css/sidebar.css' %}">
+    {% endblock %}
+
+    {# Farb-Variablen aus DJANGOBASE["farben"]. #}
+    <style>:root{
+        --sidebar-bg: {{ djangobase.farben.sidebar_bg }};
+        --sidebar-light: {{ djangobase.farben.sidebar_light }};
+        --sidebar-dark: {{ djangobase.farben.sidebar_dark }};
+    }</style>
+
+    {% comment %}extra_css: Liste von Static-Pfaden, die hinter den
+    Defaults eingehaengt werden (Cascade-Override).{% endcomment %}
+    {% for path in djangobase.extra_css %}
+        <link rel="stylesheet" href="{% static path %}">
+    {% endfor %}
+
+    {% comment %}extra_js_head: Frueh-im-Head-Scripts (htmx, importmap-
+    Snippets). Eintrag = String (Static-Pfad) ODER Dict mit static-Key
+    bzw. raw-Key fuer beliebigen Script-Tag.{% endcomment %}
+    {% for item in djangobase.extra_js_head %}
+        {% if item.raw %}{{ item.raw|safe }}
+        {% elif item.static %}<script src="{% static item.static %}"></script>
+        {% else %}<script src="{% static item %}"></script>{% endif %}
+    {% endfor %}
+
+    {% block head_scripts %}{% endblock %}
+    {% block head_extra %}{% endblock %}
+</head>
+<body{% if djangobase.theme_default %} data-theme="{{ djangobase.theme_default }}"{% endif %}{% block body_attrs %}{% endblock %}>
+    {% block sidebar %}{% include djangobase.sidebar_template %}{% endblock %}
+
+    {% block main %}
+    <div class="main-wrapper">
+        {% block topbar %}
+        <div class="topbar">
+            <div class="topbar-title">
+                <button type="button" class="btn btn-sm btn-outline-light" style="margin-right:.5rem;"
+                        title="Sidebar ein-/ausblenden"
+                        onclick="document.body.classList.toggle('sidebar-collapsed')">
+                    <i class="bi bi-list"></i>
+                </button>
+                {% block topbar_title %}{{ djangobase.titel }}{% endblock %}
+            </div>
+            <div class="topbar-actions">
+                {% block topbar_actions %}{% endblock %}
+                {% block topbar_extras %}{% endblock %}
+            </div>
+        </div>
+        {% endblock %}
+
+        {% block content_wrapper %}<div class="db-content">{% block content %}{% endblock %}</div>{% endblock %}
+    </div>
+    {% endblock %}
+
+    {% block toast_stack %}{% endblock %}
+
+    {% block body_scripts_core %}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    {% endblock %}
+    {% block body_scripts %}{% endblock %}
+</body>
+</html>
