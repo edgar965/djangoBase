@@ -1,0 +1,51 @@
+{% comment %}Benutzer-Tabelle (erwartet `zeilen` = Liste von Zeilen-Dicts).{% endcomment %}
+<div class="bk-tablewrap">
+<table class="bk-table">
+    <thead>
+        <tr>
+            <th>Benutzer</th><th>E-Mail</th><th>Sprache</th><th>Adresse</th>
+            <th>Status</th><th class="bk-center">Eingeloggt</th><th>Zuletzt</th><th></th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for z in zeilen %}
+        <tr class="{% if not z.user.is_active %}bk-inaktiv{% endif %}">
+            <td>
+                <span class="bk-user">
+                    {% if z.avatar_url %}
+                        <img class="bk-avatar" src="{{ z.avatar_url }}" alt="">
+                    {% else %}
+                        <span class="bk-avatar bk-avatar-fb">{{ z.initialen }}</span>
+                    {% endif %}
+                    <span class="bk-name">
+                        <strong>{% if z.user.first_name or z.user.last_name %}{{ z.user.first_name }} {{ z.user.last_name }}{% else %}{{ z.user.username }}{% endif %}</strong>
+                        <small>@{{ z.user.username }}</small>
+                    </span>
+                </span>
+            </td>
+            <td>{{ z.user.email|default:"—" }}</td>
+            <td>{{ z.sprache|default:"—" }}</td>
+            <td class="bk-addr">{{ z.adresse|default:"—" }}</td>
+            <td>{% if z.user.is_active %}<span class="bk-badge bk-on">Aktiv</span>{% else %}<span class="bk-badge bk-off">Inaktiv</span>{% endif %}</td>
+            <td class="bk-center">
+                {% if z.online %}<span class="bk-dot bk-dot-on" title="eingeloggt"></span>
+                {% else %}<span class="bk-dot" title="nicht eingeloggt"></span>{% endif %}
+            </td>
+            <td><small>{{ z.user.last_login|date:"d.m.Y H:i"|default:"nie" }}</small></td>
+            <td class="bk-actions">
+                <a class="bk-btn" href="{% url 'djangobase:benutzer_bearbeiten' z.user.pk %}" title="Bearbeiten"><i class="bi bi-pencil"></i></a>
+                <form method="post" action="{% url 'djangobase:benutzer_status' z.user.pk %}" style="display:inline">
+                    {% csrf_token %}
+                    <button class="bk-btn {% if z.user.is_active %}bk-btn-warn{% else %}bk-btn-ok{% endif %}" type="submit"
+                            title="{% if z.user.is_active %}Auf inaktiv setzen{% else %}Aktivieren{% endif %}">
+                        <i class="bi {% if z.user.is_active %}bi-pause-circle{% else %}bi-play-circle{% endif %}"></i>
+                    </button>
+                </form>
+            </td>
+        </tr>
+    {% empty %}
+        <tr><td colspan="8" class="bk-empty">Keine Einträge.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>

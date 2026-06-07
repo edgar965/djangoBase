@@ -1,0 +1,23 @@
+{% comment %}Formularfelder Benutzer anlegen/bearbeiten (erwartet `form`).{% endcomment %}
+<div class="bk-grid">
+    <div class="bk-field"><label for="{{ form.vorname.id_for_label }}">Vorname</label>{{ form.vorname }}{{ form.vorname.errors }}</div>
+    <div class="bk-field"><label for="{{ form.name.id_for_label }}">Name</label>{{ form.name }}{{ form.name.errors }}</div>
+    <div class="bk-field"><label for="{{ form.email.id_for_label }}">E-Mail *</label>{{ form.email }}{{ form.email.errors }}</div>
+    <div class="bk-field"><label for="{{ form.passwort.id_for_label }}">Passwort</label>{{ form.passwort }}<small>{{ form.passwort.help_text }}</small>{{ form.passwort.errors }}</div>
+    <div class="bk-field"><label for="{{ form.rolle.id_for_label }}">Rolle</label>{{ form.rolle }}{{ form.rolle.errors }}</div>
+    <div class="bk-field"><label for="{{ form.sprache.id_for_label }}">Sprache</label>{{ form.sprache }}{{ form.sprache.errors }}</div>
+    <div class="bk-field"><label for="{{ form.telefon.id_for_label }}">Telefon</label>{{ form.telefon }}</div>
+    <div class="bk-field"><label for="{{ form.avatar.id_for_label }}">Avatar</label>{{ form.avatar }}{{ form.avatar.errors }}</div>
+    <div class="bk-field bk-col-2"><label for="{{ form.strasse.id_for_label }}">Straße</label>{{ form.strasse }}</div>
+    <div class="bk-field"><label for="{{ form.plz.id_for_label }}">PLZ</label>{{ form.plz }}</div>
+    <div class="bk-field"><label for="{{ form.stadt.id_for_label }}">Stadt</label>{{ form.stadt }}</div>
+    <div class="bk-field"><label for="{{ form.land.id_for_label }}">Land</label>{{ form.land }}</div>
+    <div class="bk-field"><label for="{{ form.land.id_for_label }}">&nbsp;</label></div>
+    <div class="bk-field bk-col-2" style="border-top:1px solid #1e3a5f;padding-top:.6rem;margin-top:.2rem;">
+        <small style="color:#7f97b3;"><i class="bi bi-stars"></i> Nur für Provider:</small></div>
+    <div class="bk-field"><label for="{{ form.anbietername.id_for_label }}">Anbieter-Name</label>{{ form.anbietername }}</div>
+    <div class="bk-field"><label for="{{ form.website.id_for_label }}">Website</label>{{ form.website }}</div>
+    <div class="bk-field bk-check">{{ form.verifiziert }}<label for="{{ form.verifiziert.id_for_label }}">Verifiziert</label></div>
+    <div class="bk-field bk-check">{{ form.aktiv }}<label for="{{ form.aktiv.id_for_label }}">Aktiv</label></div>
+</div>
+{% if form.non_field_errors %}<div class="bk-errs">{{ form.non_field_errors }}</div>{% endif %}

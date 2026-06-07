@@ -1,0 +1,26 @@
+{% extends 'djangobase/base.html' %}
+
+{% block title_extra %} · Benutzer bearbeiten{% endblock %}
+{% block topbar_title %}<i class="bi bi-pencil-square"></i> Benutzer bearbeiten{% endblock %}
+{% block topbar_actions %}
+<a href="{% url 'djangobase:benutzer' %}" class="btn btn-sm btn-outline-light"><i class="bi bi-arrow-left"></i> Zurück</a>
+{% endblock %}
+
+{% block content %}
+{% include "djangobase/hilfe/_benutzer_css.html" %}
+<div class="bk-page bk-formpage">
+    <form class="bk-formcard" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <h3 style="margin:0 0 1rem;color:#e9f0f8;font-size:1.05rem;">
+            <i class="bi bi-person-gear"></i>
+            {{ ziel.get_full_name|default:ziel.username }}
+            <small style="color:#7f97b3;font-weight:400;">@{{ ziel.username }}</small>
+        </h3>
+        {% include "djangobase/hilfe/_benutzer_felder.html" %}
+        <div class="bk-formactions">
+            <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-check-lg"></i> Speichern</button>
+            <a href="{% url 'djangobase:benutzer' %}" class="btn btn-outline-light btn-sm">Abbrechen</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

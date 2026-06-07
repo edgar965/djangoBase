@@ -27,4 +27,5 @@ def djangobase(request):
         "einstellungen_menu": c["einstellungen_menu"],
         "hilfe_menu": c["hilfe_menu"],
         "einstellungen_extra": c["einstellungen_extra"],
+        "benutzer_verwaltung": c["benutzer_verwaltung"],
     }}

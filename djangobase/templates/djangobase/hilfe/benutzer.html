@@ -1,0 +1,69 @@
+{% extends 'djangobase/base.html' %}
+
+{% block title_extra %} · Einstellungen · Benutzer{% endblock %}
+{% block topbar_title %}<i class="bi bi-people"></i> Einstellungen · Benutzer{% endblock %}
+
+{% block content %}
+{% include "djangobase/hilfe/_benutzer_css.html" %}
+<div class="bk-page">
+
+    <div class="bk-toolbar">
+        <ul class="nav bk-tabs" role="tablist">
+            <li><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-provider" type="button">
+                <i class="bi bi-stars"></i> Provider <span class="bk-count">{{ provider|length }}</span>
+            </button></li>
+            <li><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-teilnehmer" type="button">
+                <i class="bi bi-person"></i> Teilnehmer <span class="bk-count">{{ teilnehmer|length }}</span>
+            </button></li>
+            <li><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-django" type="button">
+                <i class="bi bi-shield-lock"></i> Django-Nutzer <span class="bk-count">{{ django_nutzer|length }}</span>
+            </button></li>
+        </ul>
+        <div class="bk-add">
+            <button type="button" class="btn-bk-add" data-bs-toggle="modal" data-bs-target="#addModal">
+                <i class="bi bi-plus-lg"></i> Hinzufügen
+            </button>
+        </div>
+    </div>
+
+    <div class="tab-content">
+        <div class="tab-pane fade show active" id="tab-provider" role="tabpanel">
+            {% include "djangobase/hilfe/_benutzer_tabelle.html" with zeilen=provider %}
+        </div>
+        <div class="tab-pane fade" id="tab-teilnehmer" role="tabpanel">
+            {% include "djangobase/hilfe/_benutzer_tabelle.html" with zeilen=teilnehmer %}
+        </div>
+        <div class="tab-pane fade" id="tab-django" role="tabpanel">
+            {% include "djangobase/hilfe/_benutzer_tabelle.html" with zeilen=django_nutzer %}
+        </div>
+    </div>
+</div>
+
+{# ---- Modal: Benutzer hinzufügen ---- #}
+<div class="modal fade bk-modal" id="addModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <form class="modal-content" method="post" action="{% url 'djangobase:benutzer_neu' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-person-plus"></i> Neuen Benutzer anlegen</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Schließen"></button>
+            </div>
+            <div class="modal-body">
+                {% include "djangobase/hilfe/_benutzer_felder.html" %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-light btn-sm" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-check-lg"></i> Anlegen</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block body_scripts %}{{ block.super }}
+{% if modal_offen %}
+<script>document.addEventListener('DOMContentLoaded',function(){
+    try{ new bootstrap.Modal(document.getElementById('addModal')).show(); }catch(e){}
+});</script>
+{% endif %}
+{% endblock %}

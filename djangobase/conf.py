@@ -34,6 +34,10 @@ DEFAULTS = {
     # hierueber pro Gruppe ein-/ausblenden.
     "einstellungen_menu": True,
     "hilfe_menu": True,
+    # Eingebaute Benutzer-Verwaltung (Teilnehmer/Provider) als Unterpunkt der
+    # Einstellungen-Gruppe. Erscheint in jedem Projekt; benötigt einmalig
+    # `migrate djangobase`.
+    "benutzer_verwaltung": True,
     # Zusätzliche, projektspezifische Unterpunkte in der Einstellungen-Gruppe
     # (z. B. eine Benutzer-Verwaltung des Projekts). Liste von Dicts:
     #   {"label": "Benutzer", "url": "/benutzer/", "icon": "bi-people",
