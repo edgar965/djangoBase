@@ -85,3 +85,38 @@ class BenutzerForm(forms.Form):
             profil.avatar = d["avatar"]
         profil.save()
         return user
+
+
+class RollenSignupForm(forms.Form):
+    """Zusatzfelder für die django-allauth-Registrierung: Vor-/Nachname + Rolle.
+
+    Einbindung im Projekt:
+        ACCOUNT_SIGNUP_FORM_CLASS = "djangobase.forms.RollenSignupForm"
+
+    allauth mischt die Felder ins Signup-Formular und ruft nach dem Anlegen des
+    Users `signup(request, user)` auf. Nutzer -> Teilnehmer (vom Signal),
+    Provider -> Beförderung zu Provider via als_provider().
+    """
+    SIGNUP_ROLLEN = [
+        ("nutzer", "Nutzer – Konto für Besucher"),
+        ("anbieter", "Provider – eigene Einträge/Angebote anbieten"),
+    ]
+
+    vorname = forms.CharField(label="Vorname", max_length=150, required=False)
+    name = forms.CharField(label="Name", max_length=150, required=False)
+    rolle = forms.ChoiceField(
+        label="Ich registriere mich als …", choices=SIGNUP_ROLLEN,
+        initial="nutzer", widget=forms.RadioSelect,
+    )
+    anbietername = forms.CharField(
+        label="Anbieter-Name (nur als Provider)", max_length=200, required=False,
+    )
+
+    def signup(self, request, user):
+        user.first_name = self.cleaned_data.get("vorname", "")
+        user.last_name = self.cleaned_data.get("name", "")
+        user.save()
+        # Das djangoBase-Signal hat bereits ein Teilnehmer-Profil angelegt.
+        if self.cleaned_data.get("rolle") == "anbieter":
+            als_provider(user, anbietername=self.cleaned_data.get("anbietername", ""))
+        return user

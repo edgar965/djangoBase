@@ -1,0 +1,8 @@
+{% load i18n %}{% autoescape off %}Hallo,
+
+{% block content %}{% endblock content %}
+
+Viele Grüße
+{{ current_site.name }}
+{{ current_site.domain }}
+{% endautoescape %}

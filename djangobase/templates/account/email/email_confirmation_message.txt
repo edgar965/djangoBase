@@ -1,0 +1,11 @@
+{% extends "account/email/base_message.txt" %}
+{% load account %}
+{% block content %}{% autoescape off %}{% user_display user as user_display %}du erhältst diese E-Mail, weil mit dieser Adresse ein Konto bei {{ current_site.domain }} registriert wurde.
+
+{% if code %}Dein Bestätigungscode lautet:
+
+{{ code }}
+
+Bitte gib ihn im geöffneten Browserfenster ein.{% else %}Bitte bestätige deine Adresse, indem du den folgenden Link öffnest:
+
+{{ activate_url }}{% endif %}{% endautoescape %}{% endblock content %}

@@ -1,0 +1,67 @@
+{% load i18n %}
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block head_title %}{% endblock head_title %} · {{ djangobase.titel }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --db-accent: {{ djangobase.farben.sidebar_bg|default:'#003153' }};
+                --db-accent-dark: {{ djangobase.farben.sidebar_dark|default:'#001f3f' }}; }
+        * { box-sizing: border-box; }
+        body { margin: 0; min-height: 100vh; display: flex; flex-direction: column;
+            font-family: 'Inter', system-ui, sans-serif; color: #1c1c28; background: #f4f5f9; }
+        .db-auth-header { background: var(--db-accent); color: #fff; padding: .9rem 1.5rem;
+            display: flex; align-items: center; justify-content: space-between; }
+        .db-auth-header .brand { font-weight: 800; font-size: 1.1rem; color: #fff; text-decoration: none; }
+        .db-auth-header a.back { color: #fff; opacity: .85; text-decoration: none; font-size: .9rem; }
+        .db-auth-main { flex: 1; display: flex; align-items: flex-start; justify-content: center; padding: 3rem 1rem; }
+        .db-auth-card { width: 100%; max-width: 480px; background: #fff; border: 1px solid #e6e6ee;
+            border-radius: 16px; box-shadow: 0 10px 34px rgba(20,20,50,.09); padding: 2.1rem 2.1rem 1.7rem; }
+        .db-auth-card h1 { margin: 0 0 .5rem; font-size: 1.55rem; color: var(--db-accent-dark); }
+        .db-auth-card > p:first-of-type { color: #6b6b7b; margin: 0 0 1.4rem; font-size: .95rem; }
+        .db-auth-card form p { margin: 0 0 1rem; }
+        .db-auth-card label { display: block; font-weight: 600; font-size: .9rem; margin-bottom: .32rem; color: #2a2a3a; }
+        .db-auth-card input[type=text], .db-auth-card input[type=email], .db-auth-card input[type=password],
+        .db-auth-card input:not([type]) {
+            width: 100%; padding: .62rem .72rem; border: 1px solid #cfcfe0; border-radius: 9px;
+            font-size: 1rem; font-family: inherit; }
+        .db-auth-card input:focus { outline: none; border-color: var(--db-accent);
+            box-shadow: 0 0 0 3px rgba(0,73,124,.15); }
+        .db-auth-card ul { list-style: none; padding: 0; margin: .2rem 0 0; }
+        #id_rolle li { margin-bottom: .5rem; }
+        #id_rolle label { display: flex; align-items: center; gap: .55rem; font-weight: 500;
+            border: 1px solid #d7d7e6; border-radius: 10px; padding: .65rem .8rem; cursor: pointer; }
+        #id_rolle input { width: auto; margin: 0; }
+        .db-auth-card .helptext { display: block; color: #8a8a9a; font-size: .8rem; margin-top: .25rem; }
+        .db-auth-card .errorlist { color: #c0392b; font-size: .85rem; margin: 0 0 .5rem; padding: 0; }
+        .db-auth-card button[type=submit] { display: inline-block; width: 100%; padding: .72rem; margin-top: .5rem;
+            background: var(--db-accent); color: #fff; border: 0; border-radius: 9px; font-size: 1rem;
+            font-weight: 600; cursor: pointer; font-family: inherit; }
+        .db-auth-card button[type=submit]:hover { background: var(--db-accent-dark); }
+        .db-auth-card a { color: var(--db-accent); font-weight: 600; }
+        .db-msg { background: #eef4ff; border: 1px solid #cfe0ff; border-radius: 9px;
+            padding: .55rem .75rem; margin-bottom: 1rem; font-size: .9rem; }
+        .db-auth-foot { text-align: center; color: #9a9aac; font-size: .82rem; padding: 1.2rem; }
+    </style>
+    {% block extra_head %}{% endblock extra_head %}
+</head>
+<body>
+    <header class="db-auth-header">
+        <a href="/" class="brand">{{ djangobase.titel }}</a>
+        <a href="/" class="back">← Zur Website</a>
+    </header>
+    <main class="db-auth-main">
+        <div class="db-auth-card">
+            {% if messages %}
+                {% for message in messages %}<div class="db-msg">{{ message }}</div>{% endfor %}
+            {% endif %}
+            {% block content %}{% endblock content %}
+        </div>
+    </main>
+    <footer class="db-auth-foot">&copy; {% now "Y" %} {{ djangobase.titel }}</footer>
+    {% block extra_body %}{% endblock extra_body %}
+</body>
+</html>
