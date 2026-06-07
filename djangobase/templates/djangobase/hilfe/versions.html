@@ -3,14 +3,20 @@
 {% block title_extra %} · Versionen{% endblock %}
 {% block topbar_title %}<i class="bi bi-clock-history"></i> Hilfe · Versionen{% endblock %}
 {% block topbar_actions %}
-<a href="?refresh=1" class="btn btn-sm btn-outline-light"><i class="bi bi-arrow-clockwise"></i> Neu laden</a>
+<a href="?refresh=1" class="btn btn-sm btn-outline-light"><i class="bi bi-arrow-clockwise"></i> Aus GitHub neu laden</a>
 {% endblock %}
 
 {% block content %}
-<div class="ver-page">
+<div class="vw">
+    <header class="vw-h"><h1><i class="bi bi-tag-fill"></i> Versionen</h1></header>
+
+    <p class="vw-meta">
+        Aktuell installiert: <code>v{{ current_version|default:"-" }}</code>.
+        Daten aus GitHub-API via <code>gh</code> (Cache 5 min).
+    </p>
+
     <div class="ver-card">
-        <h3><i class="bi bi-box-seam"></i> Umgebung &amp; Pakete{% if current_version %}
-            <span class="ver-badge cur">App {{ current_version }}</span>{% endif %}</h3>
+        <h3><i class="bi bi-box-seam"></i> Umgebung &amp; Pakete</h3>
         <table class="ver-pakete">
             {% for name, v in pakete %}
             <tr><td>{{ name }}</td><td><code>{{ v }}</code></td></tr>
@@ -19,53 +25,105 @@
     </div>
 
     {% for repo in repos %}
-    <div class="ver-card">
-        <h3><i class="bi bi-git"></i> {{ repo.name }}
-            {% if repo.gh_url %}<a href="{{ repo.gh_url }}" target="_blank" class="ver-gh">{{ repo.gh_repo }} <i class="bi bi-box-arrow-up-right"></i></a>{% endif %}
-            {% if repo.head_sha %}<span class="ver-badge">HEAD {{ repo.head_sha }}</span>{% endif %}
-            {% if repo.uncommitted %}<span class="ver-badge dirty">{{ repo.uncommitted }} ungespeichert</span>{% endif %}
-        </h3>
-        <div class="ver-commits">
+        <h2 class="vw-repo">
+            <i class="bi bi-git"></i> {{ repo.name }}
+            {% if repo.gh_url %}<a class="vw-gh" href="{{ repo.gh_url }}" target="_blank" rel="noopener">{{ repo.gh_repo }} <i class="bi bi-box-arrow-up-right"></i></a>{% endif %}
+            {% if repo.head_sha %}<span class="vw-badge {% if repo.local_in_remote %}ok{% else %}warn{% endif %}" title="{% if repo.local_in_remote %}HEAD ist auf GitHub{% else %}HEAD lokal noch nicht gepushed{% endif %}">HEAD {{ repo.head_sha }}{% if not repo.local_in_remote %} · ungepushed{% endif %}</span>{% endif %}
+            {% if repo.uncommitted %}<span class="vw-badge dirty">{{ repo.uncommitted }} ungespeichert</span>{% endif %}
+        </h2>
+
+        {% if repo.tags %}
+        <p class="vw-meta vw-tags">
+            <strong>Tags / Releases:</strong>
+            {% for t in repo.tags %}
+                <a class="vw-tag" href="{{ repo.gh_url }}/releases/tag/{{ t.name }}" target="_blank" rel="noopener">{{ t.name }}</a>
+            {% endfor %}
+        </p>
+        {% endif %}
+
+        <div class="vw-list">
             {% for c in repo.commits %}
-            <div class="ver-commit {% if c.is_release %}is-release{% endif %}">
-                <div class="ver-commit-head">
-                    {% if c.version_label %}<span class="ver-badge rel">{{ c.version_label }}</span>{% endif %}
-                    <span class="ver-title">{{ c.title }}</span>
-                    <span class="ver-meta">{{ c.date }} · {{ c.author }} · <code>{{ c.sha }}</code></span>
+            <article class="vw-entry
+                {% if c.is_release %}vw-entry-release{% endif %}
+                {% if c.is_current %}vw-entry-current{% endif %}
+                {% if c.is_unreleased %}vw-entry-dev{% endif %}">
+                <aside class="vw-left">
+                    <div class="vw-version
+                        {% if not c.is_release %}vw-version-inherited{% endif %}
+                        {% if c.is_unreleased %}vw-version-dev{% endif %}">
+                        {{ c.effective_version }}
+                    </div>
+                    {% if c.is_release %}<span class="vw-pill vw-pill-release">Release</span>{% endif %}
+                    {% if c.is_current %}<span class="vw-pill vw-pill-active">aktuell</span>{% endif %}
+                    <a class="vw-sha" href="{{ c.url }}" target="_blank" rel="noopener" title="{{ c.author }}">{{ c.sha }}</a>
+                    <div class="vw-date">{{ c.date }}</div>
+                </aside>
+                <div class="vw-right">
+                    <h2>{{ c.title }}</h2>
+                    {% if c.body %}<div class="vw-body">{{ c.body_html|safe }}</div>{% endif %}
                 </div>
-                {% if c.body_html %}<div class="ver-body">{{ c.body_html|safe }}</div>{% endif %}
-            </div>
-            {% empty %}<p class="ver-empty">Keine Commits gefunden (kein Git/gh konfiguriert oder Repo nicht vorhanden).</p>{% endfor %}
+            </article>
+            {% empty %}
+            <p class="vw-empty">Keine Commits geladen — GitHub-API nicht erreichbar oder Repo privat ohne <code>gh auth</code>.</p>
+            {% endfor %}
         </div>
-    </div>
     {% empty %}
-    <div class="ver-card"><p class="ver-empty">Keine Repositories konfiguriert.
-        Setze <code>DJANGOBASE["repos"] = [("Name", "owner/repo", ".")]</code> in den Settings,
-        um den Changelog (via <code>gh</code>/<code>git</code>) anzuzeigen.</p></div>
+    <p class="vw-empty">Keine Repositories konfiguriert. Setze <code>DJANGOBASE["repos"] = [("Name", "owner/repo", ".")]</code>.</p>
     {% endfor %}
 </div>
 
 <style>
-.ver-page { padding: 1.25rem 1.5rem 4rem; max-width: 1000px; }
-.ver-card { background: #142136; border: 1px solid #1e3a5f; border-radius: 10px; padding: 16px 20px; margin-bottom: 18px; }
-.ver-card h3 { color: #e9f0f8; font-size: 1.05rem; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.ver-card h3 i { color: #4ea8f6; }
-.ver-gh { color: #79c0ff; font-size: .82rem; text-decoration: none; font-weight: 500; }
-.ver-pakete { width: auto; }
-.ver-pakete td { padding: 3px 18px 3px 0; color: #cdddf0; font-size: .9rem; }
-.ver-pakete code, .ver-meta code, .ver-card code { background: #0d1117; color: #a5d6ff; padding: 1px 6px; border-radius: 4px; font-size: .82rem; }
-.ver-badge { background: #1e3a5f; color: #cfe0f4; border-radius: 6px; padding: 2px 9px; font-size: .74rem; font-weight: 600; }
-.ver-badge.cur { background: #1e5bb8; color: #fff; }
-.ver-badge.rel { background: #15803d; color: #fff; }
-.ver-badge.dirty { background: #b45309; color: #fff; }
-.ver-commit { border-left: 3px solid #1e3a5f; padding: 8px 0 8px 14px; margin-bottom: 4px; }
-.ver-commit.is-release { border-left-color: #15803d; }
-.ver-commit-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
-.ver-title { color: #e9f0f8; font-weight: 600; }
-.ver-meta { color: #8aa0b8; font-size: .8rem; }
-.ver-body { color: #b9c6d6; font-size: .88rem; margin-top: 4px; }
-.ver-body ul { margin: 4px 0 4px 18px; } .ver-body p { margin: 4px 0; }
-.ver-body strong { color: #e9f0f8; }
-.ver-empty { color: #8aa0b8; font-style: italic; }
+.vw { padding: 0.8rem 1.4rem 2.5rem; color: #d8dee9; background: #0c1421; font-size: 0.92rem; line-height: 1.35; max-width: 1500px; min-height: 100vh; }
+.vw-h h1 { margin: 0 0 0.6rem; font-size: 1.6rem; font-weight: 600; color: #d8dee9; }
+.vw-h h1 i { color: #4ad9c2; margin-right: 0.4rem; }
+.vw-meta { color: #8b94a3; font-size: 0.95rem; margin: 0 0 0.6rem; line-height: 1.5; }
+.vw-meta code { background: #1a2433; padding: 0.1rem 0.5rem; border-radius: 4px; color: #4ad9c2; font-size: 0.92em; }
+.vw-meta strong { color: #b0bac7; }
+.vw-tags { margin-bottom: 1.6rem; }
+.vw-tag { display: inline-block; margin: 0 0.25rem; background: rgba(74,217,194,0.12); color: #4ad9c2; padding: 0.1rem 0.55rem; border-radius: 4px; font-family: ui-monospace, monospace; font-size: 0.88rem; text-decoration: none; border: 1px solid rgba(74,217,194,0.25); }
+.vw-tag:hover { background: rgba(74,217,194,0.25); }
+.vw-repo { color: #e9f0f8; font-size: 1.1rem; margin: 1.8rem 0 0.6rem; display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.vw-repo i { color: #4ad9c2; }
+.vw-gh { color: #79c0ff; font-size: .82rem; text-decoration: none; font-weight: 500; }
+.vw-badge { background: #1e3a5f; color: #cfe0f4; border-radius: 6px; padding: 2px 9px; font-size: .74rem; font-weight: 600; }
+.vw-badge.ok { background: #15803d; color: #fff; }
+.vw-badge.warn { background: #b45309; color: #fff; }
+.vw-badge.dirty { background: #b91c1c; color: #fff; }
+
+.ver-card { background: #142136; border: 1px solid #1e3a5f; border-radius: 10px; padding: 14px 18px; margin-bottom: 18px; }
+.ver-card h3 { color: #e9f0f8; font-size: 1.0rem; margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
+.ver-card h3 i { color: #4ad9c2; }
+.ver-pakete td { padding: 2px 18px 2px 0; color: #cdddf0; font-size: .9rem; }
+.ver-pakete code { background: #0d1117; color: #a5d6ff; padding: 1px 6px; border-radius: 4px; font-size: .82rem; }
+
+.vw-list { margin-top: 0.3rem; }
+.vw-entry { display: grid; grid-template-columns: 110px 1fr; gap: 1.1rem; padding: 0.7rem 0; border-top: 1px solid #1a2433; }
+.vw-entry:first-child { border-top: 0; padding-top: 0.3rem; }
+.vw-entry-release { background: rgba(74,217,194,0.025); }
+.vw-entry-current { background: linear-gradient(90deg, rgba(74,217,194,0.10) 0%, rgba(74,217,194,0.02) 60%, transparent 100%); border-left: 3px solid #4ad9c2; padding-left: 1rem; border-radius: 4px; }
+.vw-left { text-align: left; padding-top: 0.05rem; }
+.vw-version { font-size: 1.4rem; font-weight: 700; color: #4ad9c2; line-height: 1.0; letter-spacing: -0.02em; font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; }
+.vw-version-inherited { font-size: 0.95rem; font-weight: 500; color: #6b7891; opacity: 0.85; }
+.vw-version-dev { color: #b8a14a; }
+.vw-pill { display: inline-block; margin-top: 0.5rem; margin-right: 0.25rem; font-size: 0.7rem; font-weight: 600; padding: 0.18rem 0.7rem; border-radius: 999px; background: rgba(74,217,194,0.2); color: #4ad9c2; border: 1px solid rgba(74,217,194,0.5); text-transform: uppercase; letter-spacing: 0.04em; }
+.vw-pill-release { background: rgba(74,217,194,0.12); }
+.vw-sha { display: inline-block; margin-top: 0.55rem; font-family: ui-monospace, monospace; font-size: 0.78rem; color: #6b7891; text-decoration: none; background: #1a2433; padding: 0.12rem 0.5rem; border-radius: 3px; }
+.vw-sha:hover { color: #4ad9c2; }
+.vw-date { font-size: 0.82rem; color: #6b7891; margin-top: 0.4rem; font-family: ui-monospace, monospace; }
+.vw-right { min-width: 0; }
+.vw-right h2 { margin: 0 0 0.25rem; color: #d8dee9; font-weight: 600; font-size: 0.98rem; line-height: 1.25; }
+.vw-entry-release .vw-right h2 { color: #4ad9c2; }
+.vw-body { padding-left: 0; }
+.vw-body ul { list-style: none; padding-left: 0; margin: 0.15rem 0; }
+.vw-body ul li { position: relative; padding-left: 1.1rem; margin: 0.12rem 0; color: #d8dee9; line-height: 1.35; }
+.vw-body ul li::before { content: '•'; position: absolute; left: 0.2rem; top: 0; color: #4ad9c2; font-size: 1rem; line-height: 1.5; }
+.vw-body ul ul { margin: 0.1rem 0 0.1rem 0.4rem; }
+.vw-body ul ul li::before { content: '◦'; color: #6b7891; }
+.vw-body strong { color: #4ad9c2; font-weight: 600; }
+.vw-body code { background: #1a2433; padding: 0.1rem 0.45rem; border-radius: 3px; color: #9ec5d8; font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; font-size: 0.9em; }
+.vw-body p { margin: 0.2rem 0; }
+.vw-body h3 { color: #b0bac7; font-size: 0.85rem; margin: 0.4rem 0 0.1rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+.vw-empty { color: #8b94a3; font-style: italic; padding: 1rem 0; }
+@media (max-width: 760px) { .vw-entry { grid-template-columns: 90px 1fr; gap: 1rem; } .vw-version { font-size: 1.5rem; } }
 </style>
 {% endblock %}

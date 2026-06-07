@@ -38,6 +38,9 @@
                         <option value="{{ slug }}" {% if slug == feld.wert %}selected{% endif %}>{{ label }}</option>
                         {% endfor %}
                     </select>
+                {% elif feld.typ == 'csv' %}
+                    <input type="text" name="{{ feld.key }}" id="f-{{ feld.key }}" value="{{ feld.wert }}"
+                           placeholder="Komma-getrennte Werte" class="set-input-wide">
                 {% else %}
                     <input type="text" name="{{ feld.key }}" id="f-{{ feld.key }}" value="{{ feld.wert }}">
                 {% endif %}
@@ -72,6 +75,10 @@
 .set-input input[type=text], .set-input input[type=number], .set-input select {
     width: 100%; max-width: 320px; background: #0d1117; color: #e9f0f8;
     border: 1px solid #2a466e; border-radius: 6px; padding: 6px 10px; font-size: .9rem; }
+.set-input input.set-input-wide { max-width: 560px; font-family: ui-monospace, Consolas, monospace; font-size: .85rem; }
+/* Lange Felder (dotted Paths, CSV) brauchen mehr Platz und Monospace fuer Lesbarkeit. */
+.set-row { flex-wrap: wrap; }
+.set-label { min-width: 280px; }
 .set-input input[type=color] { width: 48px; height: 32px; padding: 0; border: 1px solid #2a466e;
     border-radius: 6px; background: #0d1117; cursor: pointer; }
 .set-colorval { background: #0d1117; color: #a5d6ff; padding: 2px 8px; border-radius: 4px; font-size: .82rem; }

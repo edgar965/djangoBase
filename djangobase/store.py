@@ -21,6 +21,7 @@ from django.conf import settings
 #   "text"  -> Textfeld          "bool"  -> Checkbox
 #   "int"   -> Zahlfeld          "color" -> Farbwaehler (-> farben.<key>)
 #   "theme" -> Auswahl aus theme_modes (Fallback: Textfeld)
+#   "csv"   -> Textfeld, im JSON als Liste gespeichert (Komma-getrennt)
 GRUPPEN = {
     "website": {
         "label": "Website",
@@ -37,8 +38,9 @@ GRUPPEN = {
         "label": "djangoBase",
         "icon": "bi-gear",
         "titel": "Einstellungen · djangoBase",
-        "beschreibung": "Layout: Farben, Theme, Splitter und Meldungen.",
+        "beschreibung": "Alle Layout-, Hilfe- und Versionen-Optionen von djangoBase auf einen Blick.",
         "felder": [
+            # --- Layout / Optik ---
             ("sidebar_bg", "color", "Sidebar-Hintergrund"),
             ("sidebar_light", "color", "Sidebar-Akzent (hell)"),
             ("sidebar_dark", "color", "Topbar / dunkel"),
@@ -48,6 +50,21 @@ GRUPPEN = {
             ("sidebar_min", "int", "Sidebar-Mindestbreite (px)"),
             ("sidebar_max", "int", "Sidebar-Maximalbreite (px)"),
             ("toast_stack", "bool", "Toast-Meldungen anzeigen"),
+            # --- Navigation / Menue ---
+            ("einstellungen_menu", "bool",
+             "Menue-Gruppe 'Einstellungen' im djangoBase-Nav-Block einblenden"),
+            ("hilfe_menu", "bool",
+             "Menue-Gruppe 'Hilfe' im djangoBase-Nav-Block einblenden"),
+            # --- Versionen-Seite ---
+            ("version_commits_per_page", "int",
+             "Versionen-Seite: Commits pro Repo aus GitHub holen"),
+            ("commit_text_transform", "text",
+             "Versionen-Seite: optionaler Body-Transform (dotted Path, z. B. "
+             "search.utils.umlauts.restore_umlauts) — wird auf Commit-Subject/Body angewendet"),
+            # --- Logs-Seite ---
+            ("log_noisy_sources", "csv",
+             "Logs-Seite: Quell-Keys, die in 'Alle Quellen' uebersprungen werden "
+             "(Komma-getrennt, z. B. mail_import, pst_worker)"),
         ],
     },
 }

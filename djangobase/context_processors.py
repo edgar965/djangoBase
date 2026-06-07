@@ -26,4 +26,5 @@ def djangobase(request):
         "sidebar_max": c["sidebar_max"],
         "einstellungen_menu": c["einstellungen_menu"],
         "hilfe_menu": c["hilfe_menu"],
+        "einstellungen_extra": c["einstellungen_extra"],
     }}

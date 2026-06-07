@@ -13,7 +13,6 @@ from django.views import View
 from ..conf import conf
 from ..mixins import ZugriffMixin
 
-_NOISY_SOURCES: set[str] = set()
 _PROGRESS_RE = re.compile(r"\[#+-+\]\s+\d+/\d+")
 _TS_RE = re.compile(r"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:[,\.]\d+)?)\s*(.*)$")
 _DEFAULT_SOURCE = "all"
@@ -94,10 +93,17 @@ def _parse_blocks(lines: list[str], src_key: str) -> list[dict]:
     return out
 
 
-def _collect_all(log_dir: Path, sources: list, max_per_source: int) -> list[dict]:
+def _collect_all(log_dir: Path, sources: list, max_per_source: int,
+                  noisy: set[str] | None = None) -> list[dict]:
+    """Tailt alle Quellen und sortiert chronologisch absteigend.
+    `noisy` (DJANGOBASE['log_noisy_sources']): Source-Keys, die in der
+    'all'-Sicht uebersprungen werden — fuer extrem schreibwuetige Worker
+    (z.B. PST-Import) deren Rauschen kein Progress-Bar-Filter abfaengt.
+    """
+    skip = noisy or set()
     blocks: list[dict] = []
     for key, _label, out_name, err_name in sources:
-        if key == "all" or key in _NOISY_SOURCES:
+        if key == "all" or key in skip:
             continue
         for fname in (out_name, err_name):
             if not fname:
@@ -107,8 +113,8 @@ def _collect_all(log_dir: Path, sources: list, max_per_source: int) -> list[dict
     return blocks
 
 
-def _collect_exceptions(log_dir, sources, max_per_source) -> list[dict]:
-    blocks = _collect_all(log_dir, sources, max_per_source)
+def _collect_exceptions(log_dir, sources, max_per_source, noisy=None) -> list[dict]:
+    blocks = _collect_all(log_dir, sources, max_per_source, noisy=noisy)
     return [b for b in blocks if b["cls"] in ("lg-err", "lg-trace")
             or "Traceback" in b["content"] or "[ERROR]" in b["content"]
             or "[CRITICAL]" in b["content"]]
@@ -144,9 +150,10 @@ class LogsView(ZugriffMixin, View):
             source_key = _DEFAULT_SOURCE if _DEFAULT_SOURCE in sources_map else (log_sources[0][0] if log_sources else "all")
         _key, label, out_name, err_name = sources_map.get(source_key, (source_key, source_key, None, None))
 
+        noisy = set(c.get("log_noisy_sources") or [])
         if source_key == "all":
-            all_records = _collect_all(log_dir, log_sources, max_lines)[:max_lines]
-            exception_records = _collect_exceptions(log_dir, log_sources, max(max_lines, 2000))
+            all_records = _collect_all(log_dir, log_sources, max_lines, noisy=noisy)[:max_lines]
+            exception_records = _collect_exceptions(log_dir, log_sources, max(max_lines, 2000), noisy=noisy)
             out_stat = err_stat = None
         else:
             out_path = log_dir / out_name if out_name else None

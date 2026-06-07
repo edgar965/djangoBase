@@ -34,6 +34,12 @@ DEFAULTS = {
     # hierueber pro Gruppe ein-/ausblenden.
     "einstellungen_menu": True,
     "hilfe_menu": True,
+    # Zusätzliche, projektspezifische Unterpunkte in der Einstellungen-Gruppe
+    # (z. B. eine Benutzer-Verwaltung des Projekts). Liste von Dicts:
+    #   {"label": "Benutzer", "url": "/benutzer/", "icon": "bi-people",
+    #    "aktiv": "einstellungen_benutzer"}
+    # 'aktiv' (optional) wird mit der Template-Variable `aktiv` verglichen.
+    "einstellungen_extra": [],
     # Zugriff: "staff" | "login" | "none"
     "zugriff": "staff",
     # ----- Layout-Erweiterungen (von Apps konsumiert) ----------------------
@@ -66,6 +72,19 @@ DEFAULTS = {
     # Pfad der JSON-Datei mit Laufzeit-Overrides (Einstellungen-Seite).
     # None -> BASE_DIR/.djangobase.json
     "settings_speicher": None,
+    # ----- Versionen-Seite (erweitert) ------------------------------------
+    # Optionaler Body-Transform fuer Commit-Subjects/Bodies. Dotted Path
+    # zu einer Callable str -> str. Wird auf subject + title + body
+    # angewendet — z.B. Umlaut-Restore fuer alte Commits ohne Umlaute.
+    "commit_text_transform": None,  # "search.utils.umlauts.restore_umlauts"
+    # Wie viele Commits pro Repo aus GitHub holen.
+    "version_commits_per_page": 100,
+    # ----- Logs-Seite (erweitert) -----------------------------------------
+    # Source-Keys die in "all"-Mode komplett uebersprungen werden — fuer
+    # spammige Quellen, deren _PROGRESS_RE-Filter nicht reicht (z.B.
+    # PST-Import-Worker, der auch ohne Progress-Bar Zigtausend Zeilen
+    # pro Minute schreiben kann).
+    "log_noisy_sources": [],        # ["mail_import", ...]
 }
 
 

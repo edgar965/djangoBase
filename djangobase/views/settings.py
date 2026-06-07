@@ -57,6 +57,9 @@ class EinstellungenView(ZugriffMixin, View):
                     werte[key] = int(roh)
                 except ValueError:
                     continue  # leer/ungueltig -> Settings-Default behalten
+            elif typ == "csv":
+                # Komma-getrennt -> Liste; leer -> []; whitespace trimmen.
+                werte[key] = [s.strip() for s in roh.split(",") if s.strip()]
             else:
                 werte[key] = roh
         speichern_gruppe(self.gruppe, werte)
@@ -64,9 +67,12 @@ class EinstellungenView(ZugriffMixin, View):
         return redirect(request.path)
 
     def _felder(self, c, gruppe):
-        """Aktuelle (effektive) Werte je Feld der Gruppe fuer das Formular."""
+        """Aktuelle (effektive) Werte je Feld der Gruppe fuer das Formular.
+        CSV-Typ: Liste wird fuer die Anzeige zu 'a, b, c' zusammengefuegt."""
         felder = []
         for key, typ, label in GRUPPEN[gruppe]["felder"]:
             wert = c["farben"].get(key, "") if key in FARB_KEYS else c.get(key, "")
+            if typ == "csv" and isinstance(wert, (list, tuple)):
+                wert = ", ".join(str(x) for x in wert)
             felder.append({"key": key, "typ": typ, "label": label, "wert": wert})
         return felder
