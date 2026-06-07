@@ -22,6 +22,7 @@ from django.conf import settings
 #   "int"   -> Zahlfeld          "color" -> Farbwaehler (-> farben.<key>)
 #   "theme" -> Auswahl aus theme_modes (Fallback: Textfeld)
 #   "csv"   -> Textfeld, im JSON als Liste gespeichert (Komma-getrennt)
+#   "password" -> Passwort-Eingabefeld (Wert wird als Text gespeichert)
 GRUPPEN = {
     "website": {
         "label": "Website",
@@ -65,6 +66,22 @@ GRUPPEN = {
             ("log_noisy_sources", "csv",
              "Logs-Seite: Quell-Keys, die in 'Alle Quellen' uebersprungen werden "
              "(Komma-getrennt, z. B. mail_import, pst_worker)"),
+        ],
+    },
+    "email": {
+        "label": "E-Mail",
+        "icon": "bi-envelope",
+        "titel": "Einstellungen · E-Mail",
+        "beschreibung": "SMTP-Versand für Bestätigungs- und System-Mails. "
+                        "Wird vom djangoBase-E-Mail-Backend zur Laufzeit verwendet.",
+        "felder": [
+            ("email_host", "text", "SMTP-Server (Host)"),
+            ("email_port", "int", "Port (587 = STARTTLS, 465 = SSL)"),
+            ("email_host_user", "text", "Benutzer"),
+            ("email_host_password", "password", "Passwort"),
+            ("email_use_tls", "bool", "STARTTLS verwenden (Port 587)"),
+            ("email_use_ssl", "bool", "SSL verwenden (Port 465)"),
+            ("email_from", "text", "Absender-Adresse (From)"),
         ],
     },
 }

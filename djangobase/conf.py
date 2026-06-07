@@ -90,6 +90,14 @@ DEFAULTS = {
     # PST-Import-Worker, der auch ohne Progress-Bar Zigtausend Zeilen
     # pro Minute schreiben kann).
     "log_noisy_sources": [],        # ["mail_import", ...]
+    # ----- E-Mail (SMTP) – vom StoreSMTPBackend gelesen --------------------
+    "email_host": "",
+    "email_port": 587,
+    "email_host_user": "",
+    "email_host_password": "",
+    "email_use_tls": True,
+    "email_use_ssl": False,
+    "email_from": "",
 }
 
 

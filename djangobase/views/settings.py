@@ -21,7 +21,8 @@ class EinstellungenView(ZugriffMixin, View):
     gruppe = "djangobase"  # via .as_view(gruppe="website") ueberschrieben
 
     def _aktiv(self):
-        return "einstellungen_website" if self.gruppe == "website" else "einstellungen"
+        # djangoBase-Gruppe -> "einstellungen"; sonst "einstellungen_<gruppe>".
+        return "einstellungen" if self.gruppe == "djangobase" else f"einstellungen_{self.gruppe}"
 
     def get(self, request):
         c = conf()

@@ -13,6 +13,7 @@ urlpatterns = [
     path("tests/", TestsView.as_view(), name="tests"),
     path("einstellungen/", EinstellungenView.as_view(gruppe="djangobase"), name="einstellungen"),
     path("einstellungen/website/", EinstellungenView.as_view(gruppe="website"), name="einstellungen_website"),
+    path("einstellungen/email/", EinstellungenView.as_view(gruppe="email"), name="einstellungen_email"),
     path("einstellungen/benutzer/", BenutzerListeView.as_view(), name="benutzer"),
     path("einstellungen/benutzer/neu/", BenutzerErstellenView.as_view(), name="benutzer_neu"),
     path("einstellungen/benutzer/<int:pk>/bearbeiten/", BenutzerBearbeitenView.as_view(), name="benutzer_bearbeiten"),

@@ -41,6 +41,9 @@
                 {% elif feld.typ == 'csv' %}
                     <input type="text" name="{{ feld.key }}" id="f-{{ feld.key }}" value="{{ feld.wert }}"
                            placeholder="Komma-getrennte Werte" class="set-input-wide">
+                {% elif feld.typ == 'password' %}
+                    <input type="password" name="{{ feld.key }}" id="f-{{ feld.key }}" value="{{ feld.wert }}"
+                           autocomplete="new-password">
                 {% else %}
                     <input type="text" name="{{ feld.key }}" id="f-{{ feld.key }}" value="{{ feld.wert }}">
                 {% endif %}

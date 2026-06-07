@@ -29,6 +29,9 @@ Die <li>-Eintraege werden in ein vorhandenes <ul class="nav"> eingehaengt.
             <li><a class="nav-link {% if aktiv == 'einstellungen_website' %}active{% endif %}" href="{% url 'djangobase:einstellungen_website' %}">
                 <i class="bi bi-globe"></i> Website
             </a></li>
+            <li><a class="nav-link {% if aktiv == 'einstellungen_email' %}active{% endif %}" href="{% url 'djangobase:einstellungen_email' %}">
+                <i class="bi bi-envelope"></i> E-Mail
+            </a></li>
             {% if djangobase.benutzer_verwaltung %}
             <li><a class="nav-link {% if aktiv == 'einstellungen_benutzer' %}active{% endif %}" href="{% url 'djangobase:benutzer' %}">
                 <i class="bi bi-people"></i> Benutzer
