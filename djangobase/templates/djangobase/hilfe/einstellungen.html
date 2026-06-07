@@ -1,7 +1,7 @@
 {% extends 'djangobase/base.html' %}
 
-{% block title_extra %} · Einstellungen{% endblock %}
-{% block topbar_title %}<i class="bi bi-sliders"></i> Hilfe · Einstellungen{% endblock %}
+{% block title_extra %} · {{ gruppe_titel }}{% endblock %}
+{% block topbar_title %}<i class="bi {{ gruppe_icon }}"></i> {{ gruppe_titel }}{% endblock %}
 
 {% block content %}
 <div class="set-page">
@@ -9,6 +9,7 @@
         {% csrf_token %}
         <p class="set-hint">
             <i class="bi bi-info-circle"></i>
+            {{ gruppe_beschreibung }}
             Diese Werte überschreiben <code>settings.DJANGOBASE</code> zur Laufzeit und werden
             als JSON-Datei gespeichert (keine Datenbank). Leere Felder behalten den Settings-Wert.
         </p>

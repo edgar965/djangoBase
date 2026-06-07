@@ -1,0 +1,41 @@
+/* djangoBase – Toast-Meldungen (aus dem Assistant portiert).
+   Markup rendert base_app.html (#toast-stack > .toast-item.toast-<tag>).
+   Klick auf einen Toast blendet ihn aus (Handler im Template). */
+
+#toast-stack {
+    position: fixed; bottom: 20px; right: 20px;
+    z-index: 10000; display: flex; flex-direction: column;
+    gap: 0.5rem; max-width: 380px;
+}
+
+.toast-item {
+    display: flex; align-items: center; gap: 0.6rem;
+    padding: 0.7rem 1rem;
+    background: #1a2940; color: #e0e8f0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-left: 4px solid #4ea8f6;
+    border-radius: 6px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+    cursor: pointer; user-select: none;
+    animation: toast-in 220ms ease-out;
+    font-size: 0.9rem;
+}
+.toast-item i { font-size: 1.1rem; flex-shrink: 0; }
+.toast-item.hide { animation: toast-out 280ms ease-in forwards; }
+
+.toast-item.toast-success { border-left-color: #5fd97a; }
+.toast-item.toast-success i { color: #5fd97a; }
+.toast-item.toast-error { border-left-color: #ff8080; }
+.toast-item.toast-error i { color: #ff8080; }
+.toast-item.toast-warning { border-left-color: #ffc107; }
+.toast-item.toast-warning i { color: #ffc107; }
+.toast-item.toast-info { border-left-color: #4ea8f6; }
+.toast-item.toast-info i { color: #4ea8f6; }
+
+@keyframes toast-in {
+    from { transform: translateX(20px); opacity: 0; }
+    to   { transform: translateX(0); opacity: 1; }
+}
+@keyframes toast-out {
+    to { transform: translateX(20px); opacity: 0; }
+}

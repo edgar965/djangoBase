@@ -1,0 +1,37 @@
+/* djangoBase – Theme-Paletten (aus dem Assistant portiert).
+   Greifen über body[data-theme="..."] und re-themen die Layout-Variablen
+   (Sidebar, Topbar, Hintergrund, Akzent). Aktiv nur, wenn das Projekt
+   DJANGOBASE["theme_modes"]/["theme_default"] setzt (sonst hat <body> kein
+   data-theme und es gelten :root/DJANGOBASE["farben"]).
+
+   Der Theme-Switcher im Topbar (base_app.html) speichert die Wahl in
+   localStorage['djangobase.theme'] und setzt body[data-theme]. */
+
+body[data-theme="dark"] {
+    --db-bg: #0d1117; --db-fg: #e0e8f0; --db-accent: #4ea8f6;
+    --sidebar-bg: #003153; --sidebar-light: #004a7c; --sidebar-dark: #001f3f;
+}
+
+body[data-theme="light"] {
+    --db-bg: #f5f7fa; --db-fg: #1a2533; --db-accent: #1976d2;
+    --sidebar-bg: #1f3a5f; --sidebar-light: #2e5a8f; --sidebar-dark: #14283f;
+    color: #1a2533;
+}
+body[data-theme="light"] .db-content { color: #1a2533; }
+
+body[data-theme="cyber"] {
+    --db-bg: #050818; --db-fg: #c8e6ff; --db-accent: #00f0ff;
+    --sidebar-bg: #06203a; --sidebar-light: #00708a; --sidebar-dark: #04101f;
+    background: linear-gradient(160deg, #050818, #0a1228);
+}
+
+body[data-theme="forest"] {
+    --db-bg: #0e1d11; --db-fg: #d8f0d8; --db-accent: #4caf50;
+    --sidebar-bg: #123d1c; --sidebar-light: #1f6b30; --sidebar-dark: #0a2613;
+}
+
+body[data-theme="sunset"] {
+    --db-bg: #1f1416; --db-fg: #ffe0d0; --db-accent: #ff7a45;
+    --sidebar-bg: #4a1d12; --sidebar-light: #8f3a1f; --sidebar-dark: #2a1410;
+    background: linear-gradient(160deg, #1f1416, #2a1a18);
+}

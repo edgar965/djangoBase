@@ -28,6 +28,12 @@ DEFAULTS = {
     "test_befehle": [],   # {"slug","name","cmd": [..]}
     # Navigation
     "menu": [],           # [{label, icon, url} | {label, icon, items:[{label, icon, url}]}]
+    # djangoBase-eigene Menue-Gruppen im Nav-Block (djangobase/_nav.html):
+    # Einstellungen (Website/djangoBase) + Hilfe. Projekte mit eigener Sidebar
+    # koennen den Block per {% include "djangobase/_nav.html" %} einhaengen und
+    # hierueber pro Gruppe ein-/ausblenden.
+    "einstellungen_menu": True,
+    "hilfe_menu": True,
     # Zugriff: "staff" | "login" | "none"
     "zugriff": "staff",
     # ----- Layout-Erweiterungen (von Apps konsumiert) ----------------------

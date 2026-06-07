@@ -1,9 +1,13 @@
 """Persistente Laufzeit-Overrides fuer einen Teil der DJANGOBASE-Optionen.
 
 Gespeichert als JSON-Datei (keine DB / keine Migration), damit das Paket in
-beliebigen Projekten ohne Schema-Aenderung funktioniert. Nur die Keys aus
-EINSTELLBAR koennen ueber die Einstellungen-Seite veraendert werden; alles
+beliebigen Projekten ohne Schema-Aenderung funktioniert. Nur Keys aus
+EINSTELLBAR koennen ueber die Einstellungen-Seiten veraendert werden; alles
 andere bleibt in settings.DJANGOBASE.
+
+Die einstellbaren Felder sind in GRUPPEN aufgeteilt — je Gruppe eine eigene
+Seite (Website / djangoBase). Beim Speichern wird nur die jeweilige Gruppe
+aktualisiert, die andere bleibt erhalten (Merge).
 
 Existiert keine JSON-Datei, verhaelt sich conf() exakt wie zuvor — bestehende
 Projekte (z. B. der Assistant) bleiben damit unveraendert.
@@ -13,26 +17,49 @@ from pathlib import Path
 
 from django.conf import settings
 
-# (key, typ, label) — typ steuert Eingabefeld + Konvertierung.
+# Feld-Definition: (key, typ, label) — typ steuert Eingabefeld + Konvertierung.
 #   "text"  -> Textfeld          "bool"  -> Checkbox
 #   "int"   -> Zahlfeld          "color" -> Farbwaehler (-> farben.<key>)
 #   "theme" -> Auswahl aus theme_modes (Fallback: Textfeld)
-EINSTELLBAR = [
-    ("titel", "text", "App-Name (Sidebar-Titel)"),
-    ("untertitel", "text", "Untertitel"),
-    ("logo_icon", "text", "Logo-Icon (Bootstrap-Icon-Klasse)"),
-    ("sidebar_bg", "color", "Sidebar-Hintergrund"),
-    ("sidebar_light", "color", "Sidebar-Akzent (hell)"),
-    ("sidebar_dark", "color", "Topbar / dunkel"),
-    ("theme_default", "theme", "Standard-Theme"),
-    ("resizable_sidebar", "bool", "Verschiebbarer Splitter (Sidebar-Breite ziehbar)"),
-    ("sidebar_default", "int", "Sidebar-Standardbreite (px)"),
-    ("sidebar_min", "int", "Sidebar-Mindestbreite (px)"),
-    ("sidebar_max", "int", "Sidebar-Maximalbreite (px)"),
-    ("toast_stack", "bool", "Toast-Meldungen anzeigen"),
-]
+GRUPPEN = {
+    "website": {
+        "label": "Website",
+        "icon": "bi-globe",
+        "titel": "Einstellungen · Website",
+        "beschreibung": "Name, Logo und Untertitel der Anwendung.",
+        "felder": [
+            ("titel", "text", "App-Name (Sidebar-Titel)"),
+            ("logo_icon", "text", "Logo-Icon (Bootstrap-Icon-Klasse, z. B. bi-grid-1x2-fill)"),
+            ("untertitel", "text", "Untertitel"),
+        ],
+    },
+    "djangobase": {
+        "label": "djangoBase",
+        "icon": "bi-gear",
+        "titel": "Einstellungen · djangoBase",
+        "beschreibung": "Layout: Farben, Theme, Splitter und Meldungen.",
+        "felder": [
+            ("sidebar_bg", "color", "Sidebar-Hintergrund"),
+            ("sidebar_light", "color", "Sidebar-Akzent (hell)"),
+            ("sidebar_dark", "color", "Topbar / dunkel"),
+            ("theme_default", "theme", "Standard-Theme"),
+            ("resizable_sidebar", "bool", "Verschiebbarer Splitter (Sidebar-Breite ziehbar)"),
+            ("sidebar_default", "int", "Sidebar-Standardbreite (px)"),
+            ("sidebar_min", "int", "Sidebar-Mindestbreite (px)"),
+            ("sidebar_max", "int", "Sidebar-Maximalbreite (px)"),
+            ("toast_stack", "bool", "Toast-Meldungen anzeigen"),
+        ],
+    },
+}
+
+# Flache Whitelist aller einstellbaren Keys (von conf() + speichern genutzt).
+EINSTELLBAR = [f for g in GRUPPEN.values() for f in g["felder"]]
 
 FARB_KEYS = {"sidebar_bg", "sidebar_light", "sidebar_dark"}
+
+
+def _gruppe_keys(slug):
+    return {k for k, _t, _l in GRUPPEN[slug]["felder"]}
 
 
 def _pfad():
@@ -52,8 +79,24 @@ def laden():
 
 
 def speichern(daten):
-    """Schreibt die Overrides (nur EINSTELLBAR-Keys) als JSON."""
+    """Schreibt die Overrides (nur EINSTELLBAR-Keys) als JSON — vollstaendig."""
     erlaubt = {k for k, _t, _l in EINSTELLBAR}
     sauber = {k: v for k, v in daten.items() if k in erlaubt}
     _pfad().write_text(json.dumps(sauber, ensure_ascii=False, indent=2),
                        encoding="utf-8")
+
+
+def speichern_gruppe(slug, werte):
+    """Aktualisiert nur die Felder der Gruppe `slug` und behaelt den Rest
+    (Merge). Keys der Gruppe, die nicht in `werte` stehen, werden entfernt
+    (-> Settings-Default greift wieder)."""
+    keys = _gruppe_keys(slug)
+    bestehend = {k: v for k, v in laden().items() if k not in keys}
+    bestehend.update({k: v for k, v in werte.items() if k in keys})
+    speichern(bestehend)
+
+
+def leeren_gruppe(slug):
+    """Entfernt nur die Overrides der Gruppe `slug`."""
+    keys = _gruppe_keys(slug)
+    speichern({k: v for k, v in laden().items() if k not in keys})

@@ -1,0 +1,56 @@
+{% comment %}Wiederverwendbarer djangoBase-Navigationsblock:
+  * Einstellungen (djangoBase / Website)
+  * Hilfe (Versionen / Logs / Tests)
+
+Wird von djangobase/_sidebar.html eingebunden. Projekte mit EIGENER Sidebar
+(z. B. der Assistant via sidebar_template-Override) koennen denselben Block per
+  {% include "djangobase/_nav.html" %}
+in ihre Sidebar einhaengen — Voraussetzung: djangobase.urls ist unter "hilfe/"
+eingebunden und der Context-Processor djangobase.context_processors.djangobase
+ist aktiv. Bootstrap (Collapse) + Bootstrap-Icons werden vorausgesetzt.
+
+Sichtbarkeit pro Gruppe ueber settings.DJANGOBASE:
+  "einstellungen_menu": True|False   (Default True)
+  "hilfe_menu":         True|False   (Default True)
+
+Die <li>-Eintraege werden in ein vorhandenes <ul class="nav"> eingehaengt.
+{% endcomment %}
+{% if djangobase.einstellungen_menu %}
+<li class="nav-item">
+    <a class="nav-link menu-toggle" data-bs-toggle="collapse" href="#einstellungenMenu">
+        <i class="bi bi-sliders"></i> Einstellungen
+        <i class="bi bi-chevron-down float-end"></i>
+    </a>
+    <div class="collapse {% if aktiv == 'einstellungen' or aktiv == 'einstellungen_website' %}show{% endif %}" id="einstellungenMenu">
+        <ul class="nav flex-column submenu">
+            <li><a class="nav-link {% if aktiv == 'einstellungen' %}active{% endif %}" href="{% url 'djangobase:einstellungen' %}">
+                <i class="bi bi-gear"></i> djangoBase
+            </a></li>
+            <li><a class="nav-link {% if aktiv == 'einstellungen_website' %}active{% endif %}" href="{% url 'djangobase:einstellungen_website' %}">
+                <i class="bi bi-globe"></i> Website
+            </a></li>
+        </ul>
+    </div>
+</li>
+{% endif %}
+{% if djangobase.hilfe_menu %}
+<li class="nav-item">
+    <a class="nav-link menu-toggle" data-bs-toggle="collapse" href="#hilfeMenu">
+        <i class="bi bi-question-circle"></i> Hilfe
+        <i class="bi bi-chevron-down float-end"></i>
+    </a>
+    <div class="collapse {% if aktiv == 'versions' or aktiv == 'logs' or aktiv == 'tests' %}show{% endif %}" id="hilfeMenu">
+        <ul class="nav flex-column submenu">
+            <li><a class="nav-link {% if aktiv == 'versions' %}active{% endif %}" href="{% url 'djangobase:versionen' %}">
+                <i class="bi bi-clock-history"></i> Versionen
+            </a></li>
+            <li><a class="nav-link {% if aktiv == 'logs' %}active{% endif %}" href="{% url 'djangobase:logs' %}">
+                <i class="bi bi-journal-text"></i> Logs
+            </a></li>
+            <li><a class="nav-link {% if aktiv == 'tests' %}active{% endif %}" href="{% url 'djangobase:tests' %}">
+                <i class="bi bi-bug"></i> Tests
+            </a></li>
+        </ul>
+    </div>
+</li>
+{% endif %}

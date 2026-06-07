@@ -54,3 +54,33 @@ path("hilfe/", include("djangobase.urls")),
 ```
 
 Eigene Seiten: `{% extends "djangobase/base.html" %}`.
+
+## Hilfe-/Einstellungen-Menü in ein Projekt mit eigener Sidebar einbinden
+
+Projekte, die eine **eigene Sidebar** verwenden (`DJANGOBASE["sidebar_template"]`),
+bekommen den djangoBase-Navigationsblock (Gruppen **Einstellungen** mit
+*djangoBase*/*Website* und **Hilfe** mit *Versionen/Logs/Tests*) per einzeiligem
+Include in ihr eigenes Sidebar-Template:
+
+```django
+<ul class="nav flex-column">
+    ...   {# eigene Menüpunkte #}
+    {% include "djangobase/_nav.html" %}
+</ul>
+```
+
+Voraussetzungen: `path("hilfe/", include("djangobase.urls"))`, der Context-Processor
+`djangobase.context_processors.djangobase` sowie Bootstrap (Collapse) + Bootstrap-Icons.
+Sichtbarkeit pro Gruppe über Settings:
+
+```python
+DJANGOBASE = {
+    ...
+    "einstellungen_menu": True,   # Einstellungen-Gruppe zeigen (Default True)
+    "hilfe_menu": True,           # Hilfe-Gruppe zeigen (Default True)
+}
+```
+
+Die Einstellungen-Seiten selbst (`/hilfe/einstellungen`, `/hilfe/einstellungen/website`)
+sind unabhängig von der Sidebar in jedem Projekt erreichbar, das `djangobase.urls`
+einbindet.

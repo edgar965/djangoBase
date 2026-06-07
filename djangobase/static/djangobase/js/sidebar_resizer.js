@@ -37,9 +37,10 @@
     setWidth(current);
 
     el.addEventListener('mousedown', function (e) {
-        // Aus eingeklapptem Zustand heraus ziehen = aufklappen.
+        // Aus eingeklapptem Zustand heraus ziehen = aufklappen (auch persistieren).
         if (document.body.classList.contains('sidebar-collapsed')) {
             document.body.classList.remove('sidebar-collapsed');
+            try { localStorage.setItem('djangobase.sidebarCollapsed', '0'); } catch (err) {}
         }
         var startX = e.clientX;
         var startW = current;
