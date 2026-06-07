@@ -1,0 +1,49 @@
+<nav class="sidebar">
+    <div class="sidebar-header">
+        <h4><i class="bi {{ djangobase.logo_icon }}"></i> {{ djangobase.titel }}</h4>
+        {% if djangobase.version %}<div class="sidebar-user">
+            <span class="sidebar-user-name"><i class="bi bi-tag"></i> Version {{ djangobase.version }}</span>
+        </div>{% endif %}
+    </div>
+    <ul class="nav flex-column">
+        {% for it in djangobase.menu %}
+            {% if it.items %}
+            <li class="nav-item">
+                <a class="nav-link menu-toggle" data-bs-toggle="collapse" href="#m{{ forloop.counter }}">
+                    <i class="bi {{ it.icon }}"></i> {{ it.label }}
+                    <i class="bi bi-chevron-down float-end"></i>
+                </a>
+                <div class="collapse" id="m{{ forloop.counter }}">
+                    <ul class="nav flex-column submenu">
+                        {% for s in it.items %}
+                        <li><a class="nav-link" href="{{ s.url }}"><i class="bi {{ s.icon }}"></i> {{ s.label }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </li>
+            {% else %}
+            <li class="nav-item"><a class="nav-link" href="{{ it.url }}"><i class="bi {{ it.icon }}"></i> {{ it.label }}</a></li>
+            {% endif %}
+        {% endfor %}
+
+        <li class="nav-item">
+            <a class="nav-link menu-toggle" data-bs-toggle="collapse" href="#hilfeMenu">
+                <i class="bi bi-question-circle"></i> Hilfe
+                <i class="bi bi-chevron-down float-end"></i>
+            </a>
+            <div class="collapse {% if aktiv == 'versions' or aktiv == 'logs' or aktiv == 'tests' %}show{% endif %}" id="hilfeMenu">
+                <ul class="nav flex-column submenu">
+                    <li><a class="nav-link {% if aktiv == 'versions' %}active{% endif %}" href="{% url 'djangobase:versionen' %}">
+                        <i class="bi bi-clock-history"></i> Versionen
+                    </a></li>
+                    <li><a class="nav-link {% if aktiv == 'logs' %}active{% endif %}" href="{% url 'djangobase:logs' %}">
+                        <i class="bi bi-journal-text"></i> Logs
+                    </a></li>
+                    <li><a class="nav-link {% if aktiv == 'tests' %}active{% endif %}" href="{% url 'djangobase:tests' %}">
+                        <i class="bi bi-bug"></i> Tests
+                    </a></li>
+                </ul>
+            </div>
+        </li>
+    </ul>
+</nav>

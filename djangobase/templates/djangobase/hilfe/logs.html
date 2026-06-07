@@ -1,0 +1,104 @@
+{% extends 'djangobase/base.html' %}
+
+{% block title_extra %} · Logs{% endblock %}
+{% block topbar_title %}<i class="bi bi-journal-text"></i> Hilfe · Logs{% endblock %}
+{% block topbar_actions %}
+<button type="button" class="btn btn-sm btn-outline-light" onclick="window.location.reload();"
+        title="Logs neu laden"><i class="bi bi-arrow-clockwise"></i> Aktualisieren</button>
+{% endblock %}
+
+{% block content %}
+<div class="lg-page">
+    <form class="lg-toolbar" method="get">
+        <label>Quelle:</label>
+        <select name="source" onchange="this.form.submit()">
+            {% for s in sources %}
+            <option value="{{ s.key }}" {% if s.key == source_key %}selected{% endif %}>{{ s.label }}</option>
+            {% endfor %}
+        </select>
+        <label>Zeilen:</label>
+        <input type="number" name="lines" value="{{ max_lines }}" min="50" max="5000" step="50">
+        <button type="submit" class="btn btn-sm btn-outline-light">Anzeigen</button>
+        <label style="margin-left:1rem;"><input type="checkbox" id="lgAutoRefresh"> Auto-Refresh (10 s)</label>
+        <span class="lg-paths">
+            {% if out_stat %}<span class="lg-file"><i class="bi bi-file-text"></i>
+                {{ out_stat.path }} <span class="muted">({{ out_stat.size_kb }} KB)</span></span>
+            {% else %}<span class="muted">(keine Datei)</span>{% endif %}
+        </span>
+    </form>
+
+    <div class="lg-tabs" id="lgTabs">
+        <button type="button" class="lg-tab active" data-pane="exceptions">
+            <i class="bi bi-exclamation-triangle"></i> Exceptions
+            <span class="lg-count">{{ exception_count }}</span>
+        </button>
+        <button type="button" class="lg-tab" data-pane="all">
+            <i class="bi bi-list"></i> Alle Logs <span class="lg-count">{{ all_count }}</span>
+        </button>
+    </div>
+
+    <div class="lg-pane" id="lgPaneExceptions">{% if exception_records %}<div class="lg-grid">{% for r in exception_records %}<div class="lg-ts">{{ r.ts }}</div><div class="lg-src">{{ r.src }}</div><div class="lg-content {{ r.cls }}">{{ r.content }}</div>{% endfor %}</div>{% else %}<div class="lg-empty"><i class="bi bi-check-circle"></i> Keine Exceptions im aktuellen Fenster.</div>{% endif %}</div>
+
+    <div class="lg-pane hidden" id="lgPaneAll">{% if all_records %}<div class="lg-grid">{% for r in all_records %}<div class="lg-ts">{{ r.ts }}</div><div class="lg-src">{{ r.src }}</div><div class="lg-content {{ r.cls }}">{{ r.content }}</div>{% endfor %}</div>{% else %}<div class="lg-empty"><i class="bi bi-inbox"></i> Datei ist leer oder existiert nicht.</div>{% endif %}</div>
+</div>
+
+<style>
+.lg-page { padding: 1rem 1.5rem 4rem; color: #e0e8f0; }
+.lg-toolbar { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.8rem; font-size: 0.85rem; }
+.lg-toolbar label { margin: 0; color: rgba(255,255,255,0.7); }
+.lg-toolbar select, .lg-toolbar input[type="number"] { background: #0d1117; color: #e0e8f0; border: 1px solid rgba(255,255,255,0.15); padding: 0.3rem 0.5rem; border-radius: 4px; font-size: 0.85rem; }
+.lg-toolbar input[type="number"] { width: 90px; }
+.lg-paths { color: rgba(255,255,255,0.5); font-size: 0.72rem; font-family: monospace; margin-left: auto; text-align: right; }
+.lg-paths .muted { color: rgba(255,255,255,0.4); }
+.lg-tabs { display: flex; border-bottom: 1px solid rgba(255,255,255,0.12); margin-bottom: 0.6rem; }
+.lg-tab { background: transparent; border: none; color: rgba(255,255,255,0.55); padding: 0.55rem 1rem; cursor: pointer; font-size: 0.9rem; font-weight: 500; border-bottom: 2px solid transparent; }
+.lg-tab:hover { color: #fff; }
+.lg-tab.active { color: #4ea8f6; border-bottom-color: #4ea8f6; }
+.lg-tab .lg-count { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.55); padding: 0.05rem 0.45rem; border-radius: 10px; font-size: 0.72rem; margin-left: 0.4rem; }
+.lg-tab.active .lg-count { background: #4ea8f6; color: #001a33; }
+.lg-pane { background: #0d1117; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 0.6rem 0.8rem; max-height: 72vh; overflow: auto; font-family: ui-monospace, "Cascadia Mono", Consolas, Menlo, monospace; font-size: 0.78rem; line-height: 1.45; white-space: pre; color: #c9d1d9; }
+.lg-pane.hidden { display: none; }
+.lg-grid { display: grid; grid-template-columns: 11.5em 9em 1fr; column-gap: 0.7rem; row-gap: 0.05rem; align-items: start; }
+.lg-ts { color: rgba(255,255,255,0.45); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lg-src { color: rgba(125,200,255,0.65); white-space: nowrap; font-size: 0.72rem; padding-top: 1px; }
+.lg-src::before { content: '['; opacity: 0.5; } .lg-src::after { content: ']'; opacity: 0.5; }
+.lg-content { color: #c9d1d9; white-space: pre-wrap; word-break: break-word; min-width: 0; }
+.lg-content.lg-err { color: #f85149; }
+.lg-content.lg-warn { color: #d29922; }
+.lg-content.lg-trace { color: #ffa657; }
+.lg-content.lg-req {  color: #79c0ff; }
+.lg-content.lg-resp { color: #a5d6ff; }
+.lg-empty { color: rgba(255,255,255,0.5); font-style: italic; text-align: center; padding: 1.5rem 0; }
+</style>
+
+<script>
+(function () {
+    const tabs = document.getElementById('lgTabs');
+    const paneEx = document.getElementById('lgPaneExceptions');
+    const paneAll = document.getElementById('lgPaneAll');
+    if (!tabs) return;
+    tabs.addEventListener('click', (ev) => {
+        const btn = ev.target.closest('.lg-tab');
+        if (!btn) return;
+        tabs.querySelectorAll('.lg-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const which = btn.dataset.pane;
+        paneEx.classList.toggle('hidden', which !== 'exceptions');
+        paneAll.classList.toggle('hidden', which !== 'all');
+        const target = which === 'exceptions' ? paneEx : paneAll;
+        target.scrollTop = target.scrollHeight;
+    });
+    [paneEx, paneAll].forEach(p => { if (p) p.scrollTop = p.scrollHeight; });
+    const cb = document.getElementById('lgAutoRefresh');
+    const KEY = 'lg_auto_refresh';
+    if (sessionStorage.getItem(KEY) === '1') cb.checked = true;
+    let timer = null;
+    function arm() {
+        if (timer) clearInterval(timer);
+        if (cb.checked) { timer = setInterval(() => window.location.reload(), 10000); sessionStorage.setItem(KEY, '1'); }
+        else sessionStorage.removeItem(KEY);
+    }
+    cb.addEventListener('change', arm); arm();
+})();
+</script>
+{% endblock %}

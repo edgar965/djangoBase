@@ -1,0 +1,71 @@
+{% extends 'djangobase/base.html' %}
+
+{% block title_extra %} · Versionen{% endblock %}
+{% block topbar_title %}<i class="bi bi-clock-history"></i> Hilfe · Versionen{% endblock %}
+{% block topbar_actions %}
+<a href="?refresh=1" class="btn btn-sm btn-outline-light"><i class="bi bi-arrow-clockwise"></i> Neu laden</a>
+{% endblock %}
+
+{% block content %}
+<div class="ver-page">
+    <div class="ver-card">
+        <h3><i class="bi bi-box-seam"></i> Umgebung &amp; Pakete{% if current_version %}
+            <span class="ver-badge cur">App {{ current_version }}</span>{% endif %}</h3>
+        <table class="ver-pakete">
+            {% for name, v in pakete %}
+            <tr><td>{{ name }}</td><td><code>{{ v }}</code></td></tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    {% for repo in repos %}
+    <div class="ver-card">
+        <h3><i class="bi bi-git"></i> {{ repo.name }}
+            {% if repo.gh_url %}<a href="{{ repo.gh_url }}" target="_blank" class="ver-gh">{{ repo.gh_repo }} <i class="bi bi-box-arrow-up-right"></i></a>{% endif %}
+            {% if repo.head_sha %}<span class="ver-badge">HEAD {{ repo.head_sha }}</span>{% endif %}
+            {% if repo.uncommitted %}<span class="ver-badge dirty">{{ repo.uncommitted }} ungespeichert</span>{% endif %}
+        </h3>
+        <div class="ver-commits">
+            {% for c in repo.commits %}
+            <div class="ver-commit {% if c.is_release %}is-release{% endif %}">
+                <div class="ver-commit-head">
+                    {% if c.version_label %}<span class="ver-badge rel">{{ c.version_label }}</span>{% endif %}
+                    <span class="ver-title">{{ c.title }}</span>
+                    <span class="ver-meta">{{ c.date }} · {{ c.author }} · <code>{{ c.sha }}</code></span>
+                </div>
+                {% if c.body_html %}<div class="ver-body">{{ c.body_html|safe }}</div>{% endif %}
+            </div>
+            {% empty %}<p class="ver-empty">Keine Commits gefunden (kein Git/gh konfiguriert oder Repo nicht vorhanden).</p>{% endfor %}
+        </div>
+    </div>
+    {% empty %}
+    <div class="ver-card"><p class="ver-empty">Keine Repositories konfiguriert.
+        Setze <code>DJANGOBASE["repos"] = [("Name", "owner/repo", ".")]</code> in den Settings,
+        um den Changelog (via <code>gh</code>/<code>git</code>) anzuzeigen.</p></div>
+    {% endfor %}
+</div>
+
+<style>
+.ver-page { padding: 1.25rem 1.5rem 4rem; max-width: 1000px; }
+.ver-card { background: #142136; border: 1px solid #1e3a5f; border-radius: 10px; padding: 16px 20px; margin-bottom: 18px; }
+.ver-card h3 { color: #e9f0f8; font-size: 1.05rem; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ver-card h3 i { color: #4ea8f6; }
+.ver-gh { color: #79c0ff; font-size: .82rem; text-decoration: none; font-weight: 500; }
+.ver-pakete { width: auto; }
+.ver-pakete td { padding: 3px 18px 3px 0; color: #cdddf0; font-size: .9rem; }
+.ver-pakete code, .ver-meta code, .ver-card code { background: #0d1117; color: #a5d6ff; padding: 1px 6px; border-radius: 4px; font-size: .82rem; }
+.ver-badge { background: #1e3a5f; color: #cfe0f4; border-radius: 6px; padding: 2px 9px; font-size: .74rem; font-weight: 600; }
+.ver-badge.cur { background: #1e5bb8; color: #fff; }
+.ver-badge.rel { background: #15803d; color: #fff; }
+.ver-badge.dirty { background: #b45309; color: #fff; }
+.ver-commit { border-left: 3px solid #1e3a5f; padding: 8px 0 8px 14px; margin-bottom: 4px; }
+.ver-commit.is-release { border-left-color: #15803d; }
+.ver-commit-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.ver-title { color: #e9f0f8; font-weight: 600; }
+.ver-meta { color: #8aa0b8; font-size: .8rem; }
+.ver-body { color: #b9c6d6; font-size: .88rem; margin-top: 4px; }
+.ver-body ul { margin: 4px 0 4px 18px; } .ver-body p { margin: 4px 0; }
+.ver-body strong { color: #e9f0f8; }
+.ver-empty { color: #8aa0b8; font-style: italic; }
+</style>
+{% endblock %}

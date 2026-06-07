@@ -1,0 +1,57 @@
+{% extends 'djangobase/base.html' %}
+
+{% block title_extra %} · Tests{% endblock %}
+{% block topbar_title %}<i class="bi bi-bug"></i> Hilfe · Tests{% endblock %}
+
+{% block content %}
+<div class="ts-page">
+    <div class="ts-card">
+        <h3><i class="bi bi-list-check"></i> Test-Suiten</h3>
+        {% if befehle %}
+        <div class="ts-list">
+            {% for b in befehle %}
+            <a href="?run={{ b.slug }}" class="ts-item {% if aktiver_slug == b.slug %}aktiv{% endif %}">
+                <span><i class="bi bi-play-circle"></i> {{ b.name }}</span>
+                <code>{{ b.cmd|join:' ' }}</code>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="ts-empty">Keine Tests konfiguriert. Setze in den Settings:<br>
+            <code>DJANGOBASE["test_befehle"] = [{"slug": "unit", "name": "Unit-Tests", "cmd": ["python", "manage.py", "test"]}]</code></p>
+        {% endif %}
+    </div>
+
+    {% if ergebnis %}
+    <div class="ts-card">
+        <h3>
+            {% if ergebnis.ok %}<span class="ts-badge ok"><i class="bi bi-check-circle"></i> Bestanden</span>
+            {% else %}<span class="ts-badge fail"><i class="bi bi-x-circle"></i> Fehlgeschlagen (rc={{ ergebnis.rc }})</span>{% endif %}
+            {{ ergebnis.name }} <span class="ts-meta">· {{ ergebnis.dauer }} s · <code>{{ ergebnis.cmd }}</code></span>
+        </h3>
+        {% if ergebnis.out %}<div class="ts-label">stdout</div><pre class="ts-pre">{{ ergebnis.out }}</pre>{% endif %}
+        {% if ergebnis.err %}<div class="ts-label">stderr</div><pre class="ts-pre err">{{ ergebnis.err }}</pre>{% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.ts-page { padding: 1.25rem 1.5rem 4rem; max-width: 1000px; }
+.ts-card { background: #142136; border: 1px solid #1e3a5f; border-radius: 10px; padding: 16px 20px; margin-bottom: 18px; }
+.ts-card h3 { color: #e9f0f8; font-size: 1.05rem; margin: 0 0 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ts-card h3 i, .ts-card h3 > i { color: #4ea8f6; }
+.ts-list { display: flex; flex-direction: column; gap: 8px; }
+.ts-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 8px; background: #0f1d31; border: 1px solid #1e3a5f; text-decoration: none; color: #e9f0f8; }
+.ts-item:hover { border-color: #1e5bb8; }
+.ts-item.aktiv { border-color: #1e5bb8; background: #14365f; }
+.ts-item code, .ts-meta code { background: #0d1117; color: #a5d6ff; padding: 1px 6px; border-radius: 4px; font-size: .78rem; }
+.ts-badge { border-radius: 6px; padding: 3px 10px; font-size: .8rem; font-weight: 700; }
+.ts-badge.ok { background: #15803d; color: #fff; }
+.ts-badge.fail { background: #b91c1c; color: #fff; }
+.ts-meta { color: #8aa0b8; font-size: .82rem; font-weight: 400; }
+.ts-label { color: #8aa0b8; font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; margin: 10px 0 4px; }
+.ts-pre { background: #0d1117; border: 1px solid #1e3a5f; border-radius: 6px; padding: 12px 14px; color: #c9d1d9; font-size: .8rem; max-height: 50vh; overflow: auto; white-space: pre-wrap; word-break: break-word; }
+.ts-pre.err { color: #f85149; }
+.ts-empty { color: #8aa0b8; }
+</style>
+{% endblock %}
