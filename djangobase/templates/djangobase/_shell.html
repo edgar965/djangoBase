@@ -23,6 +23,15 @@
         --sidebar-dark: {{ djangobase.farben.sidebar_dark }};
     }</style>
 
+    {% if djangobase.resizable_sidebar %}
+    {% comment %}Gespeicherte Sidebar-Breite frueh setzen (vor dem ersten
+    Paint), damit kein Springen von Default- auf Wunschbreite sichtbar
+    ist.{% endcomment %}
+    <script>(function(){try{var w=parseInt(localStorage.getItem('djangobase.sidebarWidth'),10);
+        if(w){w=Math.max({{ djangobase.sidebar_min }},Math.min({{ djangobase.sidebar_max }},w));
+        document.documentElement.style.setProperty('--sidebar-width',w+'px');}}catch(e){}})();</script>
+    {% endif %}
+
     {% comment %}extra_css: Liste von Static-Pfaden, die hinter den
     Defaults eingehaengt werden (Cascade-Override).{% endcomment %}
     {% for path in djangobase.extra_css %}
@@ -43,6 +52,13 @@
 </head>
 <body{% if djangobase.theme_default %} data-theme="{{ djangobase.theme_default }}"{% endif %}{% block body_attrs %}{% endblock %}>
     {% block sidebar %}{% include djangobase.sidebar_template %}{% endblock %}
+
+    {% if djangobase.resizable_sidebar %}
+    <div id="db-sidebar-resizer" class="db-sidebar-resizer"
+         data-min="{{ djangobase.sidebar_min }}" data-max="{{ djangobase.sidebar_max }}"
+         data-default="{{ djangobase.sidebar_default }}"
+         title="Ziehen zum Verschieben · Doppelklick: Standardbreite"></div>
+    {% endif %}
 
     {% block main %}
     <div class="main-wrapper">
@@ -71,6 +87,7 @@
 
     {% block body_scripts_core %}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    {% if djangobase.resizable_sidebar %}<script src="{% static 'djangobase/js/sidebar_resizer.js' %}"></script>{% endif %}
     {% endblock %}
     {% block body_scripts %}{% endblock %}
 </body>

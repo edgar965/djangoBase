@@ -20,4 +20,8 @@ def djangobase(request):
         "theme_modes": c["theme_modes"],
         "theme_default": c["theme_default"],
         "toast_stack": c["toast_stack"],
+        "resizable_sidebar": c["resizable_sidebar"],
+        "sidebar_default": c["sidebar_default"],
+        "sidebar_min": c["sidebar_min"],
+        "sidebar_max": c["sidebar_max"],
     }}

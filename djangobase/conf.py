@@ -50,6 +50,16 @@ DEFAULTS = {
     "theme_default": "",
     # Toast-Stack fuer Django-Messages. False = kein Stack rendern.
     "toast_stack": True,
+    # ----- Verschiebbarer Splitter (Sidebar-Breite ziehbar) ----------------
+    # Default aus, damit Projekte mit eigenem Resizer (z. B. Assistant)
+    # unberuehrt bleiben. Breite wird clientseitig in localStorage gemerkt.
+    "resizable_sidebar": False,
+    "sidebar_default": 250,
+    "sidebar_min": 140,
+    "sidebar_max": 600,
+    # Pfad der JSON-Datei mit Laufzeit-Overrides (Einstellungen-Seite).
+    # None -> BASE_DIR/.djangobase.json
+    "settings_speicher": None,
 }
 
 
@@ -65,4 +75,16 @@ def conf():
     if not c.get("theme_default") and c.get("theme_modes"):
         first = c["theme_modes"][0]
         c["theme_default"] = first[0] if isinstance(first, (list, tuple)) else str(first)
+    _overrides_anwenden(c)
     return c
+
+
+def _overrides_anwenden(c):
+    """Wendet gespeicherte Laufzeit-Overrides (Einstellungen-Seite) an.
+    Importiert store lokal, um Import-Zyklen zu vermeiden."""
+    from .store import FARB_KEYS, laden
+    for key, wert in laden().items():
+        if key in FARB_KEYS:
+            c["farben"][key] = wert
+        else:
+            c[key] = wert

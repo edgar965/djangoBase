@@ -2,10 +2,16 @@
 
 Wiederverwendbare Django-Infrastruktur für mehrere Projekte:
 
-- **Hilfe-Seiten** `/hilfe/versionen`, `/hilfe/logs`, `/hilfe/tests`
-  (Versionen via `gh`/`git` + Umgebung/Pakete, Log-Viewer mit Tabs,
-  Test-Runner) — exakt im Stil des „Assistant"-Projekts.
-- **Dunkles Sidebar-Layout** (Bootstrap 5 + Bootstrap Icons, Sidebar `#003153`).
+- **Hilfe-Seiten** `/hilfe/versionen`, `/hilfe/logs`, `/hilfe/tests`,
+  `/hilfe/einstellungen` (Versionen via `gh`/`git` + Umgebung/Pakete,
+  Log-Viewer mit Tabs, Test-Runner, Einstellungen-Formular) — exakt im Stil
+  des „Assistant"-Projekts.
+- **Dunkles Sidebar-Layout** (Bootstrap 5 + Bootstrap Icons, Sidebar `#003153`)
+  mit optionalem **verschiebbarem Splitter** (`resizable_sidebar`, Breite in
+  `localStorage`).
+- **Einstellungen-Seite**: Branding, Farben, Theme und Splitter zur Laufzeit
+  konfigurierbar; Persistenz als JSON-Datei (keine DB/Migration). Überschreibt
+  `settings.DJANGOBASE`.
 - **Logging-Helfer** für rotierende Logdateien.
 
 ## Installation
@@ -37,6 +43,8 @@ DJANGOBASE = {
     "test_befehle": [{"slug": "alle", "name": "Alle Tests", "cmd": ["python", "manage.py", "test"]}],
     "menu": [{"label": "Start", "icon": "bi-house", "url": "/"}],
     "zugriff": "staff",   # "staff" | "login" | "none"
+    "resizable_sidebar": True,   # verschiebbarer Splitter (Default False)
+    # "sidebar_default": 250, "sidebar_min": 140, "sidebar_max": 600,
 }
 ```
 

@@ -1,0 +1,81 @@
+{% extends 'djangobase/base.html' %}
+
+{% block title_extra %} · Einstellungen{% endblock %}
+{% block topbar_title %}<i class="bi bi-sliders"></i> Hilfe · Einstellungen{% endblock %}
+
+{% block content %}
+<div class="set-page">
+    <form method="post" class="set-card">
+        {% csrf_token %}
+        <p class="set-hint">
+            <i class="bi bi-info-circle"></i>
+            Diese Werte überschreiben <code>settings.DJANGOBASE</code> zur Laufzeit und werden
+            als JSON-Datei gespeichert (keine Datenbank). Leere Felder behalten den Settings-Wert.
+        </p>
+
+        {% for feld in felder %}
+        <div class="set-row">
+            <label class="set-label" for="f-{{ feld.key }}">{{ feld.label }}
+                <span class="set-key">{{ feld.key }}</span>
+            </label>
+            <div class="set-input">
+                {% if feld.typ == 'bool' %}
+                    <label class="set-switch">
+                        <input type="checkbox" name="{{ feld.key }}" id="f-{{ feld.key }}" {% if feld.wert %}checked{% endif %}>
+                        <span>aktiv</span>
+                    </label>
+                {% elif feld.typ == 'color' %}
+                    <input type="color" name="{{ feld.key }}" id="f-{{ feld.key }}" value="{{ feld.wert }}"
+                           oninput="this.nextElementSibling.textContent=this.value">
+                    <code class="set-colorval">{{ feld.wert }}</code>
+                {% elif feld.typ == 'int' %}
+                    <input type="number" name="{{ feld.key }}" id="f-{{ feld.key }}" value="{{ feld.wert }}" min="0" step="1">
+                {% elif feld.typ == 'theme' and theme_modes %}
+                    <select name="{{ feld.key }}" id="f-{{ feld.key }}">
+                        <option value="">— (Standard)</option>
+                        {% for slug, label, color in theme_modes %}
+                        <option value="{{ slug }}" {% if slug == feld.wert %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                {% else %}
+                    <input type="text" name="{{ feld.key }}" id="f-{{ feld.key }}" value="{{ feld.wert }}">
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+
+        <div class="set-actions">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Speichern</button>
+            {% if hat_overrides %}
+            <button type="submit" name="zuruecksetzen" value="1" class="btn btn-outline-light"
+                    onclick="return confirm('Alle gespeicherten Overrides verwerfen und wieder die settings.py-Werte verwenden?');">
+                <i class="bi bi-arrow-counterclockwise"></i> Zurücksetzen
+            </button>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<style>
+.set-page { padding: 1.25rem 1.5rem 4rem; max-width: 760px; }
+.set-card { background: #142136; border: 1px solid #1e3a5f; border-radius: 10px; padding: 18px 22px; }
+.set-hint { color: #b9c6d6; font-size: .86rem; background: #0d1f33; border: 1px solid #1e3a5f;
+    border-radius: 8px; padding: 10px 12px; margin: 0 0 18px; }
+.set-hint i { color: #4ea8f6; }
+.set-hint code, .set-key { background: #0d1117; color: #a5d6ff; padding: 1px 6px; border-radius: 4px; font-size: .8rem; }
+.set-row { display: flex; align-items: center; gap: 16px; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+.set-row:last-of-type { border-bottom: 0; }
+.set-label { flex: 1 1 50%; color: #e9f0f8; font-size: .92rem; display: flex; flex-direction: column; gap: 3px; }
+.set-key { align-self: flex-start; font-weight: 400; opacity: .8; }
+.set-input { flex: 1 1 50%; display: flex; align-items: center; gap: 10px; }
+.set-input input[type=text], .set-input input[type=number], .set-input select {
+    width: 100%; max-width: 320px; background: #0d1117; color: #e9f0f8;
+    border: 1px solid #2a466e; border-radius: 6px; padding: 6px 10px; font-size: .9rem; }
+.set-input input[type=color] { width: 48px; height: 32px; padding: 0; border: 1px solid #2a466e;
+    border-radius: 6px; background: #0d1117; cursor: pointer; }
+.set-colorval { background: #0d1117; color: #a5d6ff; padding: 2px 8px; border-radius: 4px; font-size: .82rem; }
+.set-switch { display: inline-flex; align-items: center; gap: 8px; color: #cdddf0; font-size: .9rem; cursor: pointer; }
+.set-switch input { width: 18px; height: 18px; cursor: pointer; }
+.set-actions { margin-top: 20px; display: flex; gap: 10px; }
+</style>
+{% endblock %}
