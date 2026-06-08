@@ -290,6 +290,46 @@ def _pakete(namen):
     return out
 
 
+def _manual_entries(raw_list, current_version):
+    """Normiert DJANGOBASE['manual_versions'] auf das gleiche Schema wie
+    GitHub-Commits, damit das Template einen Eintragstyp rendern kann.
+
+    Eingabe-Items:
+        {"version": "v0.83", "date": "2026-06-08", "title": "...",
+         "body_html": "..." }
+        {"version": "0.82", "date": "...", "title": "...",
+         "body_md": "- a\n- b" }
+    """
+    norm_current = (current_version or "").lstrip("v").strip()
+    out = []
+    for item in raw_list or []:
+        version = (item.get("version") or "").strip()
+        if not version:
+            continue
+        label = version if version.startswith("v") else f"v{version}"
+        norm = label.lstrip("v")
+        body_html = item.get("body_html") or ""
+        body_md = item.get("body_md") or ""
+        if not body_html and body_md:
+            body_html = _render_body_html(body_md)
+        out.append({
+            "sha": "manual", "sha_full": "",
+            "subject": item.get("title", ""),
+            "title": item.get("title", ""),
+            "version_label": label,
+            "effective_version": label,
+            "body": body_md, "body_html": body_html,
+            "author": item.get("author", ""),
+            "date": item.get("date", ""),
+            "url": item.get("url", ""),
+            "is_release": True,
+            "is_unreleased": False,
+            "is_current": norm == norm_current,
+            "is_manual": True,
+        })
+    return out
+
+
 class VersionsView(ZugriffMixin, View):
     def get(self, request):
         if request.GET.get("refresh") == "1":
@@ -299,6 +339,7 @@ class VersionsView(ZugriffMixin, View):
         current_version = c["version"]
         per_page = int(c.get("version_commits_per_page") or 100)
         transform = _resolve_transform(c.get("commit_text_transform"))
+        manual = _manual_entries(c.get("manual_versions") or [], current_version)
         repos = []
         for display, gh_repo, local_dir in c["repos"]:
             local_path = (Path(base_dir) / local_dir).resolve()
@@ -323,5 +364,6 @@ class VersionsView(ZugriffMixin, View):
             "aktiv": "versions",
             "current_version": current_version,
             "repos": repos,
+            "manual_versions": manual,
             "pakete": _pakete(c["version_pakete"]),
         })

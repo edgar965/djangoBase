@@ -84,6 +84,14 @@ DEFAULTS = {
     "commit_text_transform": None,  # "search.utils.umlauts.restore_umlauts"
     # Wie viele Commits pro Repo aus GitHub holen.
     "version_commits_per_page": 100,
+    # Manuelle Versions-Eintraege — werden zusaetzlich zu den GitHub-Commits
+    # gerendert (oben, vor den Repos). Fuer Projekte die einen handgepflegten
+    # Changelog haben den sie nicht in Git-Commit-Bodies zwaengen wollen.
+    # Liste von Dicts:
+    #   {"version": "v0.83", "date": "2026-06-08", "title": "Synology-Pattern",
+    #    "body_html": "<ul><li>...</li></ul>",  # ODER:
+    #    "body_md": "- Punkt 1\n- Punkt 2"}     # wird wie Commit-Body gerendert
+    "manual_versions": [],
     # ----- Logs-Seite (erweitert) -----------------------------------------
     # Source-Keys die in "all"-Mode komplett uebersprungen werden — fuer
     # spammige Quellen, deren _PROGRESS_RE-Filter nicht reicht (z.B.

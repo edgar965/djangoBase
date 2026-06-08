@@ -24,6 +24,29 @@
         </table>
     </div>
 
+    {% if manual_versions %}
+    <h2 class="vw-repo">
+        <i class="bi bi-journal-text"></i> Handgepflegter Changelog
+    </h2>
+    <div class="vw-list">
+        {% for c in manual_versions %}
+        <article class="vw-entry vw-entry-release vw-entry-manual
+            {% if c.is_current %}vw-entry-current{% endif %}">
+            <aside class="vw-left">
+                <div class="vw-version">{{ c.effective_version }}</div>
+                <span class="vw-pill vw-pill-release">Release</span>
+                {% if c.is_current %}<span class="vw-pill vw-pill-active">aktuell</span>{% endif %}
+                {% if c.date %}<div class="vw-date">{{ c.date }}</div>{% endif %}
+            </aside>
+            <div class="vw-right">
+                {% if c.title %}<h2>{{ c.title }}</h2>{% endif %}
+                {% if c.body_html %}<div class="vw-body">{{ c.body_html|safe }}</div>{% endif %}
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% endif %}
+
     {% for repo in repos %}
         <h2 class="vw-repo">
             <i class="bi bi-git"></i> {{ repo.name }}
