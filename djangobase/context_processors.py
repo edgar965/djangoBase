@@ -16,6 +16,7 @@ def djangobase(request):
         "version": c["version"],
         "extra_css": c["extra_css"],
         "extra_js_head": c["extra_js_head"],
+        "extra_body_js": c.get("extra_body_js", []),
         "sidebar_template": c["sidebar_template"] or "djangobase/_sidebar.html",
         "theme_modes": c["theme_modes"],
         "theme_default": c["theme_default"],

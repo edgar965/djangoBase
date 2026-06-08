@@ -55,6 +55,11 @@ DEFAULTS = {
     # oder Static-Pfade: {"static": "search/js/htmx.min.js"} bzw.
     # {"raw": "<script>...</script>"}.
     "extra_js_head": [],
+    # Body-Ende-Scripts (nach Bootstrap + sidebar.js, vor Page-Scripts).
+    # Gleiches Format wie extra_js_head: String / {static} / {raw}.
+    # Fuer Projekte die ihre eigenen module-imports / Event-Wirings am
+    # Body-Ende brauchen (z.B. CamTrack sidebar_nav.js, topbar_health.js).
+    "extra_body_js": [],
     # Sidebar-Override: wenn gesetzt, wird statt djangobase/_sidebar.html
     # dieses Template per {% include %} eingehaengt — Projekte koennen
     # ihre eigene Live-Sidebar weiterverwenden.

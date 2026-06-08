@@ -92,6 +92,15 @@
     <script src="{% static 'djangobase/js/sidebar.js' %}"></script>
     {% if djangobase.resizable_sidebar %}<script src="{% static 'djangobase/js/sidebar_resizer.js' %}"></script>{% endif %}
     {% endblock %}
+    {% comment %}extra_body_js: Projekt-spezifische Scripts am Body-Ende.
+    Eintrag = Static-Pfad-String, oder Dict {static:"..."} oder Dict
+    {raw:"<script type=module>...</script>"} fuer beliebige inline-Tags.
+    {% endcomment %}
+    {% for item in djangobase.extra_body_js %}
+        {% if item.raw %}{{ item.raw|safe }}
+        {% elif item.static %}<script src="{% static item.static %}"></script>
+        {% else %}<script src="{% static item %}"></script>{% endif %}
+    {% endfor %}
     {% block body_scripts %}{% endblock %}
 </body>
 </html>
