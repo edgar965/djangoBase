@@ -8,19 +8,26 @@
  * Konfiguration via data-min / data-max / data-default (px).
  */
 (function () {
-    var KEY = 'djangobase.sidebarWidth';
     var el = document.getElementById('db-sidebar-resizer');
     if (!el) return;
 
+    var KEY = el.dataset.key || 'djangobase.sidebarWidth';
     var MIN = parseInt(el.dataset.min, 10) || 140;
     var MAX = parseInt(el.dataset.max, 10) || 600;
     var DEFAULT = parseInt(el.dataset.default, 10) || 250;
+    // data-extra-vars="--ct-sidebar-width,--my-other-var" — zusaetzliche
+    // CSS-Variablen die parallel zu --sidebar-width gesetzt werden, fuer
+    // Projekte deren bestehende CSS auf eigene Variablen-Namen reagiert.
+    var EXTRA_VARS = (el.dataset.extraVars || '').split(',')
+        .map(function (s) { return s.trim(); }).filter(Boolean);
 
     function clamp(w) { return Math.max(MIN, Math.min(MAX, w)); }
 
     function setWidth(w) {
         w = clamp(w);
-        document.documentElement.style.setProperty('--sidebar-width', w + 'px');
+        var root = document.documentElement;
+        root.style.setProperty('--sidebar-width', w + 'px');
+        EXTRA_VARS.forEach(function (v) { root.style.setProperty(v, w + 'px'); });
         return w;
     }
 

@@ -79,6 +79,15 @@ DEFAULTS = {
     "sidebar_default": 250,
     "sidebar_min": 140,
     "sidebar_max": 600,
+    # localStorage-Key fuer die persistierte Sidebar-Breite. Default ist
+    # djangobase-spezifisch, Projekte mit eigener Convention koennen z.B.
+    # "ctSidebarWidth" setzen um zu bestehenden Cookie-Welten kompatibel
+    # zu sein.
+    "sidebar_storage_key": "",
+    # Zusaetzliche CSS-Variablen die parallel zu --sidebar-width gesetzt
+    # werden, fuer Projekte deren CSS auf eigene Variablen-Namen schaut
+    # (z.B. CamTrack: --ct-sidebar-width). Komma-separiert.
+    "sidebar_extra_css_vars": "",
     # Pfad der JSON-Datei mit Laufzeit-Overrides (Einstellungen-Seite).
     # None -> BASE_DIR/.djangobase.json
     "settings_speicher": None,

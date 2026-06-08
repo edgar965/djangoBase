@@ -25,6 +25,8 @@ def djangobase(request):
         "sidebar_default": c["sidebar_default"],
         "sidebar_min": c["sidebar_min"],
         "sidebar_max": c["sidebar_max"],
+        "sidebar_storage_key": c.get("sidebar_storage_key", ""),
+        "sidebar_extra_css_vars": c.get("sidebar_extra_css_vars", ""),
         "einstellungen_menu": c["einstellungen_menu"],
         "hilfe_menu": c["hilfe_menu"],
         "einstellungen_extra": c["einstellungen_extra"],
