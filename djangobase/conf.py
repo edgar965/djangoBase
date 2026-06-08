@@ -88,6 +88,23 @@ DEFAULTS = {
     # werden, fuer Projekte deren CSS auf eigene Variablen-Namen schaut
     # (z.B. CamTrack: --ct-sidebar-width). Komma-separiert.
     "sidebar_extra_css_vars": "",
+    # Optional: Server-Persistenz der Sidebar-Breite. Wenn `sidebar_save_url`
+    # gesetzt ist, POSTet der Resizer nach jeder Aenderung an diesen
+    # Endpoint — zusaetzlich zum localStorage-Cache. Damit ist die Breite
+    # pro-User statt pro-Browser persistiert (cross-device).
+    # Body-Format:
+    #   - mit `sidebar_save_field`: {"<field>": {"<key>": width}}
+    #     z. B. {"pane_widths": {"sidebar": 280}} fuer pane-widths-JSON.
+    #   - ohne `sidebar_save_field`: {"<key>": width}
+    #     z. B. {"sidebar": 280} fuer simple Settings-API.
+    # Initial-Breite vom Server: Projekt-Context-Processor setzt eine
+    # Template-Variable namens `sidebar_initial_width` (px-Integer). Wenn
+    # vorhanden, ueberschreibt sie localStorage beim Page-Load (kein
+    # Flackern, kein Server-Roundtrip per JS noetig).
+    "sidebar_save_url": None,
+    "sidebar_save_field": None,
+    "sidebar_save_key": "sidebar",
+    "sidebar_save_debounce_ms": 350,
     # Pfad der JSON-Datei mit Laufzeit-Overrides (Einstellungen-Seite).
     # None -> BASE_DIR/.djangobase.json
     "settings_speicher": None,

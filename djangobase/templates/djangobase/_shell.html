@@ -26,12 +26,20 @@
     }</style>
 
     {% if djangobase.resizable_sidebar %}
-    {% comment %}Gespeicherte Sidebar-Breite frueh setzen (vor dem ersten
-    Paint), damit kein Springen von Default- auf Wunschbreite sichtbar
-    ist.{% endcomment %}
-    <script>(function(){try{var w=parseInt(localStorage.getItem('djangobase.sidebarWidth'),10);
-        if(w){w=Math.max({{ djangobase.sidebar_min }},Math.min({{ djangobase.sidebar_max }},w));
-        document.documentElement.style.setProperty('--sidebar-width',w+'px');}}catch(e){}})();</script>
+    {% comment %}Sidebar-Breite frueh setzen (vor dem ersten Paint), damit
+    kein Springen von Default- auf Wunschbreite sichtbar ist. Reihenfolge:
+    server-rendered `sidebar_initial_width` (per-User, cross-device) >
+    localStorage (Browser-cache) > CSS-Default.{% endcomment %}
+    <script>(function(){
+        var min={{ djangobase.sidebar_min }}, max={{ djangobase.sidebar_max }};
+        function clamp(w){return Math.max(min,Math.min(max,w));}
+        {% if sidebar_initial_width %}
+        document.documentElement.style.setProperty('--sidebar-width',clamp({{ sidebar_initial_width }})+'px');
+        return;
+        {% endif %}
+        try{var w=parseInt(localStorage.getItem('{{ djangobase.sidebar_storage_key|default:"djangobase.sidebarWidth" }}'),10);
+            if(w){document.documentElement.style.setProperty('--sidebar-width',clamp(w)+'px');}}catch(e){}
+    })();</script>
     {% endif %}
 
     {% comment %}extra_css: Liste von Static-Pfaden, die hinter den
@@ -53,7 +61,7 @@
     {% block head_extra %}{% endblock %}
 </head>
 <body{% if djangobase.theme_default %} data-theme="{{ djangobase.theme_default }}"{% endif %}{% block body_attrs %}{% endblock %}>
-    {% block sidebar %}{% include djangobase.sidebar_template %}{% endblock %}
+    {% block sidebar %}{% include djangobase.sidebar_template with inside_shell=True %}{% endblock %}
 
     {% if djangobase.resizable_sidebar %}
     <div id="db-sidebar-resizer" class="db-sidebar-resizer"
@@ -61,6 +69,11 @@
          data-default="{{ djangobase.sidebar_default }}"
          {% if djangobase.sidebar_storage_key %}data-key="{{ djangobase.sidebar_storage_key }}"{% endif %}
          {% if djangobase.sidebar_extra_css_vars %}data-extra-vars="{{ djangobase.sidebar_extra_css_vars }}"{% endif %}
+         {% if sidebar_initial_width %}data-initial-width="{{ sidebar_initial_width }}"{% endif %}
+         {% if djangobase.sidebar_save_url %}data-save-url="{{ djangobase.sidebar_save_url }}"{% endif %}
+         {% if djangobase.sidebar_save_field %}data-save-field="{{ djangobase.sidebar_save_field }}"{% endif %}
+         {% if djangobase.sidebar_save_key %}data-save-key="{{ djangobase.sidebar_save_key }}"{% endif %}
+         {% if djangobase.sidebar_save_debounce_ms %}data-save-debounce="{{ djangobase.sidebar_save_debounce_ms }}"{% endif %}
          title="Ziehen zum Verschieben · Doppelklick: Standardbreite"></div>
     {% endif %}
 
