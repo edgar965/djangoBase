@@ -6,8 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block head_title %}{% endblock head_title %} · {{ djangobase.titel }}</title>
     {% if djangobase.favicon %}<link rel="icon" href="{% static djangobase.favicon %}">{% endif %}
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    {% comment %}Keine externen Font-Abrufe (DSGVO/Google-Fonts-Urteil LG München):
+    System-Font-Stack; Projekte mit lokal gehostetem 'Inter' profitieren automatisch
+    über den font-family-Fallback.{% endcomment %}
     <style>
         :root { --db-accent: {{ djangobase.farben.sidebar_bg|default:'#003153' }};
                 --db-accent-dark: {{ djangobase.farben.sidebar_dark|default:'#001f3f' }}; }
