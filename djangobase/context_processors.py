@@ -11,6 +11,7 @@ def djangobase(request):
         "titel": c["titel"],
         "untertitel": c["untertitel"],
         "logo_icon": c["logo_icon"],
+        "favicon": c.get("favicon", ""),
         "farben": c["farben"],
         "menu": c["menu"],
         "version": c["version"],

@@ -8,6 +8,9 @@ DEFAULTS = {
     "titel": "Verwaltung",
     "untertitel": "",
     "logo_icon": "bi-grid-1x2-fill",
+    # Optionales Favicon (Static-Pfad, z. B. "img/favicon.svg").
+    # Leer = kein <link rel="icon"> (Default, bestehende Projekte unberuehrt).
+    "favicon": "",
     "farben": {
         "sidebar_bg": "#003153",
         "sidebar_light": "#004a7c",
