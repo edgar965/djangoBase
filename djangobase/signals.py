@@ -6,8 +6,11 @@
 - Registrierung, E-Mail-Bestätigung und Admin-Freigabe werden mit Zeitstempel
   am Profil festgehalten (registriert_am / email_bestaetigt_am / freigegeben_am).
 """
+import logging
+
 from django.contrib.auth import get_user_model
-from django.contrib.auth.signals import user_logged_in, user_logged_out
+from django.contrib.auth.signals import (user_logged_in, user_logged_out,
+                                         user_login_failed)
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
@@ -15,6 +18,10 @@ from django.utils import timezone
 from .models import LoginSitzung, Teilnehmer
 
 User = get_user_model()
+
+# Eigener Logger für Anmelde-Vorgänge (Hilfe→Logs: Quelle „auth", auth.log,
+# wenn das Projekt den Handler verdrahtet – sonst landet es in django.log).
+auth_log = logging.getLogger("djangobase.auth")
 
 
 def _client_ip(request):
@@ -42,11 +49,12 @@ def _setze_eingeloggt(user, wert):
 @receiver(user_logged_in)
 def beim_login(sender, request, user, **kwargs):
     _setze_eingeloggt(user, True)
+    ip = _client_ip(request)
     # Offene Sitzungen (z. B. nach Absturz ohne Logout) abschließen, dann neue
     LoginSitzung.objects.filter(user=user, ende__isnull=True).update(ende=timezone.now())
     LoginSitzung.objects.create(
-        user=user, benutzer=user.get_username(),
-        beginn=timezone.now(), ip=_client_ip(request))
+        user=user, benutzer=user.get_username(), beginn=timezone.now(), ip=ip)
+    auth_log.info("LOGIN  %s (id=%s) von %s", user.get_username(), user.pk, ip or "?")
 
 
 @receiver(user_logged_out)
@@ -58,6 +66,16 @@ def beim_logout(sender, request, user, **kwargs):
         if offen:
             offen.ende = timezone.now()
             offen.save(update_fields=["ende"])
+        auth_log.info("LOGOUT %s (id=%s)", user.get_username(), user.pk)
+
+
+@receiver(user_login_failed)
+def beim_login_fehlversuch(sender, credentials, request=None, **kwargs):
+    """Fehlgeschlagene Anmeldungen protokollieren (ohne Passwort)."""
+    auth_log.warning("LOGIN-FEHLER für %r von %s",
+                     (credentials or {}).get("username")
+                     or (credentials or {}).get("email") or "?",
+                     _client_ip(request) if request else "?")
 
 
 # --- allauth: E-Mail-Bestätigung (optional, nur wenn allauth installiert) ---
