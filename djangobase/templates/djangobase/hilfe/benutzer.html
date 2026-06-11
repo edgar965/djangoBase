@@ -43,7 +43,7 @@
 <div class="modal fade bk-modal" id="addModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <form class="modal-content" method="post" action="{% url 'djangobase:benutzer_neu' %}" enctype="multipart/form-data">
-            {% csrf_token %}
+            {% csrf_token %}<input type="hidden" name="zurueck" value="{{ request.path }}">
             <div class="modal-header">
                 <h5 class="modal-title"><i class="bi bi-person-plus"></i> Neuen Benutzer anlegen</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Schließen"></button>

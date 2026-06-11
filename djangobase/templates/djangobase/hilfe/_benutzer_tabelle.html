@@ -5,6 +5,7 @@ Erwartet `zeilen` (Liste von Zeilen-Dicts) und `sprachen` (Choices).{% endcommen
     <thead>
         <tr>
             <th>Avatar</th><th>Anwesend</th><th>Name</th><th>E-Mail</th>
+            <th>Freigeschaltet</th>{% if email_spalte %}<th>E-Mail bestätigt</th>{% endif %}
             <th>Passwort</th><th>Sprache</th><th>UI</th><th>Zuletzt</th><th class="bk-actions">Aktionen</th>
         </tr>
     </thead>
@@ -22,6 +23,7 @@ Erwartet `zeilen` (Liste von Zeilen-Dicts) und `sprachen` (Choices).{% endcommen
                     <div class="dropdown-menu bk-avmenu">
                         <form method="post" action="{% url 'djangobase:benutzer_inline' z.user.pk %}">
                             {% csrf_token %}<input type="hidden" name="feld" value="avatar_emoji">
+                            <input type="hidden" name="zurueck" value="{{ request.path }}">
                             {% for e in avatar_emojis %}
                             <button type="submit" name="wert" value="{{ e }}" class="bk-avopt">{{ e }}</button>
                             {% endfor %}
@@ -34,6 +36,7 @@ Erwartet `zeilen` (Liste von Zeilen-Dicts) und `sprachen` (Choices).{% endcommen
             <td>
                 <form method="post" action="{% url 'djangobase:benutzer_inline' z.user.pk %}">
                     {% csrf_token %}<input type="hidden" name="feld" value="anwesend">
+                    <input type="hidden" name="zurueck" value="{{ request.path }}">
                     <button type="submit" class="bk-anw {% if z.anwesend %}an{% else %}ab{% endif %}{% if z.online %} online{% endif %}"
                             title="{% if z.online %}aktuell eingeloggt{% endif %}">
                         {% if z.anwesend %}Anwesend{% else %}Abwesend{% endif %}
@@ -47,6 +50,29 @@ Erwartet `zeilen` (Liste von Zeilen-Dicts) und `sprachen` (Choices).{% endcommen
             </span></td>
             {# E-Mail #}
             <td>{{ z.user.email|default:"–" }}</td>
+            {# Freigeschaltet (is_active) – direkt umschaltbar #}
+            <td>
+                <form method="post" action="{% url 'djangobase:benutzer_status' z.user.pk %}">
+                    {% csrf_token %}<input type="hidden" name="zurueck" value="{{ request.path }}">
+                    <button type="submit" class="bk-anw {% if z.user.is_active %}an{% else %}ab{% endif %}"
+                            title="Klicken zum Umschalten">
+                        {% if z.user.is_active %}✓ Freigeschaltet{% else %}✕ Gesperrt{% endif %}
+                    </button>
+                </form>
+            </td>
+            {# E-Mail bestätigt (allauth) – Admin-Override, erlaubt Login ohne Bestätigungslink #}
+            {% if email_spalte %}
+            <td>
+                <form method="post" action="{% url 'djangobase:benutzer_inline' z.user.pk %}">
+                    {% csrf_token %}<input type="hidden" name="feld" value="email_bestaetigt">
+                    <input type="hidden" name="zurueck" value="{{ request.path }}">
+                    <button type="submit" class="bk-anw {% if z.email_bestaetigt %}an{% else %}ab{% endif %}"
+                            title="Klicken zum Umschalten – „bestätigt“ erlaubt den Login ohne Bestätigungslink">
+                        {% if z.email_bestaetigt %}✓ bestätigt{% else %}✕ offen{% endif %}
+                    </button>
+                </form>
+            </td>
+            {% endif %}
             {# Passwort: Maske + Auge + Neu + Speichern #}
             <td>
                 <div class="bk-pw">
@@ -54,6 +80,7 @@ Erwartet `zeilen` (Liste von Zeilen-Dicts) und `sprachen` (Choices).{% endcommen
                     <button type="button" class="bk-icon bk-eye" title="Eingabe anzeigen"><i class="bi bi-eye"></i></button>
                     <form method="post" action="{% url 'djangobase:benutzer_inline' z.user.pk %}" class="bk-pwform">
                         {% csrf_token %}<input type="hidden" name="feld" value="passwort">
+                        <input type="hidden" name="zurueck" value="{{ request.path }}">
                         <input type="password" name="wert" class="bk-pwinput" placeholder="Neu" autocomplete="new-password">
                         <button type="submit" class="bk-icon" title="Passwort speichern"><i class="bi bi-save"></i></button>
                     </form>
@@ -63,6 +90,7 @@ Erwartet `zeilen` (Liste von Zeilen-Dicts) und `sprachen` (Choices).{% endcommen
             <td>
                 <form method="post" action="{% url 'djangobase:benutzer_inline' z.user.pk %}" class="bk-langform">
                     {% csrf_token %}<input type="hidden" name="feld" value="sprache">
+                    <input type="hidden" name="zurueck" value="{{ request.path }}">
                     <select name="wert" onchange="this.form.submit()">
                         {% for code, label in sprachen %}
                         <option value="{{ code }}" {% if code == z.sprache_code %}selected{% endif %}>{{ label }}</option>
@@ -74,6 +102,7 @@ Erwartet `zeilen` (Liste von Zeilen-Dicts) und `sprachen` (Choices).{% endcommen
             <td>
                 <form method="post" action="{% url 'djangobase:benutzer_inline' z.user.pk %}" class="bk-uiform">
                     {% csrf_token %}<input type="hidden" name="feld" value="ui">
+                    <input type="hidden" name="zurueck" value="{{ request.path }}">
                     <input type="number" name="wert" class="bk-uiinput" value="{{ z.ui }}" min="0" step="1">
                     <button type="submit" class="bk-icon" title="UI speichern"><i class="bi bi-save"></i></button>
                 </form>
@@ -83,7 +112,7 @@ Erwartet `zeilen` (Liste von Zeilen-Dicts) und `sprachen` (Choices).{% endcommen
             {# Aktionen #}
             <td class="bk-actions">
                 <form method="post" action="{% url 'djangobase:benutzer_status' z.user.pk %}">
-                    {% csrf_token %}
+                    {% csrf_token %}<input type="hidden" name="zurueck" value="{{ request.path }}">
                     <button type="submit" class="bk-act {% if z.user.is_active %}bk-act-warn{% else %}bk-act-ok{% endif %}">
                         <i class="bi bi-power"></i> {% if z.user.is_active %}Inaktiv setzen{% else %}Aktiv setzen{% endif %}
                     </button>
@@ -91,13 +120,13 @@ Erwartet `zeilen` (Liste von Zeilen-Dicts) und `sprachen` (Choices).{% endcommen
                 <a class="bk-act bk-act-edit" href="{% url 'djangobase:benutzer_bearbeiten' z.user.pk %}"><i class="bi bi-pencil-square"></i> Bearbeiten</a>
                 <form method="post" action="{% url 'djangobase:benutzer_loeschen' z.user.pk %}"
                       onsubmit="return confirm('Benutzer „{{ z.user.username|escapejs }}“ wirklich löschen?');">
-                    {% csrf_token %}
+                    {% csrf_token %}<input type="hidden" name="zurueck" value="{{ request.path }}">
                     <button type="submit" class="bk-act bk-act-del"><i class="bi bi-trash"></i> Löschen</button>
                 </form>
             </td>
         </tr>
     {% empty %}
-        <tr><td colspan="9" class="bk-empty">Keine Einträge.</td></tr>
+        <tr><td colspan="{% if email_spalte %}11{% else %}10{% endif %}" class="bk-empty">Keine Einträge.</td></tr>
     {% endfor %}
     </tbody>
 </table>

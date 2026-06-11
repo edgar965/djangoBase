@@ -26,7 +26,20 @@ AVATAR_EMOJIS = ["🧑", "👩", "👨", "🧑‍💼", "👩‍💼", "👨‍�
                  "🧑‍🍳", "🧑‍🏫", "🧑‍💻", "🦸", "🧑‍🎨", "🏠", "🌟", "🚲"]
 
 
-def _zeile(user, profil, ist_provider):
+def _email_adressen():
+    """user_id → E-Mail-bestätigt? (django-allauth). None, wenn das Projekt
+    allauth nicht nutzt – die Spalte wird dann ausgeblendet (opt-in)."""
+    try:
+        from allauth.account.models import EmailAddress
+    except Exception:  # noqa: BLE001 – allauth ist optional
+        return None
+    bestaetigt = {}
+    for user_id, verified in EmailAddress.objects.values_list("user_id", "verified"):
+        bestaetigt[user_id] = bestaetigt.get(user_id, False) or verified
+    return bestaetigt
+
+
+def _zeile(user, profil, ist_provider, email_map=None):
     return {
         "user": user,
         "profil": profil,
@@ -40,39 +53,51 @@ def _zeile(user, profil, ist_provider):
         "online": bool(profil and profil.eingeloggt),
         "anwesend": bool(profil and profil.anwesend),
         "ui": profil.ui if profil else 1,
+        "email_bestaetigt": bool(email_map and email_map.get(user.id)),
     }
 
 
 def _listen():
-    """(provider, teilnehmer, django_nutzer) – je Liste von Zeilen-Dicts."""
+    """(provider, teilnehmer, django_nutzer, email_spalte) – Zeilen-Dicts."""
     teilnehmer_map = {t.user_id: t for t in Teilnehmer.objects.select_related("user")}
     provider_pks = set(Provider.objects.values_list("pk", flat=True))
+    email_map = _email_adressen()
     provider, teilnehmer, django_nutzer = [], [], []
     for user in User.objects.order_by("-is_active", "last_name", "first_name", "username"):
         t = teilnehmer_map.get(user.id)
         ist_provider = bool(t and t.pk in provider_pks)
-        zeile = _zeile(user, t, ist_provider)
+        zeile = _zeile(user, t, ist_provider, email_map)
         if user.is_staff or user.is_superuser:
             django_nutzer.append(zeile)
         elif ist_provider:
             provider.append(zeile)
         else:
             teilnehmer.append(zeile)
-    return provider, teilnehmer, django_nutzer
+    return provider, teilnehmer, django_nutzer, email_map is not None
 
 
 def _context(form=None, modal_offen=False):
-    provider, teilnehmer, django_nutzer = _listen()
+    provider, teilnehmer, django_nutzer, email_spalte = _listen()
     return {
         "aktiv": "einstellungen_benutzer",
         "provider": provider,
         "teilnehmer": teilnehmer,
         "django_nutzer": django_nutzer,
+        "email_spalte": email_spalte,
         "form": form or BenutzerForm(),
         "modal_offen": modal_offen,
         "sprachen": Teilnehmer.SPRACHEN,
         "avatar_emojis": AVATAR_EMOJIS,
     }
+
+
+def _zurueck(request):
+    """Ziel nach einer Aktion: die aufrufende Seite (Hidden-Feld „zurueck“),
+    sonst die Standard-Benutzerseite – nur interne Pfade."""
+    ziel = (request.POST.get("zurueck") or "").strip()
+    if ziel.startswith("/") and not ziel.startswith("//"):
+        return redirect(ziel)
+    return redirect(reverse("djangobase:benutzer"))
 
 
 class BenutzerListeView(ZugriffMixin, View):
@@ -86,7 +111,7 @@ class BenutzerErstellenView(ZugriffMixin, View):
         if form.is_valid():
             user = form.speichern()
             messages.success(request, f"Benutzer {user.get_full_name() or user.username} angelegt.")
-            return redirect(reverse("djangobase:benutzer"))
+            return _zurueck(request)
         return render(request, "djangobase/hilfe/benutzer.html",
                       _context(form=form, modal_offen=True))
 
@@ -141,12 +166,12 @@ class BenutzerStatusView(ZugriffMixin, View):
         user = get_object_or_404(User, pk=pk)
         if user == request.user:
             messages.error(request, "Du kannst dein eigenes Konto nicht deaktivieren.")
-            return redirect(reverse("djangobase:benutzer"))
+            return _zurueck(request)
         user.is_active = not user.is_active
         user.save(update_fields=["is_active"])
-        zustand = "aktiv" if user.is_active else "inaktiv"
+        zustand = "freigeschaltet" if user.is_active else "gesperrt"
         messages.success(request, f"{user.get_full_name() or user.username} ist jetzt {zustand}.")
-        return redirect(reverse("djangobase:benutzer"))
+        return _zurueck(request)
 
 
 class BenutzerInlineView(ZugriffMixin, View):
@@ -183,7 +208,25 @@ class BenutzerInlineView(ZugriffMixin, View):
         elif feld == "avatar_emoji":
             t.avatar_emoji = wert[:8]
             t.save(update_fields=["avatar_emoji"])
-        return redirect(reverse("djangobase:benutzer"))
+        elif feld == "email_bestaetigt":
+            # Admin-Override: E-Mail-Adresse manuell bestätigen (oder zurücksetzen)
+            # – erlaubt den Login auch ohne Klick auf den Bestätigungslink.
+            try:
+                from allauth.account.models import EmailAddress
+            except Exception:  # noqa: BLE001
+                messages.error(request, "django-allauth ist in diesem Projekt nicht aktiv.")
+                return _zurueck(request)
+            if not user.email:
+                messages.error(request, f"{user.get_username()} hat keine E-Mail-Adresse.")
+                return _zurueck(request)
+            ea = (EmailAddress.objects.filter(user=user, email__iexact=user.email).first()
+                  or EmailAddress.objects.create(user=user, email=user.email, primary=True))
+            ea.verified = not ea.verified
+            ea.primary = True
+            ea.save()
+            zustand = "bestätigt" if ea.verified else "unbestätigt"
+            messages.success(request, f"E-Mail von {user.get_username()} ist jetzt {zustand}.")
+        return _zurueck(request)
 
 
 class BenutzerLoeschenView(ZugriffMixin, View):
@@ -191,8 +234,8 @@ class BenutzerLoeschenView(ZugriffMixin, View):
         user = get_object_or_404(User, pk=pk)
         if user == request.user:
             messages.error(request, "Du kannst dein eigenes Konto nicht löschen.")
-            return redirect(reverse("djangobase:benutzer"))
+            return _zurueck(request)
         name = user.get_full_name() or user.get_username()
         user.delete()
         messages.success(request, f"Benutzer {name} gelöscht.")
-        return redirect(reverse("djangobase:benutzer"))
+        return _zurueck(request)
