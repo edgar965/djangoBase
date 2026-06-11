@@ -90,6 +90,81 @@ class Provider(Teilnehmer):
         verbose_name_plural = "Provider"
 
 
+class Seitenaufruf(models.Model):
+    """Ein erfasster Seitenaufruf für die Traffic-Statistik
+    (djangobase.traffic.TrafficMiddleware, Seite: views/traffic.py).
+
+    Datenschutz: Die IP wird NIE gespeichert — nur ein täglich wechselnder
+    Besucher-Hash (IP + User-Agent + Tagessalz + SECRET_KEY). Damit lassen
+    sich eindeutige Besucher pro Tag zählen, ohne dass jemand identifizierbar
+    oder über Tage hinweg verfolgbar wäre."""
+    TYPEN = [("html", "Seite"), ("json", "JSON/API"), ("andere", "Andere")]
+    GERAETE = [("desktop", "Desktop"), ("mobile", "Mobil"), ("tablet", "Tablet")]
+
+    zeit = models.DateTimeField("Zeit", auto_now_add=True, db_index=True)
+    pfad = models.CharField("Pfad", max_length=300, db_index=True)
+    typ = models.CharField("Typ", max_length=8, choices=TYPEN, default="html")
+    land = models.CharField("Land (ISO)", max_length=2, blank=True)
+    besucher = models.CharField("Besucher-Hash", max_length=16, db_index=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+                             on_delete=models.SET_NULL, related_name="+",
+                             verbose_name="Benutzer")
+    geraet = models.CharField("Gerät", max_length=8, choices=GERAETE,
+                              default="desktop")
+    referrer = models.CharField("Referrer-Domain", max_length=120, blank=True)
+    bot = models.BooleanField("Bot", default=False)
+    # Unkomprimierte Antwortgröße; /static/ & /media/ liefert nginx direkt
+    # aus und tauchen hier folglich nicht auf.
+    groesse = models.PositiveBigIntegerField("Antwortgröße (Bytes)", default=0)
+
+    class Meta:
+        verbose_name = "Seitenaufruf"
+        verbose_name_plural = "Seitenaufrufe"
+
+    def __str__(self):
+        return f"{self.zeit:%Y-%m-%d %H:%M} {self.pfad}"
+
+
+class TextQuelle(models.Model):
+    """Ein deutscher Originaltext der öffentlichen User-Seite (Basis-Version).
+
+    Wird beim ersten Rendern eines {% t %}-/{% tblock %}-Tags automatisch
+    registriert (djangobase.uebersetzung). Der Schlüssel ist bei {% t %} der
+    md5-Hash des Texts (Textänderung = neuer Eintrag), bei {% tblock %} ein
+    fester Name (Textänderung = Übersetzung „veraltet")."""
+    schluessel = models.CharField("Schlüssel", max_length=64, unique=True)
+    quelle = models.TextField("Deutscher Text")
+    zuletzt_gesehen = models.DateTimeField("Zuletzt gesehen", auto_now=True)
+
+    class Meta:
+        verbose_name = "Textquelle"
+        verbose_name_plural = "Textquellen"
+
+    def __str__(self):
+        return self.quelle[:60]
+
+
+class Uebersetzung(models.Model):
+    """Maschinelle (Google-)Übersetzung einer TextQuelle in eine Zielsprache.
+    quelle_hash hält fest, welcher deutsche Stand übersetzt wurde – weicht er
+    vom aktuellen Quelltext ab, gilt die Übersetzung als veraltet."""
+    quelle = models.ForeignKey(TextQuelle, on_delete=models.CASCADE,
+                               related_name="uebersetzungen", verbose_name="Quelle")
+    sprache = models.CharField("Sprache", max_length=8)
+    text = models.TextField("Übersetzung")
+    quelle_hash = models.CharField("Quell-Hash", max_length=32)
+    uebersetzt_am = models.DateTimeField("Übersetzt am", auto_now=True)
+
+    class Meta:
+        verbose_name = "Übersetzung"
+        verbose_name_plural = "Übersetzungen"
+        constraints = [models.UniqueConstraint(fields=["quelle", "sprache"],
+                                               name="uebersetzung_quelle_sprache")]
+
+    def __str__(self):
+        return f"{self.sprache}: {self.text[:50]}"
+
+
 # --------------------------------------------------------------------- Helfer
 def als_provider(user, **felder):
     """Stellt sicher, dass `user` ein Provider ist. Promotet ein vorhandenes

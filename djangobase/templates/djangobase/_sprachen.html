@@ -1,0 +1,38 @@
+{% comment %}Flaggen-Dropdown zum Umschalten der Anzeigesprache der User-Seite.
+Einbinden mit {% load uebersetzung %}{% sprachen_menue %}.
+Voraussetzung: das Projekt mountet djangobase.views.uebersetzung.SpracheSetzenView
+unter dem URL-Namen "sprache_setzen". Minimal gestylt (eigene Klassen sp1m-…),
+Projekte können per CSS überschreiben.{% endcomment %}
+{% if anzeigen %}
+<details class="sprachen-menue" style="position:relative;">
+    <summary style="list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:4px;
+                    padding:4px 8px;border-radius:8px;user-select:none;"
+             title="Sprache wählen / Choose language">
+        <span style="font-size:1.15rem;line-height:1;">{{ aktuelle.flagge }}</span>
+        <span style="font-size:.72rem;opacity:.7;">▾</span>
+    </summary>
+    <div style="position:absolute;right:0;top:calc(100% + 6px);z-index:3000;background:#fff;
+                border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 12px 36px rgba(15,23,42,.16);
+                padding:6px;min-width:170px;">
+        {% for s in sprachen %}
+        <a href="{% url 'sprache_setzen' %}?s={{ s.code }}&next={{ next|urlencode }}"
+           style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:8px;
+                  text-decoration:none;color:#0f172a;font-size:.9rem;
+                  {% if s.code == aktiv %}background:#f1f5f9;font-weight:600;{% endif %}">
+            <span style="font-size:1.1rem;">{{ s.flagge }}</span> {{ s.name }}
+        </a>
+        {% endfor %}
+    </div>
+</details>
+<script>
+// Sprachen-Dropdown bei Klick außerhalb schließen (einmalig registrieren)
+if (!window._sprachenMenueInit) {
+    window._sprachenMenueInit = true;
+    document.addEventListener('click', function (e) {
+        document.querySelectorAll('details.sprachen-menue[open]').forEach(function (d) {
+            if (!d.contains(e.target)) d.removeAttribute('open');
+        });
+    });
+}
+</script>
+{% endif %}

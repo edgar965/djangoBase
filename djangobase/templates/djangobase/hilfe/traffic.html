@@ -1,0 +1,223 @@
+{% extends 'djangobase/base.html' %}
+{% load static %}
+
+{% block title_extra %} · Benutzer · Traffic{% endblock %}
+{% block topbar_title %}<i class="bi bi-graph-up"></i> Benutzer · Traffic{% endblock %}
+
+{% block content %}
+<style>
+/* Traffic-Dashboard – Farben über die Theme-Variablen (--db-bg/-fg/-accent),
+   Karten als halbtransparente Flächen, damit alle Themes funktionieren. */
+.tf-page { padding: 18px 22px 30px; max-width: 1400px; }
+.tf-card { background: color-mix(in srgb, var(--db-fg) 5%, transparent);
+           border: 1px solid color-mix(in srgb, var(--db-fg) 12%, transparent);
+           border-radius: 12px; padding: 16px 18px; margin-bottom: 16px; }
+.tf-card h6 { margin: 0 0 12px; font-weight: 600; opacity: .85; }
+.tf-toolbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+              margin-bottom: 16px; }
+.tf-tabs { display: flex; gap: 4px; background: color-mix(in srgb, var(--db-fg) 7%, transparent);
+           border-radius: 10px; padding: 3px; }
+.tf-tabs a { padding: 5px 16px; border-radius: 8px; text-decoration: none;
+             color: var(--db-fg); font-size: .9rem; }
+.tf-tabs a.aktiv { background: var(--db-accent); color: #fff; font-weight: 600; }
+.tf-hint { opacity: .6; font-size: .85rem; }
+.tf-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+           gap: 12px; margin-bottom: 16px; }
+.tf-kpi { background: color-mix(in srgb, var(--db-fg) 5%, transparent);
+          border: 1px solid color-mix(in srgb, var(--db-fg) 12%, transparent);
+          border-radius: 12px; padding: 12px 16px; }
+.tf-kpi .wert { font-size: 1.55rem; font-weight: 700; color: var(--db-accent); }
+.tf-kpi .label { font-size: .8rem; opacity: .7; }
+.tf-kpi .sub { font-size: .78rem; opacity: .55; }
+.tf-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 1000px) { .tf-grid2 { grid-template-columns: 1fr; } }
+.tf-land { display: flex; align-items: center; gap: 10px; padding: 4px 0; }
+.tf-land .flagge { font-size: 1.15rem; width: 28px; }
+.tf-land .name { width: 130px; white-space: nowrap; overflow: hidden;
+                 text-overflow: ellipsis; font-size: .88rem; }
+.tf-land .balken { flex: 1; height: 9px; border-radius: 5px;
+                   background: color-mix(in srgb, var(--db-fg) 9%, transparent);
+                   overflow: hidden; }
+.tf-land .balken i { display: block; height: 100%; background: var(--db-accent);
+                     border-radius: 5px; }
+.tf-land .zahl { width: 105px; text-align: right; font-size: .82rem; opacity: .75; }
+.tf-tabelle { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.tf-tabelle th { text-align: left; font-weight: 600; opacity: .65; font-size: .78rem;
+                 text-transform: uppercase; letter-spacing: .03em;
+                 padding: 4px 10px; border-bottom: 1px solid
+                 color-mix(in srgb, var(--db-fg) 15%, transparent); }
+.tf-tabelle td { padding: 5px 10px; border-bottom: 1px solid
+                 color-mix(in srgb, var(--db-fg) 7%, transparent); }
+.tf-tabelle td.num, .tf-tabelle th.num { text-align: right; white-space: nowrap; }
+.tf-pfad { position: relative; font-family: ui-monospace, Consolas, monospace;
+           font-size: .84rem; }
+.tf-pfad i { position: absolute; left: 0; top: 4px; bottom: 4px;
+             background: color-mix(in srgb, var(--db-accent) 16%, transparent);
+             border-radius: 4px; z-index: 0; }
+.tf-pfad span { position: relative; z-index: 1; padding-left: 6px; }
+.tf-chartbox { position: relative; height: 290px; }
+.tf-chartbox.klein { height: 200px; }
+.tf-fuss { opacity: .55; font-size: .8rem; margin-top: 6px; }
+.tf-fuss a { color: var(--db-accent); }
+.tf-leer { text-align: center; opacity: .65; padding: 40px 10px; }
+</style>
+
+<div class="tf-page">
+
+    <div class="tf-toolbar">
+        <div class="tf-tabs">
+            {% for key, label in granularitaeten %}
+            <a href="?g={{ key }}" class="{% if g == key %}aktiv{% endif %}">{{ label }}</a>
+            {% endfor %}
+        </div>
+        <span class="tf-hint">Zeitfenster: letzte {{ fenster_label }} · Bots ausgeblendet</span>
+    </div>
+
+    {% if not erfasst_seit %}
+    <div class="tf-card tf-leer">
+        <div style="font-size:2rem;">📊</div>
+        Noch keine Daten – die Erfassung beginnt mit dem ersten Seitenaufruf
+        nach Aktivierung der Traffic-Middleware.
+    </div>
+    {% endif %}
+
+    <div class="tf-kpis">
+        <div class="tf-kpi"><div class="wert">{{ kpi.heute_aufrufe }}</div>
+            <div class="label">Aufrufe heute</div>
+            <div class="sub">{{ kpi.heute_besucher }} Besucher</div></div>
+        <div class="tf-kpi"><div class="wert">{{ kpi.w7_aufrufe }}</div>
+            <div class="label">Aufrufe 7 Tage</div>
+            <div class="sub">{{ kpi.w7_besucher }} Besucher</div></div>
+        <div class="tf-kpi"><div class="wert">{{ kpi.w30_aufrufe }}</div>
+            <div class="label">Aufrufe 30 Tage</div>
+            <div class="sub">{{ kpi.w30_besucher }} Besucher</div></div>
+        <div class="tf-kpi"><div class="wert">{{ kpi.mb_fenster }} MB</div>
+            <div class="label">Datenvolumen ({{ fenster_label }})</div>
+            <div class="sub">ohne /static/ &amp; /media/</div></div>
+        <div class="tf-kpi"><div class="wert">{{ kpi.laender_anzahl }}</div>
+            <div class="label">Länder</div>
+            <div class="sub">{{ kpi.bot_anzahl }} Bot-Aufrufe gefiltert</div></div>
+    </div>
+
+    <div class="tf-card">
+        <h6><i class="bi bi-bar-chart"></i> Aufrufe &amp; Besucher pro {{ g|capfirst }}</h6>
+        <div class="tf-chartbox"><canvas id="tf-chart-besuche"></canvas></div>
+    </div>
+
+    <div class="tf-grid2">
+        <div class="tf-card">
+            <h6><i class="bi bi-cloud-arrow-down"></i> Datenvolumen (MB) pro {{ g|capfirst }}</h6>
+            <div class="tf-chartbox klein"><canvas id="tf-chart-mb"></canvas></div>
+        </div>
+        <div class="tf-card">
+            <h6><i class="bi bi-phone"></i> Geräte</h6>
+            <div class="tf-chartbox klein"><canvas id="tf-chart-geraete"></canvas></div>
+        </div>
+    </div>
+
+    <div class="tf-grid2">
+        <div class="tf-card">
+            <h6><i class="bi bi-globe-europe-africa"></i> Länder</h6>
+            {% for l in laender %}
+            <div class="tf-land">
+                <span class="flagge">{{ l.flagge }}</span>
+                <span class="name" title="{{ l.iso }}">{{ l.name }}</span>
+                <span class="balken"><i style="width:{{ l.prozent }}%"></i></span>
+                <span class="zahl">{{ l.n }} · {{ l.prozent }}&nbsp;%</span>
+            </div>
+            {% empty %}<div class="tf-leer">Noch keine Daten.</div>{% endfor %}
+        </div>
+        <div class="tf-card">
+            <h6><i class="bi bi-box-arrow-in-right"></i> Referrer (woher die Besucher kommen)</h6>
+            <table class="tf-tabelle">
+                <tr><th>Quelle</th><th class="num">Aufrufe</th><th class="num">Besucher</th></tr>
+                {% for r in referrer %}
+                <tr><td>{{ r.referrer }}</td><td class="num">{{ r.n }}</td>
+                    <td class="num">{{ r.besucher }}</td></tr>
+                {% empty %}<tr><td colspan="3" class="tf-leer">Noch keine externen Quellen –
+                    direkte Aufrufe haben keinen Referrer.</td></tr>{% endfor %}
+            </table>
+        </div>
+    </div>
+
+    <div class="tf-card">
+        <h6><i class="bi bi-file-earmark-text"></i> Meistbesuchte Seiten</h6>
+        <table class="tf-tabelle">
+            <tr><th>Seite</th><th class="num">Aufrufe</th><th class="num">Anteil</th>
+                <th class="num">Besucher</th><th class="num">MB</th></tr>
+            {% for s in seiten %}
+            <tr>
+                <td class="tf-pfad"><i style="width:{{ s.balken }}%"></i>
+                    <span>{{ s.pfad }}</span></td>
+                <td class="num">{{ s.n }}</td>
+                <td class="num">{{ s.prozent }}&nbsp;%</td>
+                <td class="num">{{ s.besucher }}</td>
+                <td class="num">{{ s.mb }}</td>
+            </tr>
+            {% empty %}<tr><td colspan="5" class="tf-leer">Noch keine Daten.</td></tr>{% endfor %}
+        </table>
+    </div>
+
+    <div class="tf-fuss">
+        {% if erfasst_seit %}Erfasst seit {{ erfasst_seit|date:"d.m.Y" }} · {% endif %}
+        Verwaltungsseiten, /static/ und /media/ werden nicht gezählt ·
+        Datenvolumen = unkomprimierte Serverantworten ·
+        IP-Geolocation by <a href="https://db-ip.com" target="_blank" rel="noopener">DB-IP</a> (CC BY 4.0) ·
+        Es werden keine IP-Adressen gespeichert.
+    </div>
+</div>
+
+{{ chart_daten|json_script:"tf-daten" }}
+{% endblock %}
+
+{% block body_scripts %}{{ block.super }}
+<script src="{% static 'djangobase/js/chart.umd.min.js' %}"></script>
+<script>
+(function () {
+    var daten = JSON.parse(document.getElementById('tf-daten').textContent);
+    var css = getComputedStyle(document.body);
+    var akzent = (css.getPropertyValue('--db-accent') || '#4ea8f6').trim();
+    var fg = (css.getPropertyValue('--db-fg') || '#e0e8f0').trim();
+    Chart.defaults.color = fg;
+    Chart.defaults.borderColor = 'rgba(128,128,128,.18)';
+    Chart.defaults.font.size = 11;
+
+    new Chart(document.getElementById('tf-chart-besuche'), {
+        data: {
+            labels: daten.labels,
+            datasets: [
+                { type: 'bar', label: 'Aufrufe', data: daten.aufrufe,
+                  backgroundColor: akzent + '66', borderRadius: 3 },
+                { type: 'line', label: 'Besucher', data: daten.besucher,
+                  borderColor: akzent, backgroundColor: akzent,
+                  tension: .3, pointRadius: 2 },
+            ],
+        },
+        options: { maintainAspectRatio: false,
+                   scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+                   plugins: { legend: { labels: { boxWidth: 14 } } } },
+    });
+
+    new Chart(document.getElementById('tf-chart-mb'), {
+        type: 'bar',
+        data: { labels: daten.labels,
+                datasets: [{ label: 'MB', data: daten.mb,
+                             backgroundColor: akzent + '99', borderRadius: 3 }] },
+        options: { maintainAspectRatio: false,
+                   scales: { y: { beginAtZero: true } },
+                   plugins: { legend: { display: false } } },
+    });
+
+    new Chart(document.getElementById('tf-chart-geraete'), {
+        type: 'doughnut',
+        data: { labels: daten.geraete.labels,
+                datasets: [{ data: daten.geraete.werte,
+                             backgroundColor: [akzent, akzent + '99', akzent + '4d'],
+                             borderWidth: 0 }] },
+        options: { maintainAspectRatio: false, cutout: '62%',
+                   plugins: { legend: { position: 'right',
+                                        labels: { boxWidth: 14 } } } },
+    });
+})();
+</script>
+{% endblock %}

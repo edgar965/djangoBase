@@ -132,6 +132,22 @@ DEFAULTS = {
     # PST-Import-Worker, der auch ohne Progress-Bar Zigtausend Zeilen
     # pro Minute schreiben kann).
     "log_noisy_sources": [],        # ["mail_import", ...]
+    # ----- Übersetzung der User-Seite (djangobase.uebersetzung) ------------
+    # Aktive Zielsprachen (Codes aus uebersetzung.SPRACHEN); wird über die
+    # Seite Einstellungen → Übersetzung gepflegt (Store-Gruppe "uebersetzung").
+    "uebersetzung_sprachen": [],
+    # ----- Traffic-Statistik (djangobase.traffic + views/traffic.py) -------
+    # Erfassung ist opt-in: TrafficMiddleware in MIDDLEWARE eintragen.
+    # mmdb-Datei für den offline-Länder-Lookup (DB-IP Country Lite, CC BY 4.0).
+    # None -> BASE_DIR/daten/dbip-country-lite.mmdb
+    "traffic_geo_db": None,
+    # Pfad-Präfixe, die nicht erfasst werden (Verwaltung zählt nicht als
+    # Besuch). Projekte ergänzen eigene Verwaltungspfade in den Settings.
+    "traffic_ignorierte_pfade": ["/static/", "/media/", "/favicon",
+                                 "/admin/", "/hilfe/"],
+    # Eigene Domains, die nie als Referrer-Quelle zählen (zusätzlich zum
+    # jeweiligen request.get_host()).
+    "traffic_eigene_domains": [],
     # ----- E-Mail (SMTP) – vom StoreSMTPBackend gelesen --------------------
     "email_host": "",
     "email_port": 587,

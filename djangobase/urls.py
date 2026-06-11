@@ -2,8 +2,8 @@ from django.urls import path
 
 from .views import (BenutzerBearbeitenView, BenutzerErstellenView,
                     BenutzerInlineView, BenutzerListeView, BenutzerLoeschenView,
-                    BenutzerStatusView, EinstellungenView,
-                    LogsView, TestsView, VersionsView)
+                    BenutzerStatusView, EinstellungenView, LogsView, TestsView,
+                    TrafficView, UebersetzungView, VersionsView)
 
 app_name = "djangobase"
 
@@ -14,6 +14,8 @@ urlpatterns = [
     path("einstellungen/", EinstellungenView.as_view(gruppe="djangobase"), name="einstellungen"),
     path("einstellungen/website/", EinstellungenView.as_view(gruppe="website"), name="einstellungen_website"),
     path("einstellungen/email/", EinstellungenView.as_view(gruppe="email"), name="einstellungen_email"),
+    path("traffic/", TrafficView.as_view(), name="traffic"),
+    path("einstellungen/uebersetzung/", UebersetzungView.as_view(), name="uebersetzung"),
     path("einstellungen/benutzer/", BenutzerListeView.as_view(), name="benutzer"),
     path("einstellungen/benutzer/neu/", BenutzerErstellenView.as_view(), name="benutzer_neu"),
     path("einstellungen/benutzer/<int:pk>/bearbeiten/", BenutzerBearbeitenView.as_view(), name="benutzer_bearbeiten"),

@@ -68,6 +68,16 @@ GRUPPEN = {
              "(Komma-getrennt, z. B. mail_import, pst_worker)"),
         ],
     },
+    "uebersetzung": {
+        "label": "Übersetzung",
+        "icon": "bi-translate",
+        "titel": "Einstellungen · Übersetzung",
+        "beschreibung": "Zielsprachen der automatischen Übersetzung der User-Seite "
+                        "(eigene Seite: views/uebersetzung.py, kein Generik-Formular).",
+        "felder": [
+            ("uebersetzung_sprachen", "csv", "Aktive Zielsprachen (Sprachcodes)"),
+        ],
+    },
     "email": {
         "label": "E-Mail",
         "icon": "bi-envelope",

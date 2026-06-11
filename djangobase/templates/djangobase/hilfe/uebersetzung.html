@@ -1,0 +1,133 @@
+{% extends 'djangobase/base.html' %}
+
+{% block title_extra %} · Einstellungen · Übersetzung{% endblock %}
+{% block topbar_title %}<i class="bi bi-translate"></i> Einstellungen · Übersetzung{% endblock %}
+
+{% block head_extra %}
+{% if lauf_laeuft %}<meta http-equiv="refresh" content="4">{% endif %}
+{% endblock %}
+
+{% block content %}
+<style>
+.uz-page { padding: 18px 22px 30px; max-width: 1100px; }
+.uz-card { background: color-mix(in srgb, var(--db-fg) 5%, transparent);
+           border: 1px solid color-mix(in srgb, var(--db-fg) 12%, transparent);
+           border-radius: 12px; padding: 16px 18px; margin-bottom: 16px; }
+.uz-card h6 { margin: 0 0 10px; font-weight: 600; opacity: .85; }
+.uz-hint { opacity: .65; font-size: .85rem; margin-bottom: 12px; }
+.uz-sprachen { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+               gap: 6px; margin-bottom: 12px; }
+.uz-sprachen label { display: flex; align-items: center; gap: 8px; padding: 6px 10px;
+                     border-radius: 8px; cursor: pointer; font-size: .9rem;
+                     border: 1px solid color-mix(in srgb, var(--db-fg) 10%, transparent); }
+.uz-sprachen label:has(input:checked) { background: color-mix(in srgb, var(--db-accent) 18%, transparent);
+                                        border-color: var(--db-accent); }
+.uz-sprachen .fl { font-size: 1.1rem; }
+.uz-btn { background: var(--db-accent); color: #fff; border: 0; border-radius: 8px;
+          padding: 7px 18px; font-weight: 600; cursor: pointer; }
+.uz-btn[disabled] { opacity: .5; cursor: default; }
+.uz-tabelle { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.uz-tabelle th { text-align: left; font-weight: 600; opacity: .65; font-size: .78rem;
+                 text-transform: uppercase; padding: 4px 10px; border-bottom: 1px solid
+                 color-mix(in srgb, var(--db-fg) 15%, transparent); }
+.uz-tabelle td { padding: 6px 10px; border-bottom: 1px solid
+                 color-mix(in srgb, var(--db-fg) 7%, transparent); }
+.uz-tabelle td.num { text-align: right; }
+.uz-ok { color: #2fbf71; font-weight: 600; }
+.uz-alt { color: #e9b949; font-weight: 600; }
+.uz-fehlt { color: #e05d5d; font-weight: 600; }
+.uz-progress { height: 10px; border-radius: 6px; overflow: hidden;
+               background: color-mix(in srgb, var(--db-fg) 10%, transparent); margin: 8px 0; }
+.uz-progress i { display: block; height: 100%; background: var(--db-accent); transition: width .4s; }
+.uz-zeile { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.uz-zeile select { padding: 6px 10px; border-radius: 8px;
+                   border: 1px solid color-mix(in srgb, var(--db-fg) 18%, transparent);
+                   background: transparent; color: var(--db-fg); }
+.uz-zeile select option { color: #0f172a; }
+.uz-fehler { color: #e05d5d; font-size: .82rem; margin-top: 8px; white-space: pre-line; }
+</style>
+
+<div class="uz-page">
+
+    <div class="uz-card">
+        <h6><i class="bi bi-globe2"></i> Zielsprachen</h6>
+        <div class="uz-hint">
+            Basis-Sprache der Website ist <strong>Deutsch 🇩🇪</strong>. Gewählte Sprachen
+            erscheinen im Flaggen-Menü der User-Seite und werden beim Übersetzungslauf gefüllt
+            (Google Translate, kostenlos, kein API-Key).
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="aktion" value="sprachen">
+            <div class="uz-sprachen">
+                {% for s in sprachen %}
+                <label><input type="checkbox" name="sprachen" value="{{ s.code }}"
+                              {% if s.an %}checked{% endif %}>
+                    <span class="fl">{{ s.flagge }}</span> {{ s.name }}</label>
+                {% endfor %}
+            </div>
+            <button type="submit" class="uz-btn">Sprachen speichern</button>
+        </form>
+    </div>
+
+    <div class="uz-card">
+        <h6><i class="bi bi-arrow-repeat"></i> Übersetzungslauf</h6>
+        {% if lauf_laeuft %}
+            <p>Lauf aktiv ({{ lauf.modus }}) – {{ lauf.fertig }} von {{ lauf.gesamt }} Texten …</p>
+            <div class="uz-progress"><i style="width:{% if lauf.gesamt %}{% widthratio lauf.fertig lauf.gesamt 100 %}{% else %}0{% endif %}%"></i></div>
+            <p class="uz-hint">Diese Seite aktualisiert sich alle 4 Sekunden automatisch.</p>
+        {% else %}
+            <div class="uz-hint">
+                Übersetzt alle registrierten Texte in die gewählten Sprachen. „Fehlende + veraltete"
+                prüft zuerst, ob sich der deutsche Text seit der letzten Übersetzung geändert hat,
+                und übersetzt nur das Nötige.
+            </div>
+            <form method="post" class="uz-zeile">
+                {% csrf_token %}
+                <input type="hidden" name="aktion" value="uebersetzen">
+                <select name="modus">
+                    <option value="veraltet">Fehlende + veraltete (empfohlen)</option>
+                    <option value="fehlend">Nur fehlende</option>
+                    <option value="alle">Alle neu übersetzen</option>
+                </select>
+                <button type="submit" class="uz-btn"
+                        {% if not zeilen %}disabled title="Erst Zielsprachen wählen"{% endif %}>
+                    <i class="bi bi-translate"></i> Jetzt übersetzen
+                </button>
+            </form>
+            {% if lauf.gesamt and not lauf.laeuft %}
+                <p class="uz-hint" style="margin-top:10px;">Letzter Lauf ({{ lauf.modus }}):
+                    {{ lauf.fertig }} Texte verarbeitet.</p>
+            {% endif %}
+            {% if lauf.fehler %}
+                <div class="uz-fehler">Fehler:&#10;{% for f in lauf.fehler %}{{ f }}&#10;{% endfor %}</div>
+            {% endif %}
+        {% endif %}
+    </div>
+
+    <div class="uz-card">
+        <h6><i class="bi bi-card-checklist"></i> Status ({{ anzahl_quellen }} registrierte Texte)</h6>
+        {% if zeilen %}
+        <table class="uz-tabelle">
+            <tr><th>Sprache</th><th class="num">Aktuell</th>
+                <th class="num">Veraltet</th><th class="num">Fehlt</th></tr>
+            {% for z in zeilen %}
+            <tr>
+                <td>{{ z.flagge }} {{ z.name }} <span style="opacity:.5;">({{ z.code }})</span></td>
+                <td class="num uz-ok">{{ z.aktuell }}</td>
+                <td class="num uz-alt">{{ z.veraltet }}</td>
+                <td class="num uz-fehlt">{{ z.fehlt }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}
+        <p class="uz-hint">Noch keine Zielsprachen gewählt.</p>
+        {% endif %}
+        <p class="uz-hint" style="margin-top:10px;">
+            Texte registrieren sich automatisch, sobald die jeweilige Seite einmal (auf Deutsch)
+            aufgerufen wurde. Neue Texte tauchen hier also nach dem nächsten Seitenbesuch auf.
+        </p>
+    </div>
+
+</div>
+{% endblock %}
