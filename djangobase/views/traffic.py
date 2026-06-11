@@ -6,16 +6,21 @@ Tag (30 Tage) / Woche (12 Wochen) / Monat (12 Monate); alle Blöcke
 (Kennzahlen, Länder, Seiten, Referrer, Geräte, MB) beziehen sich auf
 dasselbe Zeitfenster. Bots werden überall ausgeblendet.
 """
+import json
 from datetime import timedelta
 
 from django.db.models import Count, Q, Sum
 from django.db.models.functions import TruncDate, TruncMonth, TruncWeek
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
+from django.utils.decorators import method_decorator
 from django.views import View
+from django.views.decorators.csrf import csrf_exempt
 
 from ..mixins import ZugriffMixin
-from ..models import Seitenaufruf
+from ..models import Seitenaufruf, Verbrauch
+from ..traffic import verbrauch_buchen
 
 GRANULARITAETEN = {
     # key: (Anzahl Perioden, Trunc-Funktion, Schritt-Tage, Label)
@@ -43,6 +48,31 @@ def _flagge(iso):
 
 def _mb(byte_anzahl):
     return round((byte_anzahl or 0) / (1024 * 1024), 1)
+
+
+# Geschätzte Bytes pro Kachel, falls der Browser keine Resource-Timing-Größe
+# liefert (z. B. Cross-Origin ohne Timing-Allow-Origin → transferSize 0).
+KACHEL_BYTES = 22 * 1024
+
+ROUTING_MODI = {"auto": ("🚗", "Auto"), "bicycle": ("🚲", "Fahrrad"),
+                "pedestrian": ("🥾", "Zu Fuß")}
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class VerbrauchBeaconView(View):
+    """Öffentlicher Beacon-Endpoint: der Karten-Client meldet geladene Kacheln
+    (navigator.sendBeacon, static/djangobase/js/verbrauch.js). CSRF-frei, weil
+    sendBeacon keine Header setzen kann; Werte werden serverseitig geklemmt."""
+
+    def post(self, request):
+        try:
+            d = json.loads(request.body.decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            return HttpResponse(status=204)
+        if d.get("typ") == "tile":
+            verbrauch_buchen("tile", anzahl=d.get("anzahl", 0),
+                             bytes=d.get("bytes", 0), detail="karte")
+        return HttpResponse(status=204)
 
 
 class TrafficView(ZugriffMixin, View):
@@ -144,8 +174,35 @@ class TrafficView(ZugriffMixin, View):
         geraete = [(label, geraete_roh.get(key, 0))
                    for key, label in Seitenaufruf.GERAETE]
 
+        # ---- Externe Dienste: Kartendaten + Navigation -------------------
+        vb = Verbrauch.objects.filter(zeit__gte=start)
+        kacheln = vb.filter(typ="tile").aggregate(
+            n=Sum("anzahl"), b=Sum("bytes"))
+        kachel_n = kacheln["n"] or 0
+        kachel_b = kacheln["b"] or 0
+        # Cache-Treffer liefern transferSize 0 → für die nicht gemessenen
+        # Kacheln den Schätzwert ergänzen, damit die MB realistisch bleiben.
+        gemessen = vb.filter(typ="tile", bytes__gt=0).aggregate(n=Sum("anzahl"))["n"] or 0
+        kachel_mb = _mb(kachel_b + max(0, kachel_n - gemessen) * KACHEL_BYTES)
+
+        route_roh = (vb.filter(typ="route").values("detail")
+                     .annotate(n=Sum("anzahl"), b=Sum("bytes")).order_by("-n"))
+        route_n = sum(r["n"] or 0 for r in route_roh)
+        route_b = sum(r["b"] or 0 for r in route_roh)
+        routing = [{
+            "modus": ROUTING_MODI.get(r["detail"], ("🧭", r["detail"] or "—"))[1],
+            "icon": ROUTING_MODI.get(r["detail"], ("🧭", ""))[0],
+            "n": r["n"] or 0,
+        } for r in route_roh]
+
         return render(request, "djangobase/hilfe/traffic.html", {
             "aktiv": "traffic",
+            "verbrauch": {
+                "kachel_n": kachel_n, "kachel_mb": kachel_mb,
+                "route_n": route_n, "route_mb": _mb(route_b),
+                "routing": routing,
+                "hat_daten": bool(kachel_n or route_n),
+            },
             "g": g,
             "fenster_label": fenster_label,
             "granularitaeten": [("tag", "Tag"), ("woche", "Woche"), ("monat", "Monat")],

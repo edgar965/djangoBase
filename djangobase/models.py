@@ -125,6 +125,31 @@ class Seitenaufruf(models.Model):
         return f"{self.zeit:%Y-%m-%d %H:%M} {self.pfad}"
 
 
+class Verbrauch(models.Model):
+    """Verbrauch externer Dienste (Traffic-Seite, Unterkategorie „Externe
+    Dienste"): Kartenkacheln (vom Browser direkt von den OSM-Tile-Servern
+    geladen, gemeldet per Beacon) und Navigations-/Routing-Anfragen (über den
+    eigenen Valhalla-Proxy). Dient der Fair-Use-Überwachung.
+
+    `anzahl` = Stück (Kacheln bzw. Routing-Anfragen), `bytes` = übertragene
+    Datenmenge (bei Kacheln aus der Resource-Timing-API des Browsers, 0 bei
+    Cache-Treffern), `detail` = Quelle/Modus (z. B. "auto"/"pedestrian")."""
+    TYPEN = [("tile", "Kartenkacheln"), ("route", "Navigation/Routing")]
+
+    zeit = models.DateTimeField("Zeit", auto_now_add=True, db_index=True)
+    typ = models.CharField("Typ", max_length=8, choices=TYPEN, db_index=True)
+    anzahl = models.PositiveIntegerField("Anzahl", default=1)
+    bytes = models.PositiveBigIntegerField("Bytes", default=0)
+    detail = models.CharField("Detail", max_length=40, blank=True)
+
+    class Meta:
+        verbose_name = "Verbrauch"
+        verbose_name_plural = "Verbrauch"
+
+    def __str__(self):
+        return f"{self.zeit:%Y-%m-%d %H:%M} {self.typ} ×{self.anzahl}"
+
+
 class TextQuelle(models.Model):
     """Ein deutscher Originaltext der öffentlichen User-Seite (Basis-Version).
 

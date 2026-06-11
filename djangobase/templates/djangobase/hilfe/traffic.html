@@ -60,6 +60,18 @@
 .tf-fuss { opacity: .55; font-size: .8rem; margin-top: 6px; }
 .tf-fuss a { color: var(--db-accent); }
 .tf-leer { text-align: center; opacity: .65; padding: 40px 10px; }
+.tf-dienst { background: color-mix(in srgb, var(--db-fg) 5%, transparent);
+             border: 1px solid color-mix(in srgb, var(--db-fg) 12%, transparent);
+             border-radius: 10px; padding: 12px 14px; }
+.tf-dienst-kopf { font-weight: 600; margin-bottom: 10px; }
+.tf-dienst-kopf small { opacity: .55; font-weight: 400; }
+.tf-dienst-werte { display: flex; gap: 10px; }
+.tf-dienst-werte > div { flex: 1; text-align: center; padding: 8px 4px;
+                         background: color-mix(in srgb, var(--db-fg) 6%, transparent);
+                         border-radius: 8px; }
+.tf-dienst-werte b { display: block; font-size: 1.3rem; color: var(--db-accent); }
+.tf-dienst-werte small { font-size: .74rem; opacity: .7; }
+.tf-dienst-fuss { margin: 9px 0 0; font-size: .8rem; opacity: .7; }
 </style>
 
 <div class="tf-page">
@@ -102,6 +114,40 @@
     <div class="tf-card">
         <h6><i class="bi bi-bar-chart"></i> Aufrufe &amp; Besucher pro {{ g|capfirst }}</h6>
         <div class="tf-chartbox"><canvas id="tf-chart-besuche"></canvas></div>
+    </div>
+
+    {# ---- Unterkategorie: Verbrauch externer Dienste ---- #}
+    <div class="tf-card">
+        <h6><i class="bi bi-hdd-network"></i> Externe Dienste – Verbrauch ({{ fenster_label }})</h6>
+        <div class="tf-grid2">
+            <div class="tf-dienst">
+                <div class="tf-dienst-kopf">🗺️ Kartendaten <small>(OpenStreetMap-Kacheln)</small></div>
+                <div class="tf-dienst-werte">
+                    <div><b>{{ verbrauch.kachel_n }}</b><small>Kacheln geladen</small></div>
+                    <div><b>{{ verbrauch.kachel_mb }} MB</b><small>übertragen</small></div>
+                </div>
+                <p class="tf-dienst-fuss">Vom Browser direkt von den Tile-Servern geladen
+                    (Cache-Treffer zählen 0 MB).</p>
+            </div>
+            <div class="tf-dienst">
+                <div class="tf-dienst-kopf">🧭 Navigation <small>(Valhalla-Routing)</small></div>
+                <div class="tf-dienst-werte">
+                    <div><b>{{ verbrauch.route_n }}</b><small>Routen berechnet</small></div>
+                    <div><b>{{ verbrauch.route_mb }} MB</b><small>Antwortdaten</small></div>
+                </div>
+                {% if verbrauch.routing %}
+                <p class="tf-dienst-fuss">
+                    {% for m in verbrauch.routing %}{{ m.icon }} {{ m.modus }}: <b>{{ m.n }}</b>{% if not forloop.last %} · {% endif %}{% endfor %}
+                </p>
+                {% else %}
+                <p class="tf-dienst-fuss">Eigene Valhalla-Instanz, Fallback FOSSGIS.</p>
+                {% endif %}
+            </div>
+        </div>
+        {% if not verbrauch.hat_daten %}
+        <p class="tf-hint" style="margin-top:6px;">Noch keine Verbrauchsdaten im Zeitfenster –
+            sie entstehen, sobald Besucher die Karte nutzen oder navigieren.</p>
+        {% endif %}
     </div>
 
     <div class="tf-grid2">

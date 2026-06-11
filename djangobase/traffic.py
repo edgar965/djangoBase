@@ -152,3 +152,19 @@ class TrafficMiddleware:
             bot=bool(BOT_RE.search(ua)) or not ua,
             groesse=groesse,
         )
+
+
+def verbrauch_buchen(typ, anzahl=1, bytes=0, detail=""):
+    """Bucht Verbrauch externer Dienste (typ "tile" | "route") für die
+    Traffic-Seite. Fail-silent – darf nie eine Anfrage crashen."""
+    if typ not in ("tile", "route"):
+        return
+    try:
+        from .models import Verbrauch
+        Verbrauch.objects.create(
+            typ=typ,
+            anzahl=max(0, min(int(anzahl), 100000)),
+            bytes=max(0, min(int(bytes), 10**12)),
+            detail=str(detail)[:40])
+    except Exception:  # noqa: BLE001
+        pass
