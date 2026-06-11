@@ -6,7 +6,7 @@ Erwartet `zeilen` (Liste von Zeilen-Dicts) und `sprachen` (Choices).{% endcommen
         <tr>
             <th>Avatar</th><th>Eingeloggt</th><th>Name</th><th>E-Mail</th>
             <th>Freigeschaltet</th>{% if email_spalte %}<th>E-Mail bestätigt</th>{% endif %}
-            <th>Passwort</th><th>Sprache</th><th>UI</th><th>Verlauf</th><th class="bk-actions">Aktionen</th>
+            <th>Passwort</th><th>Sprache</th><th>UI</th><th>Zuletzt</th><th>Logs</th><th class="bk-actions">Aktionen</th>
         </tr>
     </thead>
     <tbody>
@@ -42,7 +42,6 @@ Erwartet `zeilen` (Liste von Zeilen-Dicts) und `sprachen` (Choices).{% endcommen
             {# Name #}
             <td><span class="bk-name">
                 <strong>{% if z.user.first_name or z.user.last_name %}{{ z.user.first_name }} {{ z.user.last_name }}{% else %}{{ z.user.username }}{% endif %}</strong>
-                <small>@{{ z.user.username }}</small>
             </span></td>
             {# E-Mail #}
             <td>{{ z.user.email|default:"–" }}</td>
@@ -103,13 +102,14 @@ Erwartet `zeilen` (Liste von Zeilen-Dicts) und `sprachen` (Choices).{% endcommen
                     <button type="submit" class="bk-icon" title="UI speichern"><i class="bi bi-save"></i></button>
                 </form>
             </td>
-            {# Verlauf: Registrierung / E-Mail / Freigabe / letzte Sitzung #}
-            <td class="bk-verlauf">
-                <small title="Registriert">📝 {{ z.registriert_am|date:"d.m.y H:i"|default:"–" }}</small>
-                <small title="E-Mail bestätigt">✉️ {{ z.email_bestaetigt_am|date:"d.m.y H:i"|default:"–" }}</small>
-                <small title="Vom Admin freigegeben">✅ {{ z.freigegeben_am|date:"d.m.y H:i"|default:"–" }}</small>
-                <small title="Letzte Sitzung (Login–Logout)">🕒
-                    {% if z.letzte_sitzung %}{{ z.letzte_sitzung.beginn|date:"d.m.y H:i" }}–{% if z.letzte_sitzung.ende %}{{ z.letzte_sitzung.ende|date:"H:i" }}{% elif z.online %}<b>aktiv</b>{% else %}?{% endif %}{% else %}{{ z.user.last_login|date:"d.m.y H:i"|default:"nie" }}{% endif %}</small>
+            {# Zuletzt eingeloggt #}
+            <td><small>{{ z.user.last_login|date:"d.m.Y H:i"|default:"nie" }}</small></td>
+            {# Logs: Popup mit Registrierung / Bestätigung / Freigabe / Login-Zeiten #}
+            <td>
+                <button type="button" class="bk-icon" title="Verlauf anzeigen"
+                        data-bs-toggle="modal" data-bs-target="#logModal{{ z.user.pk }}">
+                    <i class="bi bi-clock-history"></i>
+                </button>
             </td>
             {# Aktionen #}
             <td class="bk-actions">
@@ -128,8 +128,41 @@ Erwartet `zeilen` (Liste von Zeilen-Dicts) und `sprachen` (Choices).{% endcommen
             </td>
         </tr>
     {% empty %}
-        <tr><td colspan="{% if email_spalte %}11{% else %}10{% endif %}" class="bk-empty">Keine Einträge.</td></tr>
+        <tr><td colspan="{% if email_spalte %}12{% else %}11{% endif %}" class="bk-empty">Keine Einträge.</td></tr>
     {% endfor %}
     </tbody>
 </table>
 </div>
+
+{# ---- Logs-Popups: ein Modal je Benutzer ---- #}
+{% for z in zeilen %}
+<div class="modal fade bk-modal" id="logModal{{ z.user.pk }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-clock-history"></i>
+                    Verlauf – {% if z.user.first_name or z.user.last_name %}{{ z.user.first_name }} {{ z.user.last_name }}{% else %}{{ z.user.username }}{% endif %}</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Schließen"></button>
+            </div>
+            <div class="modal-body">
+                <table class="bk-logtable">
+                    <tr><td>📝 Registriert</td><td>{{ z.registriert_am|date:"d.m.Y H:i"|default:"–" }}</td></tr>
+                    <tr><td>✉️ E-Mail bestätigt</td><td>{{ z.email_bestaetigt_am|date:"d.m.Y H:i"|default:"–" }}</td></tr>
+                    <tr><td>✅ Vom Admin freigegeben</td><td>{{ z.freigegeben_am|date:"d.m.Y H:i"|default:"–" }}</td></tr>
+                </table>
+                <h6 class="bk-logh">🕒 Login-Zeiten</h6>
+                <table class="bk-logtable">
+                    <tr><th>Login</th><th>Logout</th></tr>
+                    {% for s in z.sitzungen %}
+                    <tr><td>{{ s.beginn|date:"d.m.Y H:i:s" }}</td>
+                        <td>{% if s.ende %}{{ s.ende|date:"d.m.Y H:i:s" }}{% elif z.online and forloop.first %}<b>aktiv</b>{% else %}–{% endif %}</td></tr>
+                    {% empty %}
+                    <tr><td colspan="2" class="bk-empty">Noch keine erfassten Logins
+                        {% if z.user.last_login %}(letzter: {{ z.user.last_login|date:"d.m.Y H:i" }}){% endif %}.</td></tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}

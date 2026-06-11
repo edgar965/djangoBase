@@ -57,11 +57,14 @@ def _eingeloggte_user_ids():
         return set()
 
 
-def _letzte_sitzungen():
-    """user_id → letzte LoginSitzung (für die „von–bis"-Anzeige)."""
+def _sitzungen_map(grenze=40):
+    """user_id → Liste der letzten Login-Sitzungen (neueste zuerst) für das
+    Logs-Popup."""
     sm = {}
-    for s in LoginSitzung.objects.filter(user__isnull=False).order_by("beginn"):
-        sm[s.user_id] = s   # spätere überschreiben → am Ende die neueste
+    for s in LoginSitzung.objects.filter(user__isnull=False).order_by("-beginn"):
+        liste = sm.setdefault(s.user_id, [])
+        if len(liste) < grenze:
+            liste.append(s)
     return sm
 
 
@@ -87,7 +90,7 @@ def _zeile(user, profil, ist_provider, email_map=None, online_ids=None, sitzung_
                            else user.date_joined),
         "email_bestaetigt_am": profil.email_bestaetigt_am if profil else None,
         "freigegeben_am": profil.freigegeben_am if profil else None,
-        "letzte_sitzung": sitzung_map.get(user.id) if sitzung_map else None,
+        "sitzungen": (sitzung_map or {}).get(user.id, []),
     }
 
 
@@ -97,7 +100,7 @@ def _listen():
     provider_pks = set(Provider.objects.values_list("pk", flat=True))
     email_map = _email_adressen()
     online_ids = _eingeloggte_user_ids()
-    sitzung_map = _letzte_sitzungen()
+    sitzung_map = _sitzungen_map()
     provider, teilnehmer, django_nutzer = [], [], []
     for user in User.objects.order_by("-is_active", "last_name", "first_name", "username"):
         t = teilnehmer_map.get(user.id)
