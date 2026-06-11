@@ -4,7 +4,7 @@ Erwartet `zeilen` (Liste von Zeilen-Dicts) und `sprachen` (Choices).{% endcommen
 <table class="bk-table">
     <thead>
         <tr>
-            <th>Avatar</th><th>Anwesend</th><th>Name</th><th>E-Mail</th>
+            <th>Avatar</th><th>Eingeloggt</th><th>Name</th><th>E-Mail</th>
             <th>Freigeschaltet</th>{% if email_spalte %}<th>E-Mail bestätigt</th>{% endif %}
             <th>Passwort</th><th>Sprache</th><th>UI</th><th>Zuletzt</th><th class="bk-actions">Aktionen</th>
         </tr>
@@ -32,16 +32,12 @@ Erwartet `zeilen` (Liste von Zeilen-Dicts) und `sprachen` (Choices).{% endcommen
                     </div>
                 </div>
             </td>
-            {# Anwesend-Umschalter #}
+            {# Eingeloggt-Status (aus aktiver Session, nicht manuell) #}
             <td>
-                <form method="post" action="{% url 'djangobase:benutzer_inline' z.user.pk %}">
-                    {% csrf_token %}<input type="hidden" name="feld" value="anwesend">
-                    <input type="hidden" name="zurueck" value="{{ request.path }}">
-                    <button type="submit" class="bk-anw {% if z.anwesend %}an{% else %}ab{% endif %}{% if z.online %} online{% endif %}"
-                            title="{% if z.online %}aktuell eingeloggt{% endif %}">
-                        {% if z.anwesend %}Anwesend{% else %}Abwesend{% endif %}
-                    </button>
-                </form>
+                <span class="bk-anw {% if z.online %}online an{% else %}ab{% endif %}"
+                      title="{% if z.online %}hat eine aktive Sitzung{% else %}derzeit nicht angemeldet{% endif %}">
+                    {% if z.online %}Eingeloggt{% else %}—{% endif %}
+                </span>
             </td>
             {# Name #}
             <td><span class="bk-name">

@@ -15,11 +15,11 @@
 .bk-tablewrap { background: #142136; border: 1px solid #1e3a5f; border-radius: 10px; overflow-x: auto; }
 
 /* ---- Cleanorga-Inline-Controls (im dunklen Stil) ---- */
-/* Anwesend-Umschalter */
-.bk-anw { border: 0; border-radius: 20px; padding: .2rem .7rem; font-size: .74rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+/* Eingeloggt-Status (aus aktiver Session) */
+.bk-anw { display: inline-block; border: 0; border-radius: 20px; padding: .2rem .7rem; font-size: .74rem; font-weight: 600; white-space: nowrap; }
 .bk-anw.an { background: #1f7a3d; color: #cdf5d6; }
-.bk-anw.ab { background: #3a4d68; color: #cdddf0; }
-.bk-anw.online { outline: 2px dashed #e0b000; outline-offset: 1px; }
+.bk-anw.ab { background: #2a3344; color: #7e8ea4; }
+.bk-anw.online::before { content: "● "; color: #5fe08a; }
 /* Inline-Formulare Passwort/Sprache/UI */
 .bk-pw { display: flex; align-items: center; gap: .3rem; }
 .bk-pw-dots { color: #7f97b3; letter-spacing: 1px; }

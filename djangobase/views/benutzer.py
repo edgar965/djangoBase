@@ -39,7 +39,25 @@ def _email_adressen():
     return bestaetigt
 
 
-def _zeile(user, profil, ist_provider, email_map=None):
+def _eingeloggte_user_ids():
+    """User-IDs mit aktiver (nicht abgelaufener) Session – die verlässliche
+    „aktuell eingeloggt"-Quelle (selbstkorrigierend, anders als das gespeicherte
+    eingeloggt-Flag, das beim Browser-Schließen veralten würde). Nur für den
+    DB-Session-Backend; bei anderen Backends einfach leer."""
+    try:
+        from django.contrib.sessions.models import Session
+        from django.utils import timezone
+        ids = set()
+        for s in Session.objects.filter(expire_date__gte=timezone.now()):
+            uid = s.get_decoded().get("_auth_user_id")
+            if uid:
+                ids.add(int(uid))
+        return ids
+    except Exception:  # noqa: BLE001 – ohne DB-Sessions kein Online-Status
+        return set()
+
+
+def _zeile(user, profil, ist_provider, email_map=None, online_ids=None):
     return {
         "user": user,
         "profil": profil,
@@ -50,7 +68,9 @@ def _zeile(user, profil, ist_provider, email_map=None):
         "sprache_code": profil.sprache if profil else "de",
         "sprache": profil.get_sprache_display() if profil else "",
         "adresse": profil.adresse_kurz if profil else "",
-        "online": bool(profil and profil.eingeloggt),
+        # „Eingeloggt" = aktive Session (nicht das veraltbare Profil-Flag)
+        "online": user.id in online_ids if online_ids is not None
+                  else bool(profil and profil.eingeloggt),
         "anwesend": bool(profil and profil.anwesend),
         "ui": profil.ui if profil else 1,
         "email_bestaetigt": bool(email_map and email_map.get(user.id)),
@@ -62,11 +82,12 @@ def _listen():
     teilnehmer_map = {t.user_id: t for t in Teilnehmer.objects.select_related("user")}
     provider_pks = set(Provider.objects.values_list("pk", flat=True))
     email_map = _email_adressen()
+    online_ids = _eingeloggte_user_ids()
     provider, teilnehmer, django_nutzer = [], [], []
     for user in User.objects.order_by("-is_active", "last_name", "first_name", "username"):
         t = teilnehmer_map.get(user.id)
         ist_provider = bool(t and t.pk in provider_pks)
-        zeile = _zeile(user, t, ist_provider, email_map)
+        zeile = _zeile(user, t, ist_provider, email_map, online_ids)
         if user.is_staff or user.is_superuser:
             django_nutzer.append(zeile)
         elif ist_provider:
