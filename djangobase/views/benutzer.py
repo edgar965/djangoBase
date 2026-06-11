@@ -132,9 +132,12 @@ def _context(form=None, modal_offen=False):
 
 def _zurueck(request):
     """Ziel nach einer Aktion: die aufrufende Seite (Hidden-Feld „zurueck“),
-    sonst die Standard-Benutzerseite – nur interne Pfade."""
+    sonst die Standard-Benutzerseite. Nur same-host-Pfade (Open-Redirect-
+    Schutz via Djangos url_has_allowed_host_and_scheme)."""
+    from django.utils.http import url_has_allowed_host_and_scheme
     ziel = (request.POST.get("zurueck") or "").strip()
-    if ziel.startswith("/") and not ziel.startswith("//"):
+    if ziel and url_has_allowed_host_and_scheme(
+            ziel, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
         return redirect(ziel)
     return redirect(reverse("djangobase:benutzer"))
 

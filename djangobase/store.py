@@ -134,11 +134,26 @@ def laden():
 
 
 def speichern(daten):
-    """Schreibt die Overrides (nur EINSTELLBAR-Keys) als JSON — vollstaendig."""
+    """Schreibt die Overrides (nur EINSTELLBAR-Keys) als JSON — vollstaendig.
+    Atomar (Temp-Datei + os.replace), damit parallele Speicher-Vorgaenge die
+    Datei nicht halb beschrieben/korrupt hinterlassen koennen."""
+    import os
+    import tempfile
     erlaubt = {k for k, _t, _l in EINSTELLBAR}
     sauber = {k: v for k, v in daten.items() if k in erlaubt}
-    _pfad().write_text(json.dumps(sauber, ensure_ascii=False, indent=2),
-                       encoding="utf-8")
+    pfad = _pfad()
+    text = json.dumps(sauber, ensure_ascii=False, indent=2)
+    fd, tmp = tempfile.mkstemp(dir=str(pfad.parent), prefix=".djangobase-", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(text)
+        os.replace(tmp, str(pfad))   # atomarer Rename
+    except Exception:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
 
 
 def speichern_gruppe(slug, werte):
