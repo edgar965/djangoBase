@@ -132,6 +132,13 @@ DEFAULTS = {
     # PST-Import-Worker, der auch ohne Progress-Bar Zigtausend Zeilen
     # pro Minute schreiben kann).
     "log_noisy_sources": [],        # ["mail_import", ...]
+    # ----- Konten-Freigabe (Gating neuer Registrierungen) ------------------
+    # Wenn True, wird ein neues Konto der jeweiligen Rolle bei der Registrierung
+    # auf is_active=False gesetzt und kann sich erst nach Admin-Freigabe
+    # anmelden. Über die Seite „Nutzer-Freigabe" umschaltbar (Store-Gruppe
+    # „freigabe"). Default False → bestehende Projekte unverändert.
+    "freigabe_nutzer_noetig": False,
+    "freigabe_provider_noetig": False,
     # ----- Übersetzung der User-Seite (djangobase.uebersetzung) ------------
     # Aktive Zielsprachen (Codes aus uebersetzung.SPRACHEN); wird über die
     # Seite Einstellungen → Übersetzung gepflegt (Store-Gruppe "uebersetzung").

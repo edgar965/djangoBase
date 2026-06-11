@@ -113,10 +113,18 @@ class RollenSignupForm(forms.Form):
     )
 
     def signup(self, request, user):
+        from .conf import conf
         user.first_name = self.cleaned_data.get("vorname", "")
         user.last_name = self.cleaned_data.get("name", "")
+        # Konten-Freigabe (Gating): muss dieses Konto erst freigegeben werden,
+        # bleibt es bis zur Admin-Freigabe inaktiv (kann sich nicht anmelden).
+        c = conf()
+        rolle = self.cleaned_data.get("rolle")
+        if ((rolle == "anbieter" and c.get("freigabe_provider_noetig"))
+                or (rolle != "anbieter" and c.get("freigabe_nutzer_noetig"))):
+            user.is_active = False
         user.save()
         # Das djangoBase-Signal hat bereits ein Teilnehmer-Profil angelegt.
-        if self.cleaned_data.get("rolle") == "anbieter":
+        if rolle == "anbieter":
             als_provider(user, anbietername=self.cleaned_data.get("anbietername", ""))
         return user

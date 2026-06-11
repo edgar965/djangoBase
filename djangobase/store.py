@@ -68,6 +68,17 @@ GRUPPEN = {
              "(Komma-getrennt, z. B. mail_import, pst_worker)"),
         ],
     },
+    "freigabe": {
+        "label": "Konten-Freigabe",
+        "icon": "bi-person-check",
+        "titel": "Konten-Freigabe",
+        "beschreibung": "Müssen neue Konten erst vom Admin freigegeben werden, "
+                        "bevor sie sich anmelden können? (Seite „Nutzer-Freigabe“.)",
+        "felder": [
+            ("freigabe_nutzer_noetig", "bool", "Nutzer erst freigeben"),
+            ("freigabe_provider_noetig", "bool", "Provider erst freigeben"),
+        ],
+    },
     "uebersetzung": {
         "label": "Übersetzung",
         "icon": "bi-translate",
