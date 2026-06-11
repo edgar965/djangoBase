@@ -6,7 +6,7 @@ Erwartet `zeilen` (Liste von Zeilen-Dicts) und `sprachen` (Choices).{% endcommen
         <tr>
             <th>Avatar</th><th>Eingeloggt</th><th>Name</th><th>E-Mail</th>
             <th>Freigeschaltet</th>{% if email_spalte %}<th>E-Mail bestätigt</th>{% endif %}
-            <th>Passwort</th><th>Sprache</th><th>UI</th><th>Zuletzt</th><th class="bk-actions">Aktionen</th>
+            <th>Passwort</th><th>Sprache</th><th>UI</th><th>Verlauf</th><th class="bk-actions">Aktionen</th>
         </tr>
     </thead>
     <tbody>
@@ -103,8 +103,14 @@ Erwartet `zeilen` (Liste von Zeilen-Dicts) und `sprachen` (Choices).{% endcommen
                     <button type="submit" class="bk-icon" title="UI speichern"><i class="bi bi-save"></i></button>
                 </form>
             </td>
-            {# Zuletzt eingeloggt #}
-            <td><small>{{ z.user.last_login|date:"d.m.Y H:i"|default:"nie" }}</small></td>
+            {# Verlauf: Registrierung / E-Mail / Freigabe / letzte Sitzung #}
+            <td class="bk-verlauf">
+                <small title="Registriert">📝 {{ z.registriert_am|date:"d.m.y H:i"|default:"–" }}</small>
+                <small title="E-Mail bestätigt">✉️ {{ z.email_bestaetigt_am|date:"d.m.y H:i"|default:"–" }}</small>
+                <small title="Vom Admin freigegeben">✅ {{ z.freigegeben_am|date:"d.m.y H:i"|default:"–" }}</small>
+                <small title="Letzte Sitzung (Login–Logout)">🕒
+                    {% if z.letzte_sitzung %}{{ z.letzte_sitzung.beginn|date:"d.m.y H:i" }}–{% if z.letzte_sitzung.ende %}{{ z.letzte_sitzung.ende|date:"H:i" }}{% elif z.online %}<b>aktiv</b>{% else %}?{% endif %}{% else %}{{ z.user.last_login|date:"d.m.y H:i"|default:"nie" }}{% endif %}</small>
+            </td>
             {# Aktionen #}
             <td class="bk-actions">
                 <form method="post" action="{% url 'djangobase:benutzer_status' z.user.pk %}">

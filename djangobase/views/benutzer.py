@@ -17,7 +17,7 @@ from django.views import View
 
 from ..forms import BenutzerForm
 from ..mixins import ZugriffMixin
-from ..models import Provider, Teilnehmer
+from ..models import LoginSitzung, Provider, Teilnehmer
 
 User = get_user_model()
 
@@ -57,7 +57,15 @@ def _eingeloggte_user_ids():
         return set()
 
 
-def _zeile(user, profil, ist_provider, email_map=None, online_ids=None):
+def _letzte_sitzungen():
+    """user_id → letzte LoginSitzung (für die „von–bis"-Anzeige)."""
+    sm = {}
+    for s in LoginSitzung.objects.filter(user__isnull=False).order_by("beginn"):
+        sm[s.user_id] = s   # spätere überschreiben → am Ende die neueste
+    return sm
+
+
+def _zeile(user, profil, ist_provider, email_map=None, online_ids=None, sitzung_map=None):
     return {
         "user": user,
         "profil": profil,
@@ -74,6 +82,12 @@ def _zeile(user, profil, ist_provider, email_map=None, online_ids=None):
         "anwesend": bool(profil and profil.anwesend),
         "ui": profil.ui if profil else 1,
         "email_bestaetigt": bool(email_map and email_map.get(user.id)),
+        # Audit-Zeitstempel (registriert_am Fallback: User.date_joined)
+        "registriert_am": (profil.registriert_am if profil and profil.registriert_am
+                           else user.date_joined),
+        "email_bestaetigt_am": profil.email_bestaetigt_am if profil else None,
+        "freigegeben_am": profil.freigegeben_am if profil else None,
+        "letzte_sitzung": sitzung_map.get(user.id) if sitzung_map else None,
     }
 
 
@@ -83,11 +97,12 @@ def _listen():
     provider_pks = set(Provider.objects.values_list("pk", flat=True))
     email_map = _email_adressen()
     online_ids = _eingeloggte_user_ids()
+    sitzung_map = _letzte_sitzungen()
     provider, teilnehmer, django_nutzer = [], [], []
     for user in User.objects.order_by("-is_active", "last_name", "first_name", "username"):
         t = teilnehmer_map.get(user.id)
         ist_provider = bool(t and t.pk in provider_pks)
-        zeile = _zeile(user, t, ist_provider, email_map, online_ids)
+        zeile = _zeile(user, t, ist_provider, email_map, online_ids, sitzung_map)
         if user.is_staff or user.is_superuser:
             django_nutzer.append(zeile)
         elif ist_provider:
@@ -190,6 +205,10 @@ class BenutzerStatusView(ZugriffMixin, View):
             return _zurueck(request)
         user.is_active = not user.is_active
         user.save(update_fields=["is_active"])
+        if user.is_active:   # erste Freigabe mit Zeitstempel festhalten (Audit)
+            from django.utils import timezone
+            Teilnehmer.objects.filter(user=user, freigegeben_am__isnull=True).update(
+                freigegeben_am=timezone.now())
         zustand = "freigeschaltet" if user.is_active else "gesperrt"
         messages.success(request, f"{user.get_full_name() or user.username} ist jetzt {zustand}.")
         return _zurueck(request)
@@ -245,6 +264,9 @@ class BenutzerInlineView(ZugriffMixin, View):
             ea.verified = not ea.verified
             ea.primary = True
             ea.save()
+            from django.utils import timezone
+            t.email_bestaetigt_am = timezone.now() if ea.verified else None
+            t.save(update_fields=["email_bestaetigt_am"])
             zustand = "bestätigt" if ea.verified else "unbestätigt"
             messages.success(request, f"E-Mail von {user.get_username()} ist jetzt {zustand}.")
         return _zurueck(request)

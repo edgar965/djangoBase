@@ -40,6 +40,10 @@ class BasisProfil(models.Model):
     eingeloggt = models.BooleanField("Eingeloggt", default=False)
     anwesend = models.BooleanField("Anwesend", default=False)
     ui = models.PositiveIntegerField("UI", default=1)
+    # Lebenslauf-Zeitstempel (Audit, gepflegt über signals.py / Benutzer-Views)
+    registriert_am = models.DateTimeField("Registriert am", null=True, blank=True)
+    email_bestaetigt_am = models.DateTimeField("E-Mail bestätigt am", null=True, blank=True)
+    freigegeben_am = models.DateTimeField("Freigegeben am", null=True, blank=True)
 
     class Meta:
         abstract = True
@@ -123,6 +127,27 @@ class Seitenaufruf(models.Model):
 
     def __str__(self):
         return f"{self.zeit:%Y-%m-%d %H:%M} {self.pfad}"
+
+
+class LoginSitzung(models.Model):
+    """Eine Login-Sitzung (von–bis) für den Audit-Trail. `benutzer` als
+    Snapshot-Text, damit die Historie eine spätere Konto-Löschung überlebt
+    (user wird dann auf NULL gesetzt, der Name bleibt)."""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+                             on_delete=models.SET_NULL, related_name="login_sitzungen",
+                             verbose_name="Benutzer")
+    benutzer = models.CharField("Benutzer (Snapshot)", max_length=200)
+    beginn = models.DateTimeField("Login", db_index=True)
+    ende = models.DateTimeField("Logout", null=True, blank=True)
+    ip = models.GenericIPAddressField("IP", null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Login-Sitzung"
+        verbose_name_plural = "Login-Sitzungen"
+        ordering = ["-beginn"]
+
+    def __str__(self):
+        return f"{self.benutzer} {self.beginn:%Y-%m-%d %H:%M}"
 
 
 class Verbrauch(models.Model):
