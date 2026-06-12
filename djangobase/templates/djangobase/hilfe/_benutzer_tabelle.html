@@ -35,7 +35,7 @@ Erwartet `zeilen` (Liste von Zeilen-Dicts) und `sprachen` (Choices).{% endcommen
             {# Eingeloggt-Status (aus aktiver Session, nicht manuell) #}
             <td>
                 <span class="bk-anw {% if z.online %}online an{% else %}ab{% endif %}"
-                      title="{% if z.online %}hat eine aktive Sitzung{% else %}derzeit nicht angemeldet{% endif %}">
+                      title="{% if z.online %}zurzeit aktiv (in den letzten Minuten){% else %}derzeit nicht aktiv{% endif %}">
                     {% if z.online %}Eingeloggt{% else %}—{% endif %}
                 </span>
             </td>

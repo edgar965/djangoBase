@@ -57,6 +57,20 @@ def _eingeloggte_user_ids():
         return set()
 
 
+def _online_ids(user_ids):
+    """User-IDs, die AKTUELL online sind. Mit aktiviertem Online-Tracking
+    (DJANGOBASE_ONLINE_TRACKING + OnlineMiddleware) = letzte Aktivität im
+    Zeitfenster; sonst Fallback auf aktive (nicht abgelaufene) Sessions –
+    Letzteres zählt aber auch „Eingeloggt bleiben"-Sessions mit."""
+    try:
+        from ..online import online_ids as _aktiv, tracking_aktiv
+        if tracking_aktiv():
+            return _aktiv(user_ids)
+    except Exception:  # noqa: BLE001
+        pass
+    return _eingeloggte_user_ids()
+
+
 def _sitzungen_map(grenze=40):
     """user_id → Liste der letzten Login-Sitzungen (neueste zuerst) für das
     Logs-Popup."""
@@ -99,10 +113,11 @@ def _listen():
     teilnehmer_map = {t.user_id: t for t in Teilnehmer.objects.select_related("user")}
     provider_pks = set(Provider.objects.values_list("pk", flat=True))
     email_map = _email_adressen()
-    online_ids = _eingeloggte_user_ids()
     sitzung_map = _sitzungen_map()
+    nutzer = list(User.objects.order_by("-is_active", "last_name", "first_name", "username"))
+    online_ids = _online_ids([u.id for u in nutzer])
     provider, teilnehmer, django_nutzer = [], [], []
-    for user in User.objects.order_by("-is_active", "last_name", "first_name", "username"):
+    for user in nutzer:
         t = teilnehmer_map.get(user.id)
         ist_provider = bool(t and t.pk in provider_pks)
         zeile = _zeile(user, t, ist_provider, email_map, online_ids, sitzung_map)
