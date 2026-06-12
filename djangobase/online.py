@@ -26,12 +26,23 @@ def _schluessel(user_id):
 
 
 def markiere_online(user_id):
-    """Aktivität festhalten (gedrosselt: höchstens ~1× pro Minute schreiben)."""
+    """Aktivität festhalten (gedrosselt: höchstens ~1× pro Minute schreiben).
+    Gibt True zurück, wenn jetzt tatsächlich geschrieben wurde (= nicht gedrosselt)."""
     s = _schluessel(user_id)
     if cache.get(s + ":frisch"):
-        return
+        return False
     cache.set(s, True, online_fenster())
     cache.set(s + ":frisch", 1, 60)
+    return True
+
+
+def schreibe_zuletzt_aktiv(user):
+    """Persistenten „zuletzt aktiv"-Zeitstempel im Profil aktualisieren (für die
+    Spalte „Zuletzt" – im Gegensatz zu last_login = letzte Anmeldung)."""
+    from django.utils import timezone
+    from .models import Teilnehmer
+    Teilnehmer.objects.update_or_create(
+        user=user, defaults={"zuletzt_aktiv": timezone.now()})
 
 
 def online_ids(user_ids):
@@ -57,7 +68,8 @@ class OnlineMiddleware:
         u = getattr(request, "user", None)
         if u is not None and getattr(u, "is_authenticated", False):
             try:
-                markiere_online(u.id)
+                if markiere_online(u.id):           # nur wenn nicht gedrosselt
+                    schreibe_zuletzt_aktiv(u)        # persistenter Zeitstempel
             except Exception:  # noqa: BLE001 – Online-Status darf nie die Anfrage stören
                 pass
         return self.get_response(request)

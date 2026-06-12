@@ -102,6 +102,9 @@ def _zeile(user, profil, ist_provider, email_map=None, online_ids=None, sitzung_
         # Audit-Zeitstempel (registriert_am Fallback: User.date_joined)
         "registriert_am": (profil.registriert_am if profil and profil.registriert_am
                            else user.date_joined),
+        # „Zuletzt aktiv" (letzte Anfrage) – Fallback auf last_login (Anmeldung)
+        "zuletzt_aktiv": (profil.zuletzt_aktiv if profil and profil.zuletzt_aktiv
+                          else user.last_login),
         "email_bestaetigt_am": profil.email_bestaetigt_am if profil else None,
         "freigegeben_am": profil.freigegeben_am if profil else None,
         "sitzungen": (sitzung_map or {}).get(user.id, []),

@@ -39,6 +39,7 @@ class BasisProfil(models.Model):
     # eingeloggtZuletzt = user.last_login (von Django gepflegt)
     eingeloggt = models.BooleanField("Eingeloggt", default=False)
     anwesend = models.BooleanField("Anwesend", default=False)
+    zuletzt_aktiv = models.DateTimeField("Zuletzt aktiv", null=True, blank=True)
     ui = models.PositiveIntegerField("UI", default=1)
     # Lebenslauf-Zeitstempel (Audit, gepflegt über signals.py / Benutzer-Views)
     registriert_am = models.DateTimeField("Registriert am", null=True, blank=True)

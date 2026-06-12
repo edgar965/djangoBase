@@ -102,8 +102,8 @@ Erwartet `zeilen` (Liste von Zeilen-Dicts) und `sprachen` (Choices).{% endcommen
                     <button type="submit" class="bk-icon" title="UI speichern"><i class="bi bi-save"></i></button>
                 </form>
             </td>
-            {# Zuletzt eingeloggt #}
-            <td><small>{{ z.user.last_login|date:"d.m.Y H:i"|default:"nie" }}</small></td>
+            {# Zuletzt aktiv (letzte Anfrage; Fallback: letzte Anmeldung) #}
+            <td><small title="letzte Aktivität">{{ z.zuletzt_aktiv|date:"d.m.Y H:i"|default:"nie" }}</small></td>
             {# Logs: Popup mit Registrierung / Bestätigung / Freigabe / Login-Zeiten #}
             <td>
                 <button type="button" class="bk-icon" title="Verlauf anzeigen"
