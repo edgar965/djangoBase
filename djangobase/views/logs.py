@@ -7,7 +7,9 @@ import os
 import re
 from pathlib import Path
 
-from django.shortcuts import render
+from django.contrib import messages
+from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.views import View
 
 from ..conf import conf
@@ -127,6 +129,61 @@ def _stat(p: Path | None) -> dict | None:
         return {"path": str(p), "size_kb": round(st.st_size / 1024, 1), "mtime": st.st_mtime}
     except OSError:
         return None
+
+
+def _truncate_source(log_dir: Path, sources: list, key: str):
+    """Best-effort Truncate aller Dateien einer Source (bei 'all' alle Quellen).
+
+    Auf Windows kann eine Datei, die ein RotatingFileHandler offen haelt,
+    zwar per open('w') getruncatet werden, aber der Append-Pointer des
+    Handlers steht noch beim alten Offset -> Null-Byte-Padding. Best-effort
+    reicht fuer die Log-Seite; PermissionError wird sauber gemeldet.
+    """
+    cleared, locked, failed = 0, [], []
+    targets = sources if key == _DEFAULT_SOURCE else [s for s in sources if s[0] == key]
+    seen: set[str] = set()
+    for _key, _label, out_name, err_name in targets:
+        for fname in (out_name, err_name):
+            if not fname or fname in seen:
+                continue
+            seen.add(fname)
+            path = log_dir / fname
+            if not path.exists():
+                continue
+            try:
+                with open(path, "w", encoding="utf-8"):
+                    pass
+                cleared += 1
+            except PermissionError:
+                locked.append(fname)
+            except OSError as exc:
+                failed.append(f"{fname}: {exc}")
+    return cleared, locked, failed
+
+
+class LogsClearView(ZugriffMixin, View):
+    """Hilfe -> Logs: leert (truncatet) die Dateien der gewaehlten Quelle.
+    POST-only; nach dem Leeren Redirect zurueck auf die Logs-Seite."""
+
+    def post(self, request):
+        c = conf()
+        sources = c["log_sources"]
+        key = (request.POST.get("source") or _DEFAULT_SOURCE).strip()
+        valid = {s[0] for s in sources} | {_DEFAULT_SOURCE}
+        if key not in valid:
+            messages.error(request, f"Unbekannte Log-Quelle: {key}")
+            return redirect("djangobase:logs")
+        cleared, locked, failed = _truncate_source(c["log_verzeichnis"], sources, key)
+        parts = []
+        if cleared:
+            parts.append(f"{cleared} Datei(en) geleert")
+        if locked:
+            parts.append(f"{len(locked)} gesperrt: {', '.join(locked)}")
+        if failed:
+            parts.append(f"{len(failed)} Fehler: {'; '.join(failed)}")
+        summary = "; ".join(parts) if parts else "nichts zu leeren"
+        (messages.warning if (locked or failed) else messages.success)(request, summary)
+        return redirect(f"{reverse('djangobase:logs')}?source={key}")
 
 
 class LogsView(ZugriffMixin, View):

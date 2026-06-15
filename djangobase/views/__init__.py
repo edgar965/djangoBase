@@ -1,4 +1,4 @@
-from .logs import LogsView
+from .logs import LogsView, LogsClearView
 from .versions import VersionsView
 from .tests import TestsView
 from .settings import EinstellungenView
@@ -8,7 +8,7 @@ from .benutzer import (BenutzerListeView, BenutzerErstellenView,
                        BenutzerBearbeitenView, BenutzerStatusView,
                        BenutzerInlineView, BenutzerLoeschenView)
 
-__all__ = ["LogsView", "VersionsView", "TestsView", "EinstellungenView",
+__all__ = ["LogsView", "LogsClearView", "VersionsView", "TestsView", "EinstellungenView",
            "TrafficView", "VerbrauchBeaconView",
            "SpracheSetzenView", "UebersetzungView",
            "BenutzerListeView", "BenutzerErstellenView",

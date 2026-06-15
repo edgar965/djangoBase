@@ -20,6 +20,13 @@
         <input type="number" name="lines" value="{{ max_lines }}" min="50" max="5000" step="50">
         <button type="submit" class="btn btn-sm btn-outline-light">Anzeigen</button>
         <label style="margin-left:1rem;"><input type="checkbox" id="lgAutoRefresh"> Auto-Refresh (10 s)</label>
+    </form>
+    <form class="lg-clear-form" method="post" action="{% url 'djangobase:logs_leeren' %}"
+          onsubmit="return confirm('Logs der Quelle „{{ source_label }}“ wirklich leeren?');">
+        {% csrf_token %}
+        <input type="hidden" name="source" value="{{ source_key }}">
+        <button type="submit" class="btn btn-sm btn-outline-danger" title="Log-Dateien dieser Quelle leeren">
+            <i class="bi bi-trash"></i> Leeren</button>
         <span class="lg-paths">
             {% if out_stat %}<span class="lg-file"><i class="bi bi-file-text"></i>
                 {{ out_stat.path }} <span class="muted">({{ out_stat.size_kb }} KB)</span></span>
@@ -45,6 +52,7 @@
 <style>
 .lg-page { padding: 1rem 1.5rem 4rem; color: #e0e8f0; }
 .lg-toolbar { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.8rem; font-size: 0.85rem; }
+.lg-clear-form { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.8rem; font-size: 0.85rem; }
 .lg-toolbar label { margin: 0; color: rgba(255,255,255,0.7); }
 .lg-toolbar select, .lg-toolbar input[type="number"] { background: #0d1117; color: #e0e8f0; border: 1px solid rgba(255,255,255,0.15); padding: 0.3rem 0.5rem; border-radius: 4px; font-size: 0.85rem; }
 .lg-toolbar input[type="number"] { width: 90px; }

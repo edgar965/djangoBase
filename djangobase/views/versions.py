@@ -21,6 +21,7 @@ import json
 import platform
 import re
 import subprocess
+import threading
 import time
 from pathlib import Path
 
@@ -33,10 +34,52 @@ from ..mixins import ZugriffMixin
 
 _RE_BOLD = re.compile(r"\*\*(.+?)\*\*")
 _RE_INLINE_CODE = re.compile(r"`([^`\n]+)`")
-_GH_CACHE: dict = {}
 _GH_TTL_S = 300.0
 _NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 _TRANSFORM_CACHE: dict = {}
+
+
+class _TTLCache:
+    """Mini-TTL-Cache mit RLock + per-Key-Lock gegen Thundering Herd.
+
+    Ohne Lock spawnen zwei parallele Page-Renders auf Cache-Miss doppelt so
+    viele `gh`-Subprocesses (pro Repo einen je Render). Unter ASGI/Daphne mit
+    echter Nebenlaeufigkeit ist das real. Der per-Key-Lock haelt den zweiten
+    Caller zurueck, bis der erste denselben Key gefuellt hat.
+    """
+
+    def __init__(self, ttl_seconds: float) -> None:
+        self._ttl = float(ttl_seconds)
+        self._data: dict = {}
+        # _data und _key_locks werden beide unter _meta_lock geschuetzt.
+        self._meta_lock = threading.RLock()
+        self._key_locks: dict = {}
+
+    def get_or_compute(self, key, producer):
+        now = time.time()
+        # Fast-path: lock-free read. dict.get ist GIL-atomar; ein falsch-stale
+        # Treffer waere harmlos, da wir gleich nochmal unter Lock pruefen.
+        hit = self._data.get(key)
+        if hit and (now - hit[0]) < self._ttl:
+            return hit[1]
+        with self._meta_lock:
+            key_lock = self._key_locks.setdefault(key, threading.Lock())
+        with key_lock:
+            # Double-check: anderer Thread hat zwischenzeitlich gefuellt.
+            now = time.time()
+            hit = self._data.get(key)
+            if hit and (now - hit[0]) < self._ttl:
+                return hit[1]
+            value = producer()
+            self._data[key] = (now, value)
+            return value
+
+    def clear(self) -> None:
+        with self._meta_lock:
+            self._data.clear()
+
+
+_GH_CACHE = _TTLCache(_GH_TTL_S)
 
 
 def _md_inline(text: str) -> str:
@@ -130,10 +173,13 @@ def _gh(args, timeout=10):
 
 
 def _gh_list_commits(repo, per_page=100, transform=None):
-    key = f"commits:{repo}:{per_page}"
-    hit = _GH_CACHE.get(key)
-    if hit and (time.time() - hit[0]) < _GH_TTL_S:
-        return hit[1]
+    return _GH_CACHE.get_or_compute(
+        f"commits:{repo}:{per_page}",
+        lambda: _fetch_commits(repo, per_page, transform),
+    )
+
+
+def _fetch_commits(repo, per_page, transform):
     rc, out, _err = _gh([f"repos/{repo}/commits?per_page={per_page}"])
     if rc != 0:
         return []
@@ -180,16 +226,15 @@ def _gh_list_commits(repo, per_page=100, transform=None):
             "url": c.get("html_url") or "",
             "is_release": label is not None,
         })
-    _GH_CACHE[key] = (time.time(), result)
     return result
 
 
 def _gh_list_tags(repo: str) -> list[dict]:
     """Git-Tags des Repos — Release-Marker."""
-    key = f"tags:{repo}"
-    hit = _GH_CACHE.get(key)
-    if hit and (time.time() - hit[0]) < _GH_TTL_S:
-        return hit[1]
+    return _GH_CACHE.get_or_compute(f"tags:{repo}", lambda: _fetch_tags(repo))
+
+
+def _fetch_tags(repo):
     rc, out, _err = _gh([f"repos/{repo}/tags?per_page=30"])
     if rc != 0:
         return []
@@ -201,7 +246,6 @@ def _gh_list_tags(repo: str) -> list[dict]:
         "name": t.get("name", ""),
         "sha": (t.get("commit", {}).get("sha") or "")[:7],
     } for t in data]
-    _GH_CACHE[key] = (time.time(), result)
     return result
 
 
@@ -215,6 +259,21 @@ def _git(repo_path, *args, timeout=5):
     except (OSError, subprocess.TimeoutExpired):
         pass
     return ""
+
+
+# Matcht den GitHub-Slug 'owner/repo' aus SSH- und HTTPS-Remotes:
+#   git@github.com:owner/repo.git
+#   https://github.com/owner/repo(.git)
+_REMOTE_SLUG_RE = re.compile(r"github\.com[:/]+([^/\s]+/[^/\s]+?)(?:\.git)?/?$")
+
+
+def _gh_repo_from_remote(repo_path):
+    """Leitet 'owner/repo' aus dem origin-Remote des lokalen Repos ab — so muss
+    KEIN abhaengiges Projekt seinen GitHub-Slug in der Config (oder gar in
+    djangoBase) hardcoden; Git kennt das Remote bereits. Leerstring wenn kein
+    GitHub-Remote gefunden wird (z.B. nur lokales Repo)."""
+    m = _REMOTE_SLUG_RE.search(_git(repo_path, "remote", "get-url", "origin").strip())
+    return m.group(1) if m else ""
 
 
 def _git_log_local(repo_path, n=40, transform=None):
@@ -343,6 +402,10 @@ class VersionsView(ZugriffMixin, View):
         repos = []
         for display, gh_repo, local_dir in c["repos"]:
             local_path = (Path(base_dir) / local_dir).resolve()
+            # Leerer Slug in der Config -> aus dem lokalen origin-Remote ableiten,
+            # damit kein Projekt seinen 'owner/repo' irgendwo hardcoden muss.
+            if not gh_repo and local_path.exists():
+                gh_repo = _gh_repo_from_remote(local_path)
             head = _git(local_path, "rev-parse", "--short=7", "HEAD").strip() if local_path.exists() else ""
             dirty = len([l for l in _git(local_path, "status", "--porcelain").splitlines() if l.strip()])
             commits = _gh_list_commits(gh_repo, per_page=per_page, transform=transform) if gh_repo else []

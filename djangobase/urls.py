@@ -2,14 +2,15 @@ from django.urls import path
 
 from .views import (BenutzerBearbeitenView, BenutzerErstellenView,
                     BenutzerInlineView, BenutzerListeView, BenutzerLoeschenView,
-                    BenutzerStatusView, EinstellungenView, LogsView, TestsView,
-                    TrafficView, UebersetzungView, VersionsView)
+                    BenutzerStatusView, EinstellungenView, LogsClearView, LogsView,
+                    TestsView, TrafficView, UebersetzungView, VersionsView)
 
 app_name = "djangobase"
 
 urlpatterns = [
     path("versionen/", VersionsView.as_view(), name="versionen"),
     path("logs/", LogsView.as_view(), name="logs"),
+    path("logs/leeren/", LogsClearView.as_view(), name="logs_leeren"),
     path("tests/", TestsView.as_view(), name="tests"),
     path("einstellungen/", EinstellungenView.as_view(gruppe="djangobase"), name="einstellungen"),
     path("einstellungen/website/", EinstellungenView.as_view(gruppe="website"), name="einstellungen_website"),

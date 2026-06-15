@@ -26,7 +26,11 @@ DEFAULTS = {
     # Versionen
     "version": "",
     "version_pakete": ["django"],
-    "repos": [],          # (Anzeige, "owner/repo", lokaler_unterordner)
+    # (Anzeige, "owner/repo", lokaler_unterordner). Ist "owner/repo" leer (""),
+    # wird der GitHub-Slug zur Laufzeit aus dem origin-Remote des lokalen Repos
+    # abgeleitet -> kein Projekt muss seinen Slug hardcoden, z.B.:
+    #   ("HumanBodyWeb", "", "HumanBodyWeb")
+    "repos": [],
     # Tests
     "test_befehle": [],   # {"slug","name","cmd": [..]}
     # Navigation
