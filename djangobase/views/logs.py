@@ -11,6 +11,7 @@ from django.shortcuts import render
 from django.views import View
 
 from ..conf import conf
+from ..log_classifier import LogClassifier
 from ..mixins import ZugriffMixin
 
 _PROGRESS_RE = re.compile(r"\[#+-+\]\s+\d+/\d+")
@@ -55,18 +56,17 @@ def _tail_lines(path: Path | None, max_lines: int) -> list[str]:
 
 
 def _line_class(content: str) -> str:
-    if "Traceback" in content or content.lstrip().startswith(('File "', '  File "')):
-        return "lg-trace"
-    if ("[ERROR]" in content or " ERROR " in content
-            or "[CRITICAL]" in content or " CRITICAL " in content):
-        return "lg-err"
-    if "[WARNING]" in content or " WARNING " in content or " WARN " in content:
-        return "lg-warn"
+    # Request/Response-Marker (Assistant-Projekt) sind keine Severity, sondern
+    # Kategorien und behalten ihre eigene Farbe -> zuerst pruefen.
     if "[REQ ]" in content:
         return "lg-req"
     if "[RESP]" in content:
         return "lg-resp"
-    return ""
+    # Severity vom zentralen LogClassifier: erkennt benannte/Custom-Exceptions
+    # (ValueError:, GarmentFitError:) und Traceback-Frames auch ohne
+    # [ERROR]-Prefix. 'info' -> leere Klasse (Default-Farbe wie zuvor).
+    sev = LogClassifier.severity(content)
+    return "" if sev == "info" else "lg-" + sev
 
 
 def _parse_blocks(lines: list[str], src_key: str) -> list[dict]:
@@ -115,9 +115,8 @@ def _collect_all(log_dir: Path, sources: list, max_per_source: int,
 
 def _collect_exceptions(log_dir, sources, max_per_source, noisy=None) -> list[dict]:
     blocks = _collect_all(log_dir, sources, max_per_source, noisy=noisy)
-    return [b for b in blocks if b["cls"] in ("lg-err", "lg-trace")
-            or "Traceback" in b["content"] or "[ERROR]" in b["content"]
-            or "[CRITICAL]" in b["content"]]
+    return [b for b in blocks if b["cls"] in ("lg-critical", "lg-err", "lg-trace")
+            or LogClassifier.is_exception_line(b["content"])]
 
 
 def _stat(p: Path | None) -> dict | None:
@@ -160,7 +159,7 @@ class LogsView(ZugriffMixin, View):
             err_path = log_dir / err_name if err_name else None
             all_records = list(reversed(_parse_blocks(_tail_lines(out_path, max_lines), source_key)))
             exception_records = _parse_blocks(_tail_lines(err_path, max_lines), source_key)
-            extra = [r for r in all_records if r["cls"] in ("lg-err", "lg-trace")]
+            extra = [r for r in all_records if r["cls"] in ("lg-critical", "lg-err", "lg-trace")]
             seen = {(r["ts"], r["content"][:80]) for r in exception_records}
             for r in extra:
                 if (r["ts"], r["content"][:80]) not in seen:
