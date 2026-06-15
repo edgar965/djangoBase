@@ -1,3 +1,4 @@
+from . import jobs
 from .conf import conf
 
 
@@ -32,4 +33,8 @@ def djangobase(request):
         "hilfe_menu": c["hilfe_menu"],
         "einstellungen_extra": c["einstellungen_extra"],
         "benutzer_verwaltung": c["benutzer_verwaltung"],
+        # Nav-Eintrag „Jobs" nur zeigen, wenn ein Projekt Jobs registriert hat
+        # (djangobase.jobs). Leere Registry -> kein Eintrag -> bestehende
+        # Projekte unveraendert.
+        "has_jobs": jobs.has_jobs(),
     }}

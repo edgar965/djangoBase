@@ -4,14 +4,20 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "djangobase"
-version = "0.0.9"
-description = "Wiederverwendbare Django-Infrastruktur: Hilfe (Versionen/Logs/Tests), Sidebar-Layout, Logging."
+version = "0.0.11"
+description = "Wiederverwendbare Django-Infrastruktur: Hilfe (Versionen/Logs/Tests/Jobs), Sidebar-Layout (bis 3 Ebenen), Logging."
 requires-python = ">=3.10"
 dependencies = ["Django>=4.2"]
 
 [tool.setuptools]
-packages = ["djangobase"]
 include-package-data = true
+
+# packages.find erfasst djangobase UND alle Subpakete (views, migrations,
+# templatetags, tests). Wichtig fuer nicht-editierbare Installs
+# (pip install git+...): mit der alten Liste ["djangobase"] fehlten die
+# Subpakete im Wheel -> ImportError djangobase.views.
+[tool.setuptools.packages.find]
+include = ["djangobase*"]
 
 [tool.setuptools.package-data]
 djangobase = ["templates/**/*", "static/**/*"]

@@ -18,8 +18,29 @@
                 </a>
                 <div class="collapse" id="m{{ forloop.counter }}">
                     <ul class="nav flex-column submenu">
+                        {% comment %}Dritte Ebene: hat ein Untermenu-Eintrag selbst
+                        ein "untermenu", wird er zu einer weiteren aufklappbaren
+                        Gruppe. Eintraege OHNE eigenes untermenu fallen in den
+                        {% templatetag openblock %} else {% templatetag closeblock %}-Zweig und werden exakt wie bisher
+                        gerendert -> voll rueckwaertskompatibel.{% endcomment %}
                         {% for s in it.untermenu %}
-                        <li><a class="nav-link" href="{{ s.url }}"><i class="bi {{ s.icon }}"></i> {{ s.label }}</a></li>
+                            {% if s.untermenu %}
+                            <li class="nav-item">
+                                <a class="nav-link menu-toggle" data-bs-toggle="collapse" href="#m{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
+                                    <i class="bi {{ s.icon }}"></i> {{ s.label }}
+                                    <i class="bi bi-chevron-down float-end"></i>
+                                </a>
+                                <div class="collapse" id="m{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
+                                    <ul class="nav flex-column submenu">
+                                        {% for t in s.untermenu %}
+                                        <li><a class="nav-link" href="{{ t.url }}"><i class="bi {{ t.icon }}"></i> {{ t.label }}</a></li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </li>
+                            {% else %}
+                            <li><a class="nav-link" href="{{ s.url }}"><i class="bi {{ s.icon }}"></i> {{ s.label }}</a></li>
+                            {% endif %}
                         {% endfor %}
                     </ul>
                 </div>

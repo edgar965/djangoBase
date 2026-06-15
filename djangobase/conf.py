@@ -136,6 +136,15 @@ DEFAULTS = {
     # PST-Import-Worker, der auch ohne Progress-Bar Zigtausend Zeilen
     # pro Minute schreiben kann).
     "log_noisy_sources": [],        # ["mail_import", ...]
+    # Optionaler Hook fuer projektspezifische Log-Quellen (dotted path oder
+    # Callable). Wird pro Request mit `request` aufgerufen und darf die
+    # Quellen dynamisch bestimmen — z.B. pro Mandant/Station, oder mit
+    # datums-suffigierten Dateinamen (alerts_2026-06-15.log). Rueckgabe:
+    #   - eine Liste sources [(key,label,out_name,err_name), ...], ODER
+    #   - ein Tupel (verzeichnis, sources).
+    # Dateinamen in sources duerfen ABSOLUT sein (dann gewinnt der absolute
+    # Pfad gegenueber dem Basis-Verzeichnis). None -> statische log_sources.
+    "log_source_provider": None,    # "tracker.logs.log_sources"
     # ----- Konten-Freigabe (Gating neuer Registrierungen) ------------------
     # Wenn True, wird ein neues Konto der jeweiligen Rolle bei der Registrierung
     # auf is_active=False gesetzt und kann sich erst nach Admin-Freigabe

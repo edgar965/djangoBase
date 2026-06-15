@@ -1,0 +1,139 @@
+{% extends 'djangobase/base.html' %}
+
+{% block title_extra %} · Jobs{% endblock %}
+{% block topbar_title %}<i class="bi bi-hdd-stack"></i> Hilfe · Jobs{% endblock %}
+
+{% block content %}
+<div class="jb-page" id="jb-page">
+    {% csrf_token %}
+    <div class="jb-head">
+        <h3><i class="bi bi-hdd-stack"></i> Hintergrund-Jobs</h3>
+        <label class="jb-auto"><input type="checkbox" id="jb-auto" checked> Auto-Refresh (5 s)</label>
+    </div>
+
+    {% if not jobs %}
+    <div class="jb-card">
+        <p class="jb-empty">Keine Jobs registriert. Projekte melden ihre Hintergrund-Jobs per
+            <code>djangobase.jobs.register(slug, name, state=...)</code> an — typischerweise in
+            <code>AppConfig.ready()</code>.</p>
+    </div>
+    {% endif %}
+
+    <div id="jb-list">
+        {% for job in jobs %}
+        <div class="jb-card" data-slug="{{ job.slug }}">
+            <div class="jb-card-head">
+                <div>
+                    <span class="jb-name">{{ job.name }}</span>
+                    {% if job.beschreibung %}<span class="jb-desc">{{ job.beschreibung }}</span>{% endif %}
+                </div>
+                <div class="jb-actions">
+                    {% if job.kann_schalten %}
+                    <button type="button" class="jb-btn" data-action="enable" data-slug="{{ job.slug }}"><i class="bi bi-play-fill"></i> An</button>
+                    <button type="button" class="jb-btn jb-btn-off" data-action="disable" data-slug="{{ job.slug }}"><i class="bi bi-pause-fill"></i> Aus</button>
+                    {% endif %}
+                    {% if job.kann_triggern %}
+                    <button type="button" class="jb-btn jb-btn-go" data-action="trigger" data-slug="{{ job.slug }}"><i class="bi bi-lightning-charge-fill"></i> Jetzt ausführen</button>
+                    {% endif %}
+                </div>
+            </div>
+            <table class="jb-state">
+                <tbody>
+                {% for k, v in job.state.items %}
+                    <tr><td class="jb-key">{{ k }}</td><td class="jb-val">{% if v == None %}—{% else %}{{ v }}{% endif %}</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+.jb-page { padding: 1.25rem 1.5rem 4rem; max-width: 1000px; }
+.jb-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 14px; flex-wrap: wrap; }
+.jb-head h3 { color: #e9f0f8; font-size: 1.05rem; margin: 0; display: flex; align-items: center; gap: 10px; }
+.jb-head h3 i { color: #4ea8f6; }
+.jb-auto { color: #8aa0b8; font-size: .85rem; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.jb-card { background: #142136; border: 1px solid #1e3a5f; border-radius: 10px; padding: 14px 18px; margin-bottom: 16px; }
+.jb-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
+.jb-name { color: #e9f0f8; font-weight: 700; font-size: .98rem; }
+.jb-desc { color: #8aa0b8; font-size: .82rem; display: block; margin-top: 2px; }
+.jb-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.jb-btn { background: #0f1d31; border: 1px solid #1e3a5f; color: #c9d6e6; border-radius: 7px; padding: 5px 11px; font-size: .8rem; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+.jb-btn:hover { border-color: #1e5bb8; color: #fff; }
+.jb-btn-go { background: #14365f; border-color: #1e5bb8; color: #cfe6ff; }
+.jb-btn-off:hover { border-color: #b45309; }
+.jb-state { width: 100%; border-collapse: collapse; }
+.jb-state td { padding: 4px 8px; border-top: 1px solid #1c3354; font-size: .82rem; vertical-align: top; }
+.jb-state td.jb-key { color: #8aa0b8; white-space: nowrap; width: 1%; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.jb-state td.jb-val { color: #d6e2f0; white-space: pre-wrap; word-break: break-word; }
+.jb-pill { display: inline-block; padding: 1px 8px; border-radius: 10px; font-weight: 700; font-size: .76rem; }
+.jb-pill.ok { background: #15803d; color: #fff; }
+.jb-pill.bad { background: #b91c1c; color: #fff; }
+.jb-empty { color: #8aa0b8; margin: 0; }
+.jb-empty code, .jb-state code { background: #0d1117; color: #a5d6ff; padding: 1px 6px; border-radius: 4px; }
+</style>
+
+<script>
+(function () {
+    var page = document.getElementById('jb-page');
+    if (!page) return;
+    var tokenEl = page.querySelector('[name=csrfmiddlewaretoken]');
+    var token = tokenEl ? tokenEl.value : '';
+
+    function pill(v) {
+        if (v === true)  return '<span class="jb-pill ok">ja</span>';
+        if (v === false) return '<span class="jb-pill bad">nein</span>';
+        return null;
+    }
+    function renderState(state) {
+        var rows = '';
+        Object.keys(state).forEach(function (k) {
+            var v = state[k];
+            var cell = pill(v);
+            if (cell === null) cell = (v === null || v === undefined) ? '—' : String(v);
+            rows += '<tr><td class="jb-key">' + k + '</td><td class="jb-val">' + cell + '</td></tr>';
+        });
+        return rows;
+    }
+    function refresh() {
+        fetch(location.pathname + '?format=json', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                (d.jobs || []).forEach(function (job) {
+                    var card = page.querySelector('.jb-card[data-slug="' + job.slug + '"] .jb-state tbody');
+                    if (card) card.innerHTML = renderState(job.state);
+                });
+            }).catch(function () {});
+    }
+
+    page.addEventListener('click', function (e) {
+        var btn = e.target.closest('.jb-btn');
+        if (!btn) return;
+        var body = new URLSearchParams();
+        body.set('job', btn.dataset.slug);
+        body.set('aktion', btn.dataset.action);
+        fetch(location.pathname, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': token,
+                       'Content-Type': 'application/x-www-form-urlencoded' },
+            body: body.toString()
+        }).then(function (r) { return r.json(); })
+          .then(function (d) {
+              (d.jobs || []).forEach(function (job) {
+                  var c = page.querySelector('.jb-card[data-slug="' + job.slug + '"] .jb-state tbody');
+                  if (c) c.innerHTML = renderState(job.state);
+              });
+          }).catch(function () {});
+    });
+
+    var timer = null;
+    var auto = document.getElementById('jb-auto');
+    function arm() { if (timer) clearInterval(timer); if (auto.checked) timer = setInterval(refresh, 5000); }
+    auto.addEventListener('change', arm);
+    refresh();   // einmal sofort: normalisiert Booleans zu Pills (statt "True"/"False")
+    arm();
+})();
+</script>
+{% endblock %}

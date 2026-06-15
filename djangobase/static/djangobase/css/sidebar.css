@@ -40,6 +40,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 .sidebar .submenu { padding: 0; background: rgba(0,0,0,0.18); }
 .sidebar .submenu .nav-link { padding-left: 2.6rem; font-size: 0.85rem; }
 .sidebar .submenu .nav-link i { font-size: 0.85rem; }
+/* Dritte Ebene (verschachteltes untermenu): tiefere Einrueckung + dunkler.
+   Greift nur, wenn ein Projekt 3-stufige Menues nutzt — 2-stufige Menues
+   matchen .submenu .submenu nie und bleiben unveraendert. */
+.sidebar .submenu .submenu { background: rgba(0,0,0,0.28); }
+.sidebar .submenu .submenu .nav-link { padding-left: 3.7rem; }
 
 .main-wrapper {
     margin-left: var(--sidebar-width);

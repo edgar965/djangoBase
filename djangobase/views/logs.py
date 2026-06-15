@@ -10,6 +10,7 @@ from pathlib import Path
 from django.contrib import messages
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.utils.module_loading import import_string
 from django.views import View
 
 from ..conf import conf
@@ -121,6 +122,31 @@ def _collect_exceptions(log_dir, sources, max_per_source, noisy=None) -> list[di
             or LogClassifier.is_exception_line(b["content"])]
 
 
+def _resolve_log_config(request, c) -> tuple[Path, list]:
+    """Liefert (log_verzeichnis, log_sources) — optional projektspezifisch.
+
+    Wenn DJANGOBASE['log_source_provider'] gesetzt ist (dotted path oder
+    Callable), bestimmt es die Quellen pro Request (z.B. pro Station /
+    datums-suffigierte Dateinamen). Rueckgabe entweder eine Liste `sources`
+    (Verzeichnis bleibt DJANGOBASE['log_verzeichnis']) oder ein Tupel
+    `(verzeichnis, sources)`. Absolute Dateinamen in `sources` gewinnen
+    gegenueber `verzeichnis` (Path('/a') / '/abs' -> '/abs').
+    """
+    log_dir = c["log_verzeichnis"]
+    sources = c["log_sources"]
+    provider = c.get("log_source_provider")
+    if provider:
+        fn = import_string(provider) if isinstance(provider, str) else provider
+        result = fn(request)
+        if isinstance(result, tuple):
+            d, sources = result
+            if d:
+                log_dir = d
+        else:
+            sources = result
+    return Path(str(log_dir)), list(sources)
+
+
 def _stat(p: Path | None) -> dict | None:
     if not p or not p.exists():
         return None
@@ -167,13 +193,13 @@ class LogsClearView(ZugriffMixin, View):
 
     def post(self, request):
         c = conf()
-        sources = c["log_sources"]
+        log_dir, sources = _resolve_log_config(request, c)
         key = (request.POST.get("source") or _DEFAULT_SOURCE).strip()
         valid = {s[0] for s in sources} | {_DEFAULT_SOURCE}
         if key not in valid:
             messages.error(request, f"Unbekannte Log-Quelle: {key}")
             return redirect("djangobase:logs")
-        cleared, locked, failed = _truncate_source(c["log_verzeichnis"], sources, key)
+        cleared, locked, failed = _truncate_source(log_dir, sources, key)
         parts = []
         if cleared:
             parts.append(f"{cleared} Datei(en) geleert")
@@ -191,8 +217,7 @@ class LogsView(ZugriffMixin, View):
 
     def get(self, request):
         c = conf()
-        log_dir = c["log_verzeichnis"]
-        log_sources = c["log_sources"]
+        log_dir, log_sources = _resolve_log_config(request, c)
 
         source_key = request.GET.get("source") or _DEFAULT_SOURCE
         try:

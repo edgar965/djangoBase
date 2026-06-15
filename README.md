@@ -3,12 +3,12 @@
 Wiederverwendbare Django-Infrastruktur für mehrere Projekte:
 
 - **Hilfe-Seiten** `/hilfe/versionen`, `/hilfe/logs`, `/hilfe/tests`,
-  `/hilfe/einstellungen` (Versionen via `gh`/`git` + Umgebung/Pakete,
-  Log-Viewer mit Tabs, Test-Runner, Einstellungen-Formular) — exakt im Stil
-  des „Assistant"-Projekts.
+  `/hilfe/jobs`, `/hilfe/einstellungen` (Versionen via `gh`/`git` +
+  Umgebung/Pakete, Log-Viewer mit Tabs, Test-Runner, **Jobs-Übersicht**,
+  Einstellungen-Formular) — exakt im Stil des „Assistant"-Projekts.
 - **Dunkles Sidebar-Layout** (Bootstrap 5 + Bootstrap Icons, Sidebar `#003153`)
   mit optionalem **verschiebbarem Splitter** (`resizable_sidebar`, Breite in
-  `localStorage`).
+  `localStorage`) und **bis zu 3 Menü-Ebenen** (verschachteltes `untermenu`).
 - **Einstellungen-Seite**: Branding, Farben, Theme und Splitter zur Laufzeit
   konfigurierbar; Persistenz als JSON-Datei (keine DB/Migration). Überschreibt
   `settings.DJANGOBASE`.
@@ -84,3 +84,51 @@ DJANGOBASE = {
 Die Einstellungen-Seiten selbst (`/hilfe/einstellungen`, `/hilfe/einstellungen/website`)
 sind unabhängig von der Sidebar in jedem Projekt erreichbar, das `djangobase.urls`
 einbindet.
+
+## Menü mit bis zu 3 Ebenen
+
+`DJANGOBASE["menu"]` rendert eine Top-Ebene aus Links bzw. aufklappbaren
+Gruppen (`untermenu`). Seit 0.0.11 darf ein `untermenu`-Eintrag **selbst** ein
+`untermenu` haben → dritte Ebene. Einträge ohne eigenes `untermenu` werden
+unverändert als Link gerendert; 2-stufige Menüs bestehender Projekte bleiben
+damit byte-identisch.
+
+```python
+DJANGOBASE["menu"] = [
+    {"label": "Dashboard", "icon": "bi-grid", "url": "/"},
+    {"label": "Handelssysteme", "icon": "bi-graph-up", "untermenu": [
+        {"label": "Korrelationen", "icon": "bi-diagram-3", "untermenu": [   # 3. Ebene
+            {"label": "Indikator", "icon": "bi-dot", "url": "/korr/"},
+            {"label": "Hilfe",     "icon": "bi-dot", "url": "/korr/hilfe/"},
+        ]},
+        {"label": "Wochentage", "icon": "bi-calendar", "url": "/wochentage/"},
+    ]},
+]
+```
+
+Der Active-State (`sidebar.js`) markiert den zur URL passenden Link und klappt
+die **komplette** Gruppen-Kette darüber auf — auch über drei Ebenen.
+
+## Hintergrund-Jobs (`/hilfe/jobs`)
+
+Projekte mit Daemon-Threads o. ä. registrieren ihre Jobs in der In-Memory-
+Registry `djangobase.jobs` (keine DB/Migration). Die Jobs-Seite listet alle
+registrierten Jobs, zeigt deren Zustand live (Auto-Refresh per JSON) und blendet
+optional Buttons für „Jetzt ausführen" und Aktivieren/Deaktivieren ein.
+
+```python
+# AppConfig.ready():
+from djangobase import jobs
+from . import cron_runner
+jobs.register(
+    "intraday", "Intraday-Abruf",
+    state=cron_runner.get_state,          # Callable -> dict (beliebige Keys)
+    beschreibung="Holt 1-Minuten-Bars im konfigurierten Intervall.",
+    trigger=cron_runner.trigger_now,      # optional: Button „Jetzt ausführen"
+    set_enabled=cron_runner.set_enabled,  # optional: An/Aus-Buttons
+)
+```
+
+Der Nav-Eintrag „Jobs" (Gruppe **Hilfe**) erscheint **nur**, wenn mindestens ein
+Job registriert ist — Projekte ohne Jobs sind unverändert. Voraussetzung wie bei
+den übrigen Hilfe-Seiten: `djangobase.urls` eingebunden + Context-Processor aktiv.
