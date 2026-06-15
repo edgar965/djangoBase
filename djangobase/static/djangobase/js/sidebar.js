@@ -46,4 +46,27 @@
 
     // Global fuer den inline-onclick im Topbar.
     window.toggleSidebar = toggle;
+
+    // Aktuellen Pfad in der Sidebar markieren + die zugehoerige Menue-Gruppe
+    // (Bootstrap-Collapse) aufklappen. So zeigt die per DJANGOBASE["menu"]
+    // gerenderte Sidebar denselben Active-State wie eine handgebaute — ohne
+    // dass jedes Projekt das serverseitig pro Link loesen muss.
+    (function markActive() {
+        var path = (location.pathname || '/').replace(/\/+$/, '') || '/';
+        document.querySelectorAll('.sidebar .nav-link[href]').forEach(function (a) {
+            var href = a.getAttribute('href');
+            if (!href || href.charAt(0) === '#') return;
+            var linkPath;
+            try { linkPath = new URL(href, location.origin).pathname.replace(/\/+$/, '') || '/'; }
+            catch (e) { return; }
+            if (linkPath !== path) return;
+            a.classList.add('active');
+            var coll = a.closest('.collapse');
+            if (coll) {
+                coll.classList.add('show');
+                var tgl = document.querySelector('.menu-toggle[href="#' + coll.id + '"]');
+                if (tgl) tgl.setAttribute('aria-expanded', 'true');
+            }
+        });
+    })();
 })();
