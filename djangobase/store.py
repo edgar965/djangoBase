@@ -23,6 +23,15 @@ from django.conf import settings
 #   "theme" -> Auswahl aus theme_modes (Fallback: Textfeld)
 #   "csv"   -> Textfeld, im JSON als Liste gespeichert (Komma-getrennt)
 #   "password" -> Passwort-Eingabefeld (Wert wird als Text gespeichert)
+#   "layout" -> Auswahl-Combobox der verfuegbaren Layout-Templates (base_template)
+
+# Mitgelieferte Layout-Shells fuer das base_template-Dropdown. Projekte koennen
+# weitere via settings.DJANGOBASE["layouts"] = [(template, label), ...] ergaenzen.
+LAYOUTS_BUILTIN = [
+    ("djangobase/base.html", "djangoBase Standard (dunkel)"),
+    ("djangobase/base_cleanorga.html", "CleanOrga (hell)"),
+]
+
 GRUPPEN = {
     "website": {
         "label": "Website",
@@ -42,11 +51,9 @@ GRUPPEN = {
         "beschreibung": "Alle Layout-, Hilfe- und Versionen-Optionen von djangoBase auf einen Blick.",
         "felder": [
             # --- Layout-Auswahl ---
-            ("base_template", "text",
-             "Basis-Template (Layout-Shell). Leer = djangoBase-Standard "
-             "(dunkel). Mitgeliefert: djangobase/base_cleanorga.html (heller "
-             "CleanOrga-Look). Eigenes Projekt-Template muss die Blocks "
-             "content/topbar_title/title_extra bieten."),
+            ("base_template", "layout",
+             "Layout (Basis-Template) — Auswahl der in djangoBase mitgelieferten "
+             "Layout-Shells (Optik der Seiten)."),
             # --- Layout / Optik ---
             ("sidebar_bg", "color", "Sidebar-Hintergrund"),
             ("sidebar_light", "color", "Sidebar-Akzent (hell)"),

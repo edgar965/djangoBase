@@ -20,7 +20,7 @@ from django.views import View
 from .. import store
 from ..conf import conf
 from ..mixins import ZugriffMixin
-from ..store import FARB_KEYS, GRUPPEN
+from ..store import FARB_KEYS, GRUPPEN, LAYOUTS_BUILTIN
 
 # Generische, rein feldbasierte Gruppen — erscheinen als Tabs (Reihenfolge zaehlt).
 # uebersetzung/benutzer haben eigene Views und bleiben separate Seiten.
@@ -57,6 +57,13 @@ def _werte_aus_post(request, gruppe):
         else:
             werte[key] = roh
     return werte
+
+
+def _layout_optionen():
+    """(value, label)-Liste fuers base_template-Dropdown — ausschliesslich die
+    in djangoBase MITGELIEFERTEN Layouts. Projekte koennen keine eigenen
+    Templates einhaengen; neue Layouts werden in djangoBase selbst angelegt."""
+    return list(LAYOUTS_BUILTIN)
 
 
 def _template_existiert(name):
@@ -99,6 +106,7 @@ class EinstellungenTabsView(ZugriffMixin, View):
             "aktiv": "einstellungen",
             "tabs": tabs,
             "theme_modes": c["theme_modes"],
+            "layouts": _layout_optionen(),
             "profile": store.profile_liste(),
             "base_template_aktiv": c["base_template"],
         })
@@ -175,6 +183,7 @@ class EinstellungenView(ZugriffMixin, View):
             "gruppe_beschreibung": g["beschreibung"],
             "felder": _felder_werte(c, self.gruppe),
             "theme_modes": c["theme_modes"],
+            "layouts": _layout_optionen(),
             "hat_overrides": any(k in store.laden() for k in keys),
         })
 

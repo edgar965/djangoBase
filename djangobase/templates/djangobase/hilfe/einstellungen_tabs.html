@@ -11,7 +11,7 @@
         <form method="post" class="prof-aktiv">
             {% csrf_token %}
             <input type="hidden" name="aktion" value="profil_aktiv">
-            <label for="profil-select"><i class="bi bi-layout-text-window-reverse"></i> Aktives Profil / Layout:</label>
+            <label for="profil-select"><i class="bi bi-collection"></i> Aktives Profil:</label>
             <select name="profil" id="profil-select" onchange="this.form.submit()">
                 {% for slug, label, ist_aktiv in profile %}
                 <option value="{{ slug }}" {% if ist_aktiv %}selected{% endif %}>{{ label }}</option>
@@ -89,6 +89,12 @@
                                 <option value="">— (Standard)</option>
                                 {% for slug, label, color in theme_modes %}
                                 <option value="{{ slug }}" {% if slug == feld.wert %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        {% elif feld.typ == 'layout' %}
+                            <select name="{{ feld.key }}" id="f-{{ tab.slug }}-{{ feld.key }}" class="set-input-wide">
+                                {% for value, label in layouts %}
+                                <option value="{{ value }}" {% if value == feld.wert %}selected{% endif %}>{{ label }}</option>
                                 {% endfor %}
                             </select>
                         {% elif feld.typ == 'csv' %}

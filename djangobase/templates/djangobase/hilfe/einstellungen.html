@@ -38,6 +38,12 @@
                         <option value="{{ slug }}" {% if slug == feld.wert %}selected{% endif %}>{{ label }}</option>
                         {% endfor %}
                     </select>
+                {% elif feld.typ == 'layout' %}
+                    <select name="{{ feld.key }}" id="f-{{ feld.key }}" class="set-input-wide">
+                        {% for value, label in layouts %}
+                        <option value="{{ value }}" {% if value == feld.wert %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
                 {% elif feld.typ == 'csv' %}
                     <input type="text" name="{{ feld.key }}" id="f-{{ feld.key }}" value="{{ feld.wert }}"
                            placeholder="Komma-getrennte Werte" class="set-input-wide">
