@@ -1,4 +1,4 @@
-{% extends 'djangobase/base.html' %}
+{% extends djangobase.base_template|default:"djangobase/base.html" %}
 
 {% block title_extra %} · Jobs{% endblock %}
 {% block topbar_title %}<i class="bi bi-hdd-stack"></i> Hilfe · Jobs{% endblock %}

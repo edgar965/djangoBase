@@ -14,6 +14,7 @@ def djangobase(request):
         "logo_icon": c["logo_icon"],
         "favicon": c.get("favicon", ""),
         "farben": c["farben"],
+        "base_template": c["base_template"],
         "menu": c["menu"],
         "version": c["version"],
         "extra_css": c["extra_css"],

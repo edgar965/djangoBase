@@ -2,8 +2,9 @@ from django.urls import path
 
 from .views import (BenutzerBearbeitenView, BenutzerErstellenView,
                     BenutzerInlineView, BenutzerListeView, BenutzerLoeschenView,
-                    BenutzerStatusView, EinstellungenView, JobsView, LogsClearView,
-                    LogsView, TestsView, TrafficView, UebersetzungView, VersionsView)
+                    BenutzerStatusView, EinstellungenTabsView, EinstellungenView,
+                    JobsView, LogsClearView, LogsView, TestsView, TrafficView,
+                    UebersetzungView, VersionsView)
 
 app_name = "djangobase"
 
@@ -13,7 +14,10 @@ urlpatterns = [
     path("logs/leeren/", LogsClearView.as_view(), name="logs_leeren"),
     path("tests/", TestsView.as_view(), name="tests"),
     path("jobs/", JobsView.as_view(), name="jobs"),
-    path("einstellungen/", EinstellungenView.as_view(gruppe="djangobase"), name="einstellungen"),
+    # Haupt-Einstellungen: Profil-Combobox + alle Gruppen als Tabs.
+    path("einstellungen/", EinstellungenTabsView.as_view(), name="einstellungen"),
+    # Einzelseiten je Gruppe (Rueckwaerts-Kompatibilitaet / Deep-Links).
+    path("einstellungen/djangobase/", EinstellungenView.as_view(gruppe="djangobase"), name="einstellungen_djangobase"),
     path("einstellungen/website/", EinstellungenView.as_view(gruppe="website"), name="einstellungen_website"),
     path("einstellungen/email/", EinstellungenView.as_view(gruppe="email"), name="einstellungen_email"),
     path("traffic/", TrafficView.as_view(), name="traffic"),

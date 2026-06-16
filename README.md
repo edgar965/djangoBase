@@ -55,6 +55,37 @@ path("hilfe/", include("djangobase.urls")),
 
 Eigene Seiten: `{% extends "djangobase/base.html" %}`.
 
+## Profile + umschaltbares Layout-Template (`base_template`)
+
+Die Einstellungen-Seite (`/hilfe/einstellungen`) ist seit 0.0.13 **eine Seite mit
+Tabs** (Website / djangoBase / Konten-Freigabe / E-Mail) und oben einer
+**Profil-Combobox**. Ein **Profil** ist ein vollständiger, benannter Satz von
+Laufzeit-Einstellungen; genau eines ist aktiv und überschreibt `settings.DJANGOBASE`.
+So lassen sich z. B. ein „djangoBase Standard"- und ein „CleanOrga"-Profil
+nebeneinander pflegen und per Klick umschalten (Persistenz: JSON, keine DB).
+
+Neuer Schlüssel **`base_template`** (Feld im Tab *djangoBase*): legt fest, welches
+Layout-Template die djangoBase-Seiten (Hilfe, Einstellungen) per `{% extends %}`
+erweitern. Default ist `djangobase/base.html` (der djangoBase-Look); ein Projekt
+kann sein eigenes Base-Template angeben, damit die djangoBase-Seiten im
+Projekt-Look erscheinen:
+
+```python
+DJANGOBASE = {
+    ...
+    "base_template": "cleanorga/base.html",   # leer / weglassen = djangoBase-Standard
+}
+```
+
+Das Projekt-Base-Template muss die von den Seiten gefüllten Blocks bereitstellen
+(mindestens `content`, `topbar_title`, `title_extra`). Ein ungültiger Wert wird
+beim Speichern abgelehnt (kein Aussperren); ein leerer Wert fällt auf den
+djangoBase-Standard zurück. `base_template` ist – wie alle Felder – pro Profil
+getrennt, sodass die Combobox zugleich den Look umschaltet.
+
+Altes flaches JSON-Format (vor 0.0.13) wird beim ersten Lesen transparent in ein
+Standard-Profil migriert – bestehende Projekte bleiben unverändert.
+
 ## Hilfe-/Einstellungen-Menü in ein Projekt mit eigener Sidebar einbinden
 
 Projekte, die eine **eigene Sidebar** verwenden (`DJANGOBASE["sidebar_template"]`),

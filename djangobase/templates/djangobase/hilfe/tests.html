@@ -1,4 +1,4 @@
-{% extends 'djangobase/base.html' %}
+{% extends djangobase.base_template|default:"djangobase/base.html" %}
 
 {% block title_extra %} · Tests{% endblock %}
 {% block topbar_title %}<i class="bi bi-bug"></i> Hilfe · Tests{% endblock %}

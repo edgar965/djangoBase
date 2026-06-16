@@ -1,4 +1,4 @@
-{% extends 'djangobase/base.html' %}
+{% extends djangobase.base_template|default:"djangobase/base.html" %}
 
 {% block title_extra %} · Einstellungen · Benutzer{% endblock %}
 {% block topbar_title %}<i class="bi bi-people"></i> Einstellungen · Benutzer{% endblock %}

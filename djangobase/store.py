@@ -41,6 +41,10 @@ GRUPPEN = {
         "titel": "Einstellungen · djangoBase",
         "beschreibung": "Alle Layout-, Hilfe- und Versionen-Optionen von djangoBase auf einen Blick.",
         "felder": [
+            # --- Layout-Auswahl ---
+            ("base_template", "text",
+             "Basis-Template (Layout-Shell) — z. B. cleanorga/base.html; "
+             "leer = djangoBase-Standard. Muss die Blocks content/topbar_title/title_extra bieten."),
             # --- Layout / Optik ---
             ("sidebar_bg", "color", "Sidebar-Hintergrund"),
             ("sidebar_light", "color", "Sidebar-Akzent (hell)"),
@@ -124,25 +128,68 @@ def _pfad():
     return Path(str(settings.BASE_DIR)) / ".djangobase.json"
 
 
-def laden():
-    """Gespeicherte Overrides als dict (leer, wenn keine/ungueltige Datei)."""
+# ---------------------------------------------------------------------------
+# Profile: mehrere benannte Einstellungs-Saetze (z. B. "djangoBase Standard"
+# und "CleanOrga"), umschaltbar ueber die Einstellungen-Seite. Genau EIN
+# Profil ist aktiv; dessen Werte werden von conf() angewendet.
+#
+# JSON-Format v2:
+#   {"format": 2, "aktiv": "<slug>",
+#    "profile": {"<slug>": {"label": "...", "werte": {<key>: <wert>}}}}
+#
+# Altes flaches Format ({<key>: <wert>}) wird beim Lesen transparent in ein
+# Standard-Profil migriert -> bestehende Projekte bleiben unveraendert.
+# ---------------------------------------------------------------------------
+import os
+import re
+import tempfile
+
+STANDARD_SLUG = "standard"
+STANDARD_LABEL = "djangoBase Standard"
+
+
+def _leer_struktur():
+    return {"format": 2, "aktiv": STANDARD_SLUG,
+            "profile": {STANDARD_SLUG: {"label": STANDARD_LABEL, "werte": {}}}}
+
+
+def _normalisieren(daten):
+    """Beliebige geladene JSON-Daten -> gueltige v2-Struktur."""
+    if not isinstance(daten, dict):
+        return _leer_struktur()
+    if isinstance(daten.get("profile"), dict):
+        prof_out = {}
+        for slug, prof in daten["profile"].items():
+            if isinstance(prof, dict):
+                werte = prof.get("werte")
+                prof_out[slug] = {
+                    "label": str(prof.get("label") or slug),
+                    "werte": werte if isinstance(werte, dict) else {},
+                }
+        if not prof_out:
+            return _leer_struktur()
+        aktiv = daten.get("aktiv")
+        if aktiv not in prof_out:
+            aktiv = next(iter(prof_out))
+        return {"format": 2, "aktiv": aktiv, "profile": prof_out}
+    # Altes flaches Format -> in Standard-Profil migrieren.
+    s = _leer_struktur()
+    s["profile"][STANDARD_SLUG]["werte"] = dict(daten)
+    return s
+
+
+def _roh_laden():
+    """Vollstaendige (normalisierte) Profil-Struktur."""
     try:
         daten = json.loads(_pfad().read_text(encoding="utf-8"))
-        return daten if isinstance(daten, dict) else {}
     except (OSError, ValueError):
-        return {}
+        return _leer_struktur()
+    return _normalisieren(daten)
 
 
-def speichern(daten):
-    """Schreibt die Overrides (nur EINSTELLBAR-Keys) als JSON — vollstaendig.
-    Atomar (Temp-Datei + os.replace), damit parallele Speicher-Vorgaenge die
-    Datei nicht halb beschrieben/korrupt hinterlassen koennen."""
-    import os
-    import tempfile
-    erlaubt = {k for k, _t, _l in EINSTELLBAR}
-    sauber = {k: v for k, v in daten.items() if k in erlaubt}
+def _atomar_schreiben(obj):
     pfad = _pfad()
-    text = json.dumps(sauber, ensure_ascii=False, indent=2)
+    text = json.dumps(obj, ensure_ascii=False, indent=2)
     fd, tmp = tempfile.mkstemp(dir=str(pfad.parent), prefix=".djangobase-", suffix=".tmp")
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
@@ -154,6 +201,97 @@ def speichern(daten):
         except OSError:
             pass
         raise
+
+
+def _roh_speichern(struktur):
+    """Schreibt die Struktur — Werte je Profil auf EINSTELLBAR-Keys gefiltert."""
+    erlaubt = {k for k, _t, _l in EINSTELLBAR}
+    profile = {}
+    for slug, prof in (struktur.get("profile") or {}).items():
+        werte = prof.get("werte") or {}
+        profile[slug] = {
+            "label": str(prof.get("label") or slug),
+            "werte": {k: v for k, v in werte.items() if k in erlaubt},
+        }
+    if not profile:
+        return _atomar_schreiben(_leer_struktur())
+    aktiv = struktur.get("aktiv")
+    if aktiv not in profile:
+        aktiv = next(iter(profile))
+    _atomar_schreiben({"format": 2, "aktiv": aktiv, "profile": profile})
+
+
+def laden():
+    """Overrides des AKTIVEN Profils als dict (leer, wenn keine gesetzt sind).
+    Signatur unveraendert -> conf() und bestehende Aufrufer bleiben gleich."""
+    s = _roh_laden()
+    return dict(s["profile"][s["aktiv"]]["werte"])
+
+
+def speichern(daten):
+    """Schreibt die Overrides (nur EINSTELLBAR-Keys) ins AKTIVE Profil."""
+    s = _roh_laden()
+    erlaubt = {k for k, _t, _l in EINSTELLBAR}
+    s["profile"][s["aktiv"]]["werte"] = {k: v for k, v in daten.items() if k in erlaubt}
+    _roh_speichern(s)
+
+
+# ----- Profil-Verwaltung (Einstellungen-Seite) -----------------------------
+
+def profile_liste():
+    """[(slug, label, ist_aktiv), ...] in Einfuege-Reihenfolge."""
+    s = _roh_laden()
+    return [(slug, prof["label"], slug == s["aktiv"])
+            for slug, prof in s["profile"].items()]
+
+
+def aktiv_slug():
+    return _roh_laden()["aktiv"]
+
+
+def aktiv_setzen(slug):
+    """Aktiviert ein vorhandenes Profil. True bei Erfolg."""
+    s = _roh_laden()
+    if slug in s["profile"]:
+        s["aktiv"] = slug
+        _roh_speichern(s)
+        return True
+    return False
+
+
+def _slugify(text):
+    s = re.sub(r"[^a-z0-9]+", "-", str(text).strip().lower()).strip("-")
+    return s or "profil"
+
+
+def profil_anlegen(label, kopie_von=None):
+    """Legt ein neues Profil an (eindeutiger Slug aus Label) und gibt den Slug
+    zurueck. Optional die Werte von `kopie_von` uebernehmen."""
+    s = _roh_laden()
+    basis = _slugify(label)
+    slug, i = basis, 2
+    while slug in s["profile"]:
+        slug = f"{basis}-{i}"
+        i += 1
+    werte = {}
+    if kopie_von and kopie_von in s["profile"]:
+        werte = dict(s["profile"][kopie_von]["werte"])
+    s["profile"][slug] = {"label": str(label) or slug, "werte": werte}
+    _roh_speichern(s)
+    return slug
+
+
+def profil_loeschen(slug):
+    """Loescht ein Profil. Das letzte verbleibende kann nicht geloescht werden;
+    war das geloeschte aktiv, wird das erste verbleibende aktiv. True bei Erfolg."""
+    s = _roh_laden()
+    if slug not in s["profile"] or len(s["profile"]) <= 1:
+        return False
+    del s["profile"][slug]
+    if s["aktiv"] == slug:
+        s["aktiv"] = next(iter(s["profile"]))
+    _roh_speichern(s)
+    return True
 
 
 def speichern_gruppe(slug, werte):

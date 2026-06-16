@@ -67,6 +67,15 @@ DEFAULTS = {
     # Fuer Projekte die ihre eigenen module-imports / Event-Wirings am
     # Body-Ende brauchen (z.B. CamTrack sidebar_nav.js, topbar_health.js).
     "extra_body_js": [],
+    # Basis-Template (Layout-Shell), das die djangoBase-Seiten (Hilfe,
+    # Einstellungen) per {% extends %} erweitern. Default = djangoBase-
+    # Standard-Look. Projekte koennen ein eigenes Base-Template angeben
+    # (z. B. "cleanorga/base.html"), damit die djangoBase-Seiten im
+    # Projekt-Look erscheinen. Das Template MUSS die Blocks bereitstellen,
+    # die die Seiten fuellen (mind. `content`, `topbar_title`, `title_extra`).
+    # Per Einstellungen-Seite / Profil zur Laufzeit umschaltbar; ein leerer
+    # Wert faellt auf den djangoBase-Standard zurueck.
+    "base_template": "djangobase/base.html",
     # Sidebar-Override: wenn gesetzt, wird statt djangobase/_sidebar.html
     # dieses Template per {% include %} eingehaengt — Projekte koennen
     # ihre eigene Live-Sidebar weiterverwenden.
@@ -203,6 +212,10 @@ def conf():
         first = c["theme_modes"][0]
         c["theme_default"] = first[0] if isinstance(first, (list, tuple)) else str(first)
     _overrides_anwenden(c)
+    # Leerer base_template (z. B. Profil "Standard" mit leerem Feld) ->
+    # djangoBase-Standard-Layout.
+    if not c.get("base_template"):
+        c["base_template"] = DEFAULTS["base_template"]
     return c
 
 
