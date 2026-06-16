@@ -28,12 +28,23 @@ from .conf import conf
 # Crawler/Monitoring/Tools – werden markiert und in der Statistik ausgeblendet.
 BOT_RE = re.compile(
     r"bot|crawl|spider|slurp|scan|preview|monitor|pingdom|uptime|lighthouse|"
-    r"headless|curl|wget|python|httpx|libwww|go-http|java/|okhttp|"
+    r"headless|curl|wget|python|httpx|libwww|go-http|okhttp|java/|"
+    r"scrapy|axios|node-fetch|aiohttp|guzzle|winhttp|restsharp|dart:io|"
     r"facebookexternalhit|whatsapp|telegram|skype|semrush|ahrefs|mj12|"
-    r"bytespider|petalbot|yandex|baiduspider|duckduck|gptbot|claudebot",
+    r"bytespider|petalbot|yandex|baiduspider|duckduck|gptbot|claudebot|"
+    r"ccbot|anthropic|perplexity|amazonbot|applebot|dataforseo|dotbot|"
+    r"serpstat|barkrowler|seznam|sogou|censys|masscan|zgrab|nuclei|nikto|"
+    r"sqlmap|wpscan|nmap|zmap|expanse",
     re.IGNORECASE)
 _TABLET_RE = re.compile(r"ipad|tablet|kindle|silk", re.IGNORECASE)
 _MOBIL_RE = re.compile(r"mobi|iphone|ipod|windows phone", re.IGNORECASE)
+
+# Echtes Chromium (Chrome/Edge/Opera/Brave …) sendet auf einem sicheren
+# Origin IMMER Fetch-Metadata-Header. Fehlen sie bei einem Chrome-UA, ist
+# der UA fast sicher gefälscht (Scraper, der nur den UA-String setzt).
+_CHROME_VER_RE = re.compile(r"chrome/(\d+)", re.IGNORECASE)
+_SEC_FETCH_HEADER = ("HTTP_SEC_FETCH_SITE", "HTTP_SEC_FETCH_MODE",
+                     "HTTP_SEC_FETCH_DEST", "HTTP_SEC_CH_UA")
 
 _geo_reader = None
 _geo_versucht = False
@@ -104,6 +115,38 @@ def referrer_domain(request):
     return "" if host in eigene else host[:120]
 
 
+def _ist_https(request):
+    """HTTPS-Verbindung? request.is_secure() (sofern SECURE_PROXY_SSL_HEADER
+    gesetzt ist) mit X-Forwarded-Proto-Fallback für Projekte ohne die Setting."""
+    if request.is_secure():
+        return True
+    proto = request.META.get("HTTP_X_FORWARDED_PROTO", "")
+    return proto.split(",")[0].strip().lower() == "https"
+
+
+def ist_bot(request, ua, pfad):
+    """Heuristik, ob ein Aufruf von einem Bot/Scanner stammt. Mehrere Signale,
+    konservativ gewählt (echte Browser dürfen NICHT fälschlich als Bot gelten):
+
+    1. Leerer oder als Tool/Crawler bekannter User-Agent (BOT_RE).
+    2. Bekannter Scanner-/Angriffspfad (conf 'traffic_bot_pfade') – greift auch
+       bei gefälschtem Browser-UA.
+    3. Gefälschtes modernes Chromium: UA behauptet Chrome >= 80, sendet aber
+       auf HTTPS keinen einzigen Fetch-Metadata-/Client-Hint-Header. Greift
+       NUR bei Chrome-UAs über HTTPS → Safari/Firefox/iPhone bleiben unberührt.
+    """
+    if not ua or BOT_RE.search(ua):
+        return True
+    p = (pfad or "").lower()
+    if any(muster in p for muster in conf().get("traffic_bot_pfade", [])):
+        return True
+    m = _CHROME_VER_RE.search(ua)
+    if m and int(m.group(1)) >= 80 and _ist_https(request):
+        if not any(request.META.get(h) for h in _SEC_FETCH_HEADER):
+            return True
+    return False
+
+
 class TrafficMiddleware:
     """Erfasst jeden erfolgreichen GET-Seitenaufruf als Seitenaufruf-Zeile.
     Muss NACH der AuthenticationMiddleware stehen (User-Zuordnung)."""
@@ -149,7 +192,7 @@ class TrafficMiddleware:
                  and request.user.is_authenticated else None,
             geraet=geraet_von_ua(ua),
             referrer=referrer_domain(request) if typ == "html" else "",
-            bot=bool(BOT_RE.search(ua)) or not ua,
+            bot=ist_bot(request, ua, pfad),
             groesse=groesse,
         )
 

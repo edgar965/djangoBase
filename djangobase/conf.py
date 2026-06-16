@@ -168,6 +168,17 @@ DEFAULTS = {
     # Eigene Domains, die nie als Referrer-Quelle zählen (zusätzlich zum
     # jeweiligen request.get_host()).
     "traffic_eigene_domains": [],
+    # Bekannte Scanner-/Angriffspfade (Substring, case-insensitiv). Aufrufe
+    # darauf gelten als Bot — auch mit gefälschtem Browser-UA. Diese Pfade
+    # liefern meist 404 (werden dann gar nicht erfasst); die Markierung greift
+    # bei Catch-all-Routen / vorhandenen Pfaden. Projekte können ergänzen.
+    "traffic_bot_pfade": [
+        "/wp-login", "/wp-admin", "/wp-content", "/wp-includes",
+        "/xmlrpc.php", "/.env", "/.git", "/.aws", "/.ssh", "/.vscode",
+        "/phpmyadmin", "/phpunit", "/vendor/", "/cgi-bin/", "/shell",
+        "/administrator/", "/solr/", "/actuator", "/manager/html",
+        "/owa/", "/autodiscover", "/boaform/", "/hudson",
+    ],
     # ----- E-Mail (SMTP) – vom StoreSMTPBackend gelesen --------------------
     "email_host": "",
     "email_port": 587,
