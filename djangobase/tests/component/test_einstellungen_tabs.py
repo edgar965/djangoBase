@@ -48,3 +48,13 @@ class EinstellungenTabsTest(StoreIsolationMixin, BasisTest):
                                    "base_template": "djangobase/base.html"})
         self.assertEqual(r.status_code, 302)
         self.assertEqual(conf()["base_template"], "djangobase/base.html")
+
+    def test_mitgeliefertes_cleanorga_layout_rendert(self):
+        # Zweites, helles Layout per base_template aktivieren -> Seite rendert
+        # in djangobase/base_cleanorga.html und lädt cleanorga.css.
+        store.speichern_gruppe("djangobase",
+                               {"base_template": "djangobase/base_cleanorga.html"})
+        r = self.c.get(self.url)
+        self.assertEqual(r.status_code, 200)
+        self.assertTemplateUsed(r, "djangobase/base_cleanorga.html")
+        self.assertContains(r, "cleanorga.css")

@@ -77,6 +77,16 @@ DJANGOBASE = {
 }
 ```
 
+**Mitgeliefert:** `djangobase/base_cleanorga.html` — ein zweites, **helles**
+Layout im CleanOrga-Stil (weiße Sidebar, Akzent `#2196F3`, Bootstrap 5 + Font
+Awesome). Es erbt die djangoBase-Shell (Sidebar/Menü/Collapse/Toasts bleiben
+funktionsfähig) und färbt nur per `cleanorga.css` um. Direkt nutzbar ohne
+eigenes Template:
+
+```python
+DJANGOBASE = { ..., "base_template": "djangobase/base_cleanorga.html" }
+```
+
 Das Projekt-Base-Template muss die von den Seiten gefüllten Blocks bereitstellen
 (mindestens `content`, `topbar_title`, `title_extra`). Ein ungültiger Wert wird
 beim Speichern abgelehnt (kein Aussperren); ein leerer Wert fällt auf den

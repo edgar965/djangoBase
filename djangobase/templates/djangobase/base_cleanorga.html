@@ -1,0 +1,20 @@
+{% extends "djangobase/base_app.html" %}
+{% load static %}
+{% comment %}
+Zweites, HELLES Layout im CleanOrga-Stil (weiße Sidebar, Akzent #2196F3,
+Bootstrap 5 + Font Awesome). Auswählbar über
+  DJANGOBASE["base_template"] = "djangobase/base_cleanorga.html"
+bzw. pro Profil auf der Einstellungen-Seite (Combobox).
+
+Reibungslos, weil es die djangoBase-Shell (Sidebar/Menü/Collapse/Toasts)
+unverändert wiederverwendet und nur per cleanorga.css auf den hellen
+CleanOrga-Look umfärbt. Alle Block-Hooks der djangoBase-Seiten
+(content, topbar_title, title_extra, body_scripts …) bleiben erhalten.
+{% endcomment %}
+
+{% block head_css %}
+{{ block.super }}
+{# Font Awesome zusätzlich (CleanOrga nutzt fa-Icons); die djangoBase-Menüs nutzen weiter bi-*. #}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="{% static 'djangobase/css/cleanorga.css' %}">
+{% endblock %}

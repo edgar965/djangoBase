@@ -1,0 +1,80 @@
+/* ==========================================================================
+   CleanOrga-Light-Theme für die djangoBase-Shell.
+   Wird nur von djangobase/base_cleanorga.html geladen (nach den Default-CSS),
+   überschreibt also gezielt die dunkle djangoBase-Optik mit dem hellen
+   CleanOrga-Look: weiße Sidebar, Material-Blau #2196F3, helle Inhalte.
+   ========================================================================== */
+:root {
+    --co-primary: #2196F3;
+    --co-primary-dark: #1976d2;
+    --co-active-bg: #e3f2fd;
+    /* djangoBase-Basisvariablen auf hell umstellen */
+    --db-bg: #f5f5f5;
+    --db-fg: #333;
+    --db-accent: #2196F3;
+}
+
+html, body { background: var(--db-bg); color: var(--db-fg); }
+
+/* ----- Sidebar: weiß mit Schatten ------------------------------------- */
+.sidebar {
+    background-color: #fff !important;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, .10);
+    border-right: 0;
+}
+.sidebar-header { border-bottom: 1px solid #eee; }
+.sidebar-header h4 { color: var(--co-primary); }
+.sidebar-user-name { color: #888; }
+.sidebar-user-name i { color: var(--co-primary); }
+
+.sidebar .nav-link {
+    color: #555 !important;
+    border-left: 4px solid transparent;
+}
+.sidebar .nav-link:hover { background-color: #f0f0f0 !important; color: #222 !important; }
+.sidebar .nav-link.active {
+    background-color: var(--co-active-bg) !important;
+    color: var(--co-primary) !important;
+    border-left-color: var(--co-primary);
+    font-weight: 500;
+}
+.sidebar .submenu { background: #f8f9fa !important; }
+.sidebar .submenu .nav-link { color: #666 !important; }
+.sidebar .submenu .submenu { background: #f1f3f5 !important; }
+
+/* ----- Topbar: weiß mit Rahmen, dunkler Titel ------------------------- */
+.topbar {
+    background: #fff !important;
+    border-bottom: 1px solid #e0e0e0;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .04);
+}
+.topbar-title { color: #222 !important; }
+.topbar-title i { color: var(--co-primary) !important; }
+.topbar .btn-outline-light { color: #555; border-color: #ccc; }
+.topbar .btn-outline-light:hover { background: #f0f0f0; color: #222; }
+
+/* ----- Akzent-Buttons ------------------------------------------------- */
+.btn-primary { background: var(--co-primary); border-color: var(--co-primary); }
+.btn-primary:hover, .btn-primary:focus { background: var(--co-primary-dark); border-color: var(--co-primary-dark); }
+
+.db-content { padding: 1.25rem 1.5rem; }
+
+/* ----- djangoBase-Einstellungsseiten (set-*/prof-*) hell umfärben ------ */
+.set-card { background: #fff; border-color: #e0e0e0; }
+.set-hint { background: #f1f7ff; border-color: #cfe3fb; color: #45566a; }
+.set-hint i { color: var(--co-primary); }
+.set-hint code, .set-key, .set-colorval { background: #eef3f8; color: #1b5e9b; }
+.set-tabs { border-bottom-color: #e0e0e0; }
+.set-tabs .nav-link { color: #666; }
+.set-tabs .nav-link:hover { color: #222; border-color: #e9eef3 #e9eef3 transparent; }
+.set-tabs .nav-link.active { color: var(--co-primary); background: #fff; border-color: #e0e0e0 #e0e0e0 #fff; }
+.set-row { border-bottom-color: #eee; }
+.set-label { color: #2a2f36; }
+.set-key { opacity: .9; }
+.set-switch { color: #444; }
+.set-input input[type=text], .set-input input[type=number],
+.set-input input[type=password], .set-input select {
+    background: #fff; color: #222; border-color: #ccd6e0;
+}
+.prof-bar label { color: #2a2f36; }
+.prof-bar select, .prof-bar input[type=text] { background: #fff; color: #222; border-color: #ccd6e0; }

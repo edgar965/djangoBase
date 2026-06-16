@@ -43,8 +43,10 @@ GRUPPEN = {
         "felder": [
             # --- Layout-Auswahl ---
             ("base_template", "text",
-             "Basis-Template (Layout-Shell) — z. B. cleanorga/base.html; "
-             "leer = djangoBase-Standard. Muss die Blocks content/topbar_title/title_extra bieten."),
+             "Basis-Template (Layout-Shell). Leer = djangoBase-Standard "
+             "(dunkel). Mitgeliefert: djangobase/base_cleanorga.html (heller "
+             "CleanOrga-Look). Eigenes Projekt-Template muss die Blocks "
+             "content/topbar_title/title_extra bieten."),
             # --- Layout / Optik ---
             ("sidebar_bg", "color", "Sidebar-Hintergrund"),
             ("sidebar_light", "color", "Sidebar-Akzent (hell)"),
