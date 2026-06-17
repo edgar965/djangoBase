@@ -6,6 +6,7 @@
 {% block content %}
 <div class="set-page">
 
+    {% if djangobase.profile_switcher %}
     {# ----- Profil-/Template-Auswahl (Combobox) ------------------------- #}
     <div class="prof-bar">
         <form method="post" class="prof-aktiv">
@@ -46,6 +47,7 @@
         (JSON-Datei, keine Datenbank). Aktives Basis-Template:
         <code>{{ base_template_aktiv }}</code>.
     </p>
+    {% endif %}
 
     {# ----- Tabs je Gruppe --------------------------------------------- #}
     <ul class="nav nav-tabs set-tabs" id="setTabs" role="tablist">

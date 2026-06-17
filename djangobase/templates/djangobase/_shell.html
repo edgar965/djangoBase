@@ -44,9 +44,11 @@
     {% endif %}
 
     {% comment %}extra_css: Liste von Static-Pfaden, die hinter den
-    Defaults eingehaengt werden (Cascade-Override).{% endcomment %}
+    Defaults eingehaengt werden (Cascade-Override). ?v=JS_VERSION bricht den
+    (Service-Worker-/Browser-)Cache bei Aenderungen; JS_VERSION ist optional
+    (Projekte ohne diese Variable bekommen ?v=1).{% endcomment %}
     {% for path in djangobase.extra_css %}
-        <link rel="stylesheet" href="{% static path %}">
+        <link rel="stylesheet" href="{% static path %}?v={{ JS_VERSION|default:1 }}">
     {% endfor %}
 
     {% comment %}extra_js_head: Frueh-im-Head-Scripts (htmx, importmap-
@@ -61,7 +63,7 @@
     {% block head_scripts %}{% endblock %}
     {% block head_extra %}{% endblock %}
 </head>
-<body{% if djangobase.theme_default %} data-theme="{{ djangobase.theme_default }}"{% endif %}{% block body_attrs %}{% endblock %}>
+<body{% if aktives_theme or djangobase.theme_default %} data-theme="{{ aktives_theme|default:djangobase.theme_default }}"{% endif %}{% block body_attrs %}{% endblock %}>
     {% block sidebar %}{% include djangobase.sidebar_template with inside_shell=True %}{% endblock %}
 
     {% if djangobase.resizable_sidebar %}

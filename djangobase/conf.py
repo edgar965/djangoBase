@@ -88,6 +88,10 @@ DEFAULTS = {
     "theme_default": "",
     # Toast-Stack fuer Django-Messages. False = kein Stack rendern.
     "toast_stack": True,
+    # Profil-Umschalter (Combobox + Anlegen/Loeschen) auf der Einstellungsseite.
+    # False = ausblenden (fuer Projekte mit nur EINEM Profil). Das Profil-System
+    # bleibt intern bestehen; nur die UI verschwindet.
+    "profile_switcher": True,
     # ----- Verschiebbarer Splitter (Sidebar-Breite ziehbar) ----------------
     # Default aus, damit Projekte mit eigenem Resizer (z. B. Assistant)
     # unberuehrt bleiben. Breite wird clientseitig in localStorage gemerkt.

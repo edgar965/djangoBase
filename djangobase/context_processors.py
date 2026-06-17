@@ -32,6 +32,11 @@ def djangobase(request):
         "sidebar_extra_css_vars": c.get("sidebar_extra_css_vars", ""),
         "einstellungen_menu": c["einstellungen_menu"],
         "hilfe_menu": c["hilfe_menu"],
+        # Profil-Umschalter (Combobox + Anlegen/Loeschen) auf der
+        # Einstellungsseite zeigen? Projekte mit nur EINEM Profil koennen das
+        # per DJANGOBASE["profile_switcher"]=False ausblenden. Default True ->
+        # bestehende Projekte unveraendert.
+        "profile_switcher": c.get("profile_switcher", True),
         "einstellungen_extra": c["einstellungen_extra"],
         "benutzer_verwaltung": c["benutzer_verwaltung"],
         # Nav-Eintrag „Jobs" nur zeigen, wenn ein Projekt Jobs registriert hat
