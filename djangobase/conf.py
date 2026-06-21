@@ -32,7 +32,16 @@ DEFAULTS = {
     #   ("HumanBodyWeb", "", "HumanBodyWeb")
     "repos": [],
     # Tests
-    "test_befehle": [],   # {"slug","name","cmd": [..]}
+    "test_befehle": [],   # {"slug","name","cmd": [..]}  – ganze Suiten (Batch), Tab „Suiten"
+    # Einzeltest-Discovery pro Typ → Tabs mit Run-Button je Test. Optional/opt-in:
+    #   [{"typ": "Unit", "labels": ["tests.unit", "djangobase.tests.unit"]}, ...]
+    # Jeder gefundene Test (z. B. tests.unit.test_geo.GeoTest.test_x) ist einzeln
+    # ausführbar (manage.py test <id>).
+    "test_discover": [],
+    # Browser-/UI-Tests (laufen client-seitig im Iframe). Optional:
+    #   {"runner": "/static/tests/runner.js", "cases": "/static/tests/testcases.js",
+    #    "seiten": {"navi": "/navi/ziel/?…&demo=1", "osm": "/ausfluege/", ...}}
+    "test_ui": None,
     # Navigation
     "menu": [],           # [{label, icon, url} | {label, icon, untermenu:[{label, icon, url}]}]
                           #  (Untermenü-Key heißt "untermenu", NICHT "items" -> dict.items-Kollision!)

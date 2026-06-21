@@ -4,26 +4,152 @@
 {% block topbar_title %}<i class="bi bi-bug"></i> Hilfe · Tests{% endblock %}
 
 {% block content %}
-<div class="ts-page">
-    <div class="ts-card">
-        <h3><i class="bi bi-list-check"></i> Test-Suiten</h3>
-        {% if befehle %}
-        <div class="ts-list">
-            {% for b in befehle %}
-            <a href="?run={{ b.slug }}" class="ts-item {% if aktiver_slug == b.slug %}aktiv{% endif %}">
-                <span><i class="bi bi-play-circle"></i> {{ b.name }}</span>
-                <code>{{ b.cmd|join:' ' }}</code>
-            </a>
-            {% endfor %}
-        </div>
-        {% else %}
-        <p class="ts-empty">Keine Tests konfiguriert. Setze in den Settings:<br>
-            <code>DJANGOBASE["test_befehle"] = [{"slug": "unit", "name": "Unit-Tests", "cmd": ["python", "manage.py", "test"]}]</code></p>
-        {% endif %}
+<div class="ts-page" data-aktiv-tab="{{ aktiver_tab }}">
+
+    {# ---------------- Tab-Leiste ---------------- #}
+    <div class="ts-tabs" id="ts-tabs">
+        {% for k in kategorien %}
+        <button type="button" class="ts-tab" data-tab="{{ k.typ }}">{{ k.typ }}
+            <span class="ts-count">{{ k.anzahl }}</span></button>
+        {% endfor %}
+        {% if ui %}<button type="button" class="ts-tab" data-tab="UI">UI <span class="ts-count" id="ts-ui-count">…</span></button>{% endif %}
+        {% if befehle %}<button type="button" class="ts-tab" data-tab="Suiten">Suiten <span class="ts-count">{{ befehle|length }}</span></button>{% endif %}
     </div>
 
+    {# ---------------- Panels: Einzeltests pro Typ ---------------- #}
+    {% for k in kategorien %}
+    <div class="ts-panel" data-panel="{{ k.typ }}">
+        <div class="ts-card">
+            <h3><i class="bi bi-list-check"></i> {{ k.typ }}-Tests <span class="ts-meta">· {{ k.anzahl }} Tests</span></h3>
+            {% if k.tests %}
+            <div class="ts-list">
+                {% for t in k.tests %}
+                <div class="ts-item {% if aktiver_slug == t.id %}aktiv{% endif %}">
+                    <span class="ts-name"><i class="bi bi-dot"></i> {{ t.kurz }}</span>
+                    <code class="ts-id">{{ t.id }}</code>
+                    <a class="ts-run" href="?run={{ t.id|urlencode }}&tab={{ k.typ }}" title="Diesen Test ausführen">
+                        <i class="bi bi-play-fill"></i> Run</a>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="ts-empty">Keine Tests gefunden. Labels in
+                <code>DJANGOBASE["test_discover"]</code> prüfen.</p>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+
+    {# ---------------- Panel: UI-/Browser-Tests ---------------- #}
+    {% if ui %}
+    <div class="ts-panel" data-panel="UI">
+        <div class="ts-card">
+            <h3><i class="bi bi-window"></i> UI-Tests <span class="ts-meta">· laufen im Browser (Iframe)</span></h3>
+            <p class="ts-empty" id="ts-ui-hint">Lade Test-Liste …</p>
+            <div class="ts-list" id="ts-ui-list"></div>
+        </div>
+        <div class="ts-card">
+            <div class="ts-label">Test-Bühne (Iframe)</div>
+            <iframe id="ts-ui-frame" class="ts-frame" title="UI-Test-Bühne"></iframe>
+        </div>
+        {{ ui.seiten|json_script:"ts-ui-seiten" }}
+        <script>
+        (function () {
+            var SEITEN = JSON.parse(document.getElementById("ts-ui-seiten").textContent || "{}");
+            var RUNNER_URL = "{{ ui.runner|escapejs }}", CASES_URL = "{{ ui.cases|escapejs }}";
+            var listEl = document.getElementById("ts-ui-list");
+            var hintEl = document.getElementById("ts-ui-hint");
+            var frame = document.getElementById("ts-ui-frame");
+            var countEl = document.getElementById("ts-ui-count");
+            var runnerText = "", casesText = "";
+
+            function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+            // testcases.js + runner.js als Text holen (zum Injizieren ins Iframe) und
+            // testcases.js zusätzlich hier laden, um die Liste aufzubauen.
+            Promise.all([
+                fetch(RUNNER_URL).then(function (r) { return r.text(); }),
+                fetch(CASES_URL).then(function (r) { return r.text(); })
+            ]).then(function (txt) {
+                runnerText = txt[0]; casesText = txt[1];
+                try { (0, eval)(casesText); } catch (e) {}      // definiert window.SPIN.testcases hier
+                bauen();
+            }).catch(function (e) { hintEl.textContent = "Konnte Test-Dateien nicht laden: " + e; });
+
+            function bauen() {
+                var tc = (window.SPIN && window.SPIN.testcases) || {};
+                var gruppen = Object.keys(tc), n = 0;
+                listEl.innerHTML = "";
+                gruppen.forEach(function (g) {
+                    var seite = SEITEN[g];
+                    (tc[g] || []).forEach(function (c) {
+                        n++;
+                        var row = document.createElement("div");
+                        row.className = "ts-item";
+                        row.innerHTML =
+                            '<span class="ts-name"><i class="bi bi-dot"></i> ' + esc(c.name) + "</span>" +
+                            '<code class="ts-id">' + g + " · " + c.id + "</code>" +
+                            '<span class="ts-ui-status" data-st></span>' +
+                            '<button type="button" class="ts-run"><i class="bi bi-play-fill"></i> Run</button>';
+                        var btn = row.querySelector("button");
+                        var st = row.querySelector("[data-st]");
+                        if (!seite) { btn.disabled = true; btn.title = "Keine Seite für Gruppe " + g; }
+                        else btn.addEventListener("click", function () { runOne(g, c.id, seite, btn, st); });
+                        listEl.appendChild(row);
+                    });
+                });
+                hintEl.style.display = "none";
+                if (countEl) countEl.textContent = n;
+            }
+
+            async function runOne(group, id, seite, btn, st) {
+                btn.disabled = true;
+                st.className = "ts-ui-status laeuft"; st.textContent = "läuft …";
+                try {
+                    await new Promise(function (res, rej) {
+                        frame.onload = res; frame.onerror = rej; frame.src = seite;
+                    });
+                    await sleep(3500);                       // JS-/Karten-Init im Iframe
+                    var w = frame.contentWindow;
+                    if (String(w.location.pathname).indexOf("login") !== -1)
+                        throw new Error("nicht angemeldet (Iframe → Login)");
+                    w.eval(runnerText); w.eval(casesText);   // same-origin Injektion
+                    var r = await w.SPIN.runOne(group, id);
+                    st.className = "ts-ui-status " + (r.ok ? "ok" : "fail");
+                    st.textContent = r.ok ? ("✓ " + r.ms + " ms") : ("✗ " + (r.error || "Fehler"));
+                } catch (e) {
+                    st.className = "ts-ui-status fail";
+                    st.textContent = "✗ " + (e && e.message ? e.message : e);
+                } finally { btn.disabled = false; }
+            }
+
+            function esc(s) { var d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+        })();
+        </script>
+    </div>
+    {% endif %}
+
+    {# ---------------- Panel: Suiten (Batch-Kommandos) ---------------- #}
+    {% if befehle %}
+    <div class="ts-panel" data-panel="Suiten">
+        <div class="ts-card">
+            <h3><i class="bi bi-collection-play"></i> Test-Suiten (Batch)</h3>
+            <div class="ts-list">
+                {% for b in befehle %}
+                <div class="ts-item {% if aktiver_slug == b.slug %}aktiv{% endif %}">
+                    <span class="ts-name"><i class="bi bi-play-circle"></i> {{ b.name }}</span>
+                    <code class="ts-id">{{ b.cmd|join:' ' }}</code>
+                    <a class="ts-run" href="?run={{ b.slug }}&tab=Suiten"><i class="bi bi-play-fill"></i> Run</a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ---------------- Ergebnis (serverseitige Python-/Suiten-Läufe) ---------------- #}
     {% if ergebnis %}
-    <div class="ts-card">
+    <div class="ts-card ts-result">
         <h3>
             {% if ergebnis.ok %}<span class="ts-badge ok"><i class="bi bi-check-circle"></i> Bestanden</span>
             {% else %}<span class="ts-badge fail"><i class="bi bi-x-circle"></i> Fehlgeschlagen (rc={{ ergebnis.rc }})</span>{% endif %}
@@ -35,22 +161,63 @@
     {% endif %}
 </div>
 
+<script>
+// Tab-Umschaltung (client-seitig). Aktiver Tab kommt nach einem Run aus ?tab=.
+(function () {
+    var page = document.querySelector(".ts-page");
+    var tabs = Array.prototype.slice.call(document.querySelectorAll(".ts-tab"));
+    var panels = Array.prototype.slice.call(document.querySelectorAll(".ts-panel"));
+    function aktiv(name) {
+        tabs.forEach(function (t) { t.classList.toggle("aktiv", t.dataset.tab === name); });
+        panels.forEach(function (p) { p.classList.toggle("aktiv", p.dataset.panel === name); });
+    }
+    tabs.forEach(function (t) { t.addEventListener("click", function () { aktiv(t.dataset.tab); }); });
+    var start = page.getAttribute("data-aktiv-tab");
+    if (!start || !tabs.some(function (t) { return t.dataset.tab === start; }))
+        start = tabs.length ? tabs[0].dataset.tab : "";
+    if (start) aktiv(start);
+    // Wurde ein Test ausgeführt? Ergebnis in den Blick scrollen.
+    var res = document.querySelector(".ts-result");
+    if (res) res.scrollIntoView({ behavior: "smooth", block: "nearest" });
+})();
+</script>
+
 <style>
-.ts-page { padding: 1.25rem 1.5rem 4rem; max-width: 1000px; }
+.ts-page { padding: 1.25rem 1.5rem 4rem; max-width: 1050px; }
+.ts-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; border-bottom: 1px solid #1e3a5f; }
+.ts-tab { background: transparent; border: 1px solid transparent; border-bottom: none; color: #8aa0b8;
+    padding: 8px 16px; border-radius: 8px 8px 0 0; cursor: pointer; font-size: .92rem; font-weight: 600; }
+.ts-tab:hover { color: #e9f0f8; }
+.ts-tab.aktiv { color: #e9f0f8; background: #142136; border-color: #1e3a5f; }
+.ts-count { background: #0d1117; color: #4ea8f6; border-radius: 10px; padding: 0 7px; font-size: .72rem; margin-left: 4px; }
+.ts-panel { display: none; }
+.ts-panel.aktiv { display: block; }
 .ts-card { background: #142136; border: 1px solid #1e3a5f; border-radius: 10px; padding: 16px 20px; margin-bottom: 18px; }
 .ts-card h3 { color: #e9f0f8; font-size: 1.05rem; margin: 0 0 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.ts-card h3 i, .ts-card h3 > i { color: #4ea8f6; }
-.ts-list { display: flex; flex-direction: column; gap: 8px; }
-.ts-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 8px; background: #0f1d31; border: 1px solid #1e3a5f; text-decoration: none; color: #e9f0f8; }
-.ts-item:hover { border-color: #1e5bb8; }
+.ts-card h3 i { color: #4ea8f6; }
+.ts-list { display: flex; flex-direction: column; gap: 6px; }
+.ts-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px;
+    background: #0f1d31; border: 1px solid #1e3a5f; }
 .ts-item.aktiv { border-color: #1e5bb8; background: #14365f; }
-.ts-item code, .ts-meta code { background: #0d1117; color: #a5d6ff; padding: 1px 6px; border-radius: 4px; font-size: .78rem; }
+.ts-name { color: #e9f0f8; font-size: .9rem; white-space: nowrap; }
+.ts-name i { color: #4ea8f6; }
+.ts-id { background: #0d1117; color: #a5d6ff; padding: 1px 6px; border-radius: 4px; font-size: .72rem;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 auto; min-width: 0; }
+.ts-run { display: inline-flex; align-items: center; gap: 4px; text-decoration: none; flex: 0 0 auto;
+    background: #15406e; color: #dbeafe; border: 1px solid #1e5bb8; border-radius: 6px; padding: 4px 10px;
+    font-size: .8rem; font-weight: 600; cursor: pointer; }
+.ts-run:hover { background: #1e5bb8; color: #fff; }
+.ts-run:disabled { opacity: .4; cursor: not-allowed; }
+.ts-ui-status { flex: 0 0 auto; font-size: .78rem; min-width: 64px; text-align: right; }
+.ts-ui-status.ok { color: #34d399; } .ts-ui-status.fail { color: #f87171; } .ts-ui-status.laeuft { color: #fbbf24; }
+.ts-frame { width: 100%; height: 320px; border: 1px solid #1e3a5f; border-radius: 8px; background: #fff; }
 .ts-badge { border-radius: 6px; padding: 3px 10px; font-size: .8rem; font-weight: 700; }
-.ts-badge.ok { background: #15803d; color: #fff; }
-.ts-badge.fail { background: #b91c1c; color: #fff; }
+.ts-badge.ok { background: #15803d; color: #fff; } .ts-badge.fail { background: #b91c1c; color: #fff; }
 .ts-meta { color: #8aa0b8; font-size: .82rem; font-weight: 400; }
+.ts-meta code { background: #0d1117; color: #a5d6ff; padding: 1px 6px; border-radius: 4px; }
 .ts-label { color: #8aa0b8; font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; margin: 10px 0 4px; }
-.ts-pre { background: #0d1117; border: 1px solid #1e3a5f; border-radius: 6px; padding: 12px 14px; color: #c9d1d9; font-size: .8rem; max-height: 50vh; overflow: auto; white-space: pre-wrap; word-break: break-word; }
+.ts-pre { background: #0d1117; border: 1px solid #1e3a5f; border-radius: 6px; padding: 12px 14px; color: #c9d1d9;
+    font-size: .8rem; max-height: 50vh; overflow: auto; white-space: pre-wrap; word-break: break-word; }
 .ts-pre.err { color: #f85149; }
 .ts-empty { color: #8aa0b8; }
 </style>
