@@ -276,22 +276,50 @@ def _gh_repo_from_remote(repo_path):
     return m.group(1) if m else ""
 
 
-def _git_log_local(repo_path, n=40, transform=None):
-    """Fallback ohne gh: lokales git log als Changelog."""
-    out = _git(repo_path, "log", f"-{n}", "--pretty=format:%h\x1f%an\x1f%ad\x1f%s", "--date=short")
+def _git_log_local(repo_path, n=100, transform=None, gh_repo=""):
+    """Fallback ohne gh: lokales git log als Changelog — inkl. Commit-BODY,
+    damit ausfuehrliche Release-Beschreibungen (Bullet-Listen im Commit)
+    genauso erscheinen wie ueber die GitHub-API."""
+    out = _git(repo_path, "log", f"-{n}",
+               "--pretty=format:%H\x1f%an\x1f%ad\x1f%B\x1e", "--date=short")
     tr = transform or (lambda s: s)
     res = []
-    for line in out.splitlines():
-        parts = line.split("\x1f")
-        if len(parts) == 4:
-            sha, an, ad, subj = parts
-            m = re.match(r"^(?:v|Version\s+)(\d+\.\d+(?:\.\d+)?)", subj, re.I)
-            subj_t = tr(subj)
-            res.append({"sha": sha, "sha_full": sha, "subject": subj_t[:240],
-                        "version_label": ("v" + m.group(1)) if m else None,
-                        "title": subj_t[:240], "body": "", "body_html": "",
-                        "author": an, "date": ad,
-                        "url": "", "is_release": m is not None})
+    for rec in out.split("\x1e"):
+        rec = rec.strip("\n\r ")
+        if not rec:
+            continue
+        parts = rec.split("\x1f")
+        if len(parts) != 4:
+            continue
+        sha_full, an, ad, full = parts
+        full = full.strip()
+        subject, body = (full.split("\n\n", 1) + [""])[:2] if "\n\n" in full else (full, "")
+        body = "\n".join(l for l in body.splitlines()
+                         if not l.startswith(("Co-Authored-By:", "Co-authored-by:", "Signed-off-by:"))).strip()
+        subj = subject.strip().splitlines()[0] if subject.strip() else ""
+        label, title = None, subj
+        # gleiche Release-Erkennung wie im gh-Pfad
+        m = re.match(r"^(?:v|Version\s+)(\d+\.\d+(?:\.\d+)?)\s*[:—\-]\s*(.+)$", subj, re.I)
+        if m:
+            label, title = "v" + m.group(1), m.group(2).strip()
+        else:
+            m2 = re.match(r"^(?:v|Version\s+)(\d+\.\d+(?:\.\d+)?)\s*$", subj, re.I)
+            if m2:
+                label = "v" + m2.group(1)
+            else:
+                m3 = re.search(r"(?:^|[\s\(\[\+,—\-])(?:v|Version\s+)(\d+\.\d+(?:\.\d+)?)\b", subj, re.I)
+                if m3:
+                    label = "v" + m3.group(1)
+        subj_t = tr(subj)
+        title_t = tr(title)
+        body_t = tr(body)
+        res.append({"sha": sha_full[:7], "sha_full": sha_full,
+                    "subject": subj_t[:240], "version_label": label,
+                    "title": title_t[:240], "body": body_t,
+                    "body_html": _render_body_html(body_t),
+                    "author": an, "date": ad,
+                    "url": f"https://github.com/{gh_repo}/commit/{sha_full}" if gh_repo else "",
+                    "is_release": label is not None})
     return res
 
 
@@ -410,7 +438,7 @@ class VersionsView(ZugriffMixin, View):
             dirty = len([l for l in _git(local_path, "status", "--porcelain").splitlines() if l.strip()])
             commits = _gh_list_commits(gh_repo, per_page=per_page, transform=transform) if gh_repo else []
             if not commits and local_path.exists():
-                commits = _git_log_local(local_path, transform=transform)
+                commits = _git_log_local(local_path, transform=transform, gh_repo=gh_repo)
             tags = _gh_list_tags(gh_repo) if gh_repo else []
             local_in_remote = bool(head and any(c_["sha"] == head for c_ in commits))
             annotated = _annotate_chronological(commits, current_version)
