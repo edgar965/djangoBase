@@ -1,5 +1,13 @@
 {% comment %}Benutzer-Tabelle im Cleanorga-Stil (Funktionen), dunkles Layout.
 Erwartet `zeilen` (Liste von Zeilen-Dicts) und `sprachen` (Choices).{% endcomment %}
+<style>
+/* Kompakte, nur-Icon Aktions-Buttons (verhindert Überlauf am rechten Rand);
+   Tabelle scrollt bei vielen Spalten innerhalb ihres Containers statt über den Rand. */
+.bk-tablewrap { overflow-x: auto; }
+.bk-actions { white-space: nowrap; }
+.bk-actions .bk-act.bk-act-icon { min-width: 0; padding: .35rem .5rem; margin: 0 .12rem; }
+.bk-actions .bk-act.bk-act-icon i { margin: 0; }
+</style>
 <div class="bk-tablewrap">
 <table class="bk-table">
     <thead>
@@ -113,19 +121,22 @@ Erwartet `zeilen` (Liste von Zeilen-Dicts) und `sprachen` (Choices).{% endcommen
                     <i class="bi bi-clock-history"></i>
                 </button>
             </td>
-            {# Aktionen #}
+            {# Aktionen – kompakt: nur Icons, Beschriftung als Tooltip (title/aria-label) #}
             <td class="bk-actions">
                 <form method="post" action="{% url 'djangobase:benutzer_status' z.user.pk %}">
                     {% csrf_token %}<input type="hidden" name="zurueck" value="{{ request.path }}">
-                    <button type="submit" class="bk-act {% if z.user.is_active %}bk-act-warn{% else %}bk-act-ok{% endif %}">
-                        <i class="bi bi-power"></i> {% if z.user.is_active %}Inaktiv setzen{% else %}Aktiv setzen{% endif %}
+                    <button type="submit" class="bk-act bk-act-icon {% if z.user.is_active %}bk-act-warn{% else %}bk-act-ok{% endif %}"
+                            title="{% if z.user.is_active %}Inaktiv setzen{% else %}Aktiv setzen{% endif %}"
+                            aria-label="{% if z.user.is_active %}Inaktiv setzen{% else %}Aktiv setzen{% endif %}">
+                        <i class="bi bi-power"></i>
                     </button>
                 </form>
-                <a class="bk-act bk-act-edit" href="{% url 'djangobase:benutzer_bearbeiten' z.user.pk %}"><i class="bi bi-pencil-square"></i> Bearbeiten</a>
+                <a class="bk-act bk-act-icon bk-act-edit" href="{% url 'djangobase:benutzer_bearbeiten' z.user.pk %}"
+                   title="Bearbeiten" aria-label="Bearbeiten"><i class="bi bi-pencil-square"></i></a>
                 <form method="post" action="{% url 'djangobase:benutzer_loeschen' z.user.pk %}"
                       onsubmit="return confirm('Benutzer „{{ z.user.username|escapejs }}“ wirklich löschen?');">
                     {% csrf_token %}<input type="hidden" name="zurueck" value="{{ request.path }}">
-                    <button type="submit" class="bk-act bk-act-del"><i class="bi bi-trash"></i> Löschen</button>
+                    <button type="submit" class="bk-act bk-act-icon bk-act-del" title="Löschen" aria-label="Löschen"><i class="bi bi-trash"></i></button>
                 </form>
             </td>
         </tr>
