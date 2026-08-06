@@ -61,6 +61,11 @@ DEFAULTS = {
     #    "aktiv": "einstellungen_benutzer"}
     # 'aktiv' (optional) wird mit der Template-Variable `aktiv` verglichen.
     "einstellungen_extra": [],
+    # Optionaler Projekt-Provider für Zusatz-Details im Benutzer-Verlauf-Popup
+    # (Benutzerliste). Dotted path oder Callable f(user_ids) -> {user_id:
+    #   [{"titel": str, "zeilen": [(label, wert), ...]}, ...]}. Wird gebündelt für
+    # alle gelisteten Nutzer aufgerufen; fehlt er / wirft er, bleibt das Popup gleich.
+    "benutzer_details_provider": None,
     # Zugriff: "staff" | "login" | "none"
     "zugriff": "staff",
     # ----- Layout-Erweiterungen (von Apps konsumiert) ----------------------

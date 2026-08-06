@@ -4,7 +4,7 @@ Erwartet `zeilen` (Liste von Zeilen-Dicts) und `sprachen` (Choices).{% endcommen
 <table class="bk-table">
     <thead>
         <tr>
-            <th>Avatar</th><th>Eingeloggt</th><th>Name</th><th>E-Mail</th>
+            <th>Avatar</th><th>Eingeloggt</th><th>Name</th><th>E-Mail</th><th>Status</th>
             <th>Freigeschaltet</th>{% if email_spalte %}<th>E-Mail bestätigt</th>{% endif %}
             <th>Passwort</th><th>Sprache</th><th>UI</th><th>Zuletzt</th><th>Logs</th><th class="bk-actions">Aktionen</th>
         </tr>
@@ -45,6 +45,8 @@ Erwartet `zeilen` (Liste von Zeilen-Dicts) und `sprachen` (Choices).{% endcommen
             </span></td>
             {# E-Mail #}
             <td>{{ z.user.email|default:"–" }}</td>
+            {# Status (kombiniert is_active + E-Mail-Bestätigung): Anonym/Angefragt/Bestätigt/Gesperrt #}
+            <td><span class="badge {{ z.status.klasse }}">{{ z.status.label }}</span></td>
             {# Freigeschaltet (is_active) – direkt umschaltbar #}
             <td>
                 <form method="post" action="{% url 'djangobase:benutzer_status' z.user.pk %}">
@@ -106,7 +108,7 @@ Erwartet `zeilen` (Liste von Zeilen-Dicts) und `sprachen` (Choices).{% endcommen
             <td><small title="letzte Aktivität">{{ z.zuletzt_aktiv|date:"d.m.Y H:i"|default:"nie" }}</small></td>
             {# Logs: Popup mit Registrierung / Bestätigung / Freigabe / Login-Zeiten #}
             <td>
-                <button type="button" class="bk-icon" title="Verlauf anzeigen"
+                <button type="button" class="bk-icon" title="Details & Verlauf anzeigen (App-/Website-Nutzung)"
                         data-bs-toggle="modal" data-bs-target="#logModal{{ z.user.pk }}">
                     <i class="bi bi-clock-history"></i>
                 </button>
@@ -128,7 +130,7 @@ Erwartet `zeilen` (Liste von Zeilen-Dicts) und `sprachen` (Choices).{% endcommen
             </td>
         </tr>
     {% empty %}
-        <tr><td colspan="{% if email_spalte %}12{% else %}11{% endif %}" class="bk-empty">Keine Einträge.</td></tr>
+        <tr><td colspan="{% if email_spalte %}13{% else %}12{% endif %}" class="bk-empty">Keine Einträge.</td></tr>
     {% endfor %}
     </tbody>
 </table>
@@ -150,6 +152,15 @@ Erwartet `zeilen` (Liste von Zeilen-Dicts) und `sprachen` (Choices).{% endcommen
                     <tr><td>✉️ E-Mail bestätigt</td><td>{{ z.email_bestaetigt_am|date:"d.m.Y H:i"|default:"–" }}</td></tr>
                     <tr><td>✅ Vom Admin freigegeben</td><td>{{ z.freigegeben_am|date:"d.m.Y H:i"|default:"–" }}</td></tr>
                 </table>
+                {# Projekt-Details (opt-in Provider): z. B. App-Nutzung + Web-/App-Aufrufe #}
+                {% for sek in z.details %}
+                <h6 class="bk-logh">{{ sek.titel }}</h6>
+                <table class="bk-logtable">
+                    {% for label, wert in sek.zeilen %}
+                    <tr><td>{{ label }}</td><td>{{ wert }}</td></tr>
+                    {% endfor %}
+                </table>
+                {% endfor %}
                 <h6 class="bk-logh">🕒 Login-Zeiten</h6>
                 <table class="bk-logtable">
                     <tr><th>Login</th><th>Logout</th></tr>

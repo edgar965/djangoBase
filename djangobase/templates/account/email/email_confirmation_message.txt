@@ -1,11 +1,39 @@
-{% extends "account/email/base_message.txt" %}
-{% load account %}
-{% block content %}{% autoescape off %}{% user_display user as user_display %}du erhältst diese E-Mail, weil mit dieser Adresse ein Konto bei {{ current_site.domain }} registriert wurde.
+{% load account %}{% autoescape off %}{% user_display user as user_display %}Hallo,
 
-{% if code %}Dein Bestätigungscode lautet:
+du erhältst diese E-Mail, weil mit dieser Adresse ein Konto bei {{ current_site.domain }} registriert wurde.
+{% if code %}
+Dein Bestätigungscode lautet:
 
 {{ code }}
 
-Bitte gib ihn im geöffneten Browserfenster ein.{% else %}Bitte bestätige deine Adresse, indem du den folgenden Link öffnest:
+Bitte gib ihn im geöffneten Browserfenster ein.{% else %}
+Bitte bestätige deine Adresse, indem du den folgenden Link öffnest:
 
-{{ activate_url }}{% endif %}{% endautoescape %}{% endblock content %}
+{{ activate_url }}{% endif %}
+
+Falls du diese Registrierung NICHT angefragt hast, ignoriere diese E-Mail bitte einfach – es passiert dann nichts weiter und es wird kein Konto freigeschaltet.
+
+Viele Grüße
+{{ current_site.name }}
+
+– – – – – – – – – – – – – – – – – – – – – – – – – – –
+
+Hello,
+
+you are receiving this email because this address was used to register an account at {{ current_site.domain }}.
+{% if code %}
+Your confirmation code is:
+
+{{ code }}
+
+Please enter it in the browser window you just opened.{% else %}
+Please confirm your address by opening the following link:
+
+{{ activate_url }}{% endif %}
+
+If you did NOT request this registration, please simply ignore this email – nothing further will happen and no account will be activated.
+
+Kind regards
+{{ current_site.name }}
+{{ current_site.domain }}
+{% endautoescape %}

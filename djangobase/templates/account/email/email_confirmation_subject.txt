@@ -1,1 +1,1 @@
-{% load i18n %}{% autoescape off %}Bitte bestätige deine E-Mail-Adresse{% endautoescape %}
+{% load i18n %}{% autoescape off %}Bitte bestätige deine E-Mail-Adresse · Please confirm your email address{% endautoescape %}

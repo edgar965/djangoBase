@@ -71,6 +71,22 @@ def _online_ids(user_ids):
     return _eingeloggte_user_ids()
 
 
+def _details_map(user_ids):
+    """Zusatz-Details fürs Verlauf-Popup vom optionalen Projekt-Provider
+    (DJANGOBASE['benutzer_details_provider']). Gebündelt für alle Nutzer.
+    {user_id: [{"titel","zeilen":[(label,wert)]}]}. Fail-silent."""
+    from django.utils.module_loading import import_string
+    from ..conf import conf
+    pfad = conf().get("benutzer_details_provider")
+    if not pfad:
+        return {}
+    try:
+        fn = import_string(pfad) if isinstance(pfad, str) else pfad
+        return fn(list(user_ids)) or {}
+    except Exception:  # noqa: BLE001 – Details dürfen die Benutzerliste nie brechen
+        return {}
+
+
 def _sitzungen_map(grenze=40):
     """user_id → Liste der letzten Login-Sitzungen (neueste zuerst) für das
     Logs-Popup."""
@@ -82,11 +98,41 @@ def _sitzungen_map(grenze=40):
     return sm
 
 
-def _zeile(user, profil, ist_provider, email_map=None, online_ids=None, sitzung_map=None):
+# Konto-Status (kombiniert is_active + E-Mail-Bestätigung) als sprechendes Badge.
+# Reihenfolge der Prüfung ist bewusst: Admin > kein-E-Mail (anonym/technisch) >
+# gesperrt (is_active=False) > bestätigt > angefragt (E-Mail offen).
+_STATUS_KLASSE = {
+    "admin": "bg-primary", "anonym": "bg-secondary", "gesperrt": "bg-danger",
+    "bestaetigt": "bg-success", "angefragt": "bg-warning text-dark",
+}
+_STATUS_LABEL = {
+    "admin": "Admin", "anonym": "Anonym", "gesperrt": "Gesperrt",
+    "bestaetigt": "Bestätigt", "angefragt": "Angefragt",
+}
+
+
+def _status_kennung(user, email_ok):
+    if user.is_staff or user.is_superuser:
+        slug = "admin"
+    elif not user.email:
+        slug = "anonym"
+    elif not user.is_active:
+        slug = "gesperrt"
+    elif email_ok:
+        slug = "bestaetigt"
+    else:
+        slug = "angefragt"
+    return {"slug": slug, "label": _STATUS_LABEL[slug], "klasse": _STATUS_KLASSE[slug]}
+
+
+def _zeile(user, profil, ist_provider, email_map=None, online_ids=None, sitzung_map=None,
+           details_map=None):
     return {
         "user": user,
         "profil": profil,
         "ist_provider": ist_provider,
+        "status": _status_kennung(user, bool(email_map and email_map.get(user.id))),
+        "details": (details_map or {}).get(user.id, []),
         "avatar_url": profil.avatar.url if (profil and profil.avatar) else "",
         "avatar_emoji": profil.avatar_emoji if profil else "",
         "initialen": profil.initialen if profil else (user.get_username()[:2] or "?").upper(),
@@ -119,11 +165,12 @@ def _listen():
     sitzung_map = _sitzungen_map()
     nutzer = list(User.objects.order_by("-is_active", "last_name", "first_name", "username"))
     online_ids = _online_ids([u.id for u in nutzer])
+    details_map = _details_map([u.id for u in nutzer])
     provider, teilnehmer, django_nutzer = [], [], []
     for user in nutzer:
         t = teilnehmer_map.get(user.id)
         ist_provider = bool(t and t.pk in provider_pks)
-        zeile = _zeile(user, t, ist_provider, email_map, online_ids, sitzung_map)
+        zeile = _zeile(user, t, ist_provider, email_map, online_ids, sitzung_map, details_map)
         if user.is_staff or user.is_superuser:
             django_nutzer.append(zeile)
         elif ist_provider:
