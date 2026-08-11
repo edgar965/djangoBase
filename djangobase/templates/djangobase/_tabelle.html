@@ -1,0 +1,82 @@
+{% comment %}
+djangobase/_tabelle.html - EINE Tabelle mit der gemeinsamen Bedienung.
+==============================================================================
+Sortierbar (Pfeile immer sichtbar), Spaltenbreiten ziehbar und gemerkt, weiße
+Zellrahmen. Gedacht für Daten, die der View schon fertig liefert - wer seine
+Zeilen im Browser baut, benutzt die beiden JS-Module direkt.
+
+    {% include "djangobase/_tabelle.html" with tabelle=meine_tabelle %}
+
+ERWARTETE STRUKTUR (``tabelle``):
+
+    {
+      "key": "ki-frei",                  Pflicht: Speicher-Schlüssel für
+                                         Sortierung und Spaltenbreiten
+      "spalten": [
+        {"label": "Modell",              Kopftext (darf HTML sein)
+         "key": "modell",                Spalten-Schlüssel für die Breite
+         "num": False,                   True = rechtsbündig
+         "titel": "…",                   optionaler Tooltip
+         "sortAus": False},              True = diese Spalte sortiert nicht
+      ],
+      "zeilen": [
+        {"klasse": "hervor",             optional: Klasse der <tr>
+         "zellen": [
+           {"html": "<b>x</b>",          Anzeige (HTML erlaubt)
+            "sort": 17.4,                ROHWERT zum Sortieren - ohne ihn wird
+                                         der Text gelesen (dt. Zahlen und
+                                         Brüche wie „5/6" erkennt das Modul)
+            "klasse": "gut",
+            "titel": "…"},
+         ]},
+      ],
+      "leer": "keine Einträge",          Text, wenn zeilen leer ist
+      "klasse": "",                      zusätzliche Klassen der <table>
+    }
+
+Voraussetzung im Seiten-Template (einmal je Seite):
+
+    {% block head_extra %}{{ block.super }}
+    <link rel="stylesheet" href="/static/djangobase/css/tabellen.css">
+    {% endblock %}
+    {% block extra_js %}{{ block.super }}
+    <script type="module">
+      import { TabellenSortierung } from '/static/djangobase/js/tabellen_sortierung.js';
+      import { TabellenBreiten } from '/static/djangobase/js/tabellen_breiten.js';
+      document.querySelectorAll('table[data-sort-key]').forEach(t =>
+        new TabellenBreiten([t], t.dataset.sortKey).binden());
+      TabellenSortierung.binden();
+    </script>
+    {% endblock %}
+
+WEISSE RAHMEN (Ansage Edgar, 11.08.2026): Die Klasse ``db-tabelle`` zieht sie aus
+``css/tabellen.css``. Sie sind bewusst gedämpft (nicht reinweiß), sonst
+überstrahlen sie auf dunklem Grund den Inhalt - der Rahmen soll die Spalte
+zeigen, nicht die Aufmerksamkeit binden.
+{% endcomment %}
+<div class="db-tabelle-rahmen">
+<table class="db-tabelle sortable {{ tabelle.klasse }}" data-sort-key="{{ tabelle.key }}">
+  <thead>
+    <tr>
+      {% for s in tabelle.spalten %}
+      <th{% if s.num %} class="num"{% endif %} data-key="{{ s.key|default:forloop.counter0 }}"
+          {% if s.titel %} title="{{ s.titel }}"{% endif %}
+          {% if s.sortAus %} data-sort-aus="1"{% endif %}>{{ s.label|safe }}</th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for z in tabelle.zeilen %}
+    <tr{% if z.klasse %} class="{{ z.klasse }}"{% endif %}>
+      {% for c in z.zellen %}
+      <td{% if c.klasse %} class="{{ c.klasse }}"{% endif %}
+         {% if c.sort != None %} data-sort="{{ c.sort }}"{% endif %}
+         {% if c.titel %} title="{{ c.titel }}"{% endif %}>{{ c.html|safe }}</td>
+      {% endfor %}
+    </tr>
+    {% empty %}
+    <tr><td colspan="{{ tabelle.spalten|length }}" class="db-leer">{{ tabelle.leer|default:"keine Einträge" }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
