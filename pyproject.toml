@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "djangobase"
-version = "0.0.17"
+version = "0.0.18"
 description = "Wiederverwendbare Django-Infrastruktur: Hilfe (Versionen/Logs/Tests/Jobs), Sidebar-Layout (bis 3 Ebenen), Logging."
 requires-python = ">=3.10"
 dependencies = ["Django>=4.2"]

@@ -212,29 +212,33 @@ export class SystemStatsLeiste {
   static _setzenDisks(disks) {
     if (!this._ziel) return;
     for (const dk of disks) {
+      const label = this._diskLabel(dk.name);
       const id = ('disk-' + String(dk.name).replace(/[^A-Za-z0-9]/g, '')) || 'disk';
       let pill = this._ziel.querySelector(`.ss-pill[data-k="${id}"]`);
       if (!pill) {
         pill = document.createElement('span');
         pill.className = 'ss-pill';
         pill.dataset.k = id;
+        // Kein Balken: Disk-I/O ist eine Rate, keine 0-100-%-Groesse (wie Net).
         pill.innerHTML =
           '<span class="ss-icon"><i class="bi bi-hdd"></i></span>'
-          + `<span class="ss-label">${dk.name}</span>`
-          + '<span class="ss-bar"><span class="ss-fill"></span></span>'
+          + `<span class="ss-label">${label}</span>`
           + '<span class="ss-num">–</span>';
         this._ziel.appendChild(pill);
       }
       const num = pill.querySelector('.ss-num');
-      const fill = pill.querySelector('.ss-fill');
       pill.style.opacity = '';
-      num.textContent = `${dk.used_gb} / ${dk.total_gb} GB`;
-      pill.title = `${dk.name} – ${dk.percent} % belegt `
-        + `(${dk.used_gb} von ${dk.total_gb} GB)`
+      // Lesen ↓, Schreiben ↑ (MB/s) — Einheit im Tooltip.
+      num.textContent = `${this._mbit(dk.read_mbps)}↓ ${this._mbit(dk.write_mbps)}↑`;
+      pill.title = `${label} – Lesen ${dk.read_mbps} MB/s, `
+        + `Schreiben ${dk.write_mbps} MB/s (physische Platte)`
         + (this._zeitTip ? `\nStand ${this._zeitTip}` : '');
-      if (fill) fill.style.width = Math.max(0, Math.min(100, dk.percent)) + '%';
-      pill.classList.toggle('ss-warn', dk.percent >= this.WARN && dk.percent < this.GEFAHR);
-      pill.classList.toggle('ss-danger', dk.percent >= this.GEFAHR);
     }
+  }
+
+  /** 'PhysicalDrive0' -> 'Disk 0'; sonst Rohname (Unix: 'sda', 'nvme0n1'). */
+  static _diskLabel(name) {
+    const m = /^PhysicalDrive(\d+)$/i.exec(String(name));
+    return m ? 'Disk ' + m[1] : String(name);
   }
 }

@@ -101,41 +101,37 @@ class SystemStats:
             return None
 
     @staticmethod
-    def _disks():
-        """Belegung der Start-/System-Platte UND der Platte, auf der die App
-        laeuft (aus dem cwd abgeleitet). Bei nur einer Platte genau eine,
-        sonst beide (dedupliziert). Reine stdlib (shutil.disk_usage).
+    def _disk_io(jetzt):
+        """Read/Write-Rate je PHYSISCHER Platte (MB/s), als Delta zum
+        vorherigen Sample (wie beim Netz). psutil ``perdisk`` kennt nur
+        physische Datentraeger — Netzlaufwerke tauchen hier gar nicht auf.
 
-        Windows: 'C:' (SystemDrive) + z.B. 'A:' (Projekt-Laufwerk).
-        Unix: in aller Regel nur '/'."""
-        import os
-        import shutil
-        kandidaten = []
-        sysdrv = os.environ.get("SystemDrive")            # Windows: 'C:'
-        kandidaten.append((sysdrv.rstrip("\\/") + os.sep) if sysdrv
-                          else os.path.abspath(os.sep))    # Unix: '/'
+        Windows: 'PhysicalDrive0/1/…', Unix: 'sda', 'nvme0n1', …
+        Reihenfolge stabil (nach Namen sortiert)."""
         try:
-            appdrv = os.path.splitdrive(os.getcwd())[0]    # Windows: 'A:'
-            kandidaten.append((appdrv + os.sep) if appdrv
-                              else os.path.abspath(os.sep))
-        except OSError:
-            pass
-        gesehen, aus = [], []
-        for pfad in kandidaten:
-            key = pfad.rstrip("\\/").upper() or "/"
-            if key in gesehen:
-                continue
-            gesehen.append(key)
-            try:
-                u = shutil.disk_usage(pfad)
-            except OSError:
-                continue
-            aus.append({
-                "name": key,
-                "percent": round(100 * u.used / u.total, 1) if u.total else 0,
-                "used_gb": round(u.used / 1e9, 1),
-                "total_gb": round(u.total / 1e9, 1),
-            })
+            import psutil
+            counters = psutil.disk_io_counters(perdisk=True) or {}
+        except Exception:                                        # noqa: BLE001
+            return []
+        vor = _CACHE.get("disk_vor") or {}
+        vor_ts = vor.get("ts")
+        vor_c = vor.get("counters") or {}
+        aus = []
+        for name, c in sorted(counters.items()):
+            read_mbps = write_mbps = 0.0
+            if vor_ts and name in vor_c and jetzt > vor_ts:
+                dt = jetzt - vor_ts
+                read_mbps = max(0.0, round(
+                    (c.read_bytes - vor_c[name][0]) / 1e6 / dt, 1))
+                write_mbps = max(0.0, round(
+                    (c.write_bytes - vor_c[name][1]) / 1e6 / dt, 1))
+            aus.append({"name": name,
+                        "read_mbps": read_mbps, "write_mbps": write_mbps})
+        _CACHE["disk_vor"] = {
+            "ts": jetzt,
+            "counters": {n: (c.read_bytes, c.write_bytes)
+                         for n, c in counters.items()},
+        }
         return aus
 
     @classmethod
@@ -185,6 +181,6 @@ class SystemStats:
         # Bewusst NICHT mehr `daten` hier ablegen: den Wert haelt seit dem Umbau
         # `_HG`, dieser Eintrag wurde nie wieder gelesen. `net_vor` (oben) bleibt -
         # er traegt den vorherigen Netzwerk-Zaehlerstand fuer die Differenz.
-        daten["disks"] = cls._disks()
+        daten["disks"] = cls._disk_io(jetzt)
         _CACHE["ts"] = jetzt
         return daten
