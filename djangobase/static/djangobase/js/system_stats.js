@@ -47,18 +47,18 @@ export class SystemStatsLeiste {
   static CSS = `
 .sysstats { display:inline-flex; gap:.3rem; flex-wrap:wrap; align-items:center }
 .ss-pill { display:inline-flex; align-items:center; gap:.3rem; padding:.25rem .55rem;
-  background:rgba(var(--fg-rgb),.07); border:1px solid rgba(var(--fg-rgb),.18);
-  border-radius:999px; font-size:.78rem; color:rgba(var(--fg-rgb),.85); line-height:1 }
+  background:rgba(var(--fg-rgb, 224,232,240),.07); border:1px solid rgba(var(--fg-rgb, 224,232,240),.18);
+  border-radius:999px; font-size:.78rem; color:rgba(var(--fg-rgb, 224,232,240),.85); line-height:1 }
 .ss-pill .ss-icon i { font-size:.85rem; color:var(--accent) }
 .ss-pill .ss-label { font-size:.6rem; text-transform:uppercase; letter-spacing:.04em;
-  color:rgba(var(--fg-rgb),.5); font-weight:700 }
+  color:rgba(var(--fg-rgb, 224,232,240),.5); font-weight:700 }
 .ss-pill .ss-bar { width:36px; height:5px; border-radius:3px;
-  background:rgba(var(--fg-rgb),.12); overflow:hidden }
+  background:rgba(var(--fg-rgb, 224,232,240),.12); overflow:hidden }
 .ss-pill .ss-fill { display:block; height:100%; width:0%; background:var(--accent);
   transition:width .4s, background .4s }
 .ss-pill.ss-warn .ss-fill { background:#f59e0b }
 .ss-pill.ss-danger .ss-fill { background:#f87171 }
-.ss-pill .ss-num { font-variant-numeric:tabular-nums; color:rgba(var(--fg-rgb),.95);
+.ss-pill .ss-num { font-variant-numeric:tabular-nums; color:rgba(var(--fg-rgb, 224,232,240),.95);
   font-weight:600; min-width:2.6em; text-align:right }
 `;
 
@@ -168,6 +168,7 @@ export class SystemStatsLeiste {
     this._setzen('net', null,
       (dn == null && up == null) ? '–' : `${this._mbit(dn)} ↓ ${this._mbit(up)} ↑`,
       'Netzwerk-Belastung (Mbit/s, Down/Up aller Interfaces)');
+    this._setzenDisks(d.disks || []);
   }
 
   /** Mbit/s knapp: unter 10 mit einer Nachkommastelle, darüber gerundet. */
@@ -203,5 +204,37 @@ export class SystemStatsLeiste {
     if (fill && pct != null) fill.style.width = Math.max(0, Math.min(100, pct)) + '%';
     pill.classList.toggle('ss-warn', pct != null && pct >= this.WARN && pct < this.GEFAHR);
     pill.classList.toggle('ss-danger', pct != null && pct >= this.GEFAHR);
+  }
+
+  /** Festplatten-Pills (Start-/System-Platte + Projekt-Platte). Dynamisch,
+   *  weil die Zahl der Platten je Rechner variiert - eine Pill je Laufwerk,
+   *  Balken = Belegung in Prozent, Zahl = belegt/gesamt in GB. */
+  static _setzenDisks(disks) {
+    if (!this._ziel) return;
+    for (const dk of disks) {
+      const id = ('disk-' + String(dk.name).replace(/[^A-Za-z0-9]/g, '')) || 'disk';
+      let pill = this._ziel.querySelector(`.ss-pill[data-k="${id}"]`);
+      if (!pill) {
+        pill = document.createElement('span');
+        pill.className = 'ss-pill';
+        pill.dataset.k = id;
+        pill.innerHTML =
+          '<span class="ss-icon"><i class="bi bi-hdd"></i></span>'
+          + `<span class="ss-label">${dk.name}</span>`
+          + '<span class="ss-bar"><span class="ss-fill"></span></span>'
+          + '<span class="ss-num">–</span>';
+        this._ziel.appendChild(pill);
+      }
+      const num = pill.querySelector('.ss-num');
+      const fill = pill.querySelector('.ss-fill');
+      pill.style.opacity = '';
+      num.textContent = `${dk.used_gb} / ${dk.total_gb} GB`;
+      pill.title = `${dk.name} – ${dk.percent} % belegt `
+        + `(${dk.used_gb} von ${dk.total_gb} GB)`
+        + (this._zeitTip ? `\nStand ${this._zeitTip}` : '');
+      if (fill) fill.style.width = Math.max(0, Math.min(100, dk.percent)) + '%';
+      pill.classList.toggle('ss-warn', dk.percent >= this.WARN && dk.percent < this.GEFAHR);
+      pill.classList.toggle('ss-danger', dk.percent >= this.GEFAHR);
+    }
   }
 }

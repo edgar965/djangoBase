@@ -100,6 +100,44 @@ class SystemStats:
         except (subprocess.TimeoutExpired, OSError, ValueError, IndexError):
             return None
 
+    @staticmethod
+    def _disks():
+        """Belegung der Start-/System-Platte UND der Platte, auf der die App
+        laeuft (aus dem cwd abgeleitet). Bei nur einer Platte genau eine,
+        sonst beide (dedupliziert). Reine stdlib (shutil.disk_usage).
+
+        Windows: 'C:' (SystemDrive) + z.B. 'A:' (Projekt-Laufwerk).
+        Unix: in aller Regel nur '/'."""
+        import os
+        import shutil
+        kandidaten = []
+        sysdrv = os.environ.get("SystemDrive")            # Windows: 'C:'
+        kandidaten.append((sysdrv.rstrip("\\/") + os.sep) if sysdrv
+                          else os.path.abspath(os.sep))    # Unix: '/'
+        try:
+            appdrv = os.path.splitdrive(os.getcwd())[0]    # Windows: 'A:'
+            kandidaten.append((appdrv + os.sep) if appdrv
+                              else os.path.abspath(os.sep))
+        except OSError:
+            pass
+        gesehen, aus = [], []
+        for pfad in kandidaten:
+            key = pfad.rstrip("\\/").upper() or "/"
+            if key in gesehen:
+                continue
+            gesehen.append(key)
+            try:
+                u = shutil.disk_usage(pfad)
+            except OSError:
+                continue
+            aus.append({
+                "name": key,
+                "percent": round(100 * u.used / u.total, 1) if u.total else 0,
+                "used_gb": round(u.used / 1e9, 1),
+                "total_gb": round(u.total / 1e9, 1),
+            })
+        return aus
+
     @classmethod
     def lesen(cls):
         """Aktuelle Auslastung - antwortet SOFORT aus dem Zwischenspeicher.
@@ -121,7 +159,8 @@ class SystemStats:
             _gpu["util_roh"] = _gpu["util"]
             _gpu["util"] = int(round(cls.glaetten("gpu", _gpu["util"])))
         daten = {"gpu": _gpu, "cpu_percent": None, "ram_percent": None,
-                 "kerne": None, "net_recv_mbps": 0.0, "net_sent_mbps": 0.0}
+                 "kerne": None, "net_recv_mbps": 0.0, "net_sent_mbps": 0.0,
+                 "disks": []}
         try:
             import psutil
             # interval=0.15 statt 0.3 (CamTrack): die Leiste laeuft WAEHREND einer
@@ -146,5 +185,6 @@ class SystemStats:
         # Bewusst NICHT mehr `daten` hier ablegen: den Wert haelt seit dem Umbau
         # `_HG`, dieser Eintrag wurde nie wieder gelesen. `net_vor` (oben) bleibt -
         # er traegt den vorherigen Netzwerk-Zaehlerstand fuer die Differenz.
+        daten["disks"] = cls._disks()
         _CACHE["ts"] = jetzt
         return daten
