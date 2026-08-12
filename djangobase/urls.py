@@ -1,5 +1,6 @@
 from django.urls import path
 
+from .views import api_system_stats
 from .views import (BenutzerBearbeitenView, BenutzerErstellenView,
                     BenutzerInlineView, BenutzerListeView, BenutzerLoeschenView,
                     BenutzerStatusView, EinstellungenTabsView, EinstellungenView,
@@ -9,6 +10,9 @@ from .views import (BenutzerBearbeitenView, BenutzerErstellenView,
 app_name = "djangobase"
 
 urlpatterns = [
+    # Auslastungs-Leiste (GPU/CPU/RAM/Netz) - liefert nur Zahlen, keine Seite.
+    # Die zugehoerige Anzeige ist static/djangobase/js/system_stats.js.
+    path("api/system-stats/", api_system_stats, name="api_system_stats"),
     path("versionen/", VersionsView.as_view(), name="versionen"),
     path("logs/", LogsView.as_view(), name="logs"),
     path("logs/leeren/", LogsClearView.as_view(), name="logs_leeren"),

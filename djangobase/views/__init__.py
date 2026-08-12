@@ -9,10 +9,14 @@ from .benutzer import (BenutzerListeView, BenutzerErstellenView,
                        BenutzerBearbeitenView, BenutzerStatusView,
                        BenutzerInlineView, BenutzerLoeschenView)
 
-__all__ = ["LogsView", "LogsClearView", "VersionsView", "TestsView", "JobsView",
+__all__ = [
+    "api_system_stats","LogsView", "LogsClearView", "VersionsView", "TestsView", "JobsView",
            "EinstellungenView", "EinstellungenTabsView",
            "TrafficView", "VerbrauchBeaconView",
            "SpracheSetzenView", "UebersetzungView",
            "BenutzerListeView", "BenutzerErstellenView",
            "BenutzerBearbeitenView", "BenutzerStatusView",
            "BenutzerInlineView", "BenutzerLoeschenView"]
+
+# Auslastungs-Leiste (12.08.2026 aus shortlongx uebernommen).
+from .system_stats import api_system_stats  # noqa: F401,E402

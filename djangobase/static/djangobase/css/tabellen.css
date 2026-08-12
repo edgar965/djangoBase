@@ -26,19 +26,21 @@ table.sortable thead th.tsort-kopf:hover {
    aus wie eine, die man nicht sortieren kann. Das neutrale ⇅ steht deshalb
    dauerhaft - gedimmt, aber deutlich lesbar.
 
-   DIREKT HINTER DEM TEXT, nicht am Zellenrand (Ansage 11.08.2026: „bündig mit
-   dem Text der Spalte, in der gleichen Zeile"). Vorher stand er absolut rechts
-   und schwebte bei breiten Spalten weit weg von seiner Beschriftung - man sah
-   nicht mehr, zu welcher er gehört. */
+   NICHT INLINE (Korrektur 11.08.2026): Erst stand der Pfeil direkt hinter dem
+   Text. Sobald eine Überschrift umbricht, rutschte er allein in die zweite
+   Zeile - in einer Kopfzeile mit teils ein-, teils zweizeiligen Spalten sprangen
+   die Pfeile dann wild umher. Jetzt sitzt er fest oben rechts, also auf Höhe der
+   ERSTEN Textzeile: bei einzeiligen Köpfen wirkt das wie „hinter dem Text",
+   bei mehrzeiligen bleibt die Kopfzeile ruhig. */
 .tsort-pfeil {
-  display: inline-block;
-  margin-left: 0.3em;
+  position: absolute;
+  right: 0.4em;
+  top: 0.5em;
   font-size: 0.95em;
   line-height: 1;
   opacity: 0.55;
   color: var(--accent, #60a5fa);
   pointer-events: none;       /* der Klick gehört der Kopfzelle */
-  vertical-align: baseline;
 }
 
 /* Die aktive Spalte: volle Deckkraft, kräftiger. */
@@ -75,8 +77,19 @@ table.sortable thead th.tsort-kopf:hover .tsort-pfeil { opacity: 0.95; }
 table.sortable thead th, .db-tabelle thead th, table.db-rahmen thead th {
   white-space: normal !important;
   word-break: normal;
-  overflow-wrap: normal;
+  /* break-word, NICHT anywhere und NICHT normal (dritter Anlauf, 11.08.2026):
+       normal    -> „HANDELSFENSTER" passt nicht in die Spalte und läuft in die
+                    Nachbarzelle; genau die Überlappung, die gemeldet wurde.
+       anywhere  -> die Spalte darf auf Buchstabenbreite schrumpfen, dann steht
+                    „Pa-ra-me-ter" untereinander.
+       break-word-> bricht ein Wort NUR, wenn es sonst überliefe, und zählt für
+                    die Spaltenbreite weiter als Ganzes. Das ist der Mittelweg. */
+  overflow-wrap: break-word;
   hyphens: manual;
+  /* Platz für den Pfeil oben rechts - sonst überdeckt er das letzte Wort. */
+  position: relative;
+  padding-right: 1.25em !important;   /* Platz fuer den Pfeil - knapp bemessen,
+     damit kurze Ueberschriften wie „Note" nicht umbrechen (11.08.2026) */
 }
 
 /* Steht ein Ziehgriff in derselben Zelle, rückt der Pfeil nach links, damit
@@ -106,7 +119,33 @@ body.lg-zieht * { cursor: col-resize !important; }
 /* Ziehbare Breiten brauchen border-box, sonst springen die Spalten beim
    Einfrieren um das Zellen-Padding (dokumentiert in tabellen_breiten.js). */
 table.sortable th, table.sortable td,
+table.db-rahmen th, table.db-rahmen td,
 table.tb-breiten th, table.tb-breiten td { box-sizing: border-box; }
+
+/* NICHTS LÄUFT IN DIE NACHBARZELLE (Meldung 11.08.2026).
+   ------------------------------------------------------------------------
+   Sobald eine Spalte gezogen wird, steht die Tabelle auf ``table-layout:fixed``
+   - die Spalte hält dann ihre Breite, der INHALT aber nicht: Zellen mit
+   ``white-space: nowrap`` (in Zahlenspalten die Regel) schoben ihren Text
+   ungebremst über den Rand, und „im RAM statt GPU" stand mitten in der
+   Nachbarspalte.
+
+   ``overflow: hidden`` schneidet ab, ``text-overflow: ellipsis`` zeigt mit „…",
+   dass da mehr steht - dann weiß man, dass die Spalte breiter gezogen werden
+   will. Nur für ZELLEN, nicht für Kopfzellen: Dort sitzt der Ziehgriff, und
+   ``overflow:hidden`` würde ihn mitkappen (Befund shortlongx 05.08.2026). */
+table.sortable td, .db-tabelle td, table.db-rahmen td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Mehrzeilige Zellen (Haupttext plus Kleingedrucktes) dürfen umbrechen statt
+   abgeschnitten zu werden - dort ist der Text die Aussage, nicht die Zahl. */
+table.sortable td .klein, .db-tabelle td .klein, table.db-rahmen td .klein {
+  white-space: normal;
+  display: inline-block;
+  max-width: 100%;
+}
 
 /* ------------------------------------------------- Das Tabellen-Template */
 /* Gehört zu templates/djangobase/_tabelle.html. Wer die Module einzeln

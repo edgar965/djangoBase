@@ -28,6 +28,19 @@
    - Griff faengt click/mousedown ab (Sortier-Klick bleibt getrennt); Doppelklick
      setzt die gemerkten Breiten der ganzen Gruppe zurueck. */
 export class TabellenBreiten {
+  /** Schmaler darf keine Spalte gezogen werden.
+   *
+   *  WARUM 70 UND NICHT 34 (Meldung 11.08.2026: „Pfeil viel zu gross"):
+   *  Der Sortier-Pfeil ist 11 px breit und sitzt fest am rechten Rand der
+   *  Kopfzelle. Bei den frueheren 34 px Mindestbreite nahm er ein DRITTEL der
+   *  Spalte ein - er war nicht groesser geworden, die Spalte war zu schmal.
+   *  Dazu blieb von der Ueberschrift nichts uebrig.
+   *
+   *  70 px ist Platz fuer ein kurzes Wort plus Pfeil. Wer eine Spalte wirklich
+   *  wegdruecken will, hat dafuer den Doppelklick (setzt alle Breiten zurueck)
+   *  bzw. blendet die Spalte in der jeweiligen Seite aus. */
+  static MIN_PX = 70;
+
   /** ``vorgaben`` = {spaltenKey: px}: feste Start-Breiten. Mit Vorgaben wird die
    *  Gruppe SOFORT eingefroren - alle Tabellen zeigen dieselbe Spalte gleich
    *  breit, deckungsgleich ab dem ersten Rendern (Ansage 05.08.2026: „gleiche
@@ -39,8 +52,18 @@ export class TabellenBreiten {
     this.vorgaben = vorgaben || null;
   }
 
+  /** Gemerkte Breiten - schon gespeicherte ZU SCHMALE werden angehoben.
+   *
+   *  Wer vor dem 11.08.2026 eine Spalte auf 34 px gezogen hat, haette diesen
+   *  Zustand sonst fuer immer behalten: Die neue Mindestbreite greift nur beim
+   *  Ziehen, nicht auf das, was schon im Browser steht. */
   _laden() {
-    try { return JSON.parse(localStorage.getItem(this.key) || '{}'); } catch (e) { return {}; }
+    let b;
+    try { b = JSON.parse(localStorage.getItem(this.key) || '{}'); } catch (e) { return {}; }
+    for (const k of Object.keys(b)) {
+      if (b[k] < TabellenBreiten.MIN_PX) b[k] = TabellenBreiten.MIN_PX;
+    }
+    return b;
   }
 
   _merken(sk, px) {
@@ -191,7 +214,7 @@ export class TabellenBreiten {
       const box = this._scroller(th);
       const sx = box ? box.scrollLeft : 0;
       const move = ev => {
-        this._setzen(sk, Math.max(34, Math.round(w0 + ev.clientX - x0)));
+        this._setzen(sk, Math.max(TabellenBreiten.MIN_PX, Math.round(w0 + ev.clientX - x0)));
         if (box) box.scrollLeft = sx;
       };
       const up = () => {

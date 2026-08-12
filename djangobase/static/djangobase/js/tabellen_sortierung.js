@@ -117,8 +117,13 @@ export class TabellenSortierung {
         else if (griff) th.insertBefore(span, griff);
         else th.appendChild(span);
       }
+      // EINE Symbolfamilie (Meldung 11.08.2026: „das ist doch ein anderes Pfeil
+      // icon"): Vorher stand neben dem schlanken Doppelpfeil ⇅ ein GEFUELLTES
+      // Dreieck ▲ - zwei verschiedene Schriftfamilien nebeneinander, und das
+      // Dreieck wirkte dadurch doppelt so gross, obwohl beide dieselbe
+      // Punktgroesse hatten. Jetzt sind alle drei Zeichen Linienpfeile.
       const ist = (i === aktiv);
-      span.textContent = ist ? (auf ? '▲' : '▼') : '⇅';
+      span.textContent = ist ? (auf ? '↑' : '↓') : '↕';
       span.classList.toggle('aktiv', ist);
       th.classList.add('tsort-kopf');
     });
