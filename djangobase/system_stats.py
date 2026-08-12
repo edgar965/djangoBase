@@ -33,6 +33,10 @@ from .hintergrund_cache import HintergrundCache
 _CACHE = {"ts": 0.0, "daten": None}
 _TTL = 1.0
 
+#: Zuordnung PhysicalDrive-Nummer -> erster Laufwerksbuchstabe auf dieser Platte
+#: (Windows). Statisch, daher nur EINMAL ermittelt (None = noch nicht geladen).
+_DRIVE_MAP = None
+
 #: Erneuert wird im HINTERGRUND, nicht in der Anfrage. Gemessen 28.07.2026: eine
 #: Aktualisierung kostet 0,22 s (nvidia-smi + psutil.cpu_percent(interval=0.15)).
 #: Die Leiste fragt waehrend einer Optimierung jede Sekunde, und der Nutzer hat
@@ -101,6 +105,46 @@ class SystemStats:
             return None
 
     @staticmethod
+    def _laufwerksbuchstaben():
+        """PhysicalDrive-Nummer -> erster Laufwerksbuchstabe auf dieser Platte
+        (Windows, via ``Get-Partition``). Statisch, daher nur EINMAL ermittelt
+        und gecacht. Leere Zuordnung bei Nicht-Windows oder Fehler.
+
+        Beispiel (eine Platte kann mehrere Partitionen tragen): Disk 1 mit C:
+        und D: -> {1: 'C:'} (alphabetisch erster Buchstabe)."""
+        global _DRIVE_MAP
+        if _DRIVE_MAP is not None:
+            return _DRIVE_MAP
+        import os
+        _DRIVE_MAP = {}
+        if os.name != "nt":
+            return _DRIVE_MAP
+        try:
+            r = subprocess.run(
+                ["powershell", "-NoProfile", "-NonInteractive", "-Command",
+                 "Get-Partition | Where-Object DriveLetter | "
+                 "Select-Object DriveLetter,DiskNumber | "
+                 "ConvertTo-Csv -NoTypeInformation"],
+                capture_output=True, text=True, timeout=8,
+            )
+            if r.returncode != 0:
+                return _DRIVE_MAP
+            je_platte = {}
+            for zeile in (r.stdout or "").splitlines():
+                zeile = zeile.strip()
+                if not zeile or zeile.lower().startswith('"driveletter'):
+                    continue
+                teile = [t.strip().strip('"') for t in zeile.split(",")]
+                if len(teile) < 2 or not teile[0] or not teile[1].isdigit():
+                    continue
+                je_platte.setdefault(int(teile[1]), []).append(teile[0].upper())
+            for nummer, buchstaben in je_platte.items():
+                _DRIVE_MAP[nummer] = sorted(buchstaben)[0] + ":"
+        except Exception:                                        # noqa: BLE001
+            pass
+        return _DRIVE_MAP
+
+    @staticmethod
     def _disk_io(jetzt):
         """Read/Write-Rate je PHYSISCHER Platte (MB/s), als Delta zum
         vorherigen Sample (wie beim Netz). psutil ``perdisk`` kennt nur
@@ -116,6 +160,7 @@ class SystemStats:
         vor = _CACHE.get("disk_vor") or {}
         vor_ts = vor.get("ts")
         vor_c = vor.get("counters") or {}
+        letters = SystemStats._laufwerksbuchstaben()
         aus = []
         for name, c in sorted(counters.items()):
             read_mbps = write_mbps = 0.0
@@ -125,7 +170,10 @@ class SystemStats:
                     (c.read_bytes - vor_c[name][0]) / 1e6 / dt, 1))
                 write_mbps = max(0.0, round(
                     (c.write_bytes - vor_c[name][1]) / 1e6 / dt, 1))
-            aus.append({"name": name,
+            letter = ""
+            if name.startswith("PhysicalDrive") and name[13:].isdigit():
+                letter = letters.get(int(name[13:]), "")
+            aus.append({"name": name, "letter": letter,
                         "read_mbps": read_mbps, "write_mbps": write_mbps})
         _CACHE["disk_vor"] = {
             "ts": jetzt,

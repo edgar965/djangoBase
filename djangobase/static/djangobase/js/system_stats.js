@@ -212,7 +212,7 @@ export class SystemStatsLeiste {
   static _setzenDisks(disks) {
     if (!this._ziel) return;
     for (const dk of disks) {
-      const label = this._diskLabel(dk.name);
+      const label = this._diskLabel(dk.name) + (dk.letter ? ` (${dk.letter})` : '');
       const id = ('disk-' + String(dk.name).replace(/[^A-Za-z0-9]/g, '')) || 'disk';
       let pill = this._ziel.querySelector(`.ss-pill[data-k="${id}"]`);
       if (!pill) {
