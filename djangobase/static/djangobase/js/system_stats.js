@@ -9,8 +9,15 @@
    hat am 27.07.2026 den Unterschied zwischen „Batch zu klein" (GPU bei 0,6 %)
    und „Zeilenbau" (CPU) sichtbar gemacht.
 
-       import { SystemStatsLeiste } from '/static/dashboard/system_stats.js';
+       import { SystemStatsLeiste } from '/static/djangobase/js/system_stats.js';
        SystemStatsLeiste.binden('opt-sysstats');      // <div id="opt-sysstats">
+
+   DER PFAD IM BEISPIEL IST KEIN SCHMUCK (12.08.2026): Er stand hier nach dem
+   Umzug noch auf dem alten Ort '/static/dashboard/…'. ShortLongX' Pruefung
+   „ui-alle-seiten" folgt Modul-Importen rekursiv und liest dabei AUCH die
+   Import-Zeilen aus Kommentaren - vier Seiten meldeten daraufhin eine fehlende
+   Skriptdatei, die niemand mehr laedt. Ein falscher Beispielpfad in einer
+   geteilten Datei ist teurer als anderswo: Er wird kopiert.
    ========================================================================== */
 
 export class SystemStatsLeiste {
