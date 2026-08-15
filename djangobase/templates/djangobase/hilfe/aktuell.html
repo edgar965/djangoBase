@@ -6,6 +6,49 @@
 {% block content %}
 <div class="ak-page">
 
+    {% comment %}
+    BEDIENUNG - dauerhaft sichtbar, zugeklappt (16.08.2026).
+    Vorher stand sie nur im Leer-Zustand: Wer einmal etwas eingetragen hatte, sah
+    nie wieder, WIE man eintraegt. Ein Werkzeug, dessen Bedienung verschwindet,
+    sobald man es einmal benutzt hat, wird zweimal gebaut.
+
+    Als Block-Tag und nicht als Kurzform mit Doppelkreuz: An Django 6.0.2
+    gemessen (13.08.2026) hat `django.template.base.tag_re` KEIN re.DOTALL -
+    ein mehrzeiliger {# #}-Kommentar wird nicht entfernt, sondern steht sichtbar
+    auf der Seite. Genau das ist hier zweimal passiert.
+    {% endcomment %}
+    <details class="ak-hilfe">
+        <summary>Wie schreibe ich hier hinein?</summary>
+        <div class="ak-hilfe-inhalt">
+            <p>Dieses Fenster ist der Ort, an dem ein langer Arbeitslauf mitschreibt —
+               damit man den Stand sieht, ohne eine Sitzung mitzulesen. Es gibt
+               <b>zwei</b> Wege hinein, und beide schreiben in dieselbe Datei.</p>
+
+            <p><b>1. Von der Kommandozeile</b> (kein HTTP, kein Token, funktioniert
+               auch bei gestopptem Server):</p>
+<pre class="ak-text">manage.py aktuell --titel "Deckel gegen HAR gemessen" --art befund
+manage.py aktuell --titel "Testlauf" --art messung --text "85 grün, 7 rot"
+manage.py test core 2&gt;&amp;1 | manage.py aktuell --titel "Testlauf" --art messung</pre>
+
+            <p><b>2. Aus Python heraus</b>, wenn ein Skript ohnehin läuft:</p>
+<pre class="ak-text">from djangobase.aktuell import feed
+feed().anhaengen("Titel", "Was herauskam  →  was daraus folgt", art="befund")</pre>
+
+            <p><b>Arten</b> (sie färben den Eintrag und lassen sich oben filtern):
+               <code>notiz</code> · <code>befund</code> · <code>fix</code> ·
+               <code>messung</code> · <code>offen</code> · <code>frage</code></p>
+
+            <p><b>Was in einen guten Eintrag gehört:</b> was gemessen wurde, was
+               herauskam <em>mit Zahl</em>, und was daraus als Nächstes folgt. Ein
+               Eintrag ohne den dritten Teil sagt dem Leser nicht, ob er eingreifen
+               muss. Negative Ergebnisse gehören genauso hinein wie positive — sie
+               sind der Grund, warum die nächste Idee eine andere ist.</p>
+
+            <p class="ak-meta">Es bleiben die neuesten {{ max_eintraege }} Einträge;
+               ältere fallen hinten heraus. Datei: <code>{{ datei }}</code></p>
+        </div>
+    </details>
+
     <div class="ak-kopf">
         <div class="ak-filter">
             <a class="ak-chip {% if not aktive_art %}aktiv{% endif %}" href="?">alle</a>
@@ -52,6 +95,18 @@ Datei: {{ datei }}</pre>
 </div>
 
 <style>
+.ak-hilfe { margin: 0 0 14px; border: 1px solid rgba(255,255,255,.14);
+  border-radius: 9px; background: rgba(255,255,255,.03); }
+.ak-hilfe > summary { cursor: pointer; padding: 9px 14px; font-weight: 600;
+  color: var(--db-accent, #4ea8f6); list-style: none; }
+.ak-hilfe > summary::-webkit-details-marker { display: none; }
+.ak-hilfe > summary::before { content: '▸ '; }
+.ak-hilfe[open] > summary::before { content: '▾ '; }
+.ak-hilfe-inhalt { padding: 2px 14px 12px; font-size: .9rem; line-height: 1.5; }
+.ak-hilfe-inhalt p { margin: .5rem 0; }
+.ak-hilfe-inhalt code { padding: .05rem .3rem; border-radius: 3px;
+  background: rgba(255,255,255,.08); }
+
 /* Feste dunkle Palette wie die übrigen Hilfe-Seiten (tests.html, logs.html) —
    djangoBase läuft in sechs Projekten mit verschiedenen Variablen-Welten, und
    var(--card-bg) traf in einem davon eine helle Belegung. */

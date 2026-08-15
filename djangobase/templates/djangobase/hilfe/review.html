@@ -6,10 +6,58 @@
 {% block content %}
 <div class="rv-page">
 
+    {% comment %}
+    BEDIENUNG - dauerhaft sichtbar, zugeklappt (16.08.2026).
+    Vorher stand die Anleitung nur im Zustand „kein Partner eingetragen". Ein
+    Werkzeug, dessen Bedienung verschwindet, sobald es einsatzbereit ist, wird
+    nicht benutzt.
+    {% endcomment %}
+    <details class="rv-hilfe">
+        <summary>Wozu diese Seite da ist — und wie man sie benutzt</summary>
+        <div class="rv-hilfe-inhalt">
+            <p><b>Ein zweites Modell taugt als Kritiker nicht, weil es mehr wüsste,
+               sondern weil es die eigenen Schlüsse NICHT kennt.</b> Wer seinen
+               eigenen Code prüft, prüft ihn mit denselben Annahmen, mit denen er
+               ihn geschrieben hat. Genau daran ist hier schon mehrfach ein Befund
+               gescheitert, den sein Autor für sicher hielt.</p>
+
+            <p><b>So läuft ein Review:</b></p>
+            <ol>
+                <li>Einen <b>Codebereich</b> wählen (oder mehrere — jeder bekommt
+                    seinen eigenen Gesprächsverlauf).</li>
+                <li>Die vorgeschlagenen <b>Fragen</b> stehen im Bereich; sie sind
+                    auf dessen typische Fehler gemünzt. Eigene Frage geht auch.</li>
+                <li><b>Nachfassen</b>, solange die Antwort allgemein bleibt. Die
+                    erste Antwort eines Modells ist oft eine Stilkritik — die
+                    zweite wird konkret, wenn man nach einem BELEG fragt:
+                    „In welcher Zeile? Was wäre die Eingabe, die das auslöst?"</li>
+            </ol>
+
+            <p><b>Wann sich das lohnt:</b> bevor eine Idee groß aufgezogen wird,
+               besonders wenn man selbst überzeugt ist. Ein Einwand vor der Messung
+               kostet Minuten, einer danach eine Nacht Rechenzeit.</p>
+
+            <p><b>Was ein Modell hier NICHT kann:</b> Es sieht nur die Dateien des
+               Bereichs, nicht den Lauf und nicht die Daten. Es kann eine These
+               angreifen, aber keine Zahl bestätigen. Jede Aussage, die eine Zahl
+               enthält, bleibt zu messen.</p>
+
+            <p><b>Bereiche pflegen</b> — in den Projekt-Settings unter
+               <code>DJANGOBASE["review_bereiche"]</code>: <code>slug</code>,
+               <code>name</code>, <code>dateien</code> (Pfade ab Projektwurzel),
+               <code>hinweis</code> (was dieser Code tut und woran er typischerweise
+               scheitert) und <code>fragen</code>. Der <code>hinweis</code> ist der
+               wichtigste Teil: Ohne ihn beurteilt das Modell Handelslogik wie
+               Web-Code.</p>
+        </div>
+    </details>
+
     {% if not partner %}
-    {# Kein Partner konfiguriert. Die Seite erscheint trotzdem in jedem Projekt
-       (Vorgabe 13.08.2026) — dann muss sie sagen, was zu tun ist, statt eine
-       leere Auswahlliste zu zeigen. #}
+    {% comment %}
+    Kein Partner konfiguriert. Die Seite erscheint trotzdem in jedem Projekt
+    (Vorgabe 13.08.2026) - dann muss sie sagen, was zu tun ist, statt eine leere
+    Auswahlliste zu zeigen.
+    {% endcomment %}
     <div class="rv-card">
         <h3 style="margin:0 0 10px;font-size:1.05rem;color:#e9f0f8;">
             <i class="bi bi-plug"></i> Noch kein Modell-Partner eingetragen</h3>
@@ -93,9 +141,11 @@
         </p>
 
         {% if laeufe %}
-        {# Wiederaufnehmen. Ohne das ist ein Lauf nach einem Neuladen der Seite
-           unerreichbar, obwohl er im Hintergrund weiterläuft — und eine Runde
-           dauert Minuten, in denen man durchaus mal woanders hinklickt. #}
+        {% comment %}
+        Wiederaufnehmen. Ohne das ist ein Lauf nach einem Neuladen der Seite
+        unerreichbar, obwohl er im Hintergrund weiterlaeuft - und eine Runde dauert
+        Minuten, in denen man durchaus mal woanders hinklickt.
+        {% endcomment %}
         <div class="rv-zeile rv-zeile-oben">
             <label class="rv-label">Läufe</label>
             <div class="rv-vorlagen">
@@ -132,6 +182,19 @@
 </div>
 
 <style>
+.rv-hilfe { margin: 0 0 14px; border: 1px solid rgba(255,255,255,.14);
+  border-radius: 9px; background: rgba(255,255,255,.03); }
+.rv-hilfe > summary { cursor: pointer; padding: 9px 14px; font-weight: 600;
+  color: var(--db-accent, #4ea8f6); list-style: none; }
+.rv-hilfe > summary::-webkit-details-marker { display: none; }
+.rv-hilfe > summary::before { content: '\25B8 '; }
+.rv-hilfe[open] > summary::before { content: '\25BE '; }
+.rv-hilfe-inhalt { padding: 2px 14px 12px; font-size: .9rem; line-height: 1.55;
+  color: rgba(233,240,248,.85); }
+.rv-hilfe-inhalt p, .rv-hilfe-inhalt ol { margin: .5rem 0; }
+.rv-hilfe-inhalt code { padding: .05rem .3rem; border-radius: 3px;
+  background: rgba(255,255,255,.08); }
+
 /* Feste dunkle Palette wie die uebrigen Hilfe-Seiten (tests.html, logs.html).
    BEWUSST KEINE CSS-Variablen: Der erste Entwurf nahm var(--card-bg) mit
    dunklem Rueckfallwert an — in HumanBodyWeb ist die Variable aber hell
@@ -272,6 +335,18 @@
         if (!laufId) return;
         try {
             const r = await fetch(url(STATUS_MUSTER));
+            if (r.status === 404) {
+                // Der Lauf ist weg — praktisch immer, weil der Entwicklungsserver
+                // neu geladen hat (das Register liegt im Arbeitsspeicher). Vorher
+                // hat diese Stelle den Fehler verschluckt und die Seite fror auf
+                // dem letzten Stand ein: Faeden standen fuer immer auf „laeuft",
+                // und dass einer nie fertig wurde, war nicht zu sehen (13.08.2026).
+                if (takt) { clearInterval(takt); takt = null; }
+                statusEl.textContent = "Lauf nicht mehr erreichbar — der Server hat "
+                    + "neu geladen. Die bereits erhaltenen Antworten stehen in den "
+                    + "Mitschriften auf der Platte; für weitere Runden neu starten.";
+                return;
+            }
             if (!r.ok) return;
             zeichnen(await r.json());
         } catch (e) { /* naechster Takt */ }
