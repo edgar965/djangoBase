@@ -175,8 +175,24 @@ class ReviewLauf:
             # benutzen, sollte pruefbar sein. Die Pruefung bleibt scharf: Jede
             # Datei muss unter DER Wurzel liegen, die ihr Bereich nennt.
             wurzel = self._bereichs_wurzel(bereich)
-            for rel in dateien:
-                text, hinweis = self._datei_lesen(rel, wurzel)
+            for eintrag in dateien:
+                # Ein Eintrag ist ein Pfad ODER {"pfad": ..., "funktionen": [...]}.
+                # Letzteres schneidet einzelne Funktionen/Klassen heraus — ohne das
+                # ist eine 6.400-Zeilen-Datei nicht besprechbar: Sie sprengt das
+                # Paket, und eine Antwort darauf wird beliebig.
+                rel, funktionen = self._eintrag_zerlegen(eintrag)
+                # `kuerzen=False` bei Funktionsauswahl, und das ist keine Feinheit:
+                # Der erste Wurf kuerzte die Datei ZUERST auf 120.000 Zeichen und
+                # schnitt dann die Funktionen heraus — alles, was weiter hinten in
+                # einer 250-KB-Datei stand, war „nicht gefunden". Erst schneiden,
+                # dann kuerzen (gefunden 13.08.2026, weil der Hinweis es sagte).
+                text, hinweis = self._datei_lesen(rel, wurzel, kuerzen=not funktionen)
+                if text is not None and funktionen:
+                    text, hinweis2 = self._funktionen_schneiden(rel, text, funktionen)
+                    if text is not None and len(text) > self.MAX_ZEICHEN_DATEI:
+                        text = text[:self.MAX_ZEICHEN_DATEI]
+                        hinweis2 += " / danach auf %d Zeichen gekuerzt" % self.MAX_ZEICHEN_DATEI
+                    hinweis = ' / '.join(h for h in (hinweis, hinweis2) if h)
                 if text is None:
                     teile.append("### %s\n\n_%s_\n" % (rel, hinweis))
                     continue
@@ -190,6 +206,48 @@ class ReviewLauf:
                                 self._sprache(rel), text))
         return "\n".join(teile)
 
+    @staticmethod
+    def _eintrag_zerlegen(eintrag):
+        """(Pfad, Funktionsnamen) aus einem Bereichs-Eintrag."""
+        if isinstance(eintrag, dict):
+            return eintrag.get("pfad") or "", list(eintrag.get("funktionen") or [])
+        return eintrag, []
+
+    @staticmethod
+    def _funktionen_schneiden(rel, text, namen):
+        """Nur die genannten Funktionen/Klassen zurueckgeben (nur Python).
+
+        MIT ZEILENNUMMERN als Anker: Ein Befund soll auf die Stelle in der
+        ECHTEN Datei zeigen, nicht auf eine Zeile im Ausschnitt. Und was NICHT
+        gefunden wurde, steht ausdruecklich dabei — sonst beurteilt das Modell
+        einen Ausschnitt, dessen Umfang es fuer vollstaendig haelt."""
+        import ast
+        if not rel.lower().endswith(".py"):
+            return text, "Funktionsauswahl nur fuer Python moeglich — ganze Datei"
+        try:
+            baum = ast.parse(text)
+        except SyntaxError as e:
+            return text, "nicht zerlegbar (%s) — ganze Datei" % e
+        zeilen = text.split("\n")
+        gesucht, teile, gefunden = set(namen), [], set()
+        for k in baum.body:
+            if isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) \
+                    and k.name in gesucht:
+                anfang = min([d.lineno for d in k.decorator_list] or [k.lineno]) - 1
+                teile.append("# --- %s  (%s, Zeile %d) ---\n%s"
+                             % (k.name, rel, k.lineno,
+                                "\n".join(zeilen[anfang:k.end_lineno])))
+                gefunden.add(k.name)
+        if not teile:
+            return None, ("keine der Funktionen gefunden: %s"
+                          % ", ".join(sorted(gesucht)))
+        fehlt = sorted(gesucht - gefunden)
+        hinweis = ("AUSSCHNITT: %d von %d Funktionen dieser Datei"
+                   % (len(gefunden), len(namen)))
+        if fehlt:
+            hinweis += " — NICHT gefunden: %s" % ", ".join(fehlt)
+        return "\n\n".join(teile), hinweis
+
     def _bereichs_wurzel(self, bereich):
         """Eigene Wurzel des Bereichs, sonst die des Laufs."""
         eigen = (bereich or {}).get("wurzel")
@@ -201,8 +259,11 @@ class ReviewLauf:
             logger.warning("Review: Bereichs-Wurzel nicht aufloesbar: %r", eigen)
             return self.wurzel
 
-    def _datei_lesen(self, rel, wurzel=None):
+    def _datei_lesen(self, rel, wurzel=None, kuerzen=True):
         """Datei unterhalb der Wurzel lesen. Gibt (text, hinweis) zurueck.
+
+        `kuerzen=False` liefert die Datei ungekuerzt — noetig, wenn danach noch
+        einzelne Funktionen herausgeschnitten werden (siehe `_paket`).
 
         Die Wurzelpruefung ist kein Misstrauen gegen die eigene Konfiguration,
         sondern gegen Tippfehler: Ein `../..` im Pfad soll eine Meldung geben und
@@ -219,7 +280,7 @@ class ReviewLauf:
             text = ziel.read_text(encoding="utf-8", errors="replace").rstrip()
         except OSError as e:
             return None, "Nicht lesbar: %s" % e
-        if len(text) > self.MAX_ZEICHEN_DATEI:
+        if kuerzen and len(text) > self.MAX_ZEICHEN_DATEI:
             return (text[:self.MAX_ZEICHEN_DATEI],
                     "GEKUERZT auf %d von %d Zeichen" % (self.MAX_ZEICHEN_DATEI, len(text)))
         return text, ""

@@ -107,10 +107,10 @@
             <label class="rv-label">Bereiche</label>
             <div class="rv-bereiche">
                 {% for b in bereiche %}
-                <label class="rv-bereich" title="{{ b.dateien|join:', ' }}">
+                <label class="rv-bereich" title="{{ b.dateien_text }}">
                     <input type="checkbox" class="rv-b-cb" value="{{ b.slug }}">
                     <span>{{ b.name }}</span>
-                    <em>{{ b.dateien|length }} Datei{{ b.dateien|length|pluralize:"en" }}</em>
+                    <em>{{ b.anzahl }} Datei{{ b.anzahl|pluralize:"en" }}</em>
                 </label>
                 {% empty %}
                 <p class="rv-leer">Keine Bereiche konfiguriert —

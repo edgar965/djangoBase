@@ -48,12 +48,35 @@ def _einstellungen():
 class ReviewView(ZugriffMixin, View):
     """Die Seite selbst."""
 
+    @staticmethod
+    def _bereiche_anzeigen(bereiche):
+        """Bereiche fuer die Anzeige aufbereiten.
+
+        Ein Datei-Eintrag darf ein Pfad ODER {"pfad", "funktionen"} sein — das
+        Template soll das nicht auseinandernehmen muessen, sonst rendert es
+        Python-Dicts in ein `title`-Attribut."""
+        aufbereitet = []
+        for b in bereiche:
+            namen = []
+            for d in b.get("dateien") or []:
+                if isinstance(d, dict):
+                    anzahl = len(d.get("funktionen") or [])
+                    namen.append("%s%s" % (d.get("pfad", "?"),
+                                           " (%d Funktionen)" % anzahl if anzahl else ""))
+                else:
+                    namen.append(str(d))
+            aufbereitet.append({
+                "slug": b.get("slug", ""), "name": b.get("name", b.get("slug", "")),
+                "anzahl": len(namen), "dateien_text": ", ".join(namen),
+            })
+        return aufbereitet
+
     def get(self, request):
         e = _einstellungen()
         return render(request, "djangobase/hilfe/review.html", {
             "aktiv": "review",
             "partner": e["partner"],
-            "bereiche": e["bereiche"],
+            "bereiche": self._bereiche_anzeigen(e["bereiche"]),
             "nachfassen": [{"slug": k, "text": v} for k, v in NACHFASSEN.items()],
             "wurzel": str(e["wurzel"]),
             "laeufe": [{"id": l.id, "titel": l.titel, "modus": l.modus}

@@ -90,6 +90,41 @@ class ReviewPaketTest(BasisTest):
             paket = lauf._paket({"slug": "a", "name": "A", "dateien": ["paket/lang.py"]}, "")
         self.assertIn("GEKUERZT", paket)
 
+    def test_funktionsauswahl_schneidet_und_nennt_fehlende(self):
+        """Ohne Funktionsauswahl ist eine 6.400-Zeilen-Datei nicht besprechbar."""
+        (self.wurzel / 'paket' / 'gross.py').write_text(
+            "import os\n\n\ndef eins():\n    return 1\n\n\n"
+            "def zwei():\n    return 2\n\n\nclass Drei:\n    pass\n", encoding='utf-8')
+        paket = self._lauf()._paket(
+            {'slug': 'a', 'name': 'A',
+             'dateien': [{'pfad': 'paket/gross.py',
+                          'funktionen': ['zwei', 'Drei', 'gibtesnicht']}]}, '')
+        self.assertIn('return 2', paket)
+        self.assertIn('class Drei', paket)
+        self.assertNotIn('return 1', paket, 'nicht angeforderte Funktion mitgeschickt')
+        self.assertIn('NICHT gefunden: gibtesnicht', paket,
+                      'ein fehlender Name muss im Paket stehen — sonst haelt das '
+                      'Modell den Ausschnitt fuer vollstaendig')
+        self.assertIn('Zeile 8', paket, 'Zeilennummer als Anker in die ECHTE Datei fehlt')
+
+    def test_funktionsauswahl_schneidet_vor_dem_kuerzen(self):
+        """DER FEHLER DER ERSTEN FASSUNG (13.08.2026).
+
+        Gekürzt wurde ZUERST auf MAX_ZEICHEN_DATEI, geschnitten danach — alles,
+        was weiter hinten in einer großen Datei stand, war „nicht gefunden".
+        Aufgefallen ist es nur, weil der Hinweis die fehlenden Namen nennt."""
+        füller = "\n\n".join("def f%d():\n    return %d" % (i, i) for i in range(400))
+        (self.wurzel / 'paket' / 'riesig.py').write_text(
+            füller + "\n\n\ndef ganz_hinten():\n    return 'hier'\n", encoding='utf-8')
+        lauf = self._lauf()
+        with mock.patch.object(ReviewLauf, 'MAX_ZEICHEN_DATEI', 200):
+            paket = lauf._paket(
+                {'slug': 'a', 'name': 'A',
+                 'dateien': [{'pfad': 'paket/riesig.py',
+                              'funktionen': ['ganz_hinten']}]}, '')
+        self.assertIn("return 'hier'", paket)
+        self.assertNotIn('NICHT gefunden', paket)
+
     def test_bereich_mit_eigener_wurzel(self):
         """Geteilter Code (djangoBase selbst) liegt ausserhalb jedes Projekts.
 
