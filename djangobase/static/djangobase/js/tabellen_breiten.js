@@ -137,7 +137,12 @@ export class TabellenBreiten {
     this.ts.forEach(t => {
       const offen = this._ths(t).filter(th => !parseFloat(th.style.width));
       if (t.style.tableLayout === 'fixed' && !offen.length) return;
-      offen.forEach(th => { th.style.width = th.getBoundingClientRect().width + 'px'; });
+      // Mindestbreite wie in binden() (16.08.2026) - ohne sie friert hier eine
+      // vom Browser auf ~12 px gequetschte Spalte dauerhaft ein.
+      offen.forEach(th => {
+        th.style.width = Math.max(TabellenBreiten.MIN_PX,
+                                  th.getBoundingClientRect().width) + 'px';
+      });
       t.style.tableLayout = 'fixed';
       this._summeSetzen(t);
     });
@@ -173,9 +178,19 @@ export class TabellenBreiten {
       // BEVOR die Tabellenbreite aus der Summe entsteht - sonst misst _summeSetzen eine
       // vom Browser verteilte Restbreite, die sich durch das Setzen sofort wieder
       // aendert (siehe _einfrieren).
+      // MINDESTBREITE, nicht die blosse Ist-Breite (Fehler vom 16.08.2026):
+      // Sobald die Spalten MIT Vorgabe den Container schon fuellen, verteilt der
+      // Browser im fixed-Layout auf die restlichen fast nichts - gemessen ~12 px.
+      // Diese ~12 px wurden hier FESTGESCHRIEBEN, und die Ueberschriften brachen
+      // Buchstabe fuer Buchstabe um (Optimierungs-Ergebnistabelle: 25 Spalten,
+      // davon 4 mit Vorgabe). MIN_PX gilt schon beim Ziehen und beim Laden -
+      // hier fehlte es als Einzige.
       if (fest) {
         ths.filter(th => !parseFloat(th.style.width))
-           .forEach(th => { th.style.width = th.getBoundingClientRect().width + 'px'; });
+           .forEach(th => {
+             const ist = th.getBoundingClientRect().width;
+             th.style.width = Math.max(TabellenBreiten.MIN_PX, ist) + 'px';
+           });
         this._summeSetzen(t);
       }
     });
