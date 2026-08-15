@@ -14,6 +14,15 @@ Webseite bedienen koennte.
 
 Der Text kommt von ``--text`` oder, wenn das fehlt und etwas anliegt, von
 stdin. Damit laesst sich die Ausgabe eines Laufs direkt hineinleiten.
+
+SHELL-FALLE (13.08.2026 selbst hineingetreten): In ``--text "..."`` wertet die
+Shell Backticks und ``$`` aus. Der Satz ``Behoben mit `or`:`` wurde zu einem
+Versuch, ein Programm namens ``or`` zu starten — im Eintrag fehlte danach ein
+Wort, und die Shell meldete "command not found". Wer Code im Text hat, nimmt
+einfache Anfuehrungszeichen oder besser stdin:
+
+    manage.py aktuell --titel "Fix" --text 'Behoben mit `or`: a or b'
+    printf '%s' "$TEXT" | manage.py aktuell --titel "Fix"
 """
 import sys
 
