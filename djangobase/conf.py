@@ -42,9 +42,13 @@ DEFAULTS = {
     #   {"runner": "/static/tests/runner.js", "cases": "/static/tests/testcases.js",
     #    "seiten": {"navi": "/navi/ziel/?…&demo=1", "osm": "/ausfluege/", ...}}
     "test_ui": None,
+    # ----- Hilfe -> Aktuell (rollierendes Fenster, Claude-CLI) --------------
+    # Die Seite erscheint in JEDEM Projekt. Geschrieben wird ueber
+    # `manage.py aktuell` (kein HTTP-Schreibweg). None -> <log_verzeichnis>/aktuell.jsonl
+    "aktuell_datei": None,
     # ----- Hilfe -> Review (Code-Review im Gespraech mit einem Modell) -----
-    # Leere Partnerliste = Menuepunkt verschwindet. Kein Projekt bekommt die
-    # Seite dadurch ungefragt.
+    # Die Seite erscheint in JEDEM Projekt (Vorgabe 13.08.2026). Ohne Partner
+    # zeigt sie die Anleitung, was hier einzutragen ist.
     #   [{"slug": "nemotron", "name": "Nemotron 550B", "ziel": "online",
     #     "modell": "nvidia/nemotron-3-ultra-550b-a55b"},
     #    {"slug": "gemma", "name": "Gemma 4 26B (lokal)", "ziel": "lokal",

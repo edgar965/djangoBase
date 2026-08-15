@@ -1,7 +1,8 @@
 from django.urls import path
 
 from .views import api_system_stats
-from .views import (BenutzerBearbeitenView, BenutzerErstellenView,
+from .views import (AktuellDatenView, AktuellLeerenView, AktuellView,
+                    BenutzerBearbeitenView, BenutzerErstellenView,
                     BenutzerInlineView, BenutzerListeView, BenutzerLoeschenView,
                     BenutzerStatusView, EinstellungenTabsView, EinstellungenView,
                     JobsView, LogsClearView, LogsView, ReviewNachfassenView,
@@ -19,6 +20,11 @@ urlpatterns = [
     path("logs/leeren/", LogsClearView.as_view(), name="logs_leeren"),
     path("tests/", TestsView.as_view(), name="tests"),
     path("jobs/", JobsView.as_view(), name="jobs"),
+    # Rollierendes Fenster mit den Ergebnissen der Claude-CLI. Geschrieben wird
+    # NUR ueber `manage.py aktuell` — es gibt bewusst keinen Schreib-Endpunkt.
+    path("aktuell/", AktuellView.as_view(), name="aktuell"),
+    path("aktuell/daten/", AktuellDatenView.as_view(), name="aktuell_daten"),
+    path("aktuell/leeren/", AktuellLeerenView.as_view(), name="aktuell_leeren"),
     # Code-Review im Gespraech mit einem zweiten Modell. Die Runden laufen im
     # Hintergrund (eine bis fuenf Minuten), deshalb Start/Status getrennt.
     path("review/", ReviewView.as_view(), name="review"),

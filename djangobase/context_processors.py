@@ -43,8 +43,7 @@ def djangobase(request):
         # (djangobase.jobs). Leere Registry -> kein Eintrag -> bestehende
         # Projekte unveraendert.
         "has_jobs": jobs.has_jobs(),
-        # Nav-Eintrag „Review" nur zeigen, wenn ein Projekt mindestens einen
-        # Modell-Partner konfiguriert hat. Leere Liste -> kein Eintrag ->
-        # bestehende Projekte unveraendert.
-        "has_review": bool(c.get("review_partner")),
+        # „Review" und „Aktuell" erscheinen in JEDEM Projekt (Vorgabe
+        # 13.08.2026) — deshalb steht hier kein Schalter mehr. Ob ein
+        # Modell-Partner konfiguriert ist, erklaert die Review-Seite selbst.
     }}

@@ -1,0 +1,140 @@
+{% extends djangobase.base_template|default:"djangobase/base.html" %}
+
+{% block title_extra %} · Aktuell{% endblock %}
+{% block topbar_title %}<i class="bi bi-broadcast"></i> Hilfe · Aktuell{% endblock %}
+
+{% block content %}
+<div class="ak-page">
+
+    <div class="ak-kopf">
+        <div class="ak-filter">
+            <a class="ak-chip {% if not aktive_art %}aktiv{% endif %}" href="?">alle</a>
+            {% for a in arten %}
+            <a class="ak-chip art-{{ a.slug }} {% if aktive_art == a.slug %}aktiv{% endif %}"
+               href="?art={{ a.slug }}">{{ a.slug }}{% if a.anzahl %} <em>{{ a.anzahl }}</em>{% endif %}</a>
+            {% endfor %}
+        </div>
+        <span class="ak-meta" id="ak-stand">…</span>
+        <label class="ak-meta ak-auto"><input type="checkbox" id="ak-auto" checked> selbst aktualisieren</label>
+        <form method="post" action="{% url 'djangobase:aktuell_leeren' %}"
+              onsubmit="return confirm('Das Fenster wirklich leeren? Die Einträge sind danach weg.')">
+            {% csrf_token %}
+            <button type="submit" class="ak-knopf"><i class="bi bi-trash"></i> leeren</button>
+        </form>
+    </div>
+
+    <div id="ak-liste">
+        {% for e in eintraege %}
+        <div class="ak-eintrag art-{{ e.art }}">
+            <div class="ak-zeile">
+                <span class="ak-art">{{ e.art }}</span>
+                <b class="ak-titel">{{ e.titel }}</b>
+                <span class="ak-meta">{{ e.zeit }}{% if e.quelle %} · {{ e.quelle }}{% endif %}</span>
+            </div>
+            {% if e.text %}<pre class="ak-text">{{ e.text }}</pre>{% endif %}
+        </div>
+        {% empty %}
+        <div class="ak-eintrag">
+            <div class="ak-zeile"><b class="ak-titel">Noch nichts eingetragen</b></div>
+            <pre class="ak-text">Das Fenster füllt die Claude-CLI über einen Verwaltungsbefehl —
+kein HTTP, kein Token, funktioniert auch bei gestopptem Server:
+
+    manage.py aktuell --titel "SafePath: Doppelpunkt-Loch geschlossen" --art fix
+    manage.py aktuell --titel "Testlauf" --art messung --text "56 Tests grün"
+    manage.py test core 2>&1 | manage.py aktuell --titel "Testlauf" --art messung
+
+Arten: notiz · befund · fix · messung · offen · frage
+Es bleiben die neuesten {{ max_eintraege }} Einträge; ältere fallen heraus.
+Datei: {{ datei }}</pre>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+/* Feste dunkle Palette wie die übrigen Hilfe-Seiten (tests.html, logs.html) —
+   djangoBase läuft in sechs Projekten mit verschiedenen Variablen-Welten, und
+   var(--card-bg) traf in einem davon eine helle Belegung. */
+.ak-page { padding: 1.25rem 1.5rem 4rem; max-width: 1200px; }
+.ak-kopf { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.ak-filter { display: flex; gap: 6px; flex-wrap: wrap; }
+.ak-chip { text-decoration: none; color: #8aa0b8; background: #0f1d31; border: 1px solid #1e3a5f;
+    border-radius: 20px; padding: 4px 12px; font-size: .82rem; }
+.ak-chip:hover { color: #e9f0f8; border-color: #1e5bb8; }
+.ak-chip.aktiv { color: #fff; background: #1e5bb8; border-color: #1e5bb8; }
+.ak-knopf { background: #15406e; color: #dbeafe; border: 1px solid #1e5bb8; border-radius: 6px;
+    padding: 5px 12px; font-size: .8rem; cursor: pointer; }
+.ak-knopf:hover { background: #b91c1c; border-color: #b91c1c; color: #fff; }
+.ak-auto { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+.ak-eintrag { background: #142136; border: 1px solid #1e3a5f; border-left: 3px solid #1e3a5f;
+    border-radius: 8px; padding: 10px 16px; margin-bottom: 10px; }
+.ak-zeile { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.ak-titel { color: #e9f0f8; font-size: .95rem; }
+.ak-art { font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; color: #8aa0b8;
+    border: 1px solid #1e3a5f; border-radius: 4px; padding: 1px 6px; }
+.ak-meta { color: #8aa0b8; font-size: .78rem; margin-left: auto; }
+.ak-text { white-space: pre-wrap; word-break: break-word; color: #c9d1d9; background: #0d1117;
+    border: 1px solid #1e3a5f; border-radius: 6px; padding: 10px 12px; margin: 8px 0 0;
+    font-size: .8rem; max-height: 45vh; overflow: auto; }
+/* Farbe je Art am linken Rand — man sieht auf einen Blick, was ein Fund und
+   was nur eine Notiz ist. */
+.ak-eintrag.art-befund  { border-left-color: #d97706; }
+.ak-eintrag.art-fix     { border-left-color: #15803d; }
+.ak-eintrag.art-messung { border-left-color: #1e5bb8; }
+.ak-eintrag.art-offen   { border-left-color: #b91c1c; }
+.ak-eintrag.art-frage   { border-left-color: #7c3aed; }
+.ak-chip.art-befund.aktiv  { background: #d97706; border-color: #d97706; }
+.ak-chip.art-fix.aktiv     { background: #15803d; border-color: #15803d; }
+.ak-chip.art-messung.aktiv { background: #1e5bb8; border-color: #1e5bb8; }
+.ak-chip.art-offen.aktiv   { background: #b91c1c; border-color: #b91c1c; }
+.ak-chip.art-frage.aktiv   { background: #7c3aed; border-color: #7c3aed; }
+</style>
+
+<script>
+(function () {
+    "use strict";
+    const DATEN = "{% url 'djangobase:aktuell_daten' %}";
+    const ART = "{{ aktive_art|escapejs }}";
+    const liste = document.getElementById("ak-liste");
+    const stand = document.getElementById("ak-stand");
+    const auto = document.getElementById("ak-auto");
+    let letzteAnzahl = liste.querySelectorAll(".ak-eintrag").length;
+
+    function esc(s) {
+        const d = document.createElement("div");
+        d.textContent = s == null ? "" : String(s);
+        return d.innerHTML;
+    }
+
+    async function holen() {
+        if (!auto.checked) return;
+        try {
+            const r = await fetch(DATEN + (ART ? "?art=" + encodeURIComponent(ART) : ""));
+            if (!r.ok) return;
+            const d = await r.json();
+            // NUR neu zeichnen, wenn sich etwas geaendert hat: Sonst klappt jede
+            // aufgeklappte Ausgabe alle 20 Sekunden von selbst zu.
+            if ((d.eintraege || []).length === letzteAnzahl) { markiere(d.eintraege.length); return; }
+            letzteAnzahl = d.eintraege.length;
+            liste.innerHTML = d.eintraege.map(function (e) {
+                return '<div class="ak-eintrag art-' + esc(e.art) + '"><div class="ak-zeile">'
+                    + '<span class="ak-art">' + esc(e.art) + '</span>'
+                    + '<b class="ak-titel">' + esc(e.titel) + '</b>'
+                    + '<span class="ak-meta">' + esc(e.zeit)
+                    + (e.quelle ? ' · ' + esc(e.quelle) : '') + '</span></div>'
+                    + (e.text ? '<pre class="ak-text">' + esc(e.text) + '</pre>' : '')
+                    + '</div>';
+            }).join("") || liste.innerHTML;
+            markiere(d.eintraege.length);
+        } catch (e) { /* naechster Takt */ }
+    }
+
+    function markiere(n) {
+        stand.textContent = n + " Einträge · Stand " + new Date().toLocaleTimeString();
+    }
+
+    markiere(letzteAnzahl);
+    setInterval(holen, 20000);
+})();
+</script>
+{% endblock %}
