@@ -90,6 +90,26 @@ class ReviewPaketTest(BasisTest):
             paket = lauf._paket({"slug": "a", "name": "A", "dateien": ["paket/lang.py"]}, "")
         self.assertIn("GEKUERZT", paket)
 
+    def test_bereich_mit_eigener_wurzel(self):
+        """Geteilter Code (djangoBase selbst) liegt ausserhalb jedes Projekts.
+
+        Ein Bereich darf deshalb eine eigene Wurzel nennen — und die Pruefung
+        muss dann gegen DIESE greifen, nicht gegen die des Laufs."""
+        fremd = Path(tempfile.mkdtemp(prefix="review-fremd-"))
+        (fremd / "geteilt.py").write_text("WERT = 1\n", encoding="utf-8")
+        self.addCleanup(lambda: __import__("shutil").rmtree(fremd, ignore_errors=True))
+
+        paket = self._lauf()._paket(
+            {"slug": "g", "name": "Geteilt", "wurzel": str(fremd),
+             "dateien": ["geteilt.py"]}, "")
+        self.assertIn("WERT = 1", paket)
+
+        # Und die Grenze gilt weiter: aufwaerts aus der EIGENEN Wurzel ist nichts zu holen.
+        paket = self._lauf()._paket(
+            {"slug": "g", "name": "Geteilt", "wurzel": str(fremd),
+             "dateien": ["../geheim.txt"]}, "")
+        self.assertIn("ausserhalb", paket.lower())
+
     def test_eigene_frage_ersetzt_die_bereichsfragen(self):
         paket = self._lauf()._paket(
             {"slug": "a", "name": "A", "dateien": [], "fragen": ["Vorgabe?"]},
@@ -123,6 +143,46 @@ class ReviewFadenTest(BasisTest):
         self.assertEqual(faden.status, "fertig")
         self.assertEqual(faden.runden[0]["antwort"], "Befund X")
         self.assertIn("Befund X", faden.mitschrift.read_text(encoding="utf-8"))
+
+
+class NebenlaeufigkeitTest(BasisTest):
+    """Fehler, die das Review DIESES Werkzeugs gefunden hat (13.08.2026)."""
+
+    def _lauf(self):
+        return ReviewLauf("dialog", PARTNER, wurzel=Path(tempfile.gettempdir()),
+                          ablage=Path(tempfile.mkdtemp(prefix="review-nl-")))
+
+    def test_nur_einer_gewinnt_den_faden(self):
+        """Zwei gleichzeitige Nachfragen auf denselben Faden.
+
+        Vorher prüften Aufrufer und Faden getrennt: Beide kamen durch, beide
+        starteten einen Faden, der zweite scheiterte erst im Faden mit einer
+        Ausnahme — nachdem die Antwort dem Browser schon „gestartet" gemeldet
+        hatte. Die Runde war weg, der Nutzer glaubte, sie liefe."""
+        lauf = self._lauf()
+        lauf._faden_anlegen("f", "Faden")
+        faden = lauf.faeden["f"]
+        self.assertTrue(faden.beansprucht(), "der erste muss gewinnen")
+        self.assertFalse(faden.beansprucht(), "der zweite darf NICHT gewinnen")
+
+    def test_nachfassen_meldet_nur_was_wirklich_lief(self):
+        lauf = self._lauf()
+        lauf._faden_anlegen("f", "Faden")
+        lauf.faeden["f"].beansprucht()          # Faden ist belegt
+        self.assertEqual(lauf.nachfassen("noch eine Frage", slug="f"), [],
+                         "ein belegter Faden darf nicht als gestartet gemeldet werden")
+
+    def test_wurzel_gross_klein_egal_unter_windows(self):
+        """Eine legitime Datei darf nicht an der Schreibweise der Wurzel scheitern."""
+        import os as _os
+        if _os.name != "nt":
+            self.skipTest("nur unter Windows aussagekräftig")
+        wurzel = Path(tempfile.mkdtemp(prefix="review-gross-"))
+        (wurzel / "datei.py").write_text("X = 1\n", encoding="utf-8")
+        lauf = ReviewLauf("dialog", PARTNER, wurzel=Path(str(wurzel).upper()),
+                          ablage=wurzel / "_ablage")
+        paket = lauf._paket({"slug": "a", "name": "A", "dateien": ["datei.py"]}, "")
+        self.assertIn("X = 1", paket)
 
 
 class LaufRegisterTest(BasisTest):

@@ -17,6 +17,7 @@ import json
 import tempfile
 from io import StringIO
 from pathlib import Path
+from unittest import mock
 
 from django.core.management import call_command
 from django.test import override_settings
@@ -38,17 +39,88 @@ class AktuellFeedTest(BasisTest):
         self.assertEqual(titel, ["zweiter", "erster"])
 
     def test_fenster_rollt(self):
-        """Der Kern der Seite: Es bleiben die neuesten N, nicht alle."""
-        with self.settings():
-            self.feed.MAX_EINTRAEGE = 5
-            for i in range(12):
-                self.feed.anhaengen("Eintrag %d" % i)
-            eintraege = self.feed.lesen()
+        """Der Kern der Seite: Es bleiben die neuesten N, nicht alle.
+
+        `LUFT = 0` gehört hier dazu: Gekürzt wird im Betrieb erst ab
+        MAX + LUFT, damit das Kürzen ein seltener Vorgang ist (nur dabei können
+        zwei Schreiber kollidieren). Die Zusage lautet deshalb „ungefähr MAX,
+        höchstens MAX + LUFT" — nicht „genau MAX". Dieser Test prüft die
+        Mechanik, `test_luft_erlaubt_ein_paar_zeilen_mehr` die Zusage."""
+        self.feed.MAX_EINTRAEGE, self.feed.LUFT = 5, 0
+        for i in range(12):
+            self.feed.anhaengen("Eintrag %d" % i)
+        eintraege = self.feed.lesen()
         self.assertEqual(len(eintraege), 5)
         self.assertEqual(eintraege[0]["titel"], "Eintrag 11")
         self.assertEqual(eintraege[-1]["titel"], "Eintrag 7")
         # Und die Datei selbst ist mitgeschrumpft, nicht nur die Anzeige.
         self.assertEqual(len(self.datei.read_text(encoding="utf-8").strip().split("\n")), 5)
+
+    def test_luft_erlaubt_ein_paar_zeilen_mehr(self):
+        """Die Zusage ist eine Größenordnung, keine Zeile — und das ist gewollt."""
+        self.feed.MAX_EINTRAEGE, self.feed.LUFT = 5, 10
+        for i in range(12):
+            self.feed.anhaengen("Eintrag %d" % i)
+        anzahl = len(self.feed.lesen())
+        self.assertEqual(anzahl, 12, "vor MAX+LUFT darf nicht gekuerzt werden")
+        for i in range(6):
+            self.feed.anhaengen("noch %d" % i)
+        # 18 geschrieben; beim 16. wurde auf 5 gekuerzt, danach kamen zwei dazu.
+        # Die Zusage lautet „hoechstens MAX + LUFT" — nicht „genau MAX".
+        anzahl = len(self.feed.lesen())
+        self.assertLessEqual(anzahl, self.feed.MAX_EINTRAEGE + self.feed.LUFT,
+                             "ab MAX+LUFT muss gekuerzt werden")
+        self.assertLess(anzahl, 18, "es wurde gar nicht gekuerzt")
+        self.assertEqual(self.feed.lesen()[0]["titel"], "noch 5", "neuester fehlt")
+
+    def test_kuerzen_verliert_keinen_gleichzeitigen_eintrag(self):
+        """DER FUND AUS DEM REVIEW DIESES WERKZEUGS (13.08.2026).
+
+        Anhängen ist unteilbar, das Kürzen war es nicht: Wer die Datei liest,
+        auf 200 Zeilen schneidet und ersetzt, überschreibt einen Eintrag, der
+        zwischen Lesen und Ersetzen dazugekommen ist.
+
+        Hier wird genau dieses Fenster nachgestellt: Während `_kuerzen` läuft,
+        hängt ein zweiter Schreiber an. Danach muss dessen Eintrag noch da sein."""
+        self.feed.MAX_EINTRAEGE, self.feed.LUFT = 5, 0
+        for i in range(6):
+            self.feed.anhaengen("alt %d" % i)
+
+        echtes_lesen = AktuellFeed._datei_kuerzen
+        dazwischen = {"getan": False}
+
+        def kuerzen_mit_stoerung(selbst):
+            if not dazwischen["getan"]:
+                dazwischen["getan"] = True
+                # Ein zweiter Schreiber, GENAU im kritischen Fenster.
+                with open(selbst.pfad, "a", encoding="utf-8") as f:
+                    f.write('{"zeit": "x", "titel": "dazwischen", "art": "notiz", '
+                            '"quelle": "", "text": ""}\n')
+            return echtes_lesen(selbst)
+
+        with mock.patch.object(AktuellFeed, "_datei_kuerzen", kuerzen_mit_stoerung):
+            self.feed.anhaengen("neu")
+
+        titel = [e["titel"] for e in self.feed.lesen()]
+        self.assertIn("dazwischen", titel,
+                      "der gleichzeitige Eintrag wurde beim Kuerzen ueberschrieben")
+        self.assertIn("neu", titel)
+
+    def test_sperre_verhindert_gleichzeitiges_kuerzen(self):
+        """Hält ein anderer Prozess die Sperre, wird nicht gekürzt — die Datei
+        ist dann ein paar Zeilen zu lang, und das ist die richtige Wahl."""
+        self.feed.MAX_EINTRAEGE, self.feed.LUFT = 3, 0
+        for i in range(8):
+            self.feed.anhaengen("e %d" % i)
+        sperre = self.feed.pfad.with_suffix(self.feed.pfad.suffix + ".lock")
+        sperre.write_text("", encoding="utf-8")     # fremder Prozess kürzt gerade
+        try:
+            self.feed.anhaengen("waehrend der Sperre")
+            self.assertGreater(len(self.feed.lesen()), self.feed.MAX_EINTRAEGE,
+                               "trotz fremder Sperre gekuerzt")
+            self.assertEqual(self.feed.lesen()[0]["titel"], "waehrend der Sperre")
+        finally:
+            sperre.unlink()
 
     def test_kaputte_zeile_wird_uebersprungen(self):
         self.feed.anhaengen("gut 1")

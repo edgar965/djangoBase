@@ -18,6 +18,7 @@ Alles laeuft im Hintergrund-Faden: Eine Runde dauert je nach Modell und
 Paketgroesse eine bis fuenf Minuten. Die Seite fragt den Zustand ab.
 """
 import logging
+import os
 import threading
 import uuid
 from pathlib import Path
@@ -107,8 +108,10 @@ class ReviewLauf:
         for i, slug in enumerate(self.reihenfolge):
             bereich = bereiche[i] if bereiche else None
             text = self._paket(bereich, frage)
-            threading.Thread(target=self.faeden[slug].fragen,
-                             args=(text, "Runde 1"),
+            faden = self.faeden[slug]
+            faden.beansprucht()          # frisch angelegt, gewinnt immer
+            threading.Thread(target=faden.fragen,
+                             args=(text, "Runde 1"), kwargs={"schon_beansprucht": True},
                              name="review-%s-%s" % (self.id, slug),
                              daemon=True).start()
         return self
@@ -135,10 +138,14 @@ class ReviewLauf:
         gestartet = []
         for s in ziele:
             faden = self.faeden.get(s)
-            if faden is None or faden.status == "laeuft":
+            # Beanspruchen UND pruefen in einem Schritt (siehe
+            # ReviewFaden.beansprucht): Ein `if faden.status == "laeuft"` davor
+            # war ein Wettrennen — zwei gleichzeitige Anfragen kamen beide durch.
+            if faden is None or not faden.beansprucht():
                 continue
             marke = "Runde %d" % (len(faden.runden) + 1)
-            threading.Thread(target=faden.fragen, args=(text, marke),
+            threading.Thread(target=faden.fragen,
+                             args=(text, marke), kwargs={"schon_beansprucht": True},
                              name="review-%s-%s" % (self.id, s), daemon=True).start()
             gestartet.append(s)
         return gestartet
@@ -162,8 +169,14 @@ class ReviewLauf:
         if dateien:
             teile.append("## Quelltext (vollstaendig, von der Platte gelesen)\n")
             gesamt = 0
+            # Ein Bereich darf eine EIGENE Wurzel mitbringen. Grund: Das geteilte
+            # Paket (djangoBase) liegt ausserhalb jedes Projektverzeichnisses,
+            # haengt aber in sechs Projekten drin — und gerade der Code, den alle
+            # benutzen, sollte pruefbar sein. Die Pruefung bleibt scharf: Jede
+            # Datei muss unter DER Wurzel liegen, die ihr Bereich nennt.
+            wurzel = self._bereichs_wurzel(bereich)
             for rel in dateien:
-                text, hinweis = self._datei_lesen(rel)
+                text, hinweis = self._datei_lesen(rel, wurzel)
                 if text is None:
                     teile.append("### %s\n\n_%s_\n" % (rel, hinweis))
                     continue
@@ -177,19 +190,31 @@ class ReviewLauf:
                                 self._sprache(rel), text))
         return "\n".join(teile)
 
-    def _datei_lesen(self, rel):
+    def _bereichs_wurzel(self, bereich):
+        """Eigene Wurzel des Bereichs, sonst die des Laufs."""
+        eigen = (bereich or {}).get("wurzel")
+        if not eigen:
+            return self.wurzel
+        try:
+            return Path(eigen).resolve()
+        except OSError:
+            logger.warning("Review: Bereichs-Wurzel nicht aufloesbar: %r", eigen)
+            return self.wurzel
+
+    def _datei_lesen(self, rel, wurzel=None):
         """Datei unterhalb der Wurzel lesen. Gibt (text, hinweis) zurueck.
 
         Die Wurzelpruefung ist kein Misstrauen gegen die eigene Konfiguration,
         sondern gegen Tippfehler: Ein `../..` im Pfad soll eine Meldung geben und
         nicht stillschweigend eine fremde Datei an ein Online-Modell schicken."""
+        wurzel = wurzel or self.wurzel
         try:
-            ziel = (self.wurzel / rel).resolve()
+            ziel = (wurzel / rel).resolve()
         except OSError as e:
             return None, "Pfad nicht aufloesbar: %s" % e
-        if not (ziel == self.wurzel or ziel.is_relative_to(self.wurzel)):
+        if not self._liegt_in(ziel, wurzel):
             logger.warning("Review: Datei ausserhalb der Wurzel abgelehnt: %s", ziel)
-            return None, "Liegt ausserhalb von review_wurzel — nicht gesendet."
+            return None, "Liegt ausserhalb der Bereichs-Wurzel — nicht gesendet."
         try:
             text = ziel.read_text(encoding="utf-8", errors="replace").rstrip()
         except OSError as e:
@@ -198,6 +223,22 @@ class ReviewLauf:
             return (text[:self.MAX_ZEICHEN_DATEI],
                     "GEKUERZT auf %d von %d Zeichen" % (self.MAX_ZEICHEN_DATEI, len(text)))
         return text, ""
+
+    @staticmethod
+    def _liegt_in(ziel, wurzel):
+        """Enthaeltnis-Pruefung, unter Windows ohne Ruecksicht auf Gross-/Klein.
+
+        `is_relative_to` vergleicht Zeichenketten. Steht in der Konfiguration
+        `A:\\Shared\\djangoBase` und liefert `resolve()` `a:\\shared\\djangobase`,
+        wird eine voellig legitime Datei abgelehnt (Befund aus dem Review dieses
+        Werkzeugs, 13.08.2026). Das ist kein Loch, sondern eine Absage an der
+        falschen Stelle — laut aber nutzlos. `os.path.normcase` ist auf anderen
+        Systemen wirkungslos, dort ist Gross-/Kleinschreibung bedeutsam."""
+        z, w = Path(os.path.normcase(ziel)), Path(os.path.normcase(wurzel))
+        try:
+            return z == w or z.is_relative_to(w)
+        except ValueError:
+            return False
 
     @staticmethod
     def _sprache(rel):

@@ -63,6 +63,10 @@ DEFAULTS = {
     #     "dateien": ["humanbody_core/skeleton/retarget.py"],
     #     "hinweis": "Was der Bereich tut, was das Modell wissen muss.",
     #     "fragen": ["Wo kippt die Quaternionen-Kette?", ...]}]
+    # Ein Bereich darf zusaetzlich "wurzel" setzen und damit eine eigene Basis
+    # mitbringen — fuer geteilten Code, der ausserhalb des Projekts liegt (z.B.
+    # djangoBase selbst). Die Pruefung bleibt scharf: Jede Datei muss unter DER
+    # Wurzel liegen, die ihr Bereich nennt.
     "review_bereiche": [],
     # Basisverzeichnis der Bereichs-Dateien. None -> BASE_DIR. Fuer Projekte,
     # deren Kern-Bibliothek neben dem Django-Teil liegt, auf den gemeinsamen

@@ -33,12 +33,27 @@ class ReviewFaden:
 
     # ------------------------------------------------------------------ fragen
 
-    def fragen(self, text, marke=""):
-        """Eine Runde stellen. Laeuft im Hintergrund-Faden des Laufs."""
+    def beansprucht(self):
+        """Diesen Faden fuer eine Runde beanspruchen — genau einer gewinnt.
+
+        WARUM DAS HIER UND NICHT BEIM AUFRUFER (Befund aus dem Review dieses
+        Werkzeugs, 13.08.2026): Vorher prueften Aufrufer und Faden getrennt.
+        Zwei gleichzeitige POSTs auf denselben Faden bestanden BEIDE die Pruefung
+        im Lauf, beide starteten einen Faden — und der zweite scheiterte erst
+        hier mit einer Ausnahme, nachdem die Antwort an den Browser schon
+        `{"gestartet": [...]}` gemeldet hatte. Die Runde war verloren, der
+        Nutzer glaubte, sie liefe. Pruefen und Setzen gehoeren in EINEN
+        geschuetzten Schritt."""
         with self._lock:
             if self.status == "laeuft":
-                raise RuntimeError("Dieser Faden wartet noch auf eine Antwort")
+                return False
             self.status = "laeuft"
+            return True
+
+    def fragen(self, text, marke="", schon_beansprucht=False):
+        """Eine Runde stellen. Laeuft im Hintergrund-Faden des Laufs."""
+        if not schon_beansprucht and not self.beansprucht():
+            raise RuntimeError("Dieser Faden wartet noch auf eine Antwort")
         t0 = time.time()
         try:
             antwort = self.partner.fragen(text)

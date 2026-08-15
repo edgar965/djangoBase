@@ -45,6 +45,10 @@ class AktuellFeed:
 
     #: So viele Eintraege bleiben. Aeltere fallen heraus.
     MAX_EINTRAEGE = 200
+    #: Erst ab MAX_EINTRAEGE + LUFT wird gekuerzt. Das macht das Kuerzen zu einem
+    #: seltenen Vorgang statt zu einem bei jedem Eintrag — und nur dabei koennen
+    #: zwei Schreiber ueberhaupt kollidieren.
+    LUFT = 25
     #: Obergrenze je Eintragstext. Ein Testprotokoll mit 4.000 Zeilen gehoert
     #: nicht in eine Uebersichtsseite; der Anfang sagt schon, was los ist.
     MAX_ZEICHEN = 20_000
@@ -115,13 +119,59 @@ class AktuellFeed:
 
         Neu geschrieben wird in eine Nebendatei im SELBEN Verzeichnis und dann
         per ``os.replace`` an ihren Platz gerueckt: Ein Absturz mitten im
-        Kuerzen darf keinen halben Feed hinterlassen."""
+        Kuerzen darf keinen halben Feed hinterlassen.
+
+        ZWEI SCHREIBER (Befund aus dem Review dieses Werkzeugs, 13.08.2026):
+        Anhaengen ist unteilbar, das Kuerzen war es nicht. Zwei Prozesse
+        (zweimal ``manage.py aktuell``) lasen dieselbe Datei, schnitten beide auf
+        200 Zeilen und ersetzten sie — der Eintrag des einen war weg.
+        Dagegen zwei Dinge:
+
+        * Eine Sperrdatei (``O_CREAT|O_EXCL``, wirkt ueber Prozessgrenzen).
+          Haelt sie ein anderer, wird NICHT gekuerzt: Das darf warten, die Datei
+          ist dann eben ein paar Zeilen zu lang.
+        * Gekuerzt wird erst ab ``MAX_EINTRAEGE + LUFT``. Damit passiert das
+          selten und nicht bei jedem Eintrag — und die Fenstergroesse bleibt
+          eine Groessenordnung, keine Zusage auf die Zeile."""
         try:
             with open(self.pfad, "r", encoding="utf-8", errors="replace") as f:
                 zeilen = f.readlines()
         except OSError:
             return
-        if len(zeilen) <= self.MAX_EINTRAEGE:
+        if len(zeilen) <= self.MAX_EINTRAEGE + self.LUFT:
+            return
+        sperre = self.pfad.with_suffix(self.pfad.suffix + ".lock")
+        try:
+            fd = os.open(str(sperre), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except FileExistsError:
+            # Ein anderer kuerzt gerade. Nichts tun ist hier richtig.
+            return
+        except OSError as e:
+            logger.warning("Aktuell: Sperre nicht anlegbar: %s", e)
+            return
+        try:
+            os.close(fd)
+            self._datei_kuerzen()
+        finally:
+            try:
+                sperre.unlink()
+            except OSError:
+                logger.warning("Aktuell: Sperrdatei blieb liegen: %s", sperre)
+
+    def _datei_kuerzen(self):
+        """Die Datei unteilbar durch die letzten MAX_EINTRAEGE Zeilen ersetzen.
+
+        Heisst NICHT `_kuerzen`: Den Namen hat schon das Kuerzen des
+        Eintragstexts, und die Kollision hat beim ersten Versuch jeden
+        Feed-Aufruf mit `TypeError` beendet.
+
+        Gelesen wird HIER neu und nicht beim Aufrufer: Zwischen dessen Lesen und
+        dem Ersetzen kann ein weiterer Eintrag angehaengt worden sein, und der
+        soll nicht verloren gehen."""
+        try:
+            with open(self.pfad, "r", encoding="utf-8", errors="replace") as f:
+                zeilen = f.readlines()
+        except OSError:
             return
         behalten = zeilen[-self.MAX_EINTRAEGE:]
         tmp = None
