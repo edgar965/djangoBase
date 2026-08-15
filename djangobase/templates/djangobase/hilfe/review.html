@@ -1,0 +1,292 @@
+{% extends djangobase.base_template|default:"djangobase/base.html" %}
+
+{% block title_extra %} · Review{% endblock %}
+{% block topbar_title %}<i class="bi bi-chat-left-text"></i> Hilfe · Review{% endblock %}
+
+{% block content %}
+<div class="rv-page">
+
+    {# ------------------------------------------------ Steuerung ------------ #}
+    <div class="rv-card">
+        <div class="rv-zeile">
+            <label class="rv-label" for="rv-partner">Partner</label>
+            <select id="rv-partner" class="rv-select">
+                {% for p in partner %}
+                <option value="{{ p.slug }}">{{ p.name|default:p.slug }} — {{ p.modell }}{% if p.ziel == 'online' %} (online){% else %} (lokal){% endif %}</option>
+                {% endfor %}
+            </select>
+            <span class="rv-hinweis" id="rv-ziel-hinweis"></span>
+        </div>
+
+        <div class="rv-zeile rv-zeile-oben">
+            <label class="rv-label">Bereiche</label>
+            <div class="rv-bereiche">
+                {% for b in bereiche %}
+                <label class="rv-bereich" title="{{ b.dateien|join:', ' }}">
+                    <input type="checkbox" class="rv-b-cb" value="{{ b.slug }}">
+                    <span>{{ b.name }}</span>
+                    <em>{{ b.dateien|length }} Datei{{ b.dateien|length|pluralize:"en" }}</em>
+                </label>
+                {% empty %}
+                <p class="rv-leer">Keine Bereiche konfiguriert —
+                    <code>DJANGOBASE["review_bereiche"]</code> setzen.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="rv-zeile rv-zeile-oben">
+            <label class="rv-label" for="rv-frage">Frage</label>
+            <textarea id="rv-frage" class="rv-textarea" rows="3"
+                placeholder="Bei „Einfache Frage" Pflicht. Bei den Dialog-Arten optional — ohne Text werden die im Bereich hinterlegten Fragen gestellt."></textarea>
+        </div>
+
+        <div class="rv-knoepfe">
+            <button type="button" class="rv-knopf rv-primaer" data-modus="frage">
+                <i class="bi bi-question-lg"></i> Einfache Frage</button>
+            <button type="button" class="rv-knopf" data-modus="dialog">
+                <i class="bi bi-chat-dots"></i> Dialog</button>
+            <button type="button" class="rv-knopf" data-modus="bereiche">
+                <i class="bi bi-diagram-3"></i> Dialog mit mehreren Bereichen</button>
+            <span class="rv-status" id="rv-status"></span>
+        </div>
+        <p class="rv-fuss">
+            Gesendet wird nur der Quelltext der angehakten Bereiche, gelesen unter
+            <code>{{ wurzel }}</code>.
+            <strong>Bei einem Online-Partner verlässt dieser Code den Rechner.</strong>
+        </p>
+    </div>
+
+    {# ------------------------------------------------ Nachfassen ----------- #}
+    <div class="rv-card rv-nachfass" id="rv-nachfass" hidden>
+        <div class="rv-zeile">
+            <label class="rv-label">Nachfassen</label>
+            <div class="rv-vorlagen">
+                {% for n in nachfassen %}
+                <button type="button" class="rv-knopf rv-klein" data-vorlage="{{ n.slug }}"
+                        title="{{ n.text }}">{{ n.slug }}</button>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="rv-zeile rv-zeile-oben">
+            <textarea id="rv-nachfrage" class="rv-textarea" rows="2"
+                placeholder="Eigene Nachfrage — am wirksamsten mit einer Messung: „Gegenprobe ergab X. Zieh zurück oder liefere einen auslösenden Fall.""></textarea>
+            <button type="button" class="rv-knopf rv-primaer" id="rv-senden">
+                <i class="bi bi-send"></i> An alle Fäden</button>
+        </div>
+    </div>
+
+    {# ------------------------------------------------ Ergebnis ------------- #}
+    <div id="rv-faeden"></div>
+</div>
+
+<style>
+/* Feste dunkle Palette wie die uebrigen Hilfe-Seiten (tests.html, logs.html).
+   BEWUSST KEINE CSS-Variablen: Der erste Entwurf nahm var(--card-bg) mit
+   dunklem Rueckfallwert an — in HumanBodyWeb ist die Variable aber hell
+   belegt, und die Karte kam weiss mit hellem Text heraus, also unlesbar.
+   djangoBase laeuft in sechs Projekten mit verschiedenen Variablen-Welten;
+   feste Farben sind hier die verlaessliche Wahl. */
+.rv-page { padding: 1.25rem 1.5rem 4rem; max-width: 1400px; }
+.rv-card { background: #142136; border: 1px solid #1e3a5f; border-radius: 10px;
+    padding: 16px 20px; margin-bottom: 18px; color: #e9f0f8; }
+.rv-zeile { display: flex; align-items: center; gap: 12px; }
+.rv-zeile-oben { align-items: flex-start; margin-top: 12px; }
+.rv-label { min-width: 84px; color: #8aa0b8; font-size: .78rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .04em; padding-top: 6px; }
+.rv-select, .rv-textarea { background: #0f1d31; color: #e9f0f8; border: 1px solid #1e3a5f;
+    border-radius: 6px; padding: 7px 10px; font-size: .9rem; }
+.rv-textarea { flex: 1; font-family: inherit; resize: vertical; }
+.rv-hinweis { color: #8aa0b8; font-size: .82rem; }
+.rv-bereiche { display: flex; flex-wrap: wrap; gap: 8px; flex: 1; }
+.rv-bereich { display: flex; align-items: center; gap: 6px; padding: 6px 12px;
+    background: #0f1d31; border: 1px solid #1e3a5f; border-radius: 20px;
+    cursor: pointer; font-size: .88rem; }
+.rv-bereich:hover { border-color: #1e5bb8; }
+.rv-bereich em { color: #8aa0b8; font-style: normal; font-size: .76rem; }
+.rv-knoepfe { display: flex; gap: 8px; margin-top: 16px; align-items: center; flex-wrap: wrap; }
+.rv-knopf { display: inline-flex; align-items: center; gap: 6px; background: #15406e;
+    color: #dbeafe; border: 1px solid #1e5bb8; border-radius: 6px; padding: 7px 14px;
+    font-size: .85rem; font-weight: 600; cursor: pointer; }
+.rv-knopf:hover { background: #1e5bb8; color: #fff; }
+.rv-knopf[disabled] { opacity: .4; cursor: not-allowed; }
+.rv-primaer { background: #1e5bb8; color: #fff; }
+.rv-klein { padding: 4px 10px; font-size: .78rem; font-weight: 400; }
+.rv-vorlagen { display: flex; gap: 6px; flex-wrap: wrap; }
+.rv-status { color: #fbbf24; font-size: .85rem; }
+.rv-fuss { margin: 14px 0 0; color: #8aa0b8; font-size: .8rem; }
+.rv-fuss code, .rv-meta code { background: #0d1117; color: #a5d6ff; padding: 1px 6px;
+    border-radius: 4px; }
+.rv-leer { color: #8aa0b8; margin: 0; }
+.rv-faden { background: #142136; border: 1px solid #1e3a5f; border-radius: 10px;
+    margin-bottom: 18px; overflow: hidden; }
+.rv-kopf { display: flex; align-items: center; gap: 10px; padding: 12px 20px;
+    background: #0f1d31; border-bottom: 1px solid #1e3a5f; }
+.rv-kopf h3 { margin: 0; font-size: 1.02rem; color: #e9f0f8; }
+.rv-pill { font-size: .72rem; padding: 2px 9px; border-radius: 10px; border: 1px solid #1e3a5f;
+    color: #8aa0b8; }
+.rv-pill.laeuft { border-color: #a16207; color: #fbbf24; }
+.rv-pill.fertig { border-color: #15803d; color: #34d399; }
+.rv-pill.fehler { border-color: #b91c1c; color: #f87171; }
+.rv-runde { padding: 12px 20px; border-top: 1px solid #1e3a5f; }
+.rv-runde-kopf { display: flex; gap: 10px; align-items: center; cursor: pointer; }
+.rv-runde-kopf b { color: #e9f0f8; font-size: .9rem; }
+.rv-meta { color: #8aa0b8; font-size: .78rem; margin-left: auto; }
+.rv-text { white-space: pre-wrap; line-height: 1.55; margin-top: 10px; color: #c9d1d9;
+    font-size: .9rem; overflow-x: auto; }
+.rv-frage-details { margin-top: 8px; }
+.rv-frage-details summary { cursor: pointer; margin-left: 0; }
+.rv-frage-text { white-space: pre-wrap; color: #8aa0b8; font-size: .8rem;
+    max-height: 200px; overflow: auto; margin-top: 6px; border-left: 2px solid #1e3a5f;
+    padding-left: 10px; }
+</style>
+
+{{ partner|json_script:"rv-partner-daten" }}
+<script>
+(function () {
+    "use strict";
+    const PARTNER = JSON.parse(document.getElementById("rv-partner-daten").textContent || "[]");
+    const START = "{% url 'djangobase:review_start' %}";
+    // Nicht "/hilfe/..." hartkodieren: Projekte binden djangobase.urls auch
+    // unter einem anderen Praefix ein. Platzhalter-ID wird ersetzt.
+    const STATUS_MUSTER = "{% url 'djangobase:review_status' 'LAUFID' %}";
+    const NACHFASS_MUSTER = "{% url 'djangobase:review_nachfassen' 'LAUFID' %}";
+    const url = (muster) => muster.replace("LAUFID", laufId);
+    const statusEl = document.getElementById("rv-status");
+    const faedenEl = document.getElementById("rv-faeden");
+    const nachfassEl = document.getElementById("rv-nachfass");
+    const zielHinweis = document.getElementById("rv-ziel-hinweis");
+    let laufId = null, takt = null, offen = {};
+
+    function csrf() {
+        const m = document.cookie.match(/csrftoken=([^;]+)/);
+        return m ? m[1] : "";
+    }
+    function partnerJetzt() {
+        const slug = document.getElementById("rv-partner").value;
+        return PARTNER.find(p => p.slug === slug) || {};
+    }
+    function zielZeigen() {
+        const p = partnerJetzt();
+        zielHinweis.textContent = p.ziel === "online"
+            ? "online — der gesendete Code verlässt den Rechner"
+            : "lokal — nichts verlässt den Rechner";
+    }
+    document.getElementById("rv-partner").addEventListener("change", zielZeigen);
+    zielZeigen();
+
+    function gewaehlteBereiche() {
+        return Array.from(document.querySelectorAll(".rv-b-cb:checked")).map(c => c.value);
+    }
+
+    document.querySelectorAll("[data-modus]").forEach(function (b) {
+        b.addEventListener("click", function () { starten(b.dataset.modus); });
+    });
+
+    async function starten(modus) {
+        const nutzlast = {
+            modus: modus,
+            partner: document.getElementById("rv-partner").value,
+            bereiche: gewaehlteBereiche(),
+            frage: document.getElementById("rv-frage").value
+        };
+        statusEl.textContent = "startet …";
+        faedenEl.innerHTML = "";
+        try {
+            const r = await fetch(START, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-CSRFToken": csrf() },
+                body: JSON.stringify(nutzlast)
+            });
+            const d = await r.json();
+            if (!r.ok) { statusEl.textContent = "Fehler: " + (d.fehler || r.status); return; }
+            laufId = d.id;
+            offen = {};
+            nachfassEl.hidden = (modus === "frage");
+            statusEl.textContent = "läuft — die erste Runde dauert je nach Modell 1–5 Minuten";
+            abfragen();
+            if (takt) clearInterval(takt);
+            takt = setInterval(abfragen, 3000);
+        } catch (e) {
+            statusEl.textContent = "Fehler: " + e.message;
+        }
+    }
+
+    async function abfragen() {
+        if (!laufId) return;
+        try {
+            const r = await fetch(url(STATUS_MUSTER));
+            if (!r.ok) return;
+            zeichnen(await r.json());
+        } catch (e) { /* naechster Takt */ }
+    }
+
+    function zeichnen(z) {
+        if (!z.laeuft && takt) { clearInterval(takt); takt = null; statusEl.textContent = "fertig"; }
+        faedenEl.innerHTML = "";
+        (z.faeden || []).forEach(function (f) {
+            const box = document.createElement("div");
+            box.className = "rv-faden";
+            const runden = (f.runden || []).map(function (r, i) {
+                const schluessel = f.slug + ":" + i;
+                const auf = offen[schluessel] !== false;      // Antworten offen, Fragen zu
+                const v = r.verbrauch || {};
+                return '<div class="rv-runde">'
+                    + '<div class="rv-runde-kopf" data-auf="' + schluessel + '">'
+                    + '<b>' + esc(r.marke) + '</b>'
+                    + '<span class="rv-meta">' + (r.sekunden || 0) + ' s'
+                    + (v.prompt ? ' · ' + v.prompt + ' Token rein' : '')
+                    + (v.antwort ? ' / ' + v.antwort + ' raus' : '')
+                    + (v.fenster ? ' · Fenster ' + v.fenster : '')
+                    + '</span></div>'
+                    + '<details class="rv-frage-details"><summary class="rv-meta">gestellte Frage</summary>'
+                    + '<div class="rv-frage-text">' + esc(r.frage) + '</div></details>'
+                    + (auf ? '<div class="rv-text">' + esc(r.antwort) + '</div>' : '');
+            }).join("");
+            box.innerHTML = '<div class="rv-kopf"><h3>' + esc(f.titel) + '</h3>'
+                + '<span class="rv-pill ' + f.status + '">' + f.status + '</span>'
+                + '<span class="rv-meta">' + esc(f.partner || "") + ' · ' + esc(f.modell || "") + '</span>'
+                + '</div>'
+                + (f.fehler ? '<div class="rv-runde"><div class="rv-text">' + esc(f.fehler) + '</div></div>' : '')
+                + (runden || '<div class="rv-runde"><span class="rv-meta">wartet auf die erste Antwort …</span></div>');
+            faedenEl.appendChild(box);
+        });
+        faedenEl.querySelectorAll(".rv-runde-kopf").forEach(function (k) {
+            k.addEventListener("click", function () {
+                const s = k.dataset.auf;
+                offen[s] = offen[s] === false;
+                abfragen();
+            });
+        });
+    }
+
+    function esc(s) {
+        const d = document.createElement("div");
+        d.textContent = s == null ? "" : String(s);
+        return d.innerHTML;
+    }
+
+    async function nachfassen(nutzlast) {
+        if (!laufId) return;
+        statusEl.textContent = "Nachfrage läuft …";
+        const r = await fetch(url(NACHFASS_MUSTER), {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRFToken": csrf() },
+            body: JSON.stringify(nutzlast)
+        });
+        const d = await r.json();
+        if (!r.ok) { statusEl.textContent = "Fehler: " + (d.fehler || r.status); return; }
+        if (takt) clearInterval(takt);
+        abfragen();
+        takt = setInterval(abfragen, 3000);
+    }
+
+    document.querySelectorAll("[data-vorlage]").forEach(function (b) {
+        b.addEventListener("click", function () { nachfassen({ vorlage: b.dataset.vorlage }); });
+    });
+    document.getElementById("rv-senden").addEventListener("click", function () {
+        const t = document.getElementById("rv-nachfrage").value.trim();
+        if (t) nachfassen({ text: t });
+    });
+})();
+</script>
+{% endblock %}

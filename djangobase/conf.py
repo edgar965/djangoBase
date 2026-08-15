@@ -42,6 +42,39 @@ DEFAULTS = {
     #   {"runner": "/static/tests/runner.js", "cases": "/static/tests/testcases.js",
     #    "seiten": {"navi": "/navi/ziel/?…&demo=1", "osm": "/ausfluege/", ...}}
     "test_ui": None,
+    # ----- Hilfe -> Review (Code-Review im Gespraech mit einem Modell) -----
+    # Leere Partnerliste = Menuepunkt verschwindet. Kein Projekt bekommt die
+    # Seite dadurch ungefragt.
+    #   [{"slug": "nemotron", "name": "Nemotron 550B", "ziel": "online",
+    #     "modell": "nvidia/nemotron-3-ultra-550b-a55b"},
+    #    {"slug": "gemma", "name": "Gemma 4 26B (lokal)", "ziel": "lokal",
+    #     "modell": "gemma4:26b-a4b-it-qat", "num_ctx": 32768}]
+    # `ziel`: "lokal" = Ollama auf diesem Rechner, "online" = OpenAI-kompatibler
+    # Endpunkt. Bei "online" verlaesst der gesendete Quelltext den Rechner.
+    "review_partner": [],
+    # Die Codebereiche, ueber die gesprochen werden kann. Dateien relativ zu
+    # `review_wurzel`. Nur DIESE Dateien werden gesendet — die Seite nimmt keine
+    # Pfade aus dem Browser entgegen.
+    #   [{"slug": "retarget", "name": "Retarget-Mathematik",
+    #     "dateien": ["humanbody_core/skeleton/retarget.py"],
+    #     "hinweis": "Was der Bereich tut, was das Modell wissen muss.",
+    #     "fragen": ["Wo kippt die Quaternionen-Kette?", ...]}]
+    "review_bereiche": [],
+    # Basisverzeichnis der Bereichs-Dateien. None -> BASE_DIR. Fuer Projekte,
+    # deren Kern-Bibliothek neben dem Django-Teil liegt, auf den gemeinsamen
+    # Ordner darueber setzen.
+    "review_wurzel": None,
+    # Wohin die Mitschriften geschrieben werden. None -> <log_verzeichnis>/review.
+    "review_ablage": None,
+    # Rolle des Gegenuebers. None -> djangobase.review.ROLLE (auf Widerspruch
+    # getrimmt). Projekte mit eigenem Schwerpunkt (Finanzen, Medizin) setzen hier
+    # ihre eigene.
+    "review_rolle": None,
+    # Datei mit dem API-Schluessel fuer "online" — EINE Zeile, ausserhalb des
+    # Projekts. None -> ~/.sparring_key
+    "review_schluessel_datei": None,
+    "review_ollama_url": None,   # None -> http://127.0.0.1:11434/api/chat
+    "review_online_url": None,   # None -> https://openrouter.ai/api/v1/chat/completions
     # Navigation
     "menu": [],           # [{label, icon, url} | {label, icon, untermenu:[{label, icon, url}]}]
                           #  (Untermenü-Key heißt "untermenu", NICHT "items" -> dict.items-Kollision!)

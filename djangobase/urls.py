@@ -4,8 +4,9 @@ from .views import api_system_stats
 from .views import (BenutzerBearbeitenView, BenutzerErstellenView,
                     BenutzerInlineView, BenutzerListeView, BenutzerLoeschenView,
                     BenutzerStatusView, EinstellungenTabsView, EinstellungenView,
-                    JobsView, LogsClearView, LogsView, TestsView, TrafficView,
-                    UebersetzungView, VersionsView)
+                    JobsView, LogsClearView, LogsView, ReviewNachfassenView,
+                    ReviewStartView, ReviewStatusView, ReviewView, TestsView,
+                    TrafficView, UebersetzungView, VersionsView)
 
 app_name = "djangobase"
 
@@ -18,6 +19,13 @@ urlpatterns = [
     path("logs/leeren/", LogsClearView.as_view(), name="logs_leeren"),
     path("tests/", TestsView.as_view(), name="tests"),
     path("jobs/", JobsView.as_view(), name="jobs"),
+    # Code-Review im Gespraech mit einem zweiten Modell. Die Runden laufen im
+    # Hintergrund (eine bis fuenf Minuten), deshalb Start/Status getrennt.
+    path("review/", ReviewView.as_view(), name="review"),
+    path("review/start/", ReviewStartView.as_view(), name="review_start"),
+    path("review/<str:lauf_id>/nachfassen/", ReviewNachfassenView.as_view(),
+         name="review_nachfassen"),
+    path("review/<str:lauf_id>/status/", ReviewStatusView.as_view(), name="review_status"),
     # Haupt-Einstellungen: Profil-Combobox + alle Gruppen als Tabs.
     path("einstellungen/", EinstellungenTabsView.as_view(), name="einstellungen"),
     # Einzelseiten je Gruppe (Rueckwaerts-Kompatibilitaet / Deep-Links).

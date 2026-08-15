@@ -2,6 +2,8 @@ from .logs import LogsView, LogsClearView
 from .versions import VersionsView
 from .tests import TestsView
 from .jobs import JobsView
+from .review import (ReviewView, ReviewStartView, ReviewNachfassenView,
+                     ReviewStatusView)
 from .settings import EinstellungenView, EinstellungenTabsView
 from .traffic import TrafficView, VerbrauchBeaconView
 from .uebersetzung import SpracheSetzenView, UebersetzungView
@@ -11,6 +13,7 @@ from .benutzer import (BenutzerListeView, BenutzerErstellenView,
 
 __all__ = [
     "api_system_stats","LogsView", "LogsClearView", "VersionsView", "TestsView", "JobsView",
+           "ReviewView", "ReviewStartView", "ReviewNachfassenView", "ReviewStatusView",
            "EinstellungenView", "EinstellungenTabsView",
            "TrafficView", "VerbrauchBeaconView",
            "SpracheSetzenView", "UebersetzungView",

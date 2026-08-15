@@ -52,7 +52,7 @@ Die <li>-Eintraege werden in ein vorhandenes <ul class="nav"> eingehaengt.
         <i class="bi bi-question-circle"></i> Hilfe
         <i class="bi bi-chevron-down float-end"></i>
     </a>
-    <div class="collapse {% if aktiv == 'versions' or aktiv == 'logs' or aktiv == 'tests' or aktiv == 'jobs' %}show{% endif %}" id="hilfeMenu">
+    <div class="collapse {% if aktiv == 'versions' or aktiv == 'logs' or aktiv == 'tests' or aktiv == 'jobs' or aktiv == 'review' %}show{% endif %}" id="hilfeMenu">
         <ul class="nav flex-column submenu">
             <li><a class="nav-link {% if aktiv == 'versions' %}active{% endif %}" href="{% url 'djangobase:versionen' %}">
                 <i class="bi bi-clock-history"></i> Versionen
@@ -66,6 +66,11 @@ Die <li>-Eintraege werden in ein vorhandenes <ul class="nav"> eingehaengt.
             {% if djangobase.has_jobs %}
             <li><a class="nav-link {% if aktiv == 'jobs' %}active{% endif %}" href="{% url 'djangobase:jobs' %}">
                 <i class="bi bi-hdd-stack"></i> Jobs
+            </a></li>
+            {% endif %}
+            {% if djangobase.has_review %}
+            <li><a class="nav-link {% if aktiv == 'review' %}active{% endif %}" href="{% url 'djangobase:review' %}">
+                <i class="bi bi-chat-left-text"></i> Review
             </a></li>
             {% endif %}
         </ul>
