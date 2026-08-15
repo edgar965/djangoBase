@@ -96,10 +96,22 @@ class LogClassifier:
             return 'trace'
         if cls._TRACEBACK_FRAME_RE.search(line):
             return 'trace'
-        if cls._EXC_CLASS_RE.search(line) or cls._CUSTOM_EXC_RE.search(line):
-            return 'err'
+        # DER AUSDRUECKLICHE STUFENMARKER GEWINNT gegen die Namensheuristik
+        # (Befund 13.08.2026, nachgemessen). Vorher stand die Exception-Erkennung
+        # davor, und diese echten Zeilen wurden rot als Fehler eingeordnet:
+        #   [WARNING] core: Caught ValueError: invalid input, retrying   -> err
+        #   [INFO]    core: Handling KeyError: missing_key gracefully    -> err
+        # Sie landeten damit auch im Ausnahmen-Reiter. Wer eine Stufe
+        # ausdruecklich hinschreibt, meint sie: Eine WARNUNG, die den Namen einer
+        # Ausnahme ERWAEHNT, ist keine Ausnahme. Ein wirklich protokollierter
+        # Fehler kommt ueber logger.exception/error und traegt [ERROR] — das ist
+        # oben schon abgefangen.
         if '[WARNING]' in line or ' WARNING ' in line:
             return 'warn'
+        if '[INFO]' in line or '[DEBUG]' in line:
+            return 'info'
+        if cls._EXC_CLASS_RE.search(line) or cls._CUSTOM_EXC_RE.search(line):
+            return 'err'
         return 'info'
 
     @classmethod
@@ -118,6 +130,13 @@ class LogClassifier:
             return True
         if cls._TRACEBACK_FRAME_RE.search(line):
             return True
+        # Wie in `severity`: Ein ausdruecklicher Stufenmarker gewinnt gegen die
+        # Namensheuristik. Ohne das landete
+        #   [WARNING] core: Caught ValueError: invalid input, retrying
+        # im Ausnahmen-Reiter, obwohl der Fall abgefangen und behandelt wurde —
+        # und der Reiter soll zeigen, was WIRKLICH schiefging (13.08.2026).
+        if '[WARNING]' in line or '[INFO]' in line or '[DEBUG]' in line:
+            return False
         if cls._EXC_CLASS_RE.search(line) or cls._CUSTOM_EXC_RE.search(line):
             return True
         if any(sig in line for sig in cls._ERROR_SIGNALS):

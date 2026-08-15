@@ -40,6 +40,37 @@ class SeverityTests(SimpleTestCase):
         # JSON-Indent hat NICHT das File-line-in-Pattern -> kein trace/err.
         self.assertEqual(LC.severity('    "key": "value",'), "info")
 
+    def test_ausdrueckliche_stufe_gewinnt_gegen_den_namen(self):
+        """Ein abgefangener Fehler ist kein Fehler (Befund 13.08.2026).
+
+        Vorher stand die Exception-Namensheuristik VOR dem Stufenmarker; diese
+        echten Zeilen wurden dadurch rot und landeten im Ausnahmen-Reiter,
+        obwohl der Fall behandelt wurde:
+
+            [WARNING] core: Caught ValueError: invalid input, retrying
+            [INFO]    core: Handling KeyError: missing_key gracefully
+
+        Wer eine Stufe ausdrücklich hinschreibt, meint sie. Ein wirklich
+        protokollierter Fehler kommt über logger.exception/error und trägt
+        [ERROR] — das wird davor abgefangen."""
+        self.assertEqual(
+            LC.severity("2026-08-15 [WARNING] core: Caught ValueError: invalid input"),
+            "warn")
+        self.assertEqual(
+            LC.severity("2026-08-15 [INFO] core: Handling KeyError: missing gracefully"),
+            "info")
+        # Und die Gegenprobe: OHNE Stufenmarker bleibt der Name ausschlaggebend.
+        self.assertEqual(LC.severity("ValueError: invalid input"), "err")
+        self.assertEqual(LC.severity("2026-08-15 [ERROR] core: ValueError: x"), "err")
+
+    def test_abgefangener_fehler_nicht_im_ausnahmen_reiter(self):
+        """Dieselbe Regel in `is_exception_line` — sonst färbt die Zeile richtig
+        und erscheint trotzdem in der Ausnahmen-Ansicht."""
+        self.assertFalse(LC.is_exception_line(
+            "2026-08-15 [WARNING] core: Caught ValueError: invalid input"))
+        self.assertTrue(LC.is_exception_line("2026-08-15 [ERROR] core: kaputt"))
+        self.assertTrue(LC.is_exception_line("ValueError: invalid input"))
+
 
 class IterExceptionsTests(SimpleTestCase):
     def test_groups_traceback_block(self):

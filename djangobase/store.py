@@ -149,9 +149,13 @@ def _pfad():
 # Altes flaches Format ({<key>: <wert>}) wird beim Lesen transparent in ein
 # Standard-Profil migriert -> bestehende Projekte bleiben unveraendert.
 # ---------------------------------------------------------------------------
+import logging
 import os
 import re
 import tempfile
+import time
+
+logger = logging.getLogger(__name__)
 
 STANDARD_SLUG = "standard"
 STANDARD_LABEL = "djangoBase Standard"
@@ -194,6 +198,75 @@ def _roh_laden():
     except (OSError, ValueError):
         return _leer_struktur()
     return _normalisieren(daten)
+
+
+#: Serialisiert Lesen-Aendern-Schreiben. Zwei Ebenen, weil zwei Faelle:
+#:   * `threading.RLock` gegen zwei Anfragen im SELBEN Prozess (der Regelfall:
+#:     zwei offene Einstellungs-Tabs). RLock, weil `speichern_gruppe` intern
+#:     `laden()` und `speichern()` aufruft — eine einfache Lock waere ein
+#:     Selbstblock.
+#:   * eine Sperrdatei gegen zwei PROZESSE (Dev-Server + Verwaltungsbefehl,
+#:     oder zwei Server auf derselben Datei).
+_rlock = __import__("threading").RLock()
+_tiefe = {"n": 0}
+
+
+class _Sperre:
+    """Kontextverwalter um jedes Lesen-Aendern-Schreiben.
+
+    WARUM (Review 13.08.2026, mit Gegenprobe belegt): Das SCHREIBEN war schon
+    unteilbar (Nebendatei + `os.replace`), das Lesen-Aendern-Schreiben nicht.
+    `Docu/gegenprobe_store_wettrennen.py` im 3DTools-Projekt zeigt es:
+
+        Ausgangsstand            {'titel': 'Anfangswert', 'sidebar_default': 250}
+        nacheinander gespeichert {'titel': 'von A',       'sidebar_default': 999}
+        verschraenkt gespeichert {'titel': 'Anfangswert', 'sidebar_default': 999}
+
+    Zwei Vorgaenge, die VERSCHIEDENE Gruppen speichern, lesen denselben Stand;
+    der zweite schreibt seine Gruppe plus die ALTEN Werte der ersten zurueck.
+    Die Aenderung der ersten ist still verschwunden — kein Fehler, keine Meldung.
+    Das betrifft alle Projekte, die djangoBase einbinden; zwei offene
+    Einstellungs-Tabs genuegen.
+
+    Bekommt die Sperrdatei nicht frei, wird nach kurzem Warten TROTZDEM
+    gespeichert: Ein verlorenes Speichern ist schlimmer als ein
+    unwahrscheinliches Wettrennen, und eine liegengebliebene Sperrdatei (Prozess
+    abgestuerzt) darf die Einstellungen nicht auf Dauer blockieren."""
+
+    VERSUCHE = 20
+    PAUSE_S = 0.05
+
+    def __enter__(self):
+        _rlock.acquire()
+        _tiefe["n"] += 1
+        self._datei = None
+        if _tiefe["n"] > 1:            # verschachtelter Aufruf: Datei haelt schon
+            return self
+        pfad = _pfad().with_suffix(_pfad().suffix + ".lock")
+        for _ in range(self.VERSUCHE):
+            try:
+                fd = os.open(str(pfad), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                os.close(fd)
+                self._datei = pfad
+                return self
+            except FileExistsError:
+                time.sleep(self.PAUSE_S)
+            except OSError:
+                return self            # kein Sperrdatei-Ort -> ohne weitermachen
+        logger.warning("djangobase.store: Sperrdatei %s blieb belegt — es wird "
+                       "trotzdem gespeichert", pfad)
+        return self
+
+    def __exit__(self, *_):
+        if self._datei is not None:
+            try:
+                self._datei.unlink()
+            except OSError:
+                logger.warning("djangobase.store: Sperrdatei nicht entfernbar: %s",
+                               self._datei)
+        _tiefe["n"] -= 1
+        _rlock.release()
+        return False
 
 
 def _atomar_schreiben(obj):
@@ -239,10 +312,11 @@ def laden():
 
 def speichern(daten):
     """Schreibt die Overrides (nur EINSTELLBAR-Keys) ins AKTIVE Profil."""
-    s = _roh_laden()
-    erlaubt = {k for k, _t, _l in EINSTELLBAR}
-    s["profile"][s["aktiv"]]["werte"] = {k: v for k, v in daten.items() if k in erlaubt}
-    _roh_speichern(s)
+    with _Sperre():
+        s = _roh_laden()
+        erlaubt = {k for k, _t, _l in EINSTELLBAR}
+        s["profile"][s["aktiv"]]["werte"] = {k: v for k, v in daten.items() if k in erlaubt}
+        _roh_speichern(s)
 
 
 # ----- Profil-Verwaltung (Einstellungen-Seite) -----------------------------
@@ -260,12 +334,13 @@ def aktiv_slug():
 
 def aktiv_setzen(slug):
     """Aktiviert ein vorhandenes Profil. True bei Erfolg."""
-    s = _roh_laden()
-    if slug in s["profile"]:
-        s["aktiv"] = slug
-        _roh_speichern(s)
-        return True
-    return False
+    with _Sperre():
+        s = _roh_laden()
+        if slug in s["profile"]:
+            s["aktiv"] = slug
+            _roh_speichern(s)
+            return True
+        return False
 
 
 def _slugify(text):
@@ -276,44 +351,48 @@ def _slugify(text):
 def profil_anlegen(label, kopie_von=None):
     """Legt ein neues Profil an (eindeutiger Slug aus Label) und gibt den Slug
     zurueck. Optional die Werte von `kopie_von` uebernehmen."""
-    s = _roh_laden()
-    basis = _slugify(label)
-    slug, i = basis, 2
-    while slug in s["profile"]:
-        slug = f"{basis}-{i}"
-        i += 1
-    werte = {}
-    if kopie_von and kopie_von in s["profile"]:
-        werte = dict(s["profile"][kopie_von]["werte"])
-    s["profile"][slug] = {"label": str(label) or slug, "werte": werte}
-    _roh_speichern(s)
-    return slug
+    with _Sperre():
+        s = _roh_laden()
+        basis = _slugify(label)
+        slug, i = basis, 2
+        while slug in s["profile"]:
+            slug = f"{basis}-{i}"
+            i += 1
+        werte = {}
+        if kopie_von and kopie_von in s["profile"]:
+            werte = dict(s["profile"][kopie_von]["werte"])
+        s["profile"][slug] = {"label": str(label) or slug, "werte": werte}
+        _roh_speichern(s)
+        return slug
 
 
 def profil_loeschen(slug):
     """Loescht ein Profil. Das letzte verbleibende kann nicht geloescht werden;
     war das geloeschte aktiv, wird das erste verbleibende aktiv. True bei Erfolg."""
-    s = _roh_laden()
-    if slug not in s["profile"] or len(s["profile"]) <= 1:
-        return False
-    del s["profile"][slug]
-    if s["aktiv"] == slug:
-        s["aktiv"] = next(iter(s["profile"]))
-    _roh_speichern(s)
-    return True
+    with _Sperre():
+        s = _roh_laden()
+        if slug not in s["profile"] or len(s["profile"]) <= 1:
+            return False
+        del s["profile"][slug]
+        if s["aktiv"] == slug:
+            s["aktiv"] = next(iter(s["profile"]))
+        _roh_speichern(s)
+        return True
 
 
 def speichern_gruppe(slug, werte):
     """Aktualisiert nur die Felder der Gruppe `slug` und behaelt den Rest
     (Merge). Keys der Gruppe, die nicht in `werte` stehen, werden entfernt
     (-> Settings-Default greift wieder)."""
-    keys = _gruppe_keys(slug)
-    bestehend = {k: v for k, v in laden().items() if k not in keys}
-    bestehend.update({k: v for k, v in werte.items() if k in keys})
-    speichern(bestehend)
+    with _Sperre():        # Lesen UND Schreiben unter derselben Sperre
+        keys = _gruppe_keys(slug)
+        bestehend = {k: v for k, v in laden().items() if k not in keys}
+        bestehend.update({k: v for k, v in werte.items() if k in keys})
+        speichern(bestehend)
 
 
 def leeren_gruppe(slug):
     """Entfernt nur die Overrides der Gruppe `slug`."""
-    keys = _gruppe_keys(slug)
-    speichern({k: v for k, v in laden().items() if k not in keys})
+    with _Sperre():
+        keys = _gruppe_keys(slug)
+        speichern({k: v for k, v in laden().items() if k not in keys})
