@@ -18,6 +18,7 @@ im Template.
 import html
 import importlib
 import json
+import logging
 import platform
 import re
 import subprocess
@@ -32,11 +33,36 @@ from django.views import View
 from ..conf import conf
 from ..mixins import ZugriffMixin
 
+logger = logging.getLogger(__name__)
+
 _RE_BOLD = re.compile(r"\*\*(.+?)\*\*")
 _RE_INLINE_CODE = re.compile(r"`([^`\n]+)`")
 _GH_TTL_S = 300.0
 _NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 _TRANSFORM_CACHE: dict = {}
+
+
+class _Einmalig:
+    """Merkt sich, welche Schluessel gerade bearbeitet werden.
+
+    `add_if_absent` gibt True zurueck, wenn der Aufrufer der erste ist —
+    pruefen und eintragen unter EINER Sperre, sonst starten zwei Anfragen zwei
+    Erneuerungsfaeden fuer denselben Schluessel."""
+
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._menge = set()
+
+    def add_if_absent(self, key) -> bool:
+        with self._lock:
+            if key in self._menge:
+                return False
+            self._menge.add(key)
+            return True
+
+    def discard(self, key) -> None:
+        with self._lock:
+            self._menge.discard(key)
 
 
 class _TTLCache:
@@ -54,6 +80,9 @@ class _TTLCache:
         # _data und _key_locks werden beide unter _meta_lock geschuetzt.
         self._meta_lock = threading.RLock()
         self._key_locks: dict = {}
+        # Welche Schluessel gerade im Hintergrund erneuert werden — damit nicht
+        # jede Anfrage einen eigenen Faden dafuer startet.
+        self._laeuft = _Einmalig()
 
     def get_or_compute(self, key, producer):
         now = time.time()
@@ -64,6 +93,22 @@ class _TTLCache:
             return hit[1]
         with self._meta_lock:
             key_lock = self._key_locks.setdefault(key, threading.Lock())
+        # ALTEN WERT AUSLIEFERN UND IM HINTERGRUND ERNEUERN (Review 13.08.2026,
+        # gemessen): Die Versionen-Seite brauchte bei kaltem bzw. abgelaufenem
+        # Cache 4,9 s, warm 0,7 s — vier Repos mal zwei `gh api`-Aufrufe, jeder
+        # mit bis zu 10 s Zeitgrenze, alle IN der Anfrage. Wer nach Ablauf der
+        # Haltbarkeit zuerst kommt, zahlt das jedes Mal.
+        # Ist schon ein Wert da, ist er hoechstens ein TTL alt — fuer eine
+        # Commit-Liste ist das genau richtig. Nur der ALLERERSTE Abruf rechnet
+        # noch in der Anfrage, denn vorher gibt es nichts zu zeigen. Dasselbe
+        # Muster wie djangobase.hintergrund_cache, hier ohne Umbau der API.
+        if hit is not None:
+            if self._laeuft.add_if_absent(key):
+                threading.Thread(
+                    target=self._erneuern, args=(key, producer, key_lock),
+                    name="ttlcache-%s" % str(key)[:40], daemon=True).start()
+            return hit[1]
+
         with key_lock:
             # Double-check: anderer Thread hat zwischenzeitlich gefuellt.
             now = time.time()
@@ -73,6 +118,19 @@ class _TTLCache:
             value = producer()
             self._data[key] = (now, value)
             return value
+
+    def _erneuern(self, key, producer, key_lock):
+        """Im Hintergrund neu berechnen. Fehler bleiben still: Der alte Wert
+        steht weiter, und genau dafuer ist dieser Weg da."""
+        try:
+            with key_lock:
+                wert = producer()
+                self._data[key] = (time.time(), wert)
+        except Exception:                                        # noqa: BLE001
+            logger.warning("Versionen: Hintergrund-Erneuerung von %r fehlgeschlagen",
+                           key, exc_info=True)
+        finally:
+            self._laeuft.discard(key)
 
     def clear(self) -> None:
         with self._meta_lock:

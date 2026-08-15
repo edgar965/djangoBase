@@ -22,6 +22,13 @@ _TS_RE = re.compile(r"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:[,\.]\d+)?)\s*(.*)
 _DEFAULT_SOURCE = "all"
 
 
+#: Obergrenze je Datei fuers Ruecklesen. 8 MB reichen fuer jede sinnvolle
+#: Ansicht (die Seite zeigt hoechstens einige Tausend Zeilen) und begrenzen
+#: den Fall "wenige, sehr lange Zeilen", in dem die Zeilenzaehlung nie
+#: greift.
+MAX_TAIL_BYTES = 8 * 1024 * 1024
+
+
 def _tail_lines(path: Path | None, max_lines: int) -> list[str]:
     if not path:
         return []
@@ -45,7 +52,15 @@ def _tail_lines(path: Path | None, max_lines: int) -> list[str]:
         try:
             with open(f_path, "rb") as f:
                 pos = size
-                while pos > 0 and data.count(b"\n") <= max_lines:
+                # Abbruch auch nach BYTES, nicht nur nach Zeilen (Review
+                # 13.08.2026): Die Schleife lief, bis `max_lines` Zeilenumbrueche
+                # gefunden waren. Bei normalen Logs ist das schnell — gemessen
+                # 1 ms fuer 200 Zeilen aus 3,4 MB. Bei WENIGEN, SEHR LANGEN
+                # Zeilen (ein Traceback mit eingebettetem base64-Bild, eine
+                # JSON-Zeile ueber Megabyte) gibt es die Umbrueche aber nicht,
+                # und dann wurde die ganze Datei in den Speicher gelesen.
+                while (pos > 0 and data.count(b"\n") <= max_lines
+                       and len(data) < MAX_TAIL_BYTES):
                     read = min(block, pos)
                     pos -= read
                     f.seek(pos)
