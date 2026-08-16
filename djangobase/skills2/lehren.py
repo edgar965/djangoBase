@@ -227,6 +227,95 @@ LEHREN = [
     # jsregistrierung, jsfaenger, jssyntax, jsbefunde, jsfunktionen.
     # ------------------------------------------------------------------
 
+    # ---- aus dem Fixer-Durchgang (16.08.2026) ------------------------------
+    ("fixer-und-pruefer", "Werkzeuge",
+     "Fixer und Prüfer müssen dieselbe Bedingung messen",
+     "Bevor ein Fix-Werkzeug schreibt: nachsehen, unter welcher Bedingung der "
+     "Prüfer meldet — und genau die übernehmen. Weicht der Fixer ab, arbeitet "
+     "er an der Befundliste vorbei, in beide Richtungen.",
+     "Ein Vermerk-Fixer setzte 75 Vermerke; die Befundzahl sank um EINEN. Er "
+     "erkannte Anzeigeformate nach derselben 70-%-Regel, die der Prüfer schon "
+     "als Ausnahme führte — 75 Dateiänderungen ohne Wirkung. Umgekehrt hielt "
+     "eine Zusatzbedingung „mindestens zwei Leser“ den Klassen-Fixer von genau "
+     "den Stellen fern, die gemeldet waren."),
+
+    ("zwei-zaehlungen", "Messen",
+     "Widersprechen sich zwei Zählungen, hat die genauere recht",
+     "Dieselbe Größe zweimal unabhängig zählen und die Ergebnisse vergleichen. "
+     "Wer nur eine Zahl hat, hält sie für richtig.",
+     "„Wie viele Funktionen lesen dieses Dictionary?“ ergab 62 von 68 mit "
+     "höchstens einem Leser (nur eigenes Modul), dann 1 von 68 (reiner "
+     "Namensabgleich: 272 „Leser“ für eine Funktion namens kennzahlen), dann 51 "
+     "von 68 (eigenes Modul plus echte Importeure). Erst als Prüfwerk und Fixer "
+     "sich widersprachen, fiel der letzte Fehler auf: nach Funktionsnamen "
+     "geschlüsselt statt nach Datei UND Name — und ``kennzahlen`` gibt es in "
+     "fünf Werkzeugen."),
+
+    ("sammelgrund", "Werkzeuge",
+     "Ein Grund, der 35-mal gleich lautet, ist kein Grund",
+     "Wenn ein Werkzeug für jede Fundstelle denselben Satz ausgibt, ist die "
+     "Diagnose die eigentliche Arbeit — nicht der Befund.",
+     "„Keine Trennlinie ohne Falle“ stand unter allen 35 zu großen JS-Dateien. "
+     "Aufgeschlüsselt: 16 davon haben gar keine Trennlinie, weil sie je EINE "
+     "Klasse sind (Vererbung statt Zeilennummer), 17 scheitern am Zirkel, 9 an "
+     "einem read-only Import. Erst diese Aufteilung sagte, was zu tun ist."),
+
+    ("neue-datei-alte-datei", "Fehler verhindern",
+     "Die erzeugte Datei darf nie die Ausgangsdatei sein",
+     "Jedes Werkzeug, das eine zweite Datei anlegt, prüft vor dem Schreiben, "
+     "ob der Zielname schon vergeben ist — besonders vom Original selbst.",
+     "``grid_daten.py`` mit einer Funktion ``datensatz`` ergab die Klasse "
+     "``GridDaten`` in ``grid_daten.py``. Der Begleiter hätte das Original "
+     "überschrieben und den ganzen Modulinhalt verloren; aufgefallen in der "
+     "Vorschau, eine Minute vor dem ersten Schreibzugriff."),
+
+    ("skript-kein-relativimport", "Fehler verhindern",
+     "Skripte vertragen keinen relativen Import",
+     "Vor dem Einfügen eines Imports ablesen, wie die Datei es hält: Hat sie "
+     "einen ``__main__``-Block und sonst nur flache Importe, muss der neue auch "
+     "flach sein.",
+     "Vier Werkzeug-Skripte bekamen ein ``from .xyz_daten import …`` und "
+     "starteten nicht mehr: „attempted relative import with no known parent "
+     "package“. ``ast.parse`` sah nichts — die Zeile ist syntaktisch tadellos "
+     "und scheitert erst beim Ausführen."),
+
+    ("methoden-ohne-import", "Messen",
+     "Methodenaufrufe tauchen in keiner Importliste auf",
+     "Wer Aufrufer über Importe sucht, findet keine Methode: ``obj.tun()`` "
+     "braucht den Namen nirgends importiert. Für eindeutige Methodennamen "
+     "deshalb alle Attributaufrufe mitzählen.",
+     "Eine Methode ``datensatz()`` mit zwei echten Aufrufern wurde als „null "
+     "Leser“ gezählt und ihr Befund weggefiltert. Nach der Korrektur kamen drei "
+     "Befunde zurück, die schon als erledigt galten."),
+
+    ("schleifen-im-eigenen-werkzeug", "Werkzeuge",
+     "Das eigene Werkzeug macht denselben Fehler, den es meldet",
+     "Nach dem Bauen eines Prüf- oder Fix-Werkzeugs die Laufzeit messen und bei "
+     "Auffälligkeiten profilen statt zu raten.",
+     "Ein Fixer brauchte 73 Sekunden für einen Knopfdruck. Die erste Vermutung "
+     "(Vorlagen je Datei neu durchsucht) senkte sie auf 71,5 — ``cProfile`` "
+     "zeigte 177.246 Regex-Läufe: eine Textsuche JE NAME statt eines "
+     "Mengenschnitts. Danach 5,5 Sekunden. Ein zweiter Fixer lag bei 154 "
+     "Sekunden, aus demselben Grund an anderer Stelle."),
+
+    ("beleg-auf-totem-code", "Messen",
+     "Ein Beleg auf toten Code ist kein Beleg",
+     "Wenn ein Werkzeug seine Begründung mit einer Fundstelle belegt, gehören "
+     "Backup- und Archivdateien aus dem Suchraum — am Verzeichnis UND am "
+     "Dateinamen.",
+     "Ein automatisch gesetzter Vermerk begründete „geht an die Oberfläche“ mit "
+     "``backup_dax_handel_vor_modulen.html``. Der Ausschluss griff nur auf "
+     "Ordnernamen, nicht auf Dateinamen."),
+
+    ("null-ist-verdaechtig", "Messen",
+     "Ein Kriterium, das plötzlich auf null fällt, ist ein Alarmzeichen",
+     "Sinkt eine Befundgruppe nach einer Regeländerung auf null, erst die "
+     "Zählung an Einzelfällen gegenprüfen — nicht den Erfolg verbuchen.",
+     "Nach einer Verschärfung meldete Kriterium 11 null Befunde. Die Stichprobe "
+     "zeigte einen Zählfehler; nach der Korrektur waren es drei echte Fälle. "
+     "Die Gegenprobe selbst war übrigens auch erst falsch: ein ``grep`` über "
+     "das ganze Projekt zählte gleichnamige Funktionen anderer Dateien mit."),
+
     ("register-ohne-netz", "Fehler verhindern",
      "Ein Funktionsregister hat kein Netz — direkt importieren",
      "`fn.name = …` in einem Modul und `fn.name()` in einem anderen: Fehlt die "

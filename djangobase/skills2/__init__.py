@@ -41,6 +41,7 @@ from .jswaisen import JsWaisen
 from .jsschnitt import JsSchnitt
 from .kapselung import Kapselung
 from .klassenplan import Klassenplan
+from .leserzahl import LeserzahlWerkzeug
 from .kriterien import KRITERIEN, OHNE_WERKZEUG
 from .lehren import LEHREN, gruppen
 from .modulzustand import ModulZustand
@@ -55,6 +56,7 @@ from .werkzeug import Ergebnis, Quelldatei, Werkzeug2
 #: Reihenfolge = Anzeigereihenfolge. Vorne, was am haeufigsten echte Fehler
 #: findet; hinten, was eher Aufraeumarbeit anzeigt.
 WERKZEUGE = [
+    LeserzahlWerkzeug,
     ModulZustand,
     EsModulImporte,
     # --- Frontend-Pruefungen aus dem 3DTools-Durchgang (16.08.2026).

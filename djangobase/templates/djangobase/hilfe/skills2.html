@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="/static/djangobase/css/tabellen.css?v={{ JS_VERSION|default:1 }}">
 <style>
     .sk2-page { max-width: 1500px; }
-    .sk2-lead { color: var(--bs-secondary-color, #9aa4b2); margin-bottom: 1.2rem; }
+    .sk2-lead { color: var(--text-muted, #9aa4b2); margin-bottom: 1.2rem; }
     .sk2-card { background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.08);
                 border-radius: 10px; padding: 1rem 1.1rem; margin-bottom: 1.2rem; }
     .sk2-card h3 { font-size: 1.05rem; margin: 0 0 .8rem; }
@@ -28,13 +28,16 @@
 
     .sk2-name { font-weight: 600; }
     .sk2-krit { font-weight: 400; font-size: .78rem;
-                color: var(--bs-secondary-color, #9aa4b2); margin-top: .15rem; }
+                color: var(--text-muted, #9aa4b2); margin-top: .15rem; }
     /* Im Browser gemessen (16.08.2026): `--bs-secondary-color` liefert
-       auf der dunklen Seite rgba(33,37,41,.75) — dunkelgrau auf
-       dunkelblau, der Fall-Text war praktisch unlesbar. Deshalb die
-       Theme-Variable der Anwendung zuerst und ein HELLER Ersatzwert. */
+       auf der dunklen Seite rgba(33,37,41,.75) — Helligkeit 36 auf
+       dunkelblauem Grund, praktisch unlesbar. Erst war nur `.sk2-fall`
+       umgestellt; die zweite Messung fand `.sk2-krit`, `.sk2-dauer`,
+       `.sk2-lead` und `.sk2-zaehler` mit demselben Fehler. Deshalb gilt
+       hier ausnahmslos: Theme-Variable der Anwendung zuerst, HELLER
+       Ersatzwert — nie `--bs-secondary-color` allein. */
     .sk2-fall { color: var(--text-muted, #9aa4b2); font-size: .83rem; margin-top: .25rem; }
-    .sk2-dauer { color: var(--bs-secondary-color, #9aa4b2); font-size: .82rem; white-space: nowrap; }
+    .sk2-dauer { color: var(--text-muted, #9aa4b2); font-size: .82rem; white-space: nowrap; }
     .sk2-zelle-wahl { text-align: center; }
     .sk2-btn { border: 1px solid rgba(120,180,255,.4); background: rgba(120,180,255,.12);
                color: #8ec5ff; border-radius: 7px; padding: .3rem .8rem; cursor: pointer;
@@ -43,7 +46,7 @@
     .sk2-btn[disabled] { opacity: .5; cursor: default; }
     .sk2-leiste { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap;
                   margin-bottom: .8rem; }
-    .sk2-leiste .sk2-zaehler { color: var(--bs-secondary-color, #9aa4b2); font-size: .85rem; }
+    .sk2-leiste .sk2-zaehler { color: var(--text-muted, #9aa4b2); font-size: .85rem; }
 
     /* Ausgabe für die nächste Sitzung */
     .sk2-ausgabe { width: 100%; min-height: 22rem; resize: vertical;
@@ -60,9 +63,9 @@
     .sk2-lehre-titel { font-weight: 600; }
     .sk2-lehre-tun { font-size: .87rem; margin-top: .15rem; }
     .sk2-gruppe { margin: 1.2rem 0 .3rem; font-size: .78rem; text-transform: uppercase;
-                  letter-spacing: .04em; color: var(--bs-secondary-color, #9aa4b2); }
+                  letter-spacing: .04em; color: var(--text-muted, #9aa4b2); }
     .sk2-gruppe:first-child { margin-top: 0; }
-    .sk2-zaehler { font-weight: 400; color: var(--bs-secondary-color, #9aa4b2); }
+    .sk2-zaehler { font-weight: 400; color: var(--text-muted, #9aa4b2); }
 </style>
 {% endblock %}
 

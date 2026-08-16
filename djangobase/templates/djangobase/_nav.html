@@ -60,9 +60,17 @@ Die <li>-Eintraege werden in ein vorhandenes <ul class="nav"> eingehaengt.
             <li><a class="nav-link {% if aktiv == 'logs' %}active{% endif %}" href="{% url 'djangobase:logs' %}">
                 <i class="bi bi-journal-text"></i> Logs
             </a></li>
-            <li><a class="nav-link {% if aktiv == 'tests' %}active{% endif %}" href="{% url 'djangobase:tests' %}">
-                <i class="bi bi-bug"></i> Tests
-            </a></li>
+            <li class="nav-item">
+                <a class="nav-link menu-toggle" data-bs-toggle="collapse" href="#dbTestsMenu">
+                    <i class="bi bi-bug"></i> Tests
+                    <i class="bi bi-chevron-down float-end"></i>
+                </a>
+                <div class="collapse {% if aktiv == 'tests' %}show{% endif %}" id="dbTestsMenu">
+                    <ul class="nav flex-column submenu">
+                        {% include "djangobase/_nav_tests.html" %}
+                    </ul>
+                </div>
+            </li>
             {% if djangobase.has_jobs %}
             <li><a class="nav-link {% if aktiv == 'jobs' %}active{% endif %}" href="{% url 'djangobase:jobs' %}">
                 <i class="bi bi-hdd-stack"></i> Jobs

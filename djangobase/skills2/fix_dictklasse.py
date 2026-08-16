@@ -36,6 +36,7 @@ import ast
 import keyword
 import re
 
+from .fix_vermerk import Serialisierungsweg
 from .fixer import Aenderung, Fixer, Vorschau
 
 MARKER = "Dictionary gewollt"
@@ -57,6 +58,8 @@ class Feldsatz:
         self.knoten = knoten
         self.schluessel = list(schluessel)
         self.modul = modul
+        #: Wird bei Namenskollision gesetzt und dem Klassennamen vorangestellt.
+        self.vorsatz = ""
 
     @property
     def klassenname(self):
@@ -77,8 +80,12 @@ class Feldsatz:
             stamm = self.modul[:-3] if self.modul.endswith(".py") else self.modul
             name = self._camel(stamm)
             # ``grid_daten`` + „Daten" waere ``GridDatenDaten``.
-            return name if name.endswith(("Daten", "Satz")) else name + "Daten"
-        return self._camel(roh) or "Ergebnis"
+            name = name if name.endswith(("Daten", "Satz")) else name + "Daten"
+        else:
+            name = self._camel(roh) or "Ergebnis"
+        if self.vorsatz and not name.startswith(self.vorsatz):
+            return self.vorsatz + name
+        return name
 
     @staticmethod
     def _camel(roh):
@@ -204,6 +211,7 @@ class FixDictKlasse(Fixer):
         self._belegte = None
         self._baeume = None
         self._importeure = None
+        self._methoden = None
 
     @property
     def baeume(self):
@@ -237,6 +245,24 @@ class FixDictKlasse(Fixer):
             self._importeure = aus
         return self._importeure
 
+    @property
+    def eindeutige_methoden(self):
+        """Methodennamen, die es im Projekt nur EINMAL gibt.
+
+        Nur bei denen sagt ein ``x.name()`` eindeutig, welche gemeint ist.
+        """
+        if self._methoden is None:
+            wo = {}
+            for pfad, baum in self.baeume.items():
+                for k in ast.walk(baum):
+                    if not isinstance(k, ast.ClassDef):
+                        continue
+                    for m in k.body:
+                        if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                            wo.setdefault(m.name, set()).add(pfad)
+            self._methoden = {n for n, w in wo.items() if len(w) == 1}
+        return self._methoden
+
     def leser(self, pfad, funktion):
         """Wie viele Funktionen rufen ``funktion`` - und lesen damit das Dict?
 
@@ -251,6 +277,12 @@ class FixDictKlasse(Fixer):
         baut dieser Fixer die Klassen wirklich, statt die Regel aufzuweichen.
         """
         erlaubt = {pfad} | self.importeure.get(funktion, set())
+        # METHODEN BRAUCHEN KEINEN IMPORT: ``obj.datensatz()`` ist ein Leser,
+        # ohne dass der Name irgendwo importiert waere. Ist der Methodenname im
+        # Projekt eindeutig, zaehlen deshalb alle Attributaufrufe mit - sonst
+        # meldet der Fixer null Leser fuer eine Methode, die zwei hat.
+        if funktion in self.eindeutige_methoden:
+            erlaubt = set(self.baeume)
         gefunden = set()
         for anderer in erlaubt:
             baum = self.baeume.get(anderer)
@@ -339,24 +371,38 @@ class FixDictKlasse(Fixer):
                         "Ihr Kopfkommentar ist ein Platzhalter — bitte füllen.")
 
     def _roh_noetig(self, pfad, funktion):
-        """Braucht IRGENDEIN Leser ein echtes Dictionary?
+        """Geht DIESES Ergebnis wirklich in die Serialisierung?
 
-        Die erste Fassung sah nur das eigene Modul. Ein ``json.dumps`` beim
-        AUFRUFER bricht aber genauso - die Mapping-Bruecke traegt ``d["x"]``
-        und ``dict(d)``, nicht die C-Serialisierung. Deshalb zaehlen hier alle
-        Module, die die Funktion importieren, mit.
+        DREI FASSUNGEN, ZWEI DAVON UNBRAUCHBAR (16.08.2026):
+
+            „json.dumps steht irgendwo im Modul"        70 von 133 blockiert
+            „… oder irgendwo bei einem Leser"           17 von 20 blockiert
+            „das Ergebnis fliesst nachweislich hinein"  ← gemessen, nicht geraten
+
+        Die ersten beiden blockierten fast alles: In einer Django-Datei steht
+        immer irgendwo ein ``JsonResponse``, meist fuer eine ganz andere
+        Funktion. Gefragt ist der WEG dieses einen Ergebnisses, und den
+        beantwortet ``Serialisierungsweg`` - dieselbe Klasse, die auch
+        ``FixVermerk`` benutzt (Kriterium 6: keine zweite Fassung davon).
+
+        Zusaetzlich bleibt eine Textprobe auf ``**``: Wird das Ergebnis
+        irgendwo entpackt, traegt die Mapping-Bruecke nicht.
         """
-        wo = {pfad} | self.importeure.get(funktion, set())
-        for datei in wo:
-            try:
-                text = datei.read_text(encoding="utf-8")
-            except OSError:
-                continue
-            treffer = next((m for m in self.ROH_NOETIG if m in text), None)
-            if treffer:
-                return "%s nutzt %s — dort wird ein echtes Dictionary gebraucht" \
-                    % (datei.name, treffer)
+        beleg = Serialisierungsweg(self.baeume, self.importeure).beleg(pfad,
+                                                                      funktion)
+        if beleg:
+            return "geht über %s hinaus — dort wird ein echtes Dictionary " \
+                   "gebraucht" % beleg
+        if re.search(r"\*\*\s*%s\s*\(" % re.escape(funktion), self._text(pfad)):
+            return "das Ergebnis wird mit ** entpackt"
         return ""
+
+    @staticmethod
+    def _text(pfad):
+        try:
+            return pfad.read_text(encoding="utf-8")
+        except OSError:
+            return ""
 
     def _je_datei(self, pfad, text, saetze):
         """Eine Aenderung je Datei; mehrere Saetze werden von hinten eingesetzt."""
@@ -368,9 +414,26 @@ class FixDictKlasse(Fixer):
             roh = self._roh_noetig(pfad, satz.funktion)
             if roh:
                 warnungen.append(roh)
+            # BEI KOLLISION AUSWEICHEN, NICHT AUFGEBEN: ``Kennzahlen`` gibt es
+            # dreimal im Projekt. Der Modulname davor macht den Namen eindeutig
+            # UND sprechender - ``NetzGegenOrbKennzahlen`` sagt mehr als
+            # ``Kennzahlen``. Erst wenn auch der belegt ist, bleibt die Stelle
+            # liegen; ein drittes ``BlockUrteil`` entsteht hier nicht (Kriterium 7).
             if satz.klassenname in self.belegte_namen:
-                warnungen.append("Klassenname %s ist schon vergeben"
-                                 % satz.klassenname)
+                satz.vorsatz = Feldsatz._camel(
+                    satz.modul[:-3] if satz.modul.endswith(".py") else satz.modul)
+                if satz.klassenname in self.belegte_namen:
+                    warnungen.append("Klassenname %s ist schon vergeben"
+                                     % satz.klassenname)
+            # DIE NEUE DATEI DARF NIE DIE ALTE SEIN. ``grid_daten.py`` mit einer
+            # Funktion ``datensatz`` ergab die Klasse ``GridDaten`` in
+            # ``grid_daten.py`` - der Begleiter haette das Original ueberschrieben
+            # und dabei den ganzen Modulinhalt verloren (16.08.2026, vor dem
+            # ersten Schreibzugriff aufgefallen).
+            if satz.dateiname == pfad.name:
+                satz.vorsatz = "Satz"
+            if satz.dateiname == pfad.name:
+                warnungen.append("neue Datei hieße wie die alte (%s)" % pfad.name)
             was = "%s: %d Schlüssel → Klasse %s in %s" % (
                 satz.funktion, len(satz.schluessel), satz.klassenname,
                 satz.dateiname)
@@ -401,9 +464,29 @@ class FixDictKlasse(Fixer):
                    ",\n".join("%s    %s=%s" % (einzug, s, w)
                               for s, w in zip(satz.schluessel, werte)) + ")")
         modul = satz.dateiname[:-3]
-        importzeile = "from .%s import %s" % (modul, satz.klassenname)
+        importzeile = "from %s%s import %s" % (self._punkt(text), modul,
+                                               satz.klassenname)
         kopf = self._mit_import(zeilen[:von], importzeile)
         return "\n".join(kopf + neu.split("\n") + zeilen[bis:])
+
+    @staticmethod
+    def _punkt(text):
+        """``"."`` oder ``""`` - der Import-Stil, den die Datei schon benutzt.
+
+        SKRIPTE VERTRAGEN KEINEN RELATIVEN IMPORT (16.08.2026). Die Werkzeuge
+        unter ``werkzeug/`` starten als ``python werkzeug/xyz.py``; dann liegt
+        ihr eigenes Verzeichnis im Pfad und sie schreiben ``from zahl import
+        Zahl``. Ein eingefuegtes ``from .xyz_daten import …`` warf dort sofort
+        „attempted relative import with no known parent package" - vier Skripte
+        auf einen Schlag, gefangen erst beim Startversuch.
+
+        Deshalb wird nicht geraten, sondern abgelesen, wie die Datei es haelt.
+        """
+        if re.search(r"^from\s+\.\w", text, re.M):
+            return "."
+        if re.search(r"^if\s+__name__\s*==", text, re.M):
+            return ""
+        return "."
 
     @staticmethod
     def _ausdruck(text, knoten):
@@ -438,4 +521,15 @@ class FixDictKlasse(Fixer):
             fehlt = [f for f in felder if "self.%s = " % f not in text]
             if fehlt:
                 return ["Felder fehlen in der Klasse: %s" % ", ".join(fehlt)]
+        # EIN SKRIPT MIT RELATIVEM IMPORT STARTET NICHT MEHR. ``ast.parse`` sieht
+        # das nicht - die Zeile ist syntaktisch tadellos und scheitert erst beim
+        # Ausfuehren. Deshalb hier die Stilprobe: hat die Datei einen
+        # ``__main__``-Block und sonst keinen einzigen relativen Import, war der
+        # eingefuegte falsch.
+        eigener = aenderung.pfad.read_text(encoding="utf-8")
+        if re.search(r"^if\s+__name__\s*==", eigener, re.M):
+            relative = re.findall(r"^from\s+\.(\w+)\s+import", eigener, re.M)
+            if len(relative) == 1:
+                return ["Skript mit __main__-Block, aber relativer Import "
+                        "„from .%s" % relative[0] + "“ — das startet nicht"]
         return []

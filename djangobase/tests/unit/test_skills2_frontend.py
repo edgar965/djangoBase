@@ -88,6 +88,35 @@ class JsWaisenTest(FrontendBasis):
         })
         self.assertNotIn("Import ins Leere", self.orte(ergebnis))
 
+    def test_laeufer_ist_keine_waise(self):
+        u"""Node-Skripte und Bau-Konfigurationen MUESSEN unerreichbar sein.
+
+        Vorher standen `vite.config.js`, `playwright.config.js` und ein
+        Playwright-Test unter „laedt niemand" — mit der Abhilfe „importieren
+        oder loeschen". Ein Loeschvorschlag fuer lebenden Code ist die teuerste
+        Sorte Fehlalarm.
+        """
+        ergebnis = self.laufen("jswaisen", {
+            "templates/seite.html": VORLAGE,
+            "static/einstieg.js": "export const a = 1;\n",
+            "playwright.config.js": "module.exports = { testDir: '.' };\n",
+            "vite.config.js": "import { defineConfig } from 'vite';\n"
+                              "export default defineConfig({});\n",
+            "test_lauf.js": "const { test } = require('@playwright/test');\n",
+            "werkzeug.js": "const p = process.env.PORT;\n",
+        })
+        self.assertEqual(ergebnis.zeilen, [], self.orte(ergebnis))
+        self.assertIn("4 Laeufer nicht gezaehlt", ergebnis.zusammenfassung)
+
+    def test_echte_waise_bleibt_trotz_laeufer_erkennung(self):
+        u"""Gegenprobe: Ein Browser-Modul ohne Node-Merkmale bleibt ein Befund."""
+        ergebnis = self.laufen("jswaisen", {
+            "templates/seite.html": VORLAGE,
+            "static/einstieg.js": "export const a = 1;\n",
+            "static/tot.js": "export function nie() { return 1; }\n",
+        })
+        self.assertIn("tot.js", self.orte(ergebnis))
+
 
 class JsRegistrierungTest(FrontendBasis):
 
@@ -198,6 +227,34 @@ class JsBefundeTest(FrontendBasis):
             "static/a.js": "setInterval(sichern, 30000);\n",
         })
         self.assertIn("setInterval ohne Abbruch", self.arten(ergebnis))
+
+    def test_marker_im_dateikopf_nimmt_die_ganze_datei_aus(self):
+        u"""Eine Debugseite, deren Konsolenausgabe ihr Ergebnis IST.
+
+        Vorher brauchte das einen Pfad, der im Pruefer hart eingetragen war —
+        beim naechsten Projekt raet der. Jetzt steht die Begruendung in der
+        Datei, die es betrifft.
+        """
+        ergebnis = self.laufen("jsbefunde", {
+            "templates/debug.html":
+                "{% comment %}\n"
+                "  Debugseite: die Konsolenausgabe IST das Ergebnis, die\n"
+                "  Meldungen sind dauerhaft gewollt.\n"
+                "{% endcomment %}\n"
+                "<script>\n"
+                "  console.log('Schritt 1');\n"
+                "  console.log('Schritt 2');\n"
+                "</script>\n",
+        })
+        self.assertNotIn("console.log", self.arten(ergebnis))
+
+    def test_ohne_marker_bleibt_console_log_ein_befund(self):
+        u"""Gegenprobe zum Kopf-Vermerk."""
+        ergebnis = self.laufen("jsbefunde", {
+            "templates/debug.html": "<script>\n  console.log('Schritt 1');\n"
+                                    "</script>\n",
+        })
+        self.assertIn("console.log", self.arten(ergebnis))
 
 
 class JsFunktionenTest(FrontendBasis):

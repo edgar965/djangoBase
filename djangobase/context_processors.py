@@ -46,4 +46,23 @@ def djangobase(request):
         # „Review" und „Aktuell" erscheinen in JEDEM Projekt (Vorgabe
         # 13.08.2026) — deshalb steht hier kein Schalter mehr. Ob ein
         # Modell-Partner konfiguriert ist, erklaert die Review-Seite selbst.
+        #
+        # Die Test-Kategorien fuers Menue („Alle Unit-Tests", „Alle Component
+        # …"). Sie stehen im Menue an ERSTER Stelle, vor den einzelnen
+        # Bereichen — das ist der haeufigere Wunsch. Abgeleitet aus
+        # ``test_befehle``, also auch in Projekten mit handgepflegter Liste
+        # vorhanden (Vorgabe 17.08.2026: „in allen Projekten sichtbar").
+        "test_arten": _test_arten(c),
     }}
+
+
+def _test_arten(c):
+    """[{'art','kurz','anzahl'}] - die Kategorien, die es wirklich gibt."""
+    from .views.tests import TestsView
+    try:
+        _alles, arten, _rest = TestsView._kategorien_alle(c.get("test_befehle") or [])
+    except Exception:                                          # noqa: BLE001
+        return []
+    # Dictionary gewollt: geht unveraendert in die Vorlage.
+    return [{"art": a["art"], "kurz": a["kurz"], "anzahl": len(a["befehle"])}
+            for a in arten if a.get("sammel")]

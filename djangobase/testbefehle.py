@@ -24,6 +24,14 @@ ZWEI BAUFORMEN, BEIDE ERKANNT
 Bei der zweiten entsteht je Bereich eine eigene Gruppe - sonst wird die Seite
 eine Liste aus hundert Eintraegen.
 
+DIE SAMMELBEFEHLE BAUT DIE SEITE
+================================
+Die haeufigste Frage ist nicht „laeuft search.tests.chat.unit?", sondern „laufen
+ALLE Unit-Tests?". Diesen Knopf je Kategorie baut ``views/tests.py`` aus den
+Eintraegen — absichtlich dort und nicht hier, denn sonst haetten ihn nur die
+Projekte, die diese Klasse benutzen. ``art`` und ``ziel`` werden trotzdem
+mitgegeben: Wo sie stehen, muss die Seite nichts raten.
+
 Benutzung in ``settings.py``:
 
     from djangobase.testbefehle import Testbefehle
@@ -49,6 +57,9 @@ class Testbefehle:
                 "component": "Component", "ui": "UI",
                 "performance": "Performance (Ladezeiten)",
                 "longrunner": "Longrunner"}
+    #: Fuer die Reiter - dort ist Platz knapp.
+    KURZ = {"automated": "Automated", "unit": "Unit", "component": "Component",
+            "ui": "UI", "performance": "Performance", "longrunner": "Longrunner"}
     #: Ordner, die keine App sind.
     KEINE_APP = {"__pycache__", "static", "templates", "media", "logs", "venv",
                  "pythonVENV", ".venv", "node_modules", ".git", "docs", "tmp",
@@ -64,7 +75,12 @@ class Testbefehle:
     # ------------------------------------------------------------------ Aufbau
 
     def liste(self):
-        """[{'slug','name','cmd','gruppe'}] - alles, was startbar ist."""
+        """[{'slug','name','cmd','gruppe','art','ziel'}] - alles, was startbar ist.
+
+        Die Sammelbefehle („alle Unit-Tests") stehen NICHT hier: Die baut die
+        Tests-Seite aus dieser Liste. Sonst haetten sie zwei Quellen — und in
+        Projekten mit handgepflegten ``test_befehle`` (die diese Klasse gar nicht
+        benutzen) gaebe es sie ueberhaupt nicht."""
         aus = []
         for app in self.apps():
             aus.extend(self._fuer_app(app))
@@ -86,31 +102,39 @@ class Testbefehle:
         wurzel = self.basis / app / "tests"
         arten = [a for a in self.ARTEN if self._hat_tests(wurzel / a)]
         bereiche = self._bereiche(wurzel)
-        aus = [self._eintrag(app, app, "Alles", app.capitalize())]
+        aus = [self._eintrag(app, "Alles", app.capitalize())]
         # Bauform 1: app/tests/<art>/
         for art in arten:
-            aus.append(self._eintrag(app, "%s.tests.%s" % (app, art),
-                                     self.ARTNAMEN[art], app.capitalize()))
+            aus.append(self._eintrag("%s.tests.%s" % (app, art),
+                                     self.ARTNAMEN[art], app.capitalize(), art))
         # Bauform 2: app/tests/<bereich>/<art>/ - je Bereich eine Gruppe
         for bereich in bereiche:
             gruppe = "%s · %s" % (app.capitalize(), bereich)
-            aus.append(self._eintrag(app, "%s.tests.%s" % (app, bereich),
+            aus.append(self._eintrag("%s.tests.%s" % (app, bereich),
                                      "Alles", gruppe))
             for art in self.ARTEN:
                 if self._hat_tests(wurzel / bereich / art):
                     aus.append(self._eintrag(
-                        app, "%s.tests.%s.%s" % (app, bereich, art),
-                        self.ARTNAMEN[art], gruppe))
+                        "%s.tests.%s.%s" % (app, bereich, art),
+                        self.ARTNAMEN[art], gruppe, art))
         return aus
 
-    def _eintrag(self, app, ziel, was, gruppe):
-        befehl = [self.python, "manage.py", "test", ziel, "--noinput"]
-        if self.verbose:
-            befehl += ["-v", "2"]
+    def _eintrag(self, ziel, was, gruppe, art=None):
         # Dictionary gewollt: das ist das Eingabeformat von DJANGOBASE["test_befehle"].
+        # ``art`` und ``ziel`` braucht die Seite, um daraus die Kategorie-Reiter
+        # und die Sammelbefehle zu bauen; aeltere Eintraege ohne beides bleiben
+        # nutzbar (sie landen dann unter „Nach App").
         return {"slug": ziel.replace(".", "-"),
                 "name": "%s · %s" % (gruppe, was) if gruppe != was else gruppe,
-                "gruppe": gruppe, "cmd": befehl}
+                "kurz": was, "gruppe": gruppe, "art": art, "ziel": ziel,
+                "cmd": self._befehl([ziel])}
+
+    def _befehl(self, ziele):
+        """``manage.py test <ziel …> --noinput -v 2`` - ohne Ziel: das ganze Projekt."""
+        befehl = [self.python, "manage.py", "test"] + list(ziele) + ["--noinput"]
+        if self.verbose:
+            befehl += ["-v", "2"]
+        return befehl
 
     # ------------------------------------------------------------------ Platte
 

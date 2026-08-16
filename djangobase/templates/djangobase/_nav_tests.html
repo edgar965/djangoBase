@@ -1,0 +1,32 @@
+{% comment %}
+Die Test-Kategorien fuers Menue - „Alle", dann Automated/Unit/Component/UI/
+Performance/Longrunner. Sie stehen an ERSTER Stelle im Untermenue „Tests", vor
+den einzelnen Bereichen: „laufen alle Unit-Tests?" ist die haeufigere Frage als
+„laeuft dieser eine Bereich?".
+
+Dieser Baustein wird von der djangoBase-Sidebar UND von projekteigenen Sidebars
+eingebunden ({% templatetag openblock %} include "djangobase/_nav_tests.html"
+{% templatetag closeblock %}) — deshalb steht er hier und nicht doppelt in jedem
+Projekt. Die Liste kommt aus dem Kontext-Prozessor (djangobase.test_arten) und
+enthaelt nur Arten, die es im Projekt wirklich gibt.
+
+Vorgeschichte (17.08.2026): Der Reiter „Alle" der Tests-Seite war fertig, aber im
+Projekt assistant unerreichbar — dessen eigene Sidebar verlinkt unter Hilfe →
+Tests ausschliesslich die projekteigenen Bereichsseiten, nie die djangoBase-Seite.
+Gebaut und niemand kommt hin ist dasselbe wie nicht gebaut.
+{% endcomment %}
+<li><a class="nav-link {% if aktiv == 'tests' %}active{% endif %}"
+       href="{% url 'djangobase:tests' %}?tab=Alle">
+    <i class="bi bi-collection-play"></i> Alle
+</a></li>
+{% for a in djangobase.test_arten %}
+<li><a class="nav-link" href="{% url 'djangobase:tests' %}?tab=Alle&unter={{ a.art }}">
+    {% if a.art == 'automated' %}<i class="bi bi-lightning-charge"></i>
+    {% elif a.art == 'unit' %}<i class="bi bi-code-slash"></i>
+    {% elif a.art == 'component' %}<i class="bi bi-puzzle"></i>
+    {% elif a.art == 'ui' %}<i class="bi bi-window"></i>
+    {% elif a.art == 'performance' %}<i class="bi bi-speedometer2"></i>
+    {% else %}<i class="bi bi-hourglass-split"></i>{% endif %}
+    {{ a.kurz }}
+</a></li>
+{% endfor %}

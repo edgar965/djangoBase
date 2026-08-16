@@ -128,11 +128,28 @@ class LauteAusgabe(Regel):
     #: Test- und Debug-Dateien: Dort IST die Ausgabe das Ergebnis. Ein
     #: Playwright-Test, der nichts ausgibt, ist wertlos.
     TESTMUSTER = re.compile(r"(^|/)(test_|tests?/)|\.spec\.js$|playwright")
+    #: So viele Zeilen am Dateianfang gelten als Kopf.
+    KOPFZEILEN = 40
 
     def pruefen(self, datei, zeilen):
+        u"""Ausnahmen — in dieser Reihenfolge.
+
+        Die dritte ist die wichtige: **`dauerhaft gewollt` im Dateikopf** nimmt
+        die ganze Datei aus. Damit steht die Begruendung DORT, wo die Ausgabe
+        gewollt ist, statt als Pfad in einer Liste im Pruefer.
+
+        WARUM (17.08.2026): Die Theatre-Debugseite (`theatre_studio.html`, nicht
+        verlinkt, ihre Konsolenausgabe IST das Ergebnis) stand mit 10 Befunden in
+        der Liste, und ein Werkzeug im Projekt trug dafuer den Pfad hart
+        eingetragen — beide Zaehlungen wichen deshalb um 10 voneinander ab. Eine
+        Pfadliste im Pruefer raet ausserdem beim naechsten Projekt.
+        """
         if datei.rsplit("/", 1)[-1] in LauteAusgabe.AUSNAHMEN:
             return []
         if LauteAusgabe.TESTMUSTER.search(datei):
+            return []
+        kopf = "\n".join(zeilen[:LauteAusgabe.KOPFZEILEN])
+        if "dauerhaft gewollt" in kopf:
             return []
         return super().pruefen(datei, zeilen)
 

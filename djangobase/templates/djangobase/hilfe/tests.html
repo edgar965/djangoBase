@@ -4,17 +4,83 @@
 {% block topbar_title %}<i class="bi bi-bug"></i> Hilfe · Tests{% endblock %}
 
 {% block content %}
-<div class="ts-page" data-aktiv-tab="{{ aktiver_tab }}">
+<div class="ts-page" data-aktiv-tab="{{ aktiver_tab }}" data-aktiv-unter="{{ aktiver_unter }}">
 
     {# ---------------- Tab-Leiste ---------------- #}
+    {% comment %}
+       „Alle" steht an erster Stelle und ist damit auch der Start-Reiter: Die
+       haeufigste Frage ist „laufen alle Unit-Tests?", nicht „laeuft dieser eine".
+    {% endcomment %}
     <div class="ts-tabs" id="ts-tabs">
+        {% if alles %}<button type="button" class="ts-tab" data-tab="Alle">
+            <i class="bi bi-play-circle-fill"></i> Alle
+            <span class="ts-count">{{ alle_arten|length }}</span></button>{% endif %}
         {% for k in kategorien %}
         <button type="button" class="ts-tab" data-tab="{{ k.typ }}">{{ k.typ }}
             <span class="ts-count">{{ k.anzahl }}</span></button>
         {% endfor %}
         {% if ui %}<button type="button" class="ts-tab" data-tab="UI">UI <span class="ts-count" id="ts-ui-count">…</span></button>{% endif %}
-        {% if befehle %}<button type="button" class="ts-tab" data-tab="Suiten">Suiten <span class="ts-count">{{ befehle|length }}</span></button>{% endif %}
+        {% if suiten %}<button type="button" class="ts-tab" data-tab="Suiten">Suiten <span class="ts-count">{{ suiten|length }}</span></button>{% endif %}
     </div>
+
+    {# ---------------- Panel: Alle (Kategorie-Sammelläufe) ---------------- #}
+    {% if alles %}
+    <div class="ts-panel" data-panel="Alle">
+
+        {% if alles %}
+        <div class="ts-card ts-alles">
+            <div class="ts-alles-text">
+                <h3><i class="bi bi-collection-play"></i> {{ alles.name }}</h3>
+                <p class="ts-meta">Ein einziger Lauf über das ganze Projekt — die
+                    Testdatenbank wird einmal aufgebaut statt je Kategorie neu.
+                    Longrunner laufen mit, das kann Minuten dauern.</p>
+            </div>
+            <a class="ts-run gross" href="?run={{ alles.slug }}&tab=Alle"><i class="bi bi-play-fill"></i> Alles ausführen</a>
+        </div>
+        {% endif %}
+
+        {# Unter-Reiter je Kategorie #}
+        <div class="ts-subtabs">
+            {% for a in alle_arten %}
+            <button type="button" class="ts-subtab" data-subtab="{{ a.art }}">{{ a.kurz }}
+                <span class="ts-count">{{ a.befehle|length }}</span></button>
+            {% endfor %}
+        </div>
+
+        {% for a in alle_arten %}
+        <div class="ts-subpanel" data-subpanel="{{ a.art }}">
+            {% if a.sammel %}
+            <div class="ts-card ts-alles">
+                <div class="ts-alles-text">
+                    <h3><i class="bi bi-play-circle"></i> {{ a.sammel.name }}
+                        <span class="ts-meta">· {{ a.sammel.anzahl }} Bereich{{ a.sammel.anzahl|pluralize:"e" }} in einem Lauf</span></h3>
+                    <code class="ts-id">{{ a.sammel.cmd|join:' ' }}</code>
+                </div>
+                <a class="ts-run gross" href="?run={{ a.sammel.slug }}&tab=Alle&unter={{ a.art }}"><i class="bi bi-play-fill"></i> Kategorie ausführen</a>
+            </div>
+            {% endif %}
+            <div class="ts-card">
+                <h3><i class="bi bi-list-check"></i> Einzeln
+                    <span class="ts-count">{{ a.befehle|length }}</span></h3>
+                {% if a.befehle %}
+                <div class="ts-list">
+                    {% for b in a.befehle %}
+                    <div class="ts-item {% if aktiver_slug == b.slug %}aktiv{% endif %}">
+                        <span class="ts-name"><i class="bi bi-dot"></i> {{ b.name }}</span>
+                        <code class="ts-id">{{ b.ziel }}</code>
+                        <a class="ts-run" href="?run={{ b.slug }}&tab=Alle&unter={{ a.art }}"><i class="bi bi-play-fill"></i> Run</a>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="ts-empty">Keine Tests dieser Art — Ordner
+                    <code>&lt;app&gt;/tests/{{ a.art }}/</code> anlegen.</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
 
     {# ---------------- Panels: Einzeltests pro Typ ---------------- #}
     {% for k in kategorien %}
@@ -130,10 +196,12 @@
     {% endif %}
 
     {# ---------------- Panel: Suiten (Batch-Kommandos) ---------------- #}
-    {# Je Gruppe eine eigene Karte („Search · chat", „Firma", …). Ohne
+    {% comment %}
+       Je Gruppe eine eigene Karte („Search · chat", „Firma", …). Ohne
        `gruppe`-Schluessel liefert die View EINE Gruppe — dann sieht die Seite
        aus wie bisher. Mit vielen Bereichen waere eine flache Liste sonst genau
-       das, wovor Kriterium 17 warnt: hundert Eintraege ohne Ordnung. #}
+       das, wovor Kriterium 17 warnt: hundert Eintraege ohne Ordnung.
+    {% endcomment %}
     {% if befehle %}
     <div class="ts-panel" data-panel="Suiten">
         {% for g in suiten_gruppen %}
@@ -183,6 +251,22 @@
     if (!start || !tabs.some(function (t) { return t.dataset.tab === start; }))
         start = tabs.length ? tabs[0].dataset.tab : "";
     if (start) aktiv(start);
+
+    // Zweite Ebene: die Kategorie-Reiter im Panel „Alle". Eigene Klassen, damit
+    // die Umschaltung der ersten Ebene sie nicht mit erwischt.
+    var subtabs = Array.prototype.slice.call(document.querySelectorAll(".ts-subtab"));
+    var subpanels = Array.prototype.slice.call(document.querySelectorAll(".ts-subpanel"));
+    function aktivUnter(name) {
+        subtabs.forEach(function (t) { t.classList.toggle("aktiv", t.dataset.subtab === name); });
+        subpanels.forEach(function (p) { p.classList.toggle("aktiv", p.dataset.subpanel === name); });
+    }
+    subtabs.forEach(function (t) {
+        t.addEventListener("click", function () { aktivUnter(t.dataset.subtab); });
+    });
+    var unter = page.getAttribute("data-aktiv-unter");
+    if (!unter || !subtabs.some(function (t) { return t.dataset.subtab === unter; }))
+        unter = subtabs.length ? subtabs[0].dataset.subtab : "";
+    if (unter) aktivUnter(unter);
     // Wurde ein Test ausgeführt? Ergebnis in den Blick scrollen.
     var res = document.querySelector(".ts-result");
     if (res) res.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -199,6 +283,18 @@
 .ts-count { background: #0d1117; color: #4ea8f6; border-radius: 10px; padding: 0 7px; font-size: .72rem; margin-left: 4px; }
 .ts-panel { display: none; }
 .ts-panel.aktiv { display: block; }
+.ts-subtabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
+.ts-subtab { background: #0f1d31; border: 1px solid #1e3a5f; color: #8aa0b8;
+    padding: 6px 14px; border-radius: 20px; cursor: pointer; font-size: .85rem; font-weight: 600; }
+.ts-subtab:hover { color: #e9f0f8; border-color: #1e5bb8; }
+.ts-subtab.aktiv { color: #fff; background: #15406e; border-color: #1e5bb8; }
+.ts-subpanel { display: none; }
+.ts-subpanel.aktiv { display: block; }
+.ts-alles { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.ts-alles-text { flex: 1 1 320px; min-width: 0; }
+.ts-alles h3 { margin-bottom: 6px; }
+.ts-alles p { margin: 0; }
+.ts-run.gross { padding: 9px 20px; font-size: .92rem; flex: 0 0 auto; }
 .ts-card { background: #142136; border: 1px solid #1e3a5f; border-radius: 10px; padding: 16px 20px; margin-bottom: 18px; }
 .ts-card h3 { color: #e9f0f8; font-size: 1.05rem; margin: 0 0 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .ts-card h3 i { color: #4ea8f6; }

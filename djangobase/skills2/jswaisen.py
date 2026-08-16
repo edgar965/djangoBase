@@ -45,6 +45,23 @@ DYNAMISCH = re.compile(r"""import\s*\(\s*['"]([^'"]+\.js)(?:\?[^'"]*)?['"]""")
 IM_TEMPLATE = re.compile(r"""['"]([^'"]*?\.js)(?:\?[^'"]*)?['"]""")
 #: Anmeldung in einer Registrierung: `fn.name =` oder `window.name =`
 ANMELDUNG = re.compile(r"^\s*(?:fn|window)\.(\w+)\s*=", re.MULTILINE)
+#: Merkmale einer Datei, die AUSGEFUEHRT wird (Node, Bauwerkzeug, Testlaeufer)
+#: statt von einer Seite geladen zu werden.
+#:
+#: WARUM AM CODE UND NICHT AM ORDNER (17.08.2026): Vorher standen
+#: `vite.config.js`, `playwright.config.js` und `test_anim_debug.js` unter
+#: „laedt niemand" — mit dem Hinweis, das sei zu Recht so. Ein Befund, der
+#: „zu Recht" dasteht, ist keiner: Er faelscht die Zahl und die Abhilfe lautete
+#: „importieren oder loeschen" fuer lebenden Code. Wer stattdessen eine
+#: Ordnerliste pflegt, liegt beim naechsten Projekt daneben. Diese Merkmale
+#: kann der Browser gar nicht ausfuehren, also ist die Datei ein Laeufer:
+LAEUFER = (
+    "require(",         # CommonJS — im Browser-Modul unmoeglich
+    "module.exports",   # dito
+    "__dirname",        # Node
+    "process.env",      # Node
+    "defineConfig(",    # Vite/Playwright/Jest-Konfiguration
+)
 
 
 def ohne_kommentarzeilen(text):
@@ -75,12 +92,15 @@ class Modulinventar:
         self.importe = {}
         self.rohimporte = {}
         self.geladen = set()
+        self.laeufer = set()
 
     def erheben(self):
         bekannt = set(self.dateien)
         for pfad in self.dateien:
             text = ohne_kommentarzeilen(
                 pfad.read_text(encoding="utf-8", errors="replace"))
+            if any(marke in text for marke in LAEUFER):
+                self.laeufer.add(pfad)
             self.anmeldungen[pfad] = sorted(set(ANMELDUNG.findall(text)))
             treffer = IMPORT.findall(text) + DYNAMISCH.findall(text)
             self.rohimporte[pfad] = [t for t in treffer if t.startswith(".")]
@@ -127,7 +147,14 @@ class Modulinventar:
         return einstieg
 
     def verwaist(self):
-        return [p for p in self.dateien if p not in self.geladen]
+        u"""Dateien, die keine Seite laedt — Laeufer ausgenommen.
+
+        Ein Laeufer (Node-Skript, Bauwerkzeug, Testlaeufer) gehoert nicht zu den
+        Seiten und MUSS unerreichbar sein. Er unter „laedt niemand" zu fuehren
+        heisst, einen Loeschvorschlag fuer lebenden Code zu machen.
+        """
+        return [p for p in self.dateien
+                if p not in self.geladen and p not in self.laeufer]
 
     def fehlende(self):
         """Importe, die auf eine Datei zeigen, die es nicht gibt."""
@@ -177,12 +204,13 @@ class JsWaisen(Werkzeug2):
         return Ergebnis(
             ["art", "ort", "text"], zeilen,
             zusammenfassung="%d JS-Dateien, %d davon laedt niemand, %d Importe "
-                            "ins Leere" % (len(inventar.dateien),
-                                           len(inventar.verwaist()),
-                                           len(inventar.fehlende())),
-            hinweis="Konfigurations- und Bau-Dateien (vite.config.js, "
-                    "playwright.config.js) tauchen hier zu Recht auf: Sie "
-                    "gehoeren nicht zu den Seiten.")
+                            "ins Leere (%d Laeufer nicht gezaehlt)"
+                            % (len(inventar.dateien), len(inventar.verwaist()),
+                               len(inventar.fehlende()), len(inventar.laeufer)),
+            hinweis="Laeufer (Node-Skripte, vite.config.js, Playwright-Tests) "
+                    "sind ausgenommen — sie werden ausgefuehrt, nicht von einer "
+                    "Seite geladen, und am Code erkannt (require/module.exports/"
+                    "__dirname/process.env/defineConfig), nicht am Ordner.")
 
     def _quellen(self):
         raus = self.ausgeschlossen()
