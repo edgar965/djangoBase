@@ -31,6 +31,61 @@ wirken SOFORT live in allen Projekten:
 Enumeration prüfen: ripgrep respektiert `.gitignore` und übersieht dabei Projekte
 (ist mit shortlongx passiert) — für vollständige Suchen `rg --no-ignore` oder `grep -r`.
 
+## Werkzeugkästen (skills / skills2 / umbau)
+
+Drei Pakete, drei Zwecke — nicht vermischen:
+
+| Paket | Was drin ist | Aufruf |
+|---|---|---|
+| `djangobase/skills/` | 12 Python-/Endpunkt-Werkzeuge (3DTools-Durchgang) | Hilfe→Skills |
+| `djangobase/skills2/` | Python-Prüfer + **6 Frontend-Prüfer** (JS/Vorlagen) | Hilfe→Skills2 |
+| `djangobase/umbau/` | Werkzeuge, die Quelltext **ändern** — kein Web-Knopf | `python -m djangobase.umbau.<name>` |
+
+### Die sechs Frontend-Prüfer in skills2 (16.08.2026, aus 3DTools)
+
+| Kennung | Findet | Belegter Fall |
+|---|---|---|
+| `jssyntax` | kaputte ES-Module (kopiert nach `.mjs`, dann `node --check`) | 3 Dateien mit Import mitten in einem Import — als `.js` grün, als `.mjs` rot |
+| `jswaisen` | Module, die niemand lädt; Importe ins Leere | 3 verwaiste Module, die Funktionen anmeldeten → 3 tote Seitenzweige |
+| `jsregistrierung` | `fn.x()` ohne `fn.x = …` | 4 Namen gerufen, nie angemeldet |
+| `jsfaenger` | werfende Server-Abrufe ohne `try` | 16 von 101; zwei direkt hinter einem Nutzerklick |
+| `jsfunktionen` | Funktionen ab N Zeilen (`skills2_funktionsgrenze`) | `loadClothUI` mit 245 Zeilen |
+| `jsbefunde` | 10 zählbare Auffälligkeiten in `.js`/`.html` | 3.290 Befunde erhoben, davon `.ok`-Prüfung 71→0, `console.log` 144→0, `var` 157→0 |
+
+Regeln von `jsbefunde` stehen in `skills2/jsregeln.py` (eine Klasse je Regel),
+der Klammerzähler in `skills2/jsklammern.py` (Template-Strings über mehrere
+Zeilen, `} catch (e) {`).
+
+Tests: `djangobase/tests/unit/test_skills2_frontend.py` — je Werkzeug ein Fund
+UND eine Gegenprobe, dazu die vier Fehlalarme, die beim Bau aufgefallen sind.
+
+### Frontend-Klassen, die dazugehören
+
+`djangobase/static/djangobase/js/serverabruf.js` und `protokoll.js` sind die
+**kanonische Fassung** (die Umsteller schreiben Importe auf genau sie).
+Konsumenten mit vielen kurzen relativen Importen legen eine Weiterleitung an,
+statt zu kopieren:
+
+```js
+export { Serverabruf } from '/static/djangobase/js/serverabruf.js';
+```
+
+`Serverabruf` prüft `response.ok`, hängt bei Fehlern **Status, Rumpf und
+geparstes JSON** an die Ausnahme (`fehler.status/.rumpf/.daten`), setzt den
+CSRF-Kopf und kennt `senden`/`formular`/`jsonOderNull`. Cookiename über
+`Serverabruf.COOKIENAME` oder `<meta name="csrf-cookie">`.
+
+### JS in der Testsuite: `djangobase.testhelfer.Webmodul`
+
+Lädt ein ES-Modul der Seite in Node — spiegelt die Importkette und biegt
+absolute `/static/…`-Pfade um (die Node sonst als `A:\static\…` sucht) sowie
+`?v=`-Anhänge. Ein Import ins Leere wirft, statt still zu überspringen.
+
+### Neue DJANGOBASE-Schlüssel
+
+`skills2_register` (Vorgabe `["fn"]`), `skills2_abrufklassen`
+(`["Serverabruf"]`), `skills2_funktionsgrenze` (90), `skills2_ignorieren`.
+
 ## Vor Änderungen (Breaking-Check)
 - Shell-Templates (`base.html`, `base_app.html`, `_shell.html`, `_sidebar.html`,
   `_nav.html`, `sidebar.css`) treffen ALLE Konsumenten — nur additiv/opt-in ändern.

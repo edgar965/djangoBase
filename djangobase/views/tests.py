@@ -59,6 +59,26 @@ def _kurz(test_id):
 
 
 class TestsView(ZugriffMixin, View):
+
+    @staticmethod
+    def _gruppen(befehle):
+        """Suiten nach ``gruppe`` buendeln - Reihenfolge wie eingetragen.
+
+        Eintraege OHNE ``gruppe`` landen zusammen unter „Test-Suiten (Batch)":
+        Projekte, die ihre Liste von Hand pflegen, sehen die Seite damit
+        unveraendert. Wer ``djangobase.testbefehle.Testbefehle`` benutzt,
+        bekommt je Bereich eine eigene Karte (Kriterium 17: keine flache Liste
+        aus hundert Eintraegen)."""
+        aus, nach_name = [], {}
+        for b in befehle:
+            name = b.get("gruppe") or "Test-Suiten (Batch)"
+            if name not in nach_name:
+                # Dictionary gewollt: geht unveraendert in die Vorlage.
+                nach_name[name] = {"name": name, "befehle": []}
+                aus.append(nach_name[name])
+            nach_name[name]["befehle"].append(b)
+        return aus
+
     def get(self, request):
         c = conf()
         befehle = c.get("test_befehle", []) or []
@@ -91,6 +111,7 @@ class TestsView(ZugriffMixin, View):
         return render(request, "djangobase/hilfe/tests.html", {
             "aktiv": "tests",
             "befehle": befehle,
+            "suiten_gruppen": self._gruppen(befehle),
             "kategorien": kategorien,
             "ui": ui,
             "ergebnis": ergebnis,

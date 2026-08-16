@@ -1,0 +1,23 @@
+{% comment %}Die beiden Werkzeugkaesten als Menue-Eintraege - EINMAL gepflegt.
+
+Eingebunden von der HILFE-Gruppe in ``_nav.html`` - und nur von dort. Beide
+Seiten gehoeren unter Hilfe (Ansage 16.08.2026); eine eigene Menue-Gruppe dafuer
+war ein Fehlgriff und ist wieder entfernt.
+
+Projekte mit eigener Navigation (``hilfe_menu: False``) holen sie sich ueber
+``djangobase.pflichtmenue.pflicht_eintraege()`` in ihre eigene Hilfe-Gruppe.
+
+Beide Seiten haben BEWUSST keine Bedingung (wie Review und Aktuell): Sie brauchen
+keine Konfiguration - die Werkzeuge fragen Django nach Vorlagen, Routen und
+Modulen und laufen deshalb in jedem Projekt, das djangoBase einbindet.
+
+Warum zwei getrennte Seiten: Beide sind am 16.08.2026 in zwei parallelen
+Sitzungen entstanden. Sie stehen nebeneinander statt ineinander, weil jede ihre
+eigene Herkunft und ihren eigenen Zuschnitt hat.
+{% endcomment %}
+<li><a class="nav-link {% if aktiv == 'skills' %}active{% endif %}" href="{% url 'djangobase:skills' %}">
+    <i class="bi bi-tools"></i> Skills
+</a></li>
+<li><a class="nav-link {% if aktiv == 'skills2' %}active{% endif %}" href="{% url 'djangobase:skills2' %}">
+    <i class="bi bi-clipboard2-check"></i> Skills2
+</a></li>

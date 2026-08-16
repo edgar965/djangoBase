@@ -68,8 +68,27 @@ class Schleifenarbeit(Werkzeug2):
 
     def _in_schleife(self, d, schleife):
         aus, tiefe = [], self._tiefe(schleife)
+        # DREI UNTERSCHEIDUNGEN, ohne die das Werkzeug fast nur Fehlalarme
+        # liefert (gemessen 16.08.2026: 199 Befunde, davon 190 falsch):
+        #
+        #   1. Der ITERATOR laeuft einmal - „for p in wurzel.rglob(…)" ist die
+        #      Suche, die die Schleife speist, kein Zugriff je Durchlauf.
+        #   2. Jeder Aufruf gehoert zur INNERSTEN Schleife; sonst wird er
+        #      zweimal bewertet und einmal davon falsch.
+        #   3. Haengt der Zugriff an der Schleifenvariablen (auch ueber
+        #      Zwischennamen), liest er JE DURCHLAUF ETWAS ANDERES - das ist der
+        #      Zweck eines Werkzeugs, das ueber Dateien laeuft.
+        im_kopf = ({id(k) for k in ast.walk(schleife.iter)}
+                   if isinstance(schleife, ast.For) else set())
+        innere = set()
         for k in ast.walk(schleife):
-            if k is schleife:
+            if k is not schleife and isinstance(k, (ast.For, ast.While)):
+                innere.update(id(x) for x in ast.walk(k))
+        abgeleitet = self._abgeleitete_namen(schleife)
+        for k in ast.walk(schleife):
+            if k is schleife or id(k) in im_kopf or id(k) in innere:
+                continue
+            if isinstance(k, ast.Call) and self._haengt_an(k, abgeleitet):
                 continue
             if isinstance(k, ast.Call):
                 name = getattr(k.func, "attr", None) or getattr(k.func, "id", None)
@@ -94,6 +113,46 @@ class Schleifenarbeit(Werkzeug2):
                                 "bewertung": "belegt" if self._begruendet(d, k.lineno)
                                              else "prüfen"})
         return aus
+
+    @staticmethod
+    def _haengt_an(knoten, namen):
+        """Benutzt dieser Knoten einen der abgeleiteten Namen?"""
+        if not namen:
+            return False
+        return any(isinstance(x, ast.Name) and x.id in namen for x in ast.walk(knoten))
+
+    @staticmethod
+    def _abgeleitete_namen(schleife):
+        """Die Schleifenvariablen UND alles, was im Koerper daraus entsteht.
+
+            for b in befunde:
+                d = b["datei"]                    # d haengt an b
+                zeilen = (WURZEL / d).read_text() # haengt damit auch an b
+
+        Drei Runden reichen fuer die Ketten, die in der Praxis vorkommen."""
+        namen = set()
+        for z in ast.walk(schleife.target) if hasattr(schleife, "target") else []:
+            if isinstance(z, ast.Name):
+                namen.add(z.id)
+        if not namen:
+            return namen
+        for _runde in range(3):
+            vorher = len(namen)
+            for k in ast.walk(schleife):
+                if not isinstance(k, (ast.Assign, ast.AnnAssign, ast.AugAssign)):
+                    continue
+                if k.value is None or not any(
+                        isinstance(x, ast.Name) and x.id in namen
+                        for x in ast.walk(k.value)):
+                    continue
+                ziele = k.targets if isinstance(k, ast.Assign) else [k.target]
+                for z in ziele:
+                    for x in ast.walk(z):
+                        if isinstance(x, ast.Name):
+                            namen.add(x.id)
+            if len(namen) == vorher:
+                break
+        return namen
 
     def _begruendet(self, d, zeile):
         zeilen = d.text.splitlines()

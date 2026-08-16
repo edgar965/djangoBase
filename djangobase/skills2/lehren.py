@@ -112,6 +112,27 @@ LEHREN = [
      "wurde, lief einer davon ins Leere — drei Tage lang eine Sicherung, die "
      "keine mehr war."),
 
+    ("weiterleitung", "Aufräumen",
+     "Nach dem Zusammenlegen ist die Weiterleitung kein neues Duplikat",
+     "Wer 34 Kopien einer Funktion zusammenlegt, hinterlässt an 34 Stellen ein "
+     "``return Gemeinsam.tun(x)``. Das Duplikat-Werkzeug meldet diese Zeilen "
+     "prompt als neuen Fund — wer dem folgt, schreibt die Kopien zurück. Rümpfe, "
+     "die nur weiterreichen, gehören ausgenommen.",
+     "Genau so geschehen beim Zusammenlegen der deutschen Zahlformatierung: Der "
+     "nächste Lauf zeigte 34 frische „Duplikate“, die in Wahrheit die Lösung "
+     "waren."),
+
+    ("fehlalarm", "Aufräumen",
+     "Ein Werkzeug mit 95 % Fehlalarm verdeckt die echten Funde",
+     "Beim ersten Lauf zählen die Treffer wenig — entscheidend ist, wie viele "
+     "davon standhalten. Jeder Fehlalarm kostet Prüfzeit UND drängt die echten "
+     "Fälle aus dem Blickfeld. Lieber die Regel schärfen als die Liste abarbeiten.",
+     "Die Schleifen-Prüfung meldete 199 Fälle, davon 190 falsch: Der Iterator im "
+     "Schleifenkopf läuft einmal, nicht je Durchlauf; ein Zugriff, der an der "
+     "Schleifenvariablen hängt, liest je Durchlauf etwas anderes. Nach den "
+     "Unterscheidungen blieben 9 — darunter die eine Datei, die neunmal gelesen "
+     "wurde. Über alle Kriterien fielen so 1.257 Befunde auf 568."),
+
     ("generiert", "Aufräumen",
      "Generierte Ordner nie bearbeiten",
      "Ordner, die ein Werkzeug bei jedem Lauf neu schreibt, sehen aus wie "
@@ -159,6 +180,145 @@ LEHREN = [
      "für das, was man ohnehin tun wollte.",
      "Ein rot bleibender Test wurde mit einer erfundenen Begründung grün "
      "gestellt. Der Satz klang plausibel und hatte nichts hinter sich."),
+
+    ("erst-lohnt-es-sich", "Messen",
+     "Vor dem Umbau fragen, ob er sich lohnt",
+     "Ein Befund sagt „hier stimmt etwas nicht“ — nicht „bau es um“. Zwischen "
+     "beidem steht eine Messung: Geht das Wörterbuch an die Oberfläche? Ist das "
+     "geteilte Argument ein Feld oder ein Zwischenergebnis? Bleibt die Datei "
+     "nach dem Schnitt wirklich unter der Grenze?",
+     "134 von 204 Befunden waren Anzeigeformate, die der Auftrag selbst "
+     "ausnimmt. Ein Schnitt, der 46/198 versprach, ergab 49/204 — die Hälfte "
+     "blieb über der Grenze, der ganze Umbau brachte nichts."),
+
+    ("vererbung-statt-schnitt", "Aufräumen",
+     "Große Klassen über Vererbung teilen, nicht mit dem Zeilenschnitt",
+     "Wird die herausgelöste Hälfte zur BASISKLASSE, bleibt jeder Aufruf "
+     "unverändert — statische Methoden vererben sich mit. Ein Zeilenschnitt "
+     "durch eine Klasse trennt dagegen nur ihren Kopf ab, und die Aufrufer "
+     "suchen sie an der alten Adresse.",
+     "Vier Dateien so geteilt, ohne dass ein Aufrufer mitwandern musste. Beim "
+     "fünften Versuch — Zeilenschnitt statt Vererbung — landete die exportierte "
+     "Klasse in der neuen Datei, während die Seite sie von der alten holte."),
+
+    ("laedt-heisst-nicht-laeuft", "Fehler verhindern",
+     "„Lädt ohne Fehler“ ist nicht „funktioniert“",
+     "Ein Modul kann sauber laden und beim ERSTEN echten Aufruf werfen — etwa "
+     "wenn eine Import-Zeile beim Aufteilen in der falschen Hälfte landete. "
+     "Prüfungen müssen die Funktionen RUFEN, nicht nur zählen.",
+     "Nach einem Schnitt lud alles, aber die Tabelle blieb leer: „esc is not "
+     "defined“, geworfen erst beim Bauen der ersten Zelle. Seitdem baut die "
+     "Prüfung alle 24 Zellfunktionen mit einer echten Zeile."),
+
+    ("module-brechen-ganz", "Fehler verhindern",
+     "Ein Modul, das beim Laden wirft, reißt die ganze Seite mit",
+     "Der Browser verwirft es komplett — samt aller Namen, die es auf `window` "
+     "legen wollte, teils auch die der Nachbardateien. Sechs Ursachen: fehlendes "
+     "`super()`, Selbstbezug per Klassenname, doppelter Export, geteilter "
+     "Modulzustand, Zugriff auf ein Seiten-Global auf Modulebene, und ein `let`, "
+     "das über die Schnittgrenze geschrieben wird (Importe sind read-only).",
+     "Alle sechs an einem Tag. Einmal waren acht window-Namen auf einen Schlag "
+     "weg, darunter welche aus ganz anderen Dateien — wegen einer zweiten "
+     "`export`-Zeile."),
+
+    # ------------------------------------------------------------------
+    # Aus dem 3DTools-Frontend-Durchgang (16.08.2026): 13 stille Ausfaelle in
+    # einem Tag, alle in Browser-Code. Werkzeuge dazu: jswaisen,
+    # jsregistrierung, jsfaenger, jssyntax, jsbefunde, jsfunktionen.
+    # ------------------------------------------------------------------
+
+    ("register-ohne-netz", "Fehler verhindern",
+     "Ein Funktionsregister hat kein Netz — direkt importieren",
+     "`fn.name = …` in einem Modul und `fn.name()` in einem anderen: Fehlt die "
+     "Anmeldung (Modul nie importiert, Name geändert, Datei weggefallen), "
+     "merkt es niemand. Wo möglich, direkt importieren; wo das Register "
+     "bleibt, die Anmeldungen prüfen (Werkzeug `jsregistrierung`).",
+     "Vier Namen wurden gerufen, aber nie angemeldet: die Fotoanalyse brach "
+     "vor der Hautfarbe ab, der Ausricht-Assistent und der Textur-Reiter "
+     "waren ohne Wirkung, und die Lichtsteuerung der Szene schaltete nicht "
+     "mehr um. Kein einziger Eintrag in einem Log."),
+
+    ("fragezeichen-punkt", "Fehler verhindern",
+     "`obj.methode?.()` verschluckt eine fehlende Funktion vollständig",
+     "Der Aufruf mit `?.` prüft nur, ob die Funktion existiert — fehlt sie, "
+     "passiert NICHTS und es gibt keine Ausnahme. Für optionale Rückrufe ist "
+     "das richtig, für Pflichtaufrufe eine Falle. Bei Pflichtaufrufen ohne "
+     "`?.` schreiben, damit ein Fehler entsteht.",
+     "`fn.syncLightVisibility?.()` war nie angemeldet. Nach jedem Wechsel des "
+     "Lichttyps leuchteten die abgeschalteten Lichter weiter — ohne Meldung."),
+
+    ("mjs-pruefen", "Werkzeuge",
+     "`node --check datei.js` prüft als CommonJS — ES-Module braucht `.mjs`",
+     "Eine kaputte `import`-Zeile geht in der Prüfung als `.js` durch. Die "
+     "Datei vor der Prüfung nach `.mjs` kopieren (Werkzeug `jssyntax`), sonst "
+     "ist das grüne Ergebnis wertlos.",
+     "Ein Umsteller fügte eine Import-Zeile MITTEN in einen mehrzeiligen "
+     "Import ein — drei Dateien unlesbar, drei Seiten weiß. `node --check` auf "
+     "der `.js`-Datei war grün, dieselbe Datei als `.mjs` sofort rot."),
+
+    ("import-einfuegen", "Fehler verhindern",
+     "Eine Import-Zeile automatisch einfügen: nur hinter einer ABGESCHLOSSENEN "
+     "Import-Anweisung",
+     "„Letzte Zeile, die mit `import` beginnt\" ist bei mehrzeiligen Importen "
+     "die erste — die neue Zeile landet mitten drin. Und „Zeile endet mit `;` "
+     "und enthält ` from `\" trifft auch Meldungstexte. Also: Zeile muss mit "
+     "`import` beginnen, Ende über die Klammertiefe suchen.",
+     "Beide Varianten sind an einem Tag passiert. Die zweite fügte den Import "
+     "hinter `console.log('… config from loaded character:', …);` ein, also "
+     "mitten in eine Methode."),
+
+    ("onclick-und-module", "Fehler verhindern",
+     "`onclick=\"…\"` findet nichts, wenn der Code ein ES-Modul ist",
+     "Ein Attribut-Handler sucht den Namen global; Module legen keinen an. "
+     "Statt Namen auf `window` zu legen: EIN Zuhörer auf dem Container und "
+     "`data-aktion`/`data-id` an den Knöpfen. Das gilt automatisch auch für "
+     "Zeilen, die erst zur Laufzeit entstehen.",
+     "Beim Auslagern von 1.060 Zeilen Inline-JavaScript aus vier Vorlagen "
+     "waren 39 solcher Attribute betroffen — jedes ein toter Knopf, sobald der "
+     "Code als Modul lädt."),
+
+    ("schnellweg-vollstaendig", "Fehler verhindern",
+     "Ein Schnellweg muss ALLE Schritte des langen Wegs übernehmen",
+     "Wer für den häufigen Fall eine Abkürzung baut (nur Punkte statt ganzes "
+     "Netz), muss jeden Schritt des vollständigen Wegs durchgehen und "
+     "übernehmen — nicht nur die offensichtlichen.",
+     "Der schnelle Netz-Nachlader ließ `alignBodyToSMPLX` weg, das der lange "
+     "Weg nach dem Umrechnen anwendet. Der Körper wäre beim ersten "
+     "Reglerziehen neben das Vergleichsmodell gesprungen. Aufgefallen beim "
+     "Lesen des langen Wegs, nicht im Test."),
+
+    ("unnoetige-nutzlast", "Messen",
+     "Was der Client wegwirft, muss der Server nicht senden",
+     "Vor dem Optimieren einer Antwort messen, welche Felder der Aufrufer "
+     "überhaupt liest. Ein Feld, das nur beim ERSTEN Aufbau gebraucht wird "
+     "(Topologie, UVs), gehört hinter einen Parameter.",
+     "Der Netz-Endpunkt schickte bei JEDER Reglerbewegung 5,24 MB, davon 2,97 "
+     "MB Dreiecke und UVs — die der Aufrufer verwarf, weil sich durch Morphs "
+     "nur die Punktlagen ändern. Mit `nur_punkte=1`: 2,26 MB, 57 % weniger."),
+
+    ("spezifitaet", "Fehler verhindern",
+     "Eine CSS-Klasse ersetzt keinen Inline-Stil eins zu eins",
+     "Ein Inline-Stil schlägt jede Regel; eine Klasse (0,0,1,0) verliert gegen "
+     "`.karte h3` (0,0,1,1) und sogar eine doppelte Klasse (0,0,2,0) gegen "
+     "`.zeile input[type=color]` (0,0,2,1). Beim Umstellen den Klassennamen "
+     "mehrfach in den Selektor schreiben — nicht `!important`, das blockiert "
+     "jede spätere Anpassung.",
+     "Beim Ersetzen von 772 Inline-Stilen wurden Abschnittstitel grau statt "
+     "rot und Farbfelder 28×22 statt 40×24 Pixel. Beides fiel NUR auf, weil "
+     "vorher und nachher die berechneten Stile gemessen wurden — auf dem "
+     "Bildschirm hätte man es überblättert."),
+
+    ("vorher-messen", "Messen",
+     "Vor einem mechanischen Umbau den Ist-Zustand messen, nicht nur danach",
+     "Bei Änderungen, die das Aussehen oder Verhalten treffen könnten: vorher "
+     "einen Zustand erfassen (berechnete Stile, Antwortgrößen, Zählwerte), "
+     "danach denselben — und beides vergleichen. Ein Screenshot-Vergleich "
+     "reicht nicht, kleine Verschiebungen sieht niemand.",
+     "12.400 berechnete Eigenschaften über sechs Seiten verglichen; zwei echte "
+     "Regressionen gefunden, die restlichen Abweichungen waren Live-Werte einer "
+     "Auslastungsanzeige. Ohne die Vorher-Messung wäre beides unentdeckt "
+     "geblieben."),
+
 ]
 
 

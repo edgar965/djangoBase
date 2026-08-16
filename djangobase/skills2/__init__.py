@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 u"""Skills2 - Pruefwerkzeuge und Lehren aus dem shortlongx-Review (August 2026).
 
-Fuenf Werkzeuge, die in JEDEM djangoBase-Projekt laufen: Sie suchen unter
+Vierzehn Werkzeuge, die in JEDEM djangoBase-Projekt laufen: Sie suchen unter
 ``settings.BASE_DIR`` und lesen den Syntaxbaum, statt Pfade zu raten. Dazu die
 Lehren des Durchgangs als Arbeitsliste (``lehren.py``) - jede mit dem Fall, der
 sie ausgeloest hat.
@@ -22,17 +22,34 @@ halbfertige Fassungen derselben Basisklasse gegeneinander zu mergen waere
 teurer gewesen als zwei saubere Pakete.
 """
 from .altlast import Altlast
+from .anzeigeformat import Anzeigeformat
 from .dateigroesse import Dateigroesse
 from .doppelrumpf import Doppelrumpf
 from .esmodulimporte import EsModulImporte
+from .fix_dictklasse import FixDictKlasse
+from .fix_jserbe import FixJsErbe
+from .fix_jsschnitt import FixJsSchnitt
+from .fix_vermerk import FixVermerk
+from .fixer import Aenderung, Fixer, Vorschau
+from .jsbefunde import JsBefunde
+from .jsfaenger import JsFaenger
+from .jsfunktionen import JsFunktionen
+from .jsregistrierung import JsRegistrierung
+from .jsstilfassungen import JsStilfassungen
+from .jssyntax import JsSyntax
+from .jswaisen import JsWaisen
+from .jsschnitt import JsSchnitt
 from .kapselung import Kapselung
+from .klassenplan import Klassenplan
 from .kriterien import KRITERIEN, OHNE_WERKZEUG
 from .lehren import LEHREN, gruppen
 from .modulzustand import ModulZustand
 from .namensvarianten import Namensvarianten
 from .rueckgabedict import RueckgabeDict
+from .seitenzeiten import Seitenzeiten
 from .rueckgabetupel import RueckgabeTupel
 from .schleifenarbeit import Schleifenarbeit
+from .wachstum import Wachstum
 from .werkzeug import Ergebnis, Quelldatei, Werkzeug2
 
 #: Reihenfolge = Anzeigereihenfolge. Vorne, was am haeufigsten echte Fehler
@@ -40,6 +57,17 @@ from .werkzeug import Ergebnis, Quelldatei, Werkzeug2
 WERKZEUGE = [
     ModulZustand,
     EsModulImporte,
+    # --- Frontend-Pruefungen aus dem 3DTools-Durchgang (16.08.2026).
+    # Reihenfolge nach Wirkung: erst was die Seite tot macht (Syntax, Waisen,
+    # fehlende Anmeldung), dann was still ausfaellt (Faenger), dann Mengen.
+    JsSyntax,
+    JsWaisen,
+    JsRegistrierung,
+    JsFaenger,
+    JsFunktionen,
+    JsBefunde,
+    JsStilfassungen,
+    Seitenzeiten,
     Doppelrumpf,
     RueckgabeDict,
     RueckgabeTupel,
@@ -48,6 +76,13 @@ WERKZEUGE = [
     Schleifenarbeit,
     Dateigroesse,
     Altlast,
+    # Am 16.08.2026 dazugekommen - die vier, die im shortlongx-Durchgang die
+    # meiste Arbeit gespart haben. Sie beantworten nicht „was ist falsch",
+    # sondern „lohnt der Umbau ueberhaupt":
+    Anzeigeformat,   # 134 von 204 Befunden waren gar keine
+    Klassenplan,     # Feld oder blosses Zwischenergebnis?
+    JsSchnitt,       # wo laesst sich teilen, ohne Zirkel zu erzeugen
+    Wachstum,        # misst nach, statt „quadratisch" zu behaupten
 ]
 
 
@@ -66,3 +101,28 @@ def werkzeug_finden(slug):
 
 __all__ = ["WERKZEUGE", "Werkzeug2", "Ergebnis", "Quelldatei", "werkzeuge",
            "werkzeug_finden", "LEHREN", "gruppen", "KRITERIEN", "OHNE_WERKZEUG"]
+
+
+#: FIXER - Werkzeuge, die einen Befund BEHEBEN statt ihn nur zu melden.
+#: Getrennt von WERKZEUGE, weil sie schreiben: jeder braucht Vorschau,
+#: Sicherung und ein Netz (siehe fixer.py). Ein Fix-Knopf neben einem
+#: Prüf-Knopf waere eine Falle - man klickt einen davon aus Versehen.
+FIXER = [
+    FixVermerk,
+    FixJsSchnitt,
+    FixJsErbe,
+    FixDictKlasse,
+]
+
+
+def fixer():
+    """Je eine Instanz aller Fixer."""
+    return [klasse() for klasse in FIXER]
+
+
+def fixer_finden(slug):
+    """Den Fixer mit dieser Kennung - oder ``None``."""
+    for f in fixer():
+        if f.slug == slug:
+            return f
+    return None

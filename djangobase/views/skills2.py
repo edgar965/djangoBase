@@ -23,8 +23,8 @@ from django.shortcuts import render
 from django.views import View
 
 from ..mixins import ZugriffMixin
-from ..skills2 import (KRITERIEN, OHNE_WERKZEUG, gruppen, werkzeug_finden,
-                       werkzeuge)
+from ..skills2 import (KRITERIEN, OHNE_WERKZEUG, fixer, fixer_finden,
+                       gruppen, werkzeug_finden, werkzeuge)
 
 
 class Skills2View(ZugriffMixin, View):
@@ -34,6 +34,11 @@ class Skills2View(ZugriffMixin, View):
         slug = (request.GET.get("werkzeug") or "").strip()
         if slug:
             return self._laufen(slug)
+        # Die VORSCHAU eines Fixers ist lesend und darf deshalb per GET kommen.
+        # Das Anwenden nicht - dafuer gibt es post() weiter unten.
+        vor = (request.GET.get("fix_vorschau") or "").strip()
+        if vor:
+            return self._vorschau(vor)
         liste = []
         for w in werkzeuge():
             eintrag = w.als_dict()
@@ -44,6 +49,9 @@ class Skills2View(ZugriffMixin, View):
             "werkzeuge": liste,
             "tabelle": self._tabelle(liste),
             "gruppen": gruppen(),
+            "fixer": [dict(f.als_dict(),
+                           kriterium_text=KRITERIEN.get(f.kriterium, ""))
+                      for f in fixer()],
             "ohne_werkzeug": [
                 {"nr": nr, "titel": titel, "text": text}
                 for nr, titel, text in OHNE_WERKZEUG],
@@ -114,4 +122,49 @@ class Skills2View(ZugriffMixin, View):
                    "dauer": round(time.time() - t0, 2)}
         antwort.update(ergebnis.als_dict())
         # Dictionary gewollt: geht unveraendert als JSON an die Seite.
+        return JsonResponse(antwort)
+
+    # ------------------------------------------------------------------ Fixer
+    @staticmethod
+    def _vorschau(slug):
+        """Was der Fixer tun WUERDE - ohne eine Datei anzufassen."""
+        f = fixer_finden(slug)
+        if f is None:
+            return JsonResponse({"ok": False, "fehler": "Unbekannter Fixer: %s" % slug},
+                                status=404)
+        t0 = time.time()
+        try:
+            v = f.vorschau()
+        except Exception as e:                                  # noqa: BLE001
+            return JsonResponse({"ok": False, "slug": slug, "titel": f.titel,
+                                 "fehler": "%s: %s" % (type(e).__name__, e)},
+                                status=500)
+        antwort = {"ok": True, "slug": slug, "titel": f.titel, "art": "vorschau",
+                   "kriterium": f.kriterium, "abhilfe": f.grenzen,
+                   "dauer": round(time.time() - t0, 2)}
+        antwort.update(v.als_dict())
+        # Dictionary gewollt: geht unveraendert als JSON an die Seite.
+        return JsonResponse(antwort)
+
+    def post(self, request):
+        """Einen Fixer ANWENDEN - der einzige schreibende Weg dieser Seite.
+
+        Bewusst POST: Ein Aufruf, der Dateien aendert, gehoert nicht in eine URL,
+        die jemand versehentlich neu laedt oder als Lesezeichen ablegt."""
+        slug = (request.POST.get("fixer") or "").strip()
+        f = fixer_finden(slug)
+        if f is None:
+            return JsonResponse({"ok": False, "fehler": "Unbekannter Fixer: %s" % slug},
+                                status=404)
+        nur = [n for n in request.POST.getlist("datei") if n]
+        t0 = time.time()
+        try:
+            ergebnis = f.anwenden(nur or None)
+        except Exception as e:                                  # noqa: BLE001
+            return JsonResponse({"ok": False, "slug": slug, "titel": f.titel,
+                                 "fehler": "%s: %s" % (type(e).__name__, e)},
+                                status=500)
+        antwort = {"ok": True, "slug": slug, "titel": f.titel, "art": "angewandt",
+                   "dauer": round(time.time() - t0, 2)}
+        antwort.update(ergebnis)
         return JsonResponse(antwort)

@@ -12,6 +12,12 @@ beantwortet und was Handarbeit bleibt.
 
 __all__ = ["KRITERIEN", "OHNE_WERKZEUG"]
 
+#: KRITERIUM 13 STEHT NICHT MEHR HIER (16.08.2026): Es hat inzwischen eigene
+#: Werkzeuge (``jsbefunde``, ``jsfaenger``). Ein Kriterium in BEIDEN Listen ist
+#: ein Widerspruch - die Seite zeigte es dann als „ohne Werkzeug" an, während
+#: darüber zwei standen. Abgesichert durch den Test
+#: ``test_kriterien_ohne_werkzeug_sind_begruendet``.
+#:
 #: Nummer -> Wortlaut. Die Nummern stehen an den Werkzeugen (``kriterium``).
 KRITERIEN = {
     1: "Möglichst alle Funktionen in Klassen kapseln",
@@ -29,6 +35,7 @@ KRITERIEN = {
     12: "Performance prüfen und optimieren",
     13: "Tiefer Review – mindestens 1.000 Befunde",
     14: "Zweites Modell als Sparringspartner",
+    15: "Alle Befunde beheben, nicht nur auflisten",
 }
 
 #: Kriterien ohne Knopf - mit dem Weg, der stattdessen getragen hat.
@@ -43,11 +50,6 @@ OHNE_WERKZEUG = [
      "selten zeichengleich. Praktikabel: Die Import-Prüfung (Kriterium 3) "
      "zeigt, welche Module überhaupt noch jemand lädt; was niemand importiert, "
      "ist der erste Verdacht."),
-    (13, "Mindestens 1.000 Befunde",
-     "Eine Zahl ist kein Prüfergebnis. Sie erzwingt aber etwas Nützliches: "
-     "Man muss die Suche so breit anlegen, dass auch die langweiligen Klassen "
-     "von Befunden auftauchen — und genau dazwischen steckten hier die echten "
-     "Fehler. Alle Werkzeuge zusammen liefern die Menge."),
     (14, "Zweites Modell als Sparringspartner",
      "Nützlich, aber nicht als Autorität: Von acht Aussagen eines zweiten "
      "Modells war eine falsch — ausgerechnet zu der Stelle, an der wirklich ein "

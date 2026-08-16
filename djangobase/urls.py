@@ -6,9 +6,9 @@ from .views import (AktuellDatenView, AktuellLeerenView, AktuellView,
                     BenutzerInlineView, BenutzerListeView, BenutzerLoeschenView,
                     BenutzerStatusView, EinstellungenTabsView, EinstellungenView,
                     JobsView, LogsClearView, LogsView, ReviewNachfassenView,
-                    ReviewStartView, ReviewStatusView, ReviewView, Skills2View,
-                    SkillsView, TestsView, TrafficView, UebersetzungView,
-                    VersionsView)
+                    ReviewStartView, ReviewStatusView, ReviewView, Skills1View,
+                    Skills2View, SkillsView, TestsView, TrafficView,
+                    UebersetzungView, VersionsView)
 
 app_name = "djangobase"
 
@@ -28,6 +28,10 @@ urlpatterns = [
     # Bewusst neben „skills" und nicht darin: Beide sind am selben Tag in zwei
     # Sitzungen entstanden; zusammenlegen kann man sie, wenn beide fertig sind.
     path("skills2/", Skills2View.as_view(), name="skills2"),
+    # Skills1: beide Kaesten vereint (skills2-Engine + skills-Werkzeuge ueber
+    # einen Adapter, server-seitiger Stapel mit Klartext-Bericht). Der Menuepunkt
+    # wird separat gesetzt (Navigation wird gerade umgebaut).
+    path("skills1/", Skills1View.as_view(), name="skills1"),
     path("jobs/", JobsView.as_view(), name="jobs"),
     # Rollierendes Fenster mit den Ergebnissen der Claude-CLI. Geschrieben wird
     # NUR ueber `manage.py aktuell` — es gibt bewusst keinen Schreib-Endpunkt.

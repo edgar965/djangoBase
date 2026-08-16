@@ -80,13 +80,24 @@ class Doppelrumpf(Werkzeug2):
         return ende - knoten.lineno + 1
 
     @staticmethod
+    def _ist_weiterleitung(koerper):
+        """Ein Rumpf, der NUR weiterreicht - das ist die Loesung, nicht das Problem.
+
+        Nach dem Zusammenlegen einer 34-fach kopierten Funktion blieb in jeder
+        Datei ``return Zahl.de(x, n)`` stehen. Das Werkzeug meldete diese 34
+        Zeilen prompt als neues Duplikat; wer dem folgt, schreibt 34 Kopien
+        zurueck (16.08.2026)."""
+        return (len(koerper) == 1 and isinstance(koerper[0], ast.Return)
+                and isinstance(koerper[0].value, ast.Call))
+
+    @staticmethod
     def _fingerabdruck(knoten):
         """Der Rumpf ohne Docstring als Zeichenkette - oder None."""
         koerper = [x for x in knoten.body
                    if not (isinstance(x, ast.Expr)
                            and isinstance(getattr(x, "value", None), ast.Constant)
                            and isinstance(x.value.value, str))]
-        if not koerper:
+        if not koerper or Doppelrumpf._ist_weiterleitung(koerper):
             return None
         try:
             return ast.dump(ast.Module(body=koerper, type_ignores=[]))

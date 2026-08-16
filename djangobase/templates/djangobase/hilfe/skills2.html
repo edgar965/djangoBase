@@ -1,4 +1,5 @@
 {% extends djangobase.base_template|default:"djangobase/base.html" %}
+{% load static %}
 
 {% block title_extra %} · Skills2{% endblock %}
 {% block topbar_title %}<i class="bi bi-tools"></i> Hilfe · Skills2{% endblock %}
@@ -12,10 +13,27 @@
                 border-radius: 10px; padding: 1rem 1.1rem; margin-bottom: 1.2rem; }
     .sk2-card h3 { font-size: 1.05rem; margin: 0 0 .8rem; }
 
+    /* Die Fixer-Karte hebt sich ab: Sie enthält die Knöpfe, die SCHREIBEN.
+       Warnfarbe statt Grau, damit niemand sie für eine weitere Prüfliste hält. */
+    .sk2-fix-card { border-color: rgba(245,158,11,.35);
+                    background: rgba(245,158,11,.05); }
+    .sk2-fix-card h3 { color: #f59e0b; }
+    .sk2-fix-tabelle { width: 100%; }
+    .sk2-fix-tabelle th, .sk2-fix-tabelle td {
+        color: rgba(var(--fg-rgb, 224,232,240), .92);
+        padding: .45rem .6rem; vertical-align: top;
+        border-bottom: 1px solid rgba(255,255,255,.06); }
+    .sk2-fix-anwenden:not(:disabled) { border-color: #f59e0b; color: #f59e0b; }
+    .sk2-fix-anwenden:disabled { opacity: .45; cursor: not-allowed; }
+
     .sk2-name { font-weight: 600; }
     .sk2-krit { font-weight: 400; font-size: .78rem;
                 color: var(--bs-secondary-color, #9aa4b2); margin-top: .15rem; }
-    .sk2-fall { color: var(--bs-secondary-color, #9aa4b2); font-size: .83rem; margin-top: .25rem; }
+    /* Im Browser gemessen (16.08.2026): `--bs-secondary-color` liefert
+       auf der dunklen Seite rgba(33,37,41,.75) — dunkelgrau auf
+       dunkelblau, der Fall-Text war praktisch unlesbar. Deshalb die
+       Theme-Variable der Anwendung zuerst und ein HELLER Ersatzwert. */
+    .sk2-fall { color: var(--text-muted, #9aa4b2); font-size: .83rem; margin-top: .25rem; }
     .sk2-dauer { color: var(--bs-secondary-color, #9aa4b2); font-size: .82rem; white-space: nowrap; }
     .sk2-zelle-wahl { text-align: center; }
     .sk2-btn { border: 1px solid rgba(120,180,255,.4); background: rgba(120,180,255,.12);
@@ -72,6 +90,76 @@
             Die Nummer ist das Kriterium des Auftrags, aus dem das Werkzeug
             entstanden ist. Ein Knopf beantwortet immer nur die mechanische
             Hälfte der Frage — die Bewertung bleibt Handarbeit.
+        </p>
+    </div>
+
+    {# ----------------------------------------------------------- Fixer #}
+    {% comment %}
+    BEWUSST EINE EIGENE KARTE, NICHT EINE SPALTE IN DER TABELLE OBEN: Ein
+    Fix-Knopf schreibt Code. Neben einem Prüf-Knopf klickt man ihn irgendwann aus
+    Versehen. Deshalb steht er getrennt, trägt eine Warnfarbe, und „Anwenden“
+    bleibt gesperrt, bis eine Vorschau gelaufen ist (16.08.2026).
+    {% endcomment %}
+    <div class="sk2-card sk2-fix-card">
+        <h3><i class="bi bi-magic"></i> Beheben statt melden</h3>
+        <p class="sk2-lead" style="margin-bottom:.6rem">
+            Diese Werkzeuge <b>schreiben Code</b>. Jedes zeigt erst, welche
+            Dateien es anfasst; erst danach lässt sich „Anwenden“ drücken. Jede
+            geänderte Datei liegt vorher unter
+            <code>werkzeug/sicherung/fixer/&lt;Zeitstempel&gt;/</code>, und nach
+            dem Schreiben prüft das Werkzeug sein Ergebnis selbst — fällt die
+            Prüfung, wird genau diese Datei zurückgespielt.
+        </p>
+        <table class="data sk2-fix-tabelle">
+            <thead><tr>
+                <th>Nr.</th><th>Werkzeug</th><th>Was es tut</th><th></th>
+            </tr></thead>
+            <tbody>
+            {% for f in fixer %}
+            <tr data-fixer="{{ f.slug }}">
+                <td class="num" title="{{ f.kriterium_text }}">{{ f.kriterium }}</td>
+                <td><span class="sk2-name">{{ f.titel }}</span>
+                    <div class="sk2-krit">{{ f.kriterium_text }}</div></td>
+                <td>{{ f.tut }}
+                    <div class="sk2-fall"><b>Warum:</b> {{ f.warum }}</div>
+                    <div class="sk2-fall"><b>Grenzen:</b> {{ f.grenzen }}</div></td>
+                <td style="white-space:nowrap">
+                    <button type="button" class="sk2-btn sk2-fix-vorschau"
+                            data-fixer="{{ f.slug }}">Vorschau</button>
+                    <button type="button" class="sk2-btn sk2-fix-anwenden"
+                            data-fixer="{{ f.slug }}" disabled
+                            title="Erst eine Vorschau ansehen">Anwenden</button>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4">keine Fixer registriert</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {# ------------------------------------------------- Browser-Messung #}
+    <div class="sk2-card">
+        <h3><i class="bi bi-speedometer"></i> Im Browser messen</h3>
+        <p class="sk2-lead" style="margin-bottom:.6rem">
+            Serverzeit ist nicht das, was der Benutzer erlebt. Dieser Knopf lädt
+            jede Seite in einem unsichtbaren Rahmen und liest dort die echten
+            Werte: Dateizahl, Bytes, wann das Grundgerüst steht und wann alles
+            geladen ist. Das Werkzeug <b>Seiten: Serverzeit und Größe</b> oben
+            liefert die Liste der Seiten — hier kommt dazu, was der Browser
+            daraus macht.
+        </p>
+        <div class="sk2-leiste">
+            <button type="button" class="sk2-btn" id="sk2-browser-messen">
+                Seiten im Browser messen</button>
+            <span class="sk2-zaehler" id="sk2-browser-stand">
+                dauert je Seite 2–5 s</span>
+        </div>
+        <p class="sk2-fall" style="margin-top:.6rem">
+            <b>Zu lesen wie:</b> „1.400 ms" bei einem Vorschaubild heißt meist
+            nicht „langsamer Server", sondern „stand 1,3 s in der Warteschlange".
+            Der Browser holt sechs Dateien gleichzeitig pro Host — 250 Dateien
+            sind deshalb teurer als eine große. Die Spalte <b>kb</b> lügt nicht.
         </p>
     </div>
 
@@ -142,5 +230,65 @@
       new TabellenBreiten([t], t.dataset.sortKey).binden());
   TabellenSortierung.binden();
   new Skills2().binden();
+</script>
+<script src="{% static 'djangobase/js/seitenmessung.js' %}?v={{ djangobase.version }}"></script>
+<script>
+// Browser-Messung: Seiten aus dem Werkzeug `seitenzeiten` holen und der Reihe
+// nach in einem Rahmen laden. Das Ergebnis geht in dasselbe Textfeld wie die
+// uebrigen Laeufe — so bleibt alles in EINEM Bericht.
+(function () {
+    const knopf = document.getElementById('sk2-browser-messen');
+    if (!knopf) return;
+    const stand = document.getElementById('sk2-browser-stand');
+    const ausgabe = document.getElementById('sk2-ausgabe');
+
+    const anhaengen = (text) => {
+        ausgabe.value = (ausgabe.value ? ausgabe.value + '\n' : '') + text;
+        ausgabe.scrollTop = ausgabe.scrollHeight;
+    };
+
+    knopf.addEventListener('click', async () => {
+        knopf.disabled = true;
+        stand.textContent = 'hole die Seitenliste …';
+        let seiten = [];
+        try {
+            const antwort = await fetch('?werkzeug=seitenzeiten');
+            const daten = await antwort.json();
+            if (!daten.ok) throw new Error(daten.fehler || 'unbekannt');
+            seiten = daten.zeilen.filter(z => z.status === 200)
+                                 .map(z => z.seite);
+        } catch (fehler) {
+            stand.textContent = 'Seitenliste nicht ladbar: ' + fehler.message;
+            knopf.disabled = false;
+            return;
+        }
+        anhaengen('='.repeat(72));
+        anhaengen('# Im Browser gemessen  [' + seiten.length + ' Seiten]');
+        anhaengen('='.repeat(72));
+        anhaengen('dom_ms  geladen_ms  dateien      kb  seite');
+        let nummer = 0;
+        // Fehler NICHT nur in die Konsole: Blockiert der Browser das
+        // Messfenster, sieht der Benutzer sonst ewig „hole die Seitenliste".
+        try {
+        await seitenLaufMessen(seiten, (m) => {
+            nummer += 1;
+            stand.textContent = nummer + ' / ' + seiten.length + ' — ' + m.seite;
+            anhaengen(m.fehler
+                ? '   —          —        —       —  ' + m.seite + '  (' + m.fehler + ')'
+                : String(m.dom_ms).padStart(6) + String(m.geladen_ms).padStart(11)
+                  + String(m.dateien).padStart(9) + String(m.kb).padStart(8)
+                  + '  ' + m.seite
+                  + (m.groesste.length
+                     ? '\n' + ' '.repeat(8) + 'groesste: '
+                       + m.groesste.join(', ') : ''));
+        });
+        stand.textContent = 'fertig: ' + seiten.length + ' Seiten';
+        } catch (fehler) {
+            stand.textContent = fehler.message;
+            anhaengen('ABGEBROCHEN: ' + fehler.message);
+        }
+        knopf.disabled = false;
+    });
+})();
 </script>
 {% endblock %}

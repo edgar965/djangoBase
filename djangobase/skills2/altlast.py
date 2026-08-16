@@ -117,7 +117,33 @@ class Altlast(Werkzeug2):
     @staticmethod
     def _sonderfall(d):
         name = d.name
-        return ("/migrations/" in name or "/management/commands/" in name
+        if ("/migrations/" in name or "/management/commands/" in name
                 or name.endswith(("/urls.py", "/admin.py", "/apps.py",
                                   "/settings.py", "/views.py"))
-                or "/tests" in name or "test_" in name.rsplit("/", 1)[-1])
+                or "/tests" in name or "test_" in name.rsplit("/", 1)[-1]):
+            return True
+        return Altlast._ist_skript(d)
+
+    @staticmethod
+    def _ist_skript(d):
+        """Wird diese Datei AUSGEFÜHRT statt importiert?
+
+        Ein Skript darf Namen tragen, die nirgends sonst vorkommen — das ist
+        sein Normalfall, kein Verdacht. Erkannt am Code selbst, nicht am Ordner:
+        Wer auf Modulebene ``django.setup()`` ruft oder ausgibt, ist ein
+        Einstiegspunkt. Eine Ausnahmeliste nach Ordnern rät stattdessen, was der
+        Autor gemeint hat, und liegt beim nächsten Verzeichnis daneben.
+
+        Anlass (shortlongx, 16.08.2026): zwei Diagnose-Skripte in ``depot/``
+        standen als Löschvorschläge in der Liste — richtig gezählt und trotzdem
+        falsch."""
+        if "__main__" in d.text:
+            return True
+        for k in (d.baum.body if d.baum is not None else []):
+            if not isinstance(k, ast.Expr) or not isinstance(k.value, ast.Call):
+                continue
+            ruf = k.value.func
+            if (getattr(ruf, "id", None) or getattr(ruf, "attr", None) or "") in (
+                    "print", "setup", "main", "exit"):
+                return True
+        return False

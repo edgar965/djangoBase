@@ -69,6 +69,16 @@ class WerkzeugGrundlagenTest(BasisTest):
         self.assertIsNone(werkzeug_finden("gibtesnicht"))
         self.assertIsNotNone(werkzeug_finden(WERKZEUGE[0].slug))
 
+    #: Werkzeuge, die den PROJEKTCODE gar nicht ansehen. ``wachstum`` misst, wie
+    #: sich Python-Bauformen auf DIESER Maschine verhalten - es liefert seine
+    #: sechs Messzeilen auch in einem leeren Ordner, und das ist richtig so.
+    #: (16.08.2026: Der Test war rot, ohne dass etwas kaputt war - genau die
+    #: Sorte, die man abschaltet statt zu verstehen.)
+    #: `seitenzeiten` fragt die URL-Konfiguration des HOSTS, nicht das
+    #: Verzeichnis — es findet auch in einem leeren Ordner Seiten, und
+    #: das ist richtig so (17.08.2026).
+    OHNE_PROJEKTCODE = {"wachstum", "seitenzeiten"}
+
     def test_alle_laufen_auf_leerem_projekt(self):
         """Ein Projekt ohne Code darf kein Werkzeug zum Absturz bringen."""
         ordner = MiniProjekt().anlegen(self)
@@ -77,6 +87,11 @@ class WerkzeugGrundlagenTest(BasisTest):
                 ergebnis = w.laufen()
                 self.assertIsInstance(ergebnis, Ergebnis,
                                       "%s liefert kein Ergebnis" % w.slug)
+                if w.slug in self.OHNE_PROJEKTCODE:
+                    self.assertTrue(ergebnis.zeilen,
+                                    "%s misst Python selbst und muss auch im "
+                                    "leeren Projekt etwas liefern" % w.slug)
+                    continue
                 self.assertEqual(ergebnis.zeilen, [],
                                  "%s findet etwas in einem leeren Projekt" % w.slug)
 
@@ -117,6 +132,16 @@ def tupel(a, b):
 
 
 def lesen(pfade):
+    """DIESELBE Datei je Durchlauf - das ist der Befund."""
+    aus = []
+    for p in pfade:
+        kopf = Path("vorlage.txt").read_text()
+        aus.append(kopf + p)
+    return aus
+
+
+def lesen_ok(pfade):
+    """Je Durchlauf eine ANDERE Datei - das ist der Zweck, kein Befund."""
     aus = []
     for p in pfade:
         aus.append(Path(p).read_text())
@@ -188,12 +213,35 @@ class SchleifenTest(BasisTest):
         self.assertTrue(any("read_text" in z["was"] for z in zeilen),
                         "read_text in der Schleife nicht gefunden: %s" % zeilen)
 
+    def test_meldet_nicht_was_an_der_schleifenvariablen_haengt(self):
+        """DIE UNTERSCHEIDUNG, die das Werkzeug brauchbar macht (16.08.2026).
+
+        ``Path(p).read_text()`` in einer Schleife über ``p`` liest je Durchlauf
+        etwas anderes - das ist der Zweck jedes Werkzeugs, das über Dateien
+        läuft. Ohne diese Prüfung meldete das Werkzeug im shortlongx-Lauf 199
+        Stellen, von denen 190 genau dieses Muster waren; die neun echten Fälle
+        gingen darin unter."""
+        ordner = MiniProjekt().anlegen(self)
+        MiniProjekt.schreiben(ordner, "modul.py", BEISPIEL_MIT_FEHLERN)
+        with override_settings(BASE_DIR=str(ordner)):
+            zeilen = werkzeug_finden("schleifenarbeit").laufen().zeilen
+        treffer = [z for z in zeilen if z["zeile"] >= self._zeile_von(
+            BEISPIEL_MIT_FEHLERN, "def lesen_ok")]
+        self.assertEqual(treffer, [], "lesen_ok() darf keinen Befund liefern")
+
+    @staticmethod
+    def _zeile_von(text, marke):
+        for nr, z in enumerate(text.splitlines(), 1):
+            if z.startswith(marke):
+                return nr
+        raise AssertionError("Marke %r nicht im Beispiel" % marke)
+
     def test_marker_stuft_ab(self):
         ordner = MiniProjekt().anlegen(self)
         MiniProjekt.schreiben(ordner, "modul.py", BEISPIEL_MIT_FEHLERN.replace(
-            "        aus.append(Path(p).read_text())",
-            "        # in der Schleife gewollt: eine Datei je Eintrag\n"
-            "        aus.append(Path(p).read_text())"))
+            '        kopf = Path("vorlage.txt").read_text()',
+            "        # in der Schleife gewollt: die Vorlage ändert sich je Lauf\n"
+            '        kopf = Path("vorlage.txt").read_text()'))
         with override_settings(BASE_DIR=str(ordner)):
             zeilen = werkzeug_finden("schleifenarbeit").laufen().zeilen
         lesen = [z for z in zeilen if "read_text" in z["was"]]

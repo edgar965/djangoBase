@@ -130,12 +130,18 @@
     {% endif %}
 
     {# ---------------- Panel: Suiten (Batch-Kommandos) ---------------- #}
+    {# Je Gruppe eine eigene Karte („Search · chat", „Firma", …). Ohne
+       `gruppe`-Schluessel liefert die View EINE Gruppe — dann sieht die Seite
+       aus wie bisher. Mit vielen Bereichen waere eine flache Liste sonst genau
+       das, wovor Kriterium 17 warnt: hundert Eintraege ohne Ordnung. #}
     {% if befehle %}
     <div class="ts-panel" data-panel="Suiten">
+        {% for g in suiten_gruppen %}
         <div class="ts-card">
-            <h3><i class="bi bi-collection-play"></i> Test-Suiten (Batch)</h3>
+            <h3><i class="bi bi-collection-play"></i> {{ g.name }}
+                <span class="ts-count">{{ g.befehle|length }}</span></h3>
             <div class="ts-list">
-                {% for b in befehle %}
+                {% for b in g.befehle %}
                 <div class="ts-item {% if aktiver_slug == b.slug %}aktiv{% endif %}">
                     <span class="ts-name"><i class="bi bi-play-circle"></i> {{ b.name }}</span>
                     <code class="ts-id">{{ b.cmd|join:' ' }}</code>
@@ -144,6 +150,7 @@
                 {% endfor %}
             </div>
         </div>
+        {% endfor %}
     </div>
     {% endif %}
 

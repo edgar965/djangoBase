@@ -84,21 +84,17 @@ Die <li>-Eintraege werden in ein vorhandenes <ul class="nav"> eingehaengt.
             <li><a class="nav-link {% if aktiv == 'review' %}active{% endif %}" href="{% url 'djangobase:review' %}">
                 <i class="bi bi-chat-left-text"></i> Review
             </a></li>
-            {% comment %}Skills wie Review und Aktuell ohne Bedingung: Der
-            Werkzeugkasten braucht keine Konfiguration — die Werkzeuge fragen
-            Django nach Vorlagen, Routen und Modulen und laufen deshalb in jedem
-            Projekt.{% endcomment %}
-            <li><a class="nav-link {% if aktiv == 'skills' %}active{% endif %}" href="{% url 'djangobase:skills' %}">
-                <i class="bi bi-tools"></i> Skills
-            </a></li>
-            {% comment %}Skills2: zweiter Werkzeugkasten, entstanden im
-            shortlongx-Review (16.08.2026) - Prüfwerkzeuge plus die Lehren des
-            Durchgangs als Arbeitsliste. Getrennt von „Skills", weil beide am
-            selben Tag in zwei Sitzungen entstanden sind.{% endcomment %}
-            <li><a class="nav-link {% if aktiv == 'skills2' %}active{% endif %}" href="{% url 'djangobase:skills2' %}">
-                <i class="bi bi-clipboard2-check"></i> Skills2
-            </a></li>
+            {% include "djangobase/_nav_skills.html" %}
         </ul>
     </div>
 </li>
 {% endif %}
+{% comment %}
+Skills und Skills2 gehoeren unter HILFE - nirgendwo sonst (Ansage 16.08.2026).
+Sie stehen deshalb ausschliesslich in der Hilfe-Gruppe oben, ueber
+``_nav_skills.html``.
+
+Projekte mit eigener Navigation (``hilfe_menu: False``) holen sie sich in ihre
+EIGENE Hilfe-Gruppe - ueber ``djangobase.pflichtmenue.pflicht_eintraege()``.
+Eine separate Menue-Gruppe dafuer waere falsch: Es sind Hilfe-Seiten.
+{% endcomment %}

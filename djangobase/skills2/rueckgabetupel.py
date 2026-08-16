@@ -38,6 +38,13 @@ class RueckgabeTupel(Werkzeug2):
     kriterium = 10
 
     MIN_FELDER = 4
+    #: EIN SCHLÜSSEL IST RICHTIG ALS TUPEL (16.08.2026): Er muss hashbar und
+    #: vergleichbar sein - genau das kann ein Tupel von sich aus. Eine Klasse
+    #: erreicht dasselbe erst, wenn man ``__hash__`` und ``__eq__`` von Hand
+    #: dazuschreibt. ``Fassung.kandidaten_schluessel`` gibt zwölf Werte zurück,
+    #: die einen Cache-Eintrag bestimmen - als Klasse wäre das mehr Code für
+    #: exakt dasselbe Verhalten.
+    SCHLUESSEL_ENDUNGEN = ("schluessel", "schlüssel", "_key", "key", "kennung")
 
     def laufen(self):
         zeilen = []
@@ -45,6 +52,8 @@ class RueckgabeTupel(Werkzeug2):
             if d.baum is None:
                 continue
             for f in d.knoten(ast.FunctionDef, ast.AsyncFunctionDef):
+                if f.name.lower().endswith(self.SCHLUESSEL_ENDUNGEN):
+                    continue
                 for r in [k for k in ast.walk(f) if isinstance(k, ast.Return)]:
                     wert = r.value
                     if not isinstance(wert, ast.Tuple):

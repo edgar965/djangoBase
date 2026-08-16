@@ -51,13 +51,21 @@ class Kapselung(Werkzeug2):
         for d in self.dateien():
             if d.baum is None or self._django_sonderfall(d):
                 continue
+            tabelle = self._tabellen_namen(d)
             funktionen = [k for k in d.baum.body
                           if isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef))
-                          and k.name not in self.EINSTIEGE]
+                          and k.name not in self.EINSTIEGE
+                          and k.name not in tabelle]
             if len(funktionen) < self.AB_ANZAHL:
                 continue
             gemeinsam = self._gemeinsame_argumente(funktionen)
-            if not gemeinsam:
+            # ZWEI verschiedene gemeinsame Argumente, nicht nur eines: Ein
+            # einzelnes geteiltes Argument ist oft die Eingabe, zwei sind ein
+            # Objekt. Gemessen (shortlongx, 16.08.2026): >= 1 gemeinsames
+            # Argument ergab 115 Befunde, >= 2 nur noch 70 - und die
+            # verschwundenen 45 waren durchweg Module mit einer gemeinsamen
+            # Eingabe, nicht mit gemeinsamem Zustand.
+            if len(gemeinsam) < 2:
                 continue
             klassen = [k.name for k in d.baum.body if isinstance(k, ast.ClassDef)]
             zeilen.append({
@@ -72,6 +80,42 @@ class Kapselung(Werkzeug2):
             "%d Dateien mit Funktionen um denselben Zustand herum" % len(zeilen),
             "Je öfter dasselbe Argument in den Signaturen steht, desto klarer "
             "ist, was die Klasse halten würde.")
+
+    @staticmethod
+    def _tabellen_namen(d):
+        """Funktionsnamen, die als WERT in einer Tabelle auf Modulebene stehen.
+
+        DIE FUNKTION IST DANN DIE SCHNITTSTELLE. Eine Registrierungs-Tabelle wie
+
+            def _sig_rsi(closes, period=14): …
+            INDIKATOREN = [("rsi", "RSI", _sig_rsi), …]
+            INDIKATOR_FN = {key: fn for key, name, fn in INDIKATOREN}
+
+        ruft jede Funktion EINZELN und unabhängig. Das gemeinsame erste Argument
+        ist deshalb die Eingabe des Vertrags, kein Feld eines Objekts: Zustand
+        wird zwischen Aufrufen geteilt, ein Parameter ist bei jedem Aufruf ein
+        anderer.
+
+        Ohne diese Unterscheidung war die Indikator-Bank in shortlongx der
+        schwerste Befund des Kriteriums — „14 Funktionen, eines von 13
+        getragen". Wer dem folgt, baut eine Klasse um eine Tabelle, die schon
+        eine ist (16.08.2026)."""
+        namen = set()
+        for k in d.baum.body:
+            if not isinstance(k, (ast.Assign, ast.AnnAssign)) or k.value is None:
+                continue
+            for x in ast.walk(k.value):
+                if isinstance(x, ast.Name):
+                    namen.add(x.id)
+                elif isinstance(x, ast.Call):
+                    # ``f(...)`` ist ein AUFRUF, keine Registrierung.
+                    for arg in list(x.args) + [s.value for s in x.keywords]:
+                        for y in ast.walk(arg):
+                            if isinstance(y, ast.Name):
+                                namen.add(y.id)
+        eigene = {f.name for f in d.baum.body
+                  if isinstance(f, (ast.FunctionDef, ast.AsyncFunctionDef))}
+        return namen & eigene
 
     @staticmethod
     def _django_sonderfall(d):

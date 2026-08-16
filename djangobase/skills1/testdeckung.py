@@ -1,0 +1,168 @@
+# -*- coding: utf-8 -*-
+u"""Testdeckung - welche Seite, welcher Endpunkt, welcher Menuepunkt hat KEINEN Test?
+
+    Kriterium 17 (Zusatz): Testcases fuer alle wichtigen Funktionen und Menues.
+
+DIE FRAGE VON DER ANDEREN SEITE
+===============================
+``testaufbau`` prueft, ob die vorhandenen Tests ordentlich liegen. Das sagt
+nichts darueber, ob sie das Wichtige treffen. Hier wird umgekehrt gefragt: Das
+Projekt sagt selbst, was wichtig ist - die URL-Tabelle und das Menue -, und fuer
+jeden Eintrag wird nachgesehen, ob ihn irgendein Test ueberhaupt erwaehnt.
+
+WARUM „ERWAEHNT" UND NICHT „GEPRUEFT"
+=====================================
+Ob ein Test etwas SINNVOLL prueft, kann ein Werkzeug nicht beurteilen. Dass eine
+Seite in KEINEM Test vorkommt, ist dagegen eindeutig - und genau das ist die
+teure Sorte Luecke: Ein Menuepunkt, den niemand faehrt, faellt erst dem Nutzer
+auf. Deshalb zaehlt jede Erwaehnung (URL-Name, Pfad oder Funktionsname), und der
+Befund heisst „ungeprueft", nicht „falsch".
+
+GEWICHTUNG
+==========
+Seiten (GET, im Menue verlinkt) wiegen schwerer als interne Endpunkte: Eine tote
+Seite sieht der Nutzer sofort, eine tote API erst im Umweg. Menuepunkte ohne Test
+stehen deshalb ganz oben.
+"""
+import re
+
+from ..skills2.werkzeug import Ergebnis
+from .basis import EigenesWerkzeug
+
+__all__ = ["Testdeckung"]
+
+
+class Testdeckung(EigenesWerkzeug):
+    slug = "testdeckung"
+    titel = "Tests: was hat gar keinen?"
+    zweck = ("Vergleicht URL-Tabelle und Menü mit dem, was die Tests erwähnen — "
+             "und listet Seiten, Endpunkte und Menüpunkte ohne jeden Test.")
+    befund = ("Ein Menüpunkt, den kein Test je aufruft, fällt erst dem Nutzer "
+              "auf. Die Gliederung der Tests sagt darüber nichts.")
+    abhilfe = ("Je ungeprüfter Seite ein UI-Test (Status 200 + eine Zusicherung "
+               "auf den Inhalt), je Endpunkt ein Component-Test.")
+    dauer = "3–10 s"
+    kriterium = 17
+
+    #: Django-eigene und Hilfsrouten - nicht die Verantwortung des Projekts.
+    FREMD = ("admin:", "djangobase:", "account_", "socialaccount",
+             "django.contrib", "allauth", "static", "media")
+
+    def laufen(self):
+        erwaehnt = self._testtexte()
+        zeilen = []
+        zeilen += self._menue(erwaehnt)
+        zeilen += self._routen(erwaehnt)
+        rang = {"Menüpunkt ungeprüft": 0, "Seite ungeprüft": 1,
+                "Endpunkt ungeprüft": 2}
+        zeilen.sort(key=lambda z: (rang.get(z["art"], 9), z["stelle"]))
+        seiten = [z for z in zeilen if z["art"] != "Endpunkt ungeprüft"]
+        return Ergebnis(
+            ["art", "stelle", "ziel", "hinweis"], zeilen,
+            "%d ungeprüft — davon %d Seiten/Menüpunkte (die sichtbaren)"
+            % (len(zeilen), len(seiten)),
+            "„Ungeprüft“ heißt: kommt in keinem Test vor. Ob ein vorhandener Test "
+            "sinnvoll prüft, sagt dieses Werkzeug nicht — das bleibt Handarbeit.")
+
+    # ------------------------------------------------------------------ Quellen
+
+    def _testtexte(self):
+        """Ein Text aus allen Testdateien - einmal gelesen, dann nachgeschlagen."""
+        teile = []
+        for d in self.dateien():
+            name = "/" + d.name
+            if "/tests" in name or name.rsplit("/", 1)[-1].startswith("test_"):
+                teile.append(d.text)
+        return "\n".join(teile)
+
+    def _routen(self, erwaehnt):
+        """Jede Route des Projekts gegen die Testtexte halten."""
+        try:
+            from django.urls import get_resolver
+            wurzel = get_resolver()
+        except Exception:                                       # noqa: BLE001
+            return []
+        aus, gesehen = [], set()
+
+        def gehen(muster, praefix=""):
+            for p in muster:
+                if hasattr(p, "url_patterns"):
+                    try:
+                        gehen(p.url_patterns, praefix + str(p.pattern))
+                    except Exception:                           # noqa: BLE001
+                        pass
+                    continue
+                pfad = praefix + str(p.pattern)
+                ziel = getattr(p.callback, "__name__", "?")
+                modul = getattr(p.callback, "__module__", "")
+                name = getattr(p, "name", None) or ""
+                if any(f in modul or f in (name or "") for f in self.FREMD):
+                    continue
+                if not modul.split(".")[0] or "djangobase" in modul:
+                    continue
+                if ziel in gesehen:
+                    continue
+                gesehen.add(ziel)
+                if self._kommt_vor(erwaehnt, ziel, name, pfad):
+                    continue
+                # Der Pfad kommt OHNE fuehrenden Schraegstrich („api/audio/…"),
+                # deshalb zusaetzlich auf den Anfang pruefen: die erste Fassung
+                # meldete jeden API-Endpunkt als „Seite" (17.08.2026).
+                voll = "/" + pfad.lstrip("^/")
+                api = ("/api/" in voll or voll.startswith("/api")
+                       or ziel.endswith(("_api", "_status", "_json", "_stream")))
+                aus.append({
+                    "art": "Endpunkt ungeprüft" if api else "Seite ungeprüft",
+                    "stelle": "/" + pfad.lstrip("^/"), "ziel": ziel,
+                    "hinweis": ("Component-Test: Aufruf + erwartete Antwort"
+                                if api else
+                                "UI-Test: Status 200 und eine Zusicherung auf den "
+                                "Inhalt")})
+        try:
+            gehen(wurzel.url_patterns)
+        except Exception:                                       # noqa: BLE001
+            pass
+        return aus
+
+    def _menue(self, erwaehnt):
+        """Die Menuepunkte aus DJANGOBASE - das ist die Sicht des Nutzers."""
+        from django.conf import settings
+        cfg = (getattr(settings, "DJANGOBASE", {}) or {})
+        aus = []
+        for eintrag in self._menue_eintraege(cfg.get("menu") or []):
+            titel, ziel = eintrag
+            if not ziel:
+                continue
+            marke = str(ziel).strip("/").split("/")[-1] or str(ziel)
+            if self._kommt_vor(erwaehnt, marke, str(ziel), ""):
+                continue
+            aus.append({"art": "Menüpunkt ungeprüft", "stelle": titel,
+                        "ziel": str(ziel),
+                        "hinweis": "sichtbarer Einstieg ohne Test — ein Ausfall "
+                                   "fällt sonst erst dem Nutzer auf"})
+        return aus
+
+    @staticmethod
+    def _menue_eintraege(menue):
+        """(Titel, Ziel) aus der Menuestruktur - beliebig tief verschachtelt."""
+        aus = []
+        for e in menue or []:
+            if not isinstance(e, dict):
+                continue
+            ziel = e.get("url") or e.get("href") or e.get("pfad") or ""
+            titel = e.get("titel") or e.get("name") or e.get("label") or str(ziel)
+            if ziel:
+                aus.append((titel, ziel))
+            for schluessel in ("kinder", "children", "unter", "items", "eintraege"):
+                aus.extend(Testdeckung._menue_eintraege(e.get(schluessel) or []))
+        return aus
+
+    @staticmethod
+    def _kommt_vor(text, *marken):
+        for m in marken:
+            m = (m or "").strip()
+            if len(m) < 4:
+                continue
+            if re.search(r"\b%s\b" % re.escape(m), text):
+                return True
+        return False
