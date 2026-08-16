@@ -31,6 +31,7 @@ from .fix_jserbe import FixJsErbe
 from .fix_jsschnitt import FixJsSchnitt
 from .fix_vermerk import FixVermerk
 from .fixer import Aenderung, Fixer, Vorschau
+from .getattrnamen import GetattrNamen
 from .jsbefunde import JsBefunde
 from .jsfaenger import JsFaenger
 from .jsfunktionen import JsFunktionen
@@ -56,6 +57,10 @@ from .werkzeug import Ergebnis, Quelldatei, Werkzeug2
 #: Reihenfolge = Anzeigereihenfolge. Vorne, was am haeufigsten echte Fehler
 #: findet; hinten, was eher Aufraeumarbeit anzeigt.
 WERKZEUGE = [
+    # Ganz vorne, weil es die teuerste Fehlerklasse trifft: Ein ``getattr`` mit
+    # Vorgabe auf einen falschen Namen wird NIE rot. In shortlongx lief der
+    # Live-Autotrader deshalb anders als der Backtest daneben.
+    GetattrNamen,
     LeserzahlWerkzeug,
     ModulZustand,
     EsModulImporte,

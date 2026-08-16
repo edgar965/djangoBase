@@ -1,23 +1,27 @@
-{% comment %}Die beiden Werkzeugkaesten als Menue-Eintraege - EINMAL gepflegt.
+{% comment %}Die Werkzeugkasten-Seiten als Menue-Eintraege - EINMAL gepflegt.
 
-Eingebunden von der HILFE-Gruppe in ``_nav.html`` - und nur von dort. Beide
-Seiten gehoeren unter Hilfe (Ansage 16.08.2026); eine eigene Menue-Gruppe dafuer
-war ein Fehlgriff und ist wieder entfernt.
+Eingebunden von der HILFE-Gruppe in ``_nav.html`` - und nur von dort. Alle drei
+gehoeren unter Hilfe (Ansage 16.08.2026); eine eigene Menue-Gruppe dafuer war ein
+Fehlgriff und ist wieder entfernt.
 
 Projekte mit eigener Navigation (``hilfe_menu: False``) holen sie sich ueber
 ``djangobase.pflichtmenue.pflicht_eintraege()`` in ihre eigene Hilfe-Gruppe.
 
-Beide Seiten haben BEWUSST keine Bedingung (wie Review und Aktuell): Sie brauchen
+KEINE HANDGEPFLEGTE LISTE MEHR (17.08.2026). Hier standen die Eintraege frueher
+einzeln - und die zweite Quelle lief prompt auseinander: ``Skills1`` war gebaut,
+lieferte HTTP 200 und stand in keinem der beiden Menues. Beide Wege lesen jetzt
+``PFLICHTSEITEN``; eine neue Seite erscheint ueberall, ohne dass hier jemand
+etwas nachtraegt.
+
+Die Seiten haben BEWUSST keine Bedingung (wie Review und Aktuell): Sie brauchen
 keine Konfiguration - die Werkzeuge fragen Django nach Vorlagen, Routen und
 Modulen und laufen deshalb in jedem Projekt, das djangoBase einbindet.
 
-Warum zwei getrennte Seiten: Beide sind am 16.08.2026 in zwei parallelen
-Sitzungen entstanden. Sie stehen nebeneinander statt ineinander, weil jede ihre
-eigene Herkunft und ihren eigenen Zuschnitt hat.
+Warum mehrere: Skills und Skills2 sind am 16.08.2026 in zwei parallelen
+Sitzungen entstanden, jede mit eigenem Zuschnitt. Skills1 fuehrt beide zusammen.
 {% endcomment %}
-<li><a class="nav-link {% if aktiv == 'skills' %}active{% endif %}" href="{% url 'djangobase:skills' %}">
-    <i class="bi bi-tools"></i> Skills
+{% for seite in djangobase.pflichtseiten %}
+<li><a class="nav-link {% if aktiv == seite.route %}active{% endif %}" href="{{ seite.url }}"{% if seite.zweck %} title="{{ seite.zweck }}"{% endif %}>
+    <i class="bi {{ seite.icon }}"></i> {{ seite.label }}
 </a></li>
-<li><a class="nav-link {% if aktiv == 'skills2' %}active{% endif %}" href="{% url 'djangobase:skills2' %}">
-    <i class="bi bi-clipboard2-check"></i> Skills2
-</a></li>
+{% endfor %}

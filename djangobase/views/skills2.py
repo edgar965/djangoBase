@@ -25,6 +25,7 @@ from django.views import View
 from ..mixins import ZugriffMixin
 from ..skills2 import (KRITERIEN, OHNE_WERKZEUG, fixer, fixer_finden,
                        gruppen, werkzeug_finden, werkzeuge)
+from ..umbau.verzeichnis import Werkzeugverzeichnis
 
 
 class Skills2View(ZugriffMixin, View):
@@ -55,6 +56,11 @@ class Skills2View(ZugriffMixin, View):
             "ohne_werkzeug": [
                 {"nr": nr, "titel": titel, "text": text}
                 for nr, titel, text in OHNE_WERKZEUG],
+            # Der Kommandozeilen-Kasten: schreibende Werkzeuge bekommen keinen
+            # Knopf (ein Klick, der 30 Dateien umschreibt, ist keine gute Idee),
+            # waren dadurch aber unsichtbar - und wer sie nicht kennt, baut sie
+            # beim naechsten Umbau nach.
+            "umbau_gruppen": Werkzeugverzeichnis().gruppen(),
         })
 
     # ------------------------------------------------------------- Darstellung

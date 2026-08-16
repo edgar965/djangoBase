@@ -310,11 +310,18 @@ LEHREN = [
     ("null-ist-verdaechtig", "Messen",
      "Ein Kriterium, das plötzlich auf null fällt, ist ein Alarmzeichen",
      "Sinkt eine Befundgruppe nach einer Regeländerung auf null, erst die "
-     "Zählung an Einzelfällen gegenprüfen — nicht den Erfolg verbuchen.",
-     "Nach einer Verschärfung meldete Kriterium 11 null Befunde. Die Stichprobe "
-     "zeigte einen Zählfehler; nach der Korrektur waren es drei echte Fälle. "
-     "Die Gegenprobe selbst war übrigens auch erst falsch: ein ``grep`` über "
-     "das ganze Projekt zählte gleichnamige Funktionen anderer Dateien mit."),
+     "Zählung an Einzelfällen gegenprüfen — nicht den Erfolg verbuchen. Die "
+     "schärfste Frage dafür: <b>Findet die Prüfung noch den Fall, für den sie "
+     "gebaut wurde?</b> Den kennt man, und er muss rot werden.",
+     "Zweimal belegt. (1) Nach einer Verschärfung meldete Kriterium 11 null "
+     "Befunde — ein Zählfehler; nach der Korrektur drei echte Fälle. Die "
+     "Gegenprobe war übrigens auch erst falsch: ein ``grep`` zählte "
+     "gleichnamige Funktionen anderer Dateien mit. (2) Das Werkzeug "
+     "``getattr-namen`` meldete null, weil sein Maßstab zu weit war (jede "
+     "Zeichenkette galt als Beleg). Es hätte seinen eigenen Anlassfall nicht "
+     "gefunden: ``orb_nacht`` steht als Zeichenkette in der Prüfung, die ihn "
+     "dokumentiert. Enger gefasst: 2 Verdachtsfälle statt 0 — und der "
+     "Anlassfall wird wieder erkannt."),
 
     ("register-ohne-netz", "Fehler verhindern",
      "Ein Funktionsregister hat kein Netz — direkt importieren",

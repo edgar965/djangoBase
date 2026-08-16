@@ -39,6 +39,23 @@
     .sk2-fall { color: var(--text-muted, #9aa4b2); font-size: .83rem; margin-top: .25rem; }
     .sk2-dauer { color: var(--text-muted, #9aa4b2); font-size: .82rem; white-space: nowrap; }
     .sk2-zelle-wahl { text-align: center; }
+    /* Werkzeugkasten für die Kommandozeile. Farben wie oben: Theme-Variable
+       zuerst, HELLER Ersatzwert — nie `--bs-secondary-color` allein. */
+    .sk2-kasten { margin-top: .9rem; }
+    .sk2-kasten-titel { font-weight: 600; font-size: .92rem; margin-bottom: .1rem; }
+    .sk2-kasten-zweck { color: var(--text-muted, #9aa4b2); font-size: .83rem;
+                        margin-bottom: .45rem; }
+    .sk2-wz { display: grid; grid-template-columns: minmax(19rem, auto) 1fr;
+              gap: .2rem .9rem; align-items: baseline; padding: .3rem 0;
+              border-top: 1px solid rgba(255,255,255,.06); }
+    .sk2-wz code { font-size: .82rem; color: #8ec5ff; word-break: break-all; }
+    .sk2-wz-zweck { color: var(--text-muted, #9aa4b2); font-size: .84rem; }
+    .sk2-marke { font-size: .72rem; border-radius: 5px; padding: .05rem .4rem;
+                 margin-left: .4rem; white-space: nowrap; }
+    .sk2-marke.schreibt { border: 1px solid rgba(255,170,90,.45);
+                          background: rgba(255,170,90,.14); color: #ffc287; }
+    .sk2-marke.liest { border: 1px solid rgba(140,220,170,.4);
+                       background: rgba(140,220,170,.12); color: #9fe0bb; }
     .sk2-btn { border: 1px solid rgba(120,180,255,.4); background: rgba(120,180,255,.12);
                color: #8ec5ff; border-radius: 7px; padding: .3rem .8rem; cursor: pointer;
                font-size: .85rem; white-space: nowrap; }
@@ -194,6 +211,44 @@
                 <span class="sk2-lehre-titel">{{ k.nr }} · {{ k.titel }}</span>
                 <div class="sk2-lehre-tun">{{ k.text }}</div>
             </span>
+        </div>
+        {% endfor %}
+    </div>
+
+    {# ----------------------------------- Werkzeugkasten Kommandozeile #}
+    {# Eigene id zum Verweisen: /help/skills2/#umbau #}
+    <div class="sk2-card" id="umbau">
+        <h3><i class="bi bi-terminal-dash"></i> Werkzeugkasten für die
+            Kommandozeile
+            <span class="sk2-krit" style="display:inline">djangobase.umbau</span></h3>
+        <p class="sk2-lead" style="margin-bottom:.6rem">
+            Diese Werkzeuge <b>schreiben Quelltext</b> und haben deshalb bewusst
+            keinen Knopf — ein Klick, der dreißig Dateien umschreibt, ist keine
+            gute Idee. Dadurch waren sie bisher unsichtbar; wer sie nicht kennt,
+            baut sie beim nächsten Umbau nach. Die Liste kommt aus dem Paket
+            selbst (Zweck aus der ersten Docstring-Zeile, „schreibt“ daran, ob
+            im Quelltext ein <code>write_text</code> steht) und kann damit nicht
+            veralten. Bei allen Umstellern ist der <b>Probelauf die Vorgabe</b>,
+            geschrieben wird erst mit <code>--schreiben</code>.
+        </p>
+        {% for titel, zweck, eintraege in umbau_gruppen %}
+        <div class="sk2-kasten">
+            <div class="sk2-kasten-titel">{{ titel }}</div>
+            <div class="sk2-kasten-zweck">{{ zweck }}</div>
+            {% for e in eintraege %}
+            <div class="sk2-wz">
+                <div><code>{{ e.aufruf }}</code>
+                    {% if e.schreibt %}
+                    <span class="sk2-marke schreibt" title="ändert Dateien">schreibt</span>
+                    {% else %}
+                    <span class="sk2-marke liest" title="berichtet nur">liest</span>
+                    {% endif %}
+                </div>
+                <div class="sk2-wz-zweck">{{ e.zweck }}
+                    <span class="sk2-krit" style="display:inline">· {{ e.klassen }}</span>
+                </div>
+            </div>
+            {% endfor %}
         </div>
         {% endfor %}
     </div>

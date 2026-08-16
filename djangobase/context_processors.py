@@ -1,5 +1,6 @@
 from . import jobs
 from .conf import conf
+from .pflichtmenue import PFLICHTSEITEN
 
 
 def djangobase(request):
@@ -53,6 +54,15 @@ def djangobase(request):
         # ``test_befehle``, also auch in Projekten mit handgepflegter Liste
         # vorhanden (Vorgabe 17.08.2026: „in allen Projekten sichtbar").
         "test_arten": _test_arten(c),
+        # Die Werkzeugkasten-Seiten (Skills/Skills1/Skills2) fuer
+        # ``_nav_skills.html``. Sie kamen dort frueher HANDGEPFLEGT vor - und
+        # genau das ging schief: ``Skills1`` war gebaut und stand in keinem
+        # Menue (17.08.2026). Jetzt liest die Vorlage dieselbe Liste, die auch
+        # ``pflicht_eintraege()`` an Projekte mit eigener Sidebar gibt.
+        # Die Objekte selbst, nicht ``als_dict()``: Die Vorlage braucht
+        # zusaetzlich ``route`` fuer das Aktiv-Kennzeichen, und das
+        # Uebergabeformat der Menue-Bauer bleibt davon unberuehrt.
+        "pflichtseiten": PFLICHTSEITEN,
     }}
 
 

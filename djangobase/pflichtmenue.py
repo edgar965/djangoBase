@@ -6,13 +6,19 @@ DIE VORGABE (16.08.2026)
     „diese zwei Seiten sollen IMMER sichtbar sein, in jedem Projekt das von
      djangoBase ableitet!"
 
-Gemeint sind die beiden Werkzeugkaesten ``Skills`` und ``Skills2``. Sie standen
-bis dahin nur in der Hilfe-Gruppe von ``_nav.html`` - und die schaltet jedes
-Projekt ab, das seine eigene Navigation fuehrt (``hilfe_menu: False``). In
-shortlongx waren beide Seiten deshalb nur ueber ihre URL erreichbar; gemeldet hat
-es der Nutzer, nicht ein Test.
+Gemeint sind die Werkzeugkaesten ``Skills``, ``Skills1`` und ``Skills2``. Sie
+standen bis dahin nur in der Hilfe-Gruppe von ``_nav.html`` - und die schaltet
+jedes Projekt ab, das seine eigene Navigation fuehrt (``hilfe_menu: False``). In
+shortlongx waren sie deshalb nur ueber ihre URL erreichbar; gemeldet hat es der
+Nutzer, nicht ein Test.
 
-BEIDE SEITEN GEHOEREN UNTER „HILFE" - nirgendwo sonst (Ansage 16.08.2026). Eine
+DERSELBE FEHLER NOCHMAL, mit einer Seite mehr (17.08.2026): ``Skills1`` - die
+Zusammenfuehrung beider Kaesten - war gebaut, lieferte HTTP 200 und stand in
+KEINER der beiden Menue-Quellen. Sie war damit nur zu finden, wer die URL kannte.
+Eine Seite ohne Menueeintrag ist keine Seite. Wer hier eine Route ergaenzt,
+traegt sie in DIESE Liste ein - ``_nav_skills.html`` liest dieselbe Quelle.
+
+ALLE SEITEN GEHOEREN UNTER „HILFE" - nirgendwo sonst (Ansage 16.08.2026). Eine
 eigene Menue-Gruppe dafuer war ein Fehlgriff und ist wieder entfernt: Es sind
 Hilfe-Seiten, und dort sucht sie auch jemand.
 
@@ -69,6 +75,10 @@ PFLICHTSEITEN = (
         "Skills", "bi-tools", "skills",
         "Werkzeugkasten: Prüfungen, die Django nach Vorlagen, Routen und "
         "Modulen fragen"),
+    PflichtEintrag(
+        "Skills1", "bi-union", "skills1",
+        "Beide Werkzeugkästen unter einem Dach: Stapellauf ankreuzen, ein "
+        "Bericht zum Mitnehmen, Fix-Aktionen mit Sicherung und Netz"),
     PflichtEintrag(
         "Skills2", "bi-clipboard2-check", "skills2",
         "Zweiter Werkzeugkasten: die Prüfwerkzeuge und Lehren aus dem großen "
