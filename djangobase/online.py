@@ -65,6 +65,15 @@ class OnlineMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        # Das Opt-in gilt AUCH HIER (Review 15.08.2026): Der Kopf dieser Datei
+        # sagt „nur aktiv, wenn die Middleware in MIDDLEWARE steht UND
+        # DJANGOBASE_ONLINE_TRACKING = True". Geprüft wurde die Einstellung aber
+        # nur auf der LESENDEN Seite (`online_ids`). Wer sie auf False setzte und
+        # die Middleware stehen liess, bekam trotzdem bei jeder Anfrage ein
+        # cache.get und einmal je Minute und Nutzer ein `update_or_create` in die
+        # Datenbank — Arbeit für eine Anzeige, die niemand sieht.
+        if not tracking_aktiv():
+            return self.get_response(request)
         u = getattr(request, "user", None)
         if u is not None and getattr(u, "is_authenticated", False):
             try:

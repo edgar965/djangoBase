@@ -77,7 +77,18 @@ class HintergrundCache:
             _zu_alt = (self._wert is not None
                        and (time.time() - self._ts) >= alter_ttl * self.STALE_FAKTOR)
         if _zu_alt:
-            return self._bauen_jetzt()
+            # NUR EINER rechnet, die anderen bekommen den alten Wert (Review
+            # 15.08.2026): Vorher lief `_bauen_jetzt()` hier ausserhalb jeder
+            # Sperre. Nach einer langen Ruhephase — Server stand ueber Nacht, alle
+            # Werte sind weit ueber STALE_FAKTOR x Haltbarkeit — kommen morgens
+            # mehrere Anfragen gleichzeitig, und JEDE rechnete synchron. Bei der
+            # Versionen-Seite sind das mehrere `gh`-Aufrufe zu je rund 5 Sekunden
+            # nebeneinander. Ein sehr alter Wert ist besser als ein Wartezimmer.
+            with self._lock:
+                if self._laeuft:
+                    return self._wert
+                self._laeuft = True
+            return self._bauen_jetzt(im_thread=True)
         with self._lock:
             wert, ts, laeuft = self._wert, self._ts, self._laeuft
             if wert is not None and (time.time() - ts) >= alter_ttl and not laeuft:

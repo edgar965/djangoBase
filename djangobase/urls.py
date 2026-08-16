@@ -6,8 +6,9 @@ from .views import (AktuellDatenView, AktuellLeerenView, AktuellView,
                     BenutzerInlineView, BenutzerListeView, BenutzerLoeschenView,
                     BenutzerStatusView, EinstellungenTabsView, EinstellungenView,
                     JobsView, LogsClearView, LogsView, ReviewNachfassenView,
-                    ReviewStartView, ReviewStatusView, ReviewView, TestsView,
-                    TrafficView, UebersetzungView, VersionsView)
+                    ReviewStartView, ReviewStatusView, ReviewView, Skills2View,
+                    SkillsView, TestsView, TrafficView, UebersetzungView,
+                    VersionsView)
 
 app_name = "djangobase"
 
@@ -19,6 +20,14 @@ urlpatterns = [
     path("logs/", LogsView.as_view(), name="logs"),
     path("logs/leeren/", LogsClearView.as_view(), name="logs_leeren"),
     path("tests/", TestsView.as_view(), name="tests"),
+    # Werkzeugkasten und Lehren aus Code-Reviews. Die Werkzeuge laufen im
+    # Serverprozess und rufen ausschliesslich GET-Routen auf; POST speichert nur
+    # die Ankreuzliste der Lehren.
+    path("skills/", SkillsView.as_view(), name="skills"),
+    # Skills2: Werkzeuge und Lehren aus dem shortlongx-Review (16.08.2026).
+    # Bewusst neben „skills" und nicht darin: Beide sind am selben Tag in zwei
+    # Sitzungen entstanden; zusammenlegen kann man sie, wenn beide fertig sind.
+    path("skills2/", Skills2View.as_view(), name="skills2"),
     path("jobs/", JobsView.as_view(), name="jobs"),
     # Rollierendes Fenster mit den Ergebnissen der Claude-CLI. Geschrieben wird
     # NUR ueber `manage.py aktuell` — es gibt bewusst keinen Schreib-Endpunkt.

@@ -1,0 +1,146 @@
+{% extends djangobase.base_template|default:"djangobase/base.html" %}
+
+{% block title_extra %} · Skills2{% endblock %}
+{% block topbar_title %}<i class="bi bi-tools"></i> Hilfe · Skills2{% endblock %}
+
+{% block head_extra %}{{ block.super }}
+<link rel="stylesheet" href="/static/djangobase/css/tabellen.css?v={{ JS_VERSION|default:1 }}">
+<style>
+    .sk2-page { max-width: 1500px; }
+    .sk2-lead { color: var(--bs-secondary-color, #9aa4b2); margin-bottom: 1.2rem; }
+    .sk2-card { background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.08);
+                border-radius: 10px; padding: 1rem 1.1rem; margin-bottom: 1.2rem; }
+    .sk2-card h3 { font-size: 1.05rem; margin: 0 0 .8rem; }
+
+    .sk2-name { font-weight: 600; }
+    .sk2-krit { font-weight: 400; font-size: .78rem;
+                color: var(--bs-secondary-color, #9aa4b2); margin-top: .15rem; }
+    .sk2-fall { color: var(--bs-secondary-color, #9aa4b2); font-size: .83rem; margin-top: .25rem; }
+    .sk2-dauer { color: var(--bs-secondary-color, #9aa4b2); font-size: .82rem; white-space: nowrap; }
+    .sk2-zelle-wahl { text-align: center; }
+    .sk2-btn { border: 1px solid rgba(120,180,255,.4); background: rgba(120,180,255,.12);
+               color: #8ec5ff; border-radius: 7px; padding: .3rem .8rem; cursor: pointer;
+               font-size: .85rem; white-space: nowrap; }
+    .sk2-btn:hover { background: rgba(120,180,255,.22); }
+    .sk2-btn[disabled] { opacity: .5; cursor: default; }
+    .sk2-leiste { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap;
+                  margin-bottom: .8rem; }
+    .sk2-leiste .sk2-zaehler { color: var(--bs-secondary-color, #9aa4b2); font-size: .85rem; }
+
+    /* Ausgabe für die nächste Sitzung */
+    .sk2-ausgabe { width: 100%; min-height: 22rem; resize: vertical;
+                   background: rgba(0,0,0,.35); color: #d6deea;
+                   border: 1px solid rgba(255,255,255,.12); border-radius: 8px;
+                   padding: .7rem .8rem; font-family: ui-monospace, Consolas, monospace;
+                   font-size: .8rem; line-height: 1.45; white-space: pre; }
+
+    .sk2-lehre { display: flex; gap: .7rem; padding: .6rem 0;
+                 border-bottom: 1px solid rgba(255,255,255,.06); }
+    .sk2-lehre:last-child { border-bottom: none; }
+    .sk2-lehre input { margin-top: .28rem; flex: 0 0 auto; width: 1rem; height: 1rem; }
+    .sk2-lehre.erledigt .sk2-lehre-titel { text-decoration: line-through; opacity: .55; }
+    .sk2-lehre-titel { font-weight: 600; }
+    .sk2-lehre-tun { font-size: .87rem; margin-top: .15rem; }
+    .sk2-gruppe { margin: 1.2rem 0 .3rem; font-size: .78rem; text-transform: uppercase;
+                  letter-spacing: .04em; color: var(--bs-secondary-color, #9aa4b2); }
+    .sk2-gruppe:first-child { margin-top: 0; }
+    .sk2-zaehler { font-weight: 400; color: var(--bs-secondary-color, #9aa4b2); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="sk2-page">
+
+    <p class="sk2-lead">
+        Werkzeuge und Lehren aus einem großen Review- und Umbaudurchgang
+        (shortlongx, August 2026). Die Werkzeuge laufen in <b>diesem</b> Projekt:
+        Sie suchen ab der Repo-Wurzel und lesen den Syntaxbaum, statt Pfade zu
+        raten. Ihr Bericht landet unten im Textfeld — von dort lässt er sich in
+        eine Sitzung kopieren und abarbeiten.
+    </p>
+
+    {# ------------------------------------------------------- Werkzeuge #}
+    <div class="sk2-card">
+        <h3><i class="bi bi-wrench-adjustable"></i> Werkzeuge</h3>
+        <div class="sk2-leiste">
+            <button type="button" class="sk2-btn" id="sk2-stapel">Auswahl prüfen</button>
+            <button type="button" class="sk2-btn" id="sk2-alle-pruefen">Alle prüfen</button>
+            <span class="sk2-zaehler" id="sk2-wahl-zaehler">0 ausgewählt</span>
+        </div>
+        {% include "djangobase/_tabelle.html" with tabelle=tabelle %}
+        <p class="sk2-fall" style="margin-top:.8rem">
+            Die Nummer ist das Kriterium des Auftrags, aus dem das Werkzeug
+            entstanden ist. Ein Knopf beantwortet immer nur die mechanische
+            Hälfte der Frage — die Bewertung bleibt Handarbeit.
+        </p>
+    </div>
+
+    {# --------------------------------------------------------- Ausgabe #}
+    <div class="sk2-card">
+        <h3><i class="bi bi-terminal"></i> Ausgabe
+            <span class="sk2-zaehler" id="sk2-ausgabe-zaehler"></span></h3>
+        <div class="sk2-leiste">
+            <button type="button" class="sk2-btn" id="sk2-leeren">Textfeld leeren</button>
+            <button type="button" class="sk2-btn" id="sk2-kopieren">In die Zwischenablage</button>
+            <span class="sk2-zaehler">Jeder Lauf hängt seinen Bericht unten an —
+                je Werkzeug mit eigener Überschrift.</span>
+        </div>
+        <textarea class="sk2-ausgabe" id="sk2-ausgabe" spellcheck="false"
+                  placeholder="Noch kein Lauf. „Prüfen“ in der Tabelle oder „Auswahl prüfen“ oben."></textarea>
+    </div>
+
+    {# ------------------------------------- Kriterien ohne Werkzeug #}
+    <div class="sk2-card">
+        <h3><i class="bi bi-hand-index"></i> Was kein Knopf beantwortet</h3>
+        <p class="sk2-lead" style="margin-bottom:.6rem">
+            Vier der vierzehn Punkte lassen sich nicht mechanisch prüfen. Das ist
+            keine Lücke im Werkzeugkasten, sondern eine Eigenschaft der Punkte —
+            hier steht, was stattdessen getragen hat.
+        </p>
+        {% for k in ohne_werkzeug %}
+        <div class="sk2-lehre">
+            <span>
+                <span class="sk2-lehre-titel">{{ k.nr }} · {{ k.titel }}</span>
+                <div class="sk2-lehre-tun">{{ k.text }}</div>
+            </span>
+        </div>
+        {% endfor %}
+    </div>
+
+    {# --------------------------------------------------------- Lehren #}
+    <div class="sk2-card">
+        <h3><i class="bi bi-check2-square"></i> Lehren
+            <span class="sk2-zaehler" id="sk2-zaehler"></span></h3>
+        <p class="sk2-lead" style="margin-bottom:.6rem">
+            Alle Haken stehen anfangs auf <b>an</b>: Das ist die Liste, die man
+            im nächsten Projekt abarbeitet. Abhaken = „hier schon berücksichtigt".
+            Der Stand liegt im Browser, nicht auf dem Server — es ist eine
+            persönliche Merkliste, kein Projektzustand.
+        </p>
+        {% for gruppe, lehren in gruppen %}
+        <div class="sk2-gruppe">{{ gruppe }}</div>
+        {% for l in lehren %}
+        <label class="sk2-lehre" for="sk2-{{ l.slug }}">
+            <input type="checkbox" id="sk2-{{ l.slug }}" data-lehre="{{ l.slug }}" checked>
+            <span>
+                <span class="sk2-lehre-titel">{{ l.titel }}</span>
+                <div class="sk2-lehre-tun">{{ l.tun }}</div>
+                <div class="sk2-fall"><b>Fall:</b> {{ l.fall }}</div>
+            </span>
+        </label>
+        {% endfor %}
+        {% endfor %}
+    </div>
+</div>
+
+<script type="module">
+  // ?v= wie im _shell.html: Projekte ohne JS_VERSION bekommen 1.
+  import { Skills2 } from "/static/djangobase/js/skills2.js?v={{ JS_VERSION|default:1 }}";
+  import { TabellenSortierung } from "/static/djangobase/js/tabellen_sortierung.js?v={{ JS_VERSION|default:1 }}";
+  import { TabellenBreiten } from "/static/djangobase/js/tabellen_breiten.js?v={{ JS_VERSION|default:1 }}";
+  document.querySelectorAll('table[data-sort-key]').forEach(t =>
+      new TabellenBreiten([t], t.dataset.sortKey).binden());
+  TabellenSortierung.binden();
+  new Skills2().binden();
+</script>
+{% endblock %}

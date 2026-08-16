@@ -14,8 +14,24 @@
 table.sortable thead th.tsort-kopf {
   cursor: pointer;
   position: relative;
-  user-select: none;
   padding-right: 1.5rem;      /* Pfeil überlagert die Beschriftung nicht */
+}
+/* ÜBERSCHRIFTEN MÜSSEN MARKIERBAR BLEIBEN (Meldung Edgar, 16.08.2026:
+   „ich möchte die Überschriften der Spalten markieren und kopieren können").
+   Das ``user-select: none`` stand bis dahin auf der GANZEN Kopfzelle – gedacht
+   war es gegen den blauen Markierungsblitz beim Sortier-Klick und beim Ziehen
+   der Spaltenbreite. Es traf aber auch die Beschriftung selbst: Wer eine
+   Spaltenüberschrift in eine Notiz übernehmen wollte, konnte sie nicht
+   anfassen.
+   Jetzt gilt die Sperre nur noch dort, wo sie gebraucht wird – am Ziehgriff und
+   am Sortierpfeil. Der Text daneben lässt sich markieren; das ``lg-zieht`` am
+   <body> (weiter unten) sperrt die Auswahl weiterhin für die Dauer des Ziehens,
+   damit dabei nichts blau wird. */
+table.sortable thead th.tsort-kopf .tb-griff,
+table.sortable thead th.tsort-kopf .tsort-pfeil,
+.db-tabelle thead th .tb-griff, .db-tabelle thead th .tsort-pfeil,
+table.db-rahmen thead th .tb-griff, table.db-rahmen thead th .tsort-pfeil {
+  user-select: none;
 }
 
 table.sortable thead th.tsort-kopf:hover {
