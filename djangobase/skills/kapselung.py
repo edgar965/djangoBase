@@ -62,9 +62,41 @@ def gewichtung(konto, kurse):
 def umschichten(konto, kurse, ziel):
     ist = gewichtung(konto, kurse)
     return {s: ziel.get(s, 0) - ist.get(s, 0) for s in konto}
+''',
+         "fertig.py": '''class Depot:
+    """Schon gekapselt - die drei Huellen darunter sind nur noch Namen."""
+
+    def __init__(self, konto, kurse):
+        self.konto = konto
+        self.kurse = kurse
+
+    def wert(self):
+        return sum(self.konto[s] * self.kurse[s] for s in self.konto)
+
+    def gewichtung(self):
+        return {s: self.konto[s] * self.kurse[s] / self.wert()
+                for s in self.konto}
+
+    def umschichten(self, ziel):
+        ist = self.gewichtung()
+        return {s: ziel.get(s, 0) - ist.get(s, 0) for s in self.konto}
+
+
+def wert(konto, kurse):
+    return Depot(konto, kurse).wert()
+
+
+def gewichtung(konto, kurse):
+    return Depot(konto, kurse).gewichtung()
+
+
+def umschichten(konto, kurse, ziel):
+    return Depot(konto, kurse).umschichten(ziel)
 '''},
+        mindestens=1, hoechstens=1, erwartet_in="depot.py",
         warum="Kriterium 1: Funktionen, die denselben Zustand durchreichen, "
-              "sind eine Klasse ohne Konstruktor")
+              "sind eine Klasse ohne Konstruktor. `fertig.py` daneben ist die "
+              "AUSGEFÜHRTE Abhilfe — sie darf nicht wieder als Befund kommen.")
 
     def laufen(self):
         zeilen = []
@@ -72,10 +104,13 @@ def umschichten(konto, kurse, ziel):
             if d.baum is None or self._django_sonderfall(d):
                 continue
             tabelle = self._tabellen_namen(d)
+            klassennamen = {k.name for k in d.baum.body
+                            if isinstance(k, ast.ClassDef)}
             funktionen = [k for k in d.baum.body
                           if isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef))
                           and k.name not in self.EINSTIEGE
-                          and k.name not in tabelle]
+                          and k.name not in tabelle
+                          and not self._huelle(k, klassennamen)]
             if len(funktionen) < self.AB_ANZAHL:
                 continue
             gemeinsam = self._gemeinsame_argumente(funktionen)
@@ -100,6 +135,30 @@ def umschichten(konto, kurse, ziel):
             "%d Dateien mit Funktionen um denselben Zustand herum" % len(zeilen),
             "Je öfter dasselbe Argument in den Signaturen steht, desto klarer "
             "ist, was die Klasse halten würde.")
+
+    @staticmethod
+    def _huelle(knoten, klassennamen):
+        u"""Ist das nur die Huelle um eine Klasse DERSELBEN Datei?
+
+            def _run_mediapipe_to_csv(job, video_path, output_dir):
+                return Erkennung2d(job, video_path, output_dir).mediapipe()
+
+        Genau das ist die Abhilfe, die dieses Werkzeug empfiehlt — die Funktion
+        bleibt nur stehen, weil ein Aufrufer sie unter diesem Namen kennt. Sie
+        trotzdem zu melden hiess: Nach dem Umbau steht derselbe Befund wieder da
+        (3DTools, 17.08.2026; der Aufrufer war `Auftragslauf._csv_erzeugen`).
+
+        Verlangt wird beides — EIN ``return`` als ganzer Rumpf (Docstring zaehlt
+        nicht) UND eine Klasse aus dieser Datei darin. Ein Einzeiler, der etwas
+        anderes tut, bleibt ein Befund.
+        """
+        rumpf = [x for x in knoten.body
+                 if not (isinstance(x, ast.Expr)
+                         and isinstance(getattr(x, "value", None), ast.Constant))]
+        if len(rumpf) != 1 or not isinstance(rumpf[0], ast.Return):
+            return False
+        return any(isinstance(x, ast.Name) and x.id in klassennamen
+                   for x in ast.walk(rumpf[0]))
 
     @staticmethod
     def _tabellen_namen(d):

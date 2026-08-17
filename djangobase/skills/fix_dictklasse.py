@@ -35,6 +35,7 @@ echtes Dictionary), oder wenn der Vermerk „Dictionary gewollt" schon dransteht
 import ast
 import keyword
 import re
+from pathlib import Path
 
 from .fix_vermerk import Serialisierungsweg
 from .fixer import Aenderung, Fixer, Vorschau
@@ -387,6 +388,29 @@ class FixDictKlasse(Fixer):
 
         Zusaetzlich bleibt eine Textprobe auf ``**``: Wird das Ergebnis
         irgendwo entpackt, traegt die Mapping-Bruecke nicht.
+
+        DER FALL, DER GEFEHLT HAT UND WEHGETAN HAT (17.08.2026)
+        ======================================================
+        Ein Aufrufer, der das Ergebnis ERWEITERT:
+
+            result = plan_changes(firma, jahr)
+            result['gesendet'] = 0
+
+        Die Mapping-Bruecke der erzeugten Klasse kann lesen (``__getitem__``,
+        ``get``, ``keys``), aber NICHT schreiben. Also
+        ``TypeError: 'PlanChanges' object does not support item assignment`` —
+        und zwar erst zur Laufzeit, beim Knopfdruck.
+
+        Real passiert: Im Projekt assistant liess sich die Buchhaltung nicht
+        mehr nach Collmex senden. Die Aenderung wurde lokal gespeichert
+        (``BUCHUNG_EDIT`` im Audit-Log), der Sendeschritt brach ab, und im
+        Protokoll stand dazu KEINE Zeile — man sah nur, dass das erwartete
+        ``COLLMEX_MEMO_SENT`` fehlte. Derselbe Umbau haette ausserdem die
+        Dokument-Indexierung bei jeder Datei abgebrochen
+        (``_base_indexer`` setzt ``doc['file_path']`` nach dem Aufruf).
+
+        Ein Dictionary, das der Aufrufer erweitert, ist kein Datensatz mit
+        festen Feldern — die Praemisse von Kriterium 11 gilt dort nicht.
         """
         beleg = Serialisierungsweg(self.baeume, self.importeure).beleg(pfad,
                                                                       funktion)
@@ -395,6 +419,32 @@ class FixDictKlasse(Fixer):
                    "gebraucht" % beleg
         if re.search(r"\*\*\s*%s\s*\(" % re.escape(funktion), self._text(pfad)):
             return "das Ergebnis wird mit ** entpackt"
+        stelle = self._erweitert_wo(funktion)
+        if stelle:
+            return ("der Aufrufer erweitert das Ergebnis (%s) — die "
+                    "Mapping-Brücke kann lesen, nicht schreiben" % stelle)
+        return ""
+
+    def _erweitert_wo(self, funktion):
+        u"""``"datei.py:88"`` der ersten Stelle, die per Index SCHREIBT - sonst ""."""
+        for pfad, baum in self.baeume.items():
+            halter = set()
+            for k in ast.walk(baum):
+                if isinstance(k, ast.Assign) and isinstance(k.value, ast.Call):
+                    ziel = (getattr(k.value.func, "id", None)
+                            or getattr(k.value.func, "attr", None))
+                    if ziel == funktion:
+                        for t in k.targets:
+                            if isinstance(t, ast.Name):
+                                halter.add(t.id)
+            if not halter:
+                continue
+            for k in ast.walk(baum):
+                if (isinstance(k, ast.Subscript)
+                        and isinstance(k.ctx, (ast.Store, ast.Del))
+                        and isinstance(k.value, ast.Name)
+                        and k.value.id in halter):
+                    return "%s:%d" % (Path(pfad).name, k.lineno)
         return ""
 
     @staticmethod

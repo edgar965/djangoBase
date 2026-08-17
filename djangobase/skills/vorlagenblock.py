@@ -131,12 +131,32 @@ class Vorlagenblock(Werkzeug2):
             pass
         return raus
 
-    @staticmethod
-    def _text(pfad):
+    #: ``{% comment %}…{% endcomment %}`` und ``{# … #}`` — beides wird beim
+    #: Rendern verworfen und enthaelt deshalb keine echten Bloecke.
+    KOMMENTAR = re.compile(r"\{%\s*comment\s*%\}.*?\{%\s*endcomment\s*%\}"
+                           r"|\{#.*?#\}", re.S)
+
+    @classmethod
+    def _text(cls, pfad):
+        u"""Der Vorlagentext OHNE Kommentare.
+
+        EIN BLOCK-TAG IM KOMMENTAR IST KEIN BLOCK (17.08.2026): In
+        ``steuer_web/.../_base_steuer.html`` erklaert der Kopfkommentar den
+        Aufbau der Datei und schreibt dabei ``{% block steuer_title %}`` hin.
+        Die Rohtext-Suche zaehlte das als Block auf oberster Ebene — und
+        meldete ihn als „laeuft ins Leere", obwohl der echte, verschachtelte
+        Block einwandfrei rendert (nachgemessen: die Unterseite zeigt ihren
+        Titel-Zusatz).
+
+        Dieselbe Fehlerklasse wie „``{% … %}`` im HTML kann kein unaufgeloester
+        Vorlagenrest sein": Wer den Rohtext liest, muss das wegnehmen, was beim
+        Rendern gar nicht mitspielt.
+        """
         try:
-            return pfad.read_text(encoding="utf-8", errors="replace")
+            roh = pfad.read_text(encoding="utf-8", errors="replace")
         except OSError:
             return ""
+        return cls.KOMMENTAR.sub("", roh)
 
     def _finden(self, name, vorlagen):
         u"""Vorlage zu einem `extends`-Namen — ueber das Pfadende."""

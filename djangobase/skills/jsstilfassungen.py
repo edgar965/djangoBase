@@ -49,8 +49,6 @@ class JsStilfassungen(Werkzeug2):
     dauer = "unter 1 s"
     kriterium = 15
 
-    NICHT_IM_PFAD = ("vendor", "theatre", "theatre-studio", "dist", "bundle",
-                     "node_modules", "staticfiles")
     #: So viele Fassungen kommen in die Tabelle.
     OBEN = 25
 
@@ -95,15 +93,8 @@ class JsStilfassungen(Werkzeug2):
                     "den meisten Stellen. Was nur einmal vorkommt, lohnt keine "
                     "eigene Klasse.")
 
+    #: Ausschlussliste und Suche stehen seit dem 17.08.2026 in
+    #: ``Frontendquellen`` — vorher hatte sie jedes JS-Werkzeug einzeln,
+    #: in vier verschiedenen Fassungen.
     def _quellen(self):
-        wurzel = self.wurzel()
-        raus = self.ausgeschlossen()
-        for endung in ("*.html", "*.js"):
-            for pfad in sorted(wurzel.rglob(endung)):
-                if any(teil in raus for teil in pfad.parts):
-                    continue
-                if any(teil in JsStilfassungen.NICHT_IM_PFAD for teil in pfad.parts):
-                    continue
-                if ".min." in pfad.name:
-                    continue
-                yield pfad, pfad.relative_to(wurzel).as_posix()
+        return self.frontendquellen().paare(".html", ".js")

@@ -73,19 +73,23 @@ def pruefen(daten_basis):
               "JSON und Engine denselben Wert leicht verschieden schrieben")
 
     def laufen(self):
-        vorkommen = defaultdict(lambda: defaultdict(set))   # kern -> name -> dateien
+        # kern -> name -> {(Datei, Welt)}
+        vorkommen = defaultdict(lambda: defaultdict(set))
         for d in self.dateien():
             if d.baum is None:
                 continue
-            for name in self._python_namen(d):
-                self._merken(vorkommen, name, d.name)
-        for p in self.dateien(".js") + self.dateien(".html"):
+            for name, welt in self._python_namen(d):
+                self._merken(vorkommen, name, d.name, welt)
+        # `frontendquellen()` statt `dateien(".js")`: Sonst zaehlt das
+        # Vite-Buendel mit, und `backgroundColor`/`background-color` aus Three.js
+        # steht als Projektbefund da (17.08.2026).
+        for pfad, kurz in self.frontendquellen().paare(".js", ".html"):
             try:
-                text = p.read_text(encoding="utf-8", errors="replace")
+                text = pfad.read_text(encoding="utf-8", errors="replace")
             except OSError:
                 continue
-            for name in self._web_namen(text):
-                self._merken(vorkommen, name, p.name)
+            for name, welt in self._web_namen(text):
+                self._merken(vorkommen, name, kurz, welt)
 
         zeilen = []
         for kern, namen in vorkommen.items():
@@ -96,54 +100,155 @@ def pruefen(daten_basis):
             # Paare - darunter jedes ``TradeSystem``/``tradeSystem``, also die
             # ganz normale Klasse-neben-Instanz. Interessant ist der Bruch
             # zwischen den Welten: mit Trennzeichen (Python) gegen ohne (JS).
-            mit_trenner = {n for n in namen if "_" in n or "-" in n}
+            mit_trenner = {n for n in namen if self._hat_trenner(n)}
             ohne_trenner = set(namen) - mit_trenner
             if not (mit_trenner and ohne_trenner):
                 continue
             geordnet = sorted(namen.items(), key=lambda x: -len(x[1]))
+            dateien = {d for _, stellen in geordnet for d, _w in stellen}
             zeilen.append({
                 "kern": kern,
                 "varianten": " · ".join(n for n, _ in geordnet[:4]),
                 "anzahl": len(namen),
-                "wo": ", ".join(sorted({d for _, ds in geordnet for d in ds})[:3]),
+                "bruch": self._bruch(namen),
+                "wo": ", ".join(sorted(dateien)[:3]),
             })
-        zeilen.sort(key=lambda z: (-z["anzahl"], z["kern"]))
+        zeilen.sort(key=lambda z: (z["bruch"] != "in einer Sprache",
+                                   -z["anzahl"], z["kern"]))
+        eine = sum(1 for z in zeilen if z["bruch"] == "in einer Sprache")
         return Ergebnis(
-            ["kern", "varianten", "anzahl", "wo"], zeilen,
-            "%d Namen mit mehreren Schreibweisen" % len(zeilen),
-            "Nicht jeder Treffer ist ein Fehler — Python und JavaScript dürfen "
-            "verschieden schreiben. Der Befund sagt nur: Diese gehören zusammen.")
+            ["kern", "varianten", "anzahl", "bruch", "wo"], zeilen,
+            "%d Namen mit mehreren Schreibweisen — %d davon INNERHALB einer "
+            "Sprache (die echten)" % (len(zeilen), eine),
+            "Über Sprachgrenzen ist der Unterschied Konvention: Python schreibt "
+            "`body_type`, JavaScript `bodyType`, HTML `data-body-type`. "
+            "Interessant ist, wo BEIDE Schreibweisen in derselben Sprache stehen.")
 
-    def _merken(self, vorkommen, name, datei):
+    @classmethod
+    def _bruch(cls, namen):
+        u"""Stehen beide Schreibweisen in DERSELBEN Welt?
+
+        Der Unterschied entscheidet alles. In 3DTools waren von 147 Befunden die
+        allermeisten Uebersetzungen ueber eine Grenze — ``job_id`` als
+        Python-Bezeichner, ``"jobId"`` als Drahtname fuer JavaScript,
+        ``data-job-id`` im Markup. Das ist keine Abweichung, das ist die
+        Konvention der jeweiligen Seite; sie anzugleichen hiesse, gegen sie zu
+        schreiben (17.08.2026).
+
+        „Welt" ist deshalb nicht die Dateiendung, sondern die ROLLE: Python-Name,
+        JavaScript-Name, Markup-Name, Drahtname. Eine Zeichenkette in einer
+        Python-Datei ist ein Drahtname — sonst galt ``job_id`` neben ``"jobId"``
+        als Bruch „in einer Sprache", obwohl beides in Python-Dateien stand.
+        """
+        je_welt = {}
+        for name, stellen in namen.items():
+            for _datei, welt in stellen:
+                # Verglichen wird nur innerhalb DERSELBEN Rolle: `MeshData` ist
+                # eine Klasse, `mesh_data` eine Variable, `BVHTEXT` eine
+                # Konstante. Dass die drei verschieden geschrieben sind, VERLANGT
+                # die Sprache — das waren 20 der 37 „echten" Befunde
+                # (17.08.2026).
+                je_welt.setdefault((welt, cls._rolle(name)), set()).add(name)
+        for _schluessel, gesehen in je_welt.items():
+            if len({cls._form(n) for n in gesehen}) > 1:
+                return "in einer Sprache"
+        return "über Grenze (%s)" % ", ".join(
+            sorted({w for w, _r in je_welt}))
+
+    @staticmethod
+    def _rolle(name):
+        """Klasse, Konstante oder Wert — an der Schreibung erkannt."""
+        kern = name.strip("_-")
+        if not kern:
+            return "wert"
+        if kern.isupper():
+            return "konstante"
+        if kern[0].isupper():
+            return "klasse"
+        return "wert"
+
+    @staticmethod
+    def _form(name):
+        """`mit_trenner` oder `ohne` — die Schreibform ohne Rollenmarkierung."""
+        return "mit" if Namensvarianten._hat_trenner(name) else "ohne"
+
+    @staticmethod
+    def _hat_trenner(name):
+        u"""Trennzeichen INNERHALB des Namens — nicht am Rand.
+
+        Ein führender Unterstrich sagt „privat", ein Anhang „…-" stammt aus
+        einem Datenattribut. Beides ist eine ROLLE, keine Schreibweise. Ohne
+        diese Unterscheidung meldete das Werkzeug `abstand · Abstand · ABSTAND ·
+        _abstand` als vier Schreibweisen für dasselbe — also die ganz normale
+        Reihe Variable/Klasse/Konstante/privates Feld, die jede Sprache so
+        verlangt. Das waren in 3DTools über hundert Fehlalarme (17.08.2026).
+        """
+        return "_" in name.strip("_-") or "-" in name.strip("_-")
+
+    def _merken(self, vorkommen, name, datei, welt):
         if len(name) < self.MIN_LAENGE or name.lower() in self.RAUSCHEN:
             return
         kern = re.sub(r"[^a-z0-9]", "", name.lower())
         if len(kern) < self.MIN_LAENGE:
             return
-        vorkommen[kern][name].add(datei)
+        vorkommen[kern][name].add((datei, welt))
 
     @staticmethod
     def _python_namen(d):
+        u"""(Name, Welt) — Bezeichner und Drahtnamen getrennt.
+
+        Eine ZEICHENKETTE in Python ist kein Python-Name: ``daten["jobId"]``
+        schreibt bewusst so, wie der Empfaenger es liest. Beides in denselben
+        Topf zu werfen liess ``job_id · jobId · job-id`` als Bruch „in einer
+        Sprache" dastehen, obwohl alle drei Vorkommen in Python-Dateien lagen —
+        zwei davon als Drahtnamen fuer JavaScript (17.08.2026).
+        """
+        module = Namensvarianten._modulnamen(d.baum)
         aus = set()
         for k in ast.walk(d.baum):
             if isinstance(k, ast.Name) and isinstance(k.ctx, ast.Store):
-                aus.add(k.id)
+                aus.add((k.id, "Python"))
             elif isinstance(k, ast.arg):
-                aus.add(k.arg)
+                aus.add((k.arg, "Python"))
             elif isinstance(k, ast.Constant) and isinstance(k.value, str):
                 if re.fullmatch(r"[A-Za-z][\w-]{3,40}", k.value):
-                    aus.add(k.value)
+                    aus.add((k.value, "Draht"))
             elif isinstance(k, ast.Attribute):
-                aus.add(k.attr)
+                welt = "Fremd" if Namensvarianten._wurzel(k) in module else "Python"
+                aus.add((k.attr, welt))
         return aus
 
     @staticmethod
+    def _modulnamen(baum):
+        u"""Namen, die in dieser Datei ein importiertes MODUL bezeichnen."""
+        aus = set()
+        for k in ast.walk(baum):
+            if isinstance(k, ast.Import):
+                for name in k.names:
+                    aus.add(name.asname or name.name.split(".")[0])
+        return aus
+
+    @staticmethod
+    def _wurzel(knoten):
+        """Der Name links vom ersten Punkt: ``os.path.isdir`` -> ``os``."""
+        wert = knoten.value
+        while isinstance(wert, ast.Attribute):
+            wert = wert.value
+        return getattr(wert, "id", "")
+
+    @staticmethod
     def _web_namen(text):
+        u"""(Name, Welt) — JS-Objektschluessel gegen Markup-Namen.
+
+        ``data-…`` und ``id="…"`` folgen der HTML-Konvention (Bindestrich), ein
+        Objektschluessel der von JavaScript (camelCase). Beide in einem Topf
+        machten aus jedem ``bulkDeleteBtn``/``bulk-delete-btn`` einen Befund.
+        """
         aus = set()
         for m in re.finditer(r"\b([a-zA-Z][\w-]{3,40})\s*:", text):     # Objektschlüssel
-            aus.add(m.group(1))
+            aus.add((m.group(1), "JavaScript"))
         for m in re.finditer(r'\bdata-([\w-]{3,40})=', text):
-            aus.add(m.group(1))
+            aus.add((m.group(1), "Markup"))
         for m in re.finditer(r'\bid="([\w-]{3,40})"', text):
-            aus.add(m.group(1))
+            aus.add((m.group(1), "Markup"))
         return aus

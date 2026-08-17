@@ -48,8 +48,6 @@ class JsBefunde(Werkzeug2):
     #: Auch Vorlagen werden geprueft - `style=""` im Markup ist derselbe Befund
     #: wie im JavaScript, und dort steht er meist in groesserer Zahl.
     ENDUNGEN = (".js", ".html")
-    #: Fremdcode und Bauergebnisse zaehlen nicht.
-    NICHT_IM_PFAD = ("vendor", "theatre", "theatre-studio", "dist", "bundle")
 
     #: Mehrere der zehn Auffaelligkeiten auf einmal: ``var``, ``console.log``,
     #: ``fetch`` ohne ok-Pruefung und ein loser Vergleich. Die beiden
@@ -108,17 +106,11 @@ export async function laden(url) {
     #: So viele Beispielstellen je Art. Alle waeren mehrere Tausend Zeilen.
     JE_ART = 12
 
+    #: Ausschlussliste und Suche stehen seit dem 17.08.2026 in
+    #: ``Frontendquellen`` — vorher hatte sie jedes JS-Werkzeug einzeln,
+    #: in vier verschiedenen Fassungen.
     def _quellen(self):
-        raus = self.ausgeschlossen()
-        for endung in JsBefunde.ENDUNGEN:
-            for pfad in sorted(self.wurzel().rglob("*" + endung)):
-                if any(teil in raus for teil in pfad.parts):
-                    continue
-                if any(teil in JsBefunde.NICHT_IM_PFAD for teil in pfad.parts):
-                    continue
-                if ".min." in pfad.name:
-                    continue
-                yield pfad
+        return self.frontendquellen().pfade(*JsBefunde.ENDUNGEN)
 
     @staticmethod
     def skriptzeilen(zeilen):

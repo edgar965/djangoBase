@@ -84,8 +84,6 @@ class Frontendadressen(Werkzeug2):
     dauer = "1-3 s"
     kriterium = 5
 
-    NICHT_IM_PFAD = ("vendor", "theatre", "theatre-studio", "dist", "bundle",
-                     "node_modules", "staticfiles")
 
     #: Eine Adresse, die keine URLconf kennt - und daneben die drei Formen, die
     #: NICHT zaehlen duerfen: ein Praefix in einer Konstanten, eine Adresse, die
@@ -155,16 +153,8 @@ export async function umbenennen(name) {
                     continue
         return False
 
+    #: Ausschlussliste und Suche stehen seit dem 17.08.2026 in
+    #: ``Frontendquellen`` — vorher hatte sie jedes JS-Werkzeug einzeln,
+    #: in vier verschiedenen Fassungen.
     def _quellen(self):
-        wurzel = self.wurzel()
-        raus = self.ausgeschlossen()
-        for endung in ("*.js", "*.html"):
-            for pfad in sorted(wurzel.rglob(endung)):
-                if any(teil in raus for teil in pfad.parts):
-                    continue
-                if any(teil in Frontendadressen.NICHT_IM_PFAD
-                       for teil in pfad.parts):
-                    continue
-                if ".min." in pfad.name:
-                    continue
-                yield pfad, pfad.relative_to(wurzel).as_posix()
+        return self.frontendquellen().paare(".js", ".html")

@@ -81,12 +81,17 @@ class Dateigroesse(Werkzeug2):
         zeilen.sort(key=lambda z: -z["groesse"])
         # Auch die JS-Module: Sie wachsen genauso, werden aber von keinem
         # Python-Werkzeug gesehen.
-        js = [p for p in self.dateien(".js")
-              if p.suffix == ".js" and p.stat().st_size > 0]
-        for p in js:
+        #
+        # `frontendquellen()` statt `dateien(".js")`: Sonst steht ein Vite-Buendel
+        # mit 7.163 Zeilen als Spitzenbefund ganz oben — erzeugter Code, den
+        # niemand aufteilen kann, und er verdeckt die echten 300-Zeilen-Module
+        # (3DTools, 17.08.2026).
+        for p, kurz in self.frontendquellen().paare(".js"):
+            if p.stat().st_size == 0:
+                continue
             n = p.read_text(encoding="utf-8", errors="replace").count("\n") + 1
             if n > 200:
-                zeilen.append({"datei": p.name, "zeile": 1, "art": "JS-Modul",
+                zeilen.append({"datei": kurz, "zeile": 1, "art": "JS-Modul",
                                "name": p.name, "groesse": n, "grenze": 200})
         return Ergebnis(
             ["datei", "zeile", "art", "name", "groesse", "grenze"], zeilen,

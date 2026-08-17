@@ -52,8 +52,6 @@ class JsFunktionen(Werkzeug2):
     kriterium = 2
 
     VORGABE_GRENZE = 90
-    NICHT_IM_PFAD = ("vendor", "theatre", "theatre-studio", "dist", "bundle",
-                     "node_modules")
 
     def grenze(self):
         eigen = (getattr(settings, "DJANGOBASE", {}) or {}).get(
@@ -112,14 +110,8 @@ class JsFunktionen(Werkzeug2):
             i = j + 1
         return gefunden
 
+    #: Ausschlussliste und Suche stehen seit dem 17.08.2026 in
+    #: ``Frontendquellen`` — vorher hatte sie jedes JS-Werkzeug einzeln,
+    #: in vier verschiedenen Fassungen.
     def _quellen(self):
-        wurzel = self.wurzel()
-        raus = self.ausgeschlossen()
-        for pfad in sorted(wurzel.rglob("*.js")):
-            if any(teil in raus for teil in pfad.parts):
-                continue
-            if any(teil in JsFunktionen.NICHT_IM_PFAD for teil in pfad.parts):
-                continue
-            if ".min." in pfad.name:
-                continue
-            yield pfad, pfad.relative_to(wurzel).as_posix()
+        return self.frontendquellen().paare(".js")

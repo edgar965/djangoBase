@@ -182,9 +182,29 @@ class Werkzeug2:
     def ausgeschlossen(self):
         """Verzeichnisnamen, die übersprungen werden.
 
-        Projekte können ergänzen: ``DJANGOBASE["skills2_ignorieren"] = [...]``."""
-        eigen = (getattr(settings, "DJANGOBASE", {}) or {}).get("skills2_ignorieren") or []
+        Projekte können ergänzen: ``DJANGOBASE["skills_ignorieren"] = [...]``.
+
+        Der alte Schlüssel ``skills2_ignorieren`` wird weiter gelesen: Als die
+        drei Werkzeugkästen zu einem wurden (17.08.2026), verschwand das Paket
+        ``skills2`` — die Einstellungen in den Projekten aber nicht. Ein
+        stillschweigend ignorierter Schlüssel hätte dort auf einen Schlag
+        Fremdcode in die Befunde geholt.
+        """
+        cfg = getattr(settings, "DJANGOBASE", {}) or {}
+        eigen = list(cfg.get("skills_ignorieren") or [])
+        eigen += list(cfg.get("skills2_ignorieren") or [])
         return AUSGESCHLOSSEN | {str(x) for x in eigen}
+
+    def frontendquellen(self):
+        """Die Frontend-Dateien dieses Projekts — für alle Werkzeuge dieselben.
+
+        Vor dem 17.08.2026 hatte jedes JS-Werkzeug seine eigene Ausschlussliste
+        und seinen eigenen ``rglob``-Generator — acht Kopien in vier Fassungen.
+        Die Werkzeuge waren sich damit nicht einig, welche Dateien zum Projekt
+        gehören, und jede Zahl bezog sich auf eine andere Menge.
+        """
+        from .frontendquellen import Frontendquellen
+        return Frontendquellen(self.wurzel(), self.ausgeschlossen())
 
     def dateien(self, endung=".py"):
         """Alle Quelldateien des Projekts - ohne venv, Migrationen, Fremdcode."""

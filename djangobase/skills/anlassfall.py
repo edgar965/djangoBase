@@ -51,13 +51,31 @@ class Anlassfall:
     """
 
     def __init__(self, dateien, mindestens=1, hoechstens=None, erwartet_in="",
-                 warum=""):
+                 warum="", ohne_arten=()):
         self.dateien = dict(dateien)
         self.mindestens = mindestens
         self.hoechstens = hoechstens
         self.erwartet_in = erwartet_in
         #: Ein Satz: welcher reale Vorfall hier nachgebaut ist.
         self.warum = warum
+        #: Befundarten, die NICHT am uebergebenen Verzeichnis haengen.
+        #:
+        #: Bisher galt: Wer im Leeren etwas meldet, sucht woanders. Das stimmt
+        #: fuer jeden Pruefer, der Dateien liest — aber ``protokoll`` prueft
+        #: zusaetzlich die LOGGING-Einstellung des Projekts, und die gibt es
+        #: unabhaengig von jedem Verzeichnis. Beim Probelauf zaehlte diese eine
+        #: Zeile mit: „im Leeren 1 — sucht nicht in der uebergebenen Wurzel"
+        #: (17.08.2026), und im Anlassfall verschob sie die erwartete Zahl.
+        #:
+        #: Die Arten stehen deshalb HIER, am Werkzeug, und nicht als Liste im
+        #: Check: Wer eine solche Pruefung baut, benennt sie selbst.
+        self.ohne_arten = tuple(ohne_arten)
+
+    def dateibezogen(self, zeilen):
+        """Nur die Befunde, die an einer Datei im Pruefverzeichnis haengen."""
+        if not self.ohne_arten:
+            return list(zeilen)
+        return [z for z in zeilen if z.get("art") not in self.ohne_arten]
 
     @property
     def umfang(self):

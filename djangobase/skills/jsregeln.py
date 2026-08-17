@@ -21,6 +21,8 @@ VIER FEHLALARME, die beim Bau aufgefallen sind und hier behoben sind
 """
 import re
 
+from .frontendquellen import Frontendquellen
+
 from .jsklammern import Klammerzaehler
 
 __all__ = ["REGELN", "Regel", "Fund"]
@@ -123,33 +125,16 @@ class LauteAusgabe(Regel):
     muster = re.compile(r"\bconsole\.log\s*\(")
     nicht = re.compile(r"^\s*(//|\*|/\*)")
 
-    #: Dateien, deren Konsolenausgabe ihr Zweck ist.
-    AUSNAHMEN = ("protokoll.js", "logger.js")
-    #: Test- und Debug-Dateien: Dort IST die Ausgabe das Ergebnis. Ein
-    #: Playwright-Test, der nichts ausgibt, ist wertlos.
-    TESTMUSTER = re.compile(r"(^|/)(test_|tests?/)|\.spec\.js$|playwright")
-    #: So viele Zeilen am Dateianfang gelten als Kopf.
-    KOPFZEILEN = 40
-
     def pruefen(self, datei, zeilen):
-        u"""Ausnahmen — in dieser Reihenfolge.
+        u"""Die Ausnahmen stehen in ``Frontendquellen.ausgabe_gewollt``.
 
-        Die dritte ist die wichtige: **`dauerhaft gewollt` im Dateikopf** nimmt
-        die ganze Datei aus. Damit steht die Begruendung DORT, wo die Ausgabe
-        gewollt ist, statt als Pfad in einer Liste im Pruefer.
-
-        WARUM (17.08.2026): Die Theatre-Debugseite (`theatre_studio.html`, nicht
-        verlinkt, ihre Konsolenausgabe IST das Ergebnis) stand mit 10 Befunden in
-        der Liste, und ein Werkzeug im Projekt trug dafuer den Pfad hart
-        eingetragen — beide Zaehlungen wichen deshalb um 10 voneinander ab. Eine
-        Pfadliste im Pruefer raet ausserdem beim naechsten Projekt.
+        Dort, weil ``protokoll`` dieselbe Frage stellt und sie ohne diese
+        Ausnahmen beantwortete: 189 ``console.*``-Stellen gegen die hier
+        gezaehlten, darunter 24 aus einem Playwright-Laeufer, dessen Ausgabe das
+        Ergebnis IST. Zwei Werkzeuge, die dasselbe zaehlen, brauchen EINEN
+        Massstab (17.08.2026).
         """
-        if datei.rsplit("/", 1)[-1] in LauteAusgabe.AUSNAHMEN:
-            return []
-        if LauteAusgabe.TESTMUSTER.search(datei):
-            return []
-        kopf = "\n".join(zeilen[:LauteAusgabe.KOPFZEILEN])
-        if "dauerhaft gewollt" in kopf:
+        if Frontendquellen.ausgabe_gewollt(datei, zeilen):
             return []
         return super().pruefen(datei, zeilen)
 

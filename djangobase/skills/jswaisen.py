@@ -147,15 +147,44 @@ class Modulinventar:
                     einstieg.add(datei)
         return einstieg
 
+    #: Vermerk im Modulkopf fuer ein Modul, das BEWUSST nicht geladen wird:
+    #: ``// stillgelegt gewollt: <Grund>``. Die Begruendung ist Pflicht — ohne
+    #: sie waere der Vermerk ein Schalter, mit dem sich jeder Befund abstellen
+    #: laesst.
+    #:
+    #: WARUM DAS NOETIG IST (17.08.2026): Im Projekt assistant lagen zwei
+    #: Module als „verwaist" — ``SidebarFolderDnD`` (am 04.06.2026 auf
+    #: ausdruecklichen Wunsch abgeschaltet, weil das Sortierverhalten
+    #: chaotisch war) und ``SyncDialog`` (durch ``SyncStatusBus`` ersetzt).
+    #: Beide sind kein Versehen, sondern eine Entscheidung. Ohne Vermerk bleibt
+    #: nur die Wahl zwischen „Befund fuer immer offen" und „Feature-Code
+    #: loeschen" — und Letzteres darf ein Pruefwerkzeug nicht erzwingen.
+    STILLGELEGT = re.compile(r"//\s*stillgelegt gewollt:\s*\S+")
+
     def verwaist(self):
-        u"""Dateien, die keine Seite laedt — Laeufer ausgenommen.
+        u"""Dateien, die keine Seite laedt — Laeufer und Stillgelegte ausgenommen.
 
         Ein Laeufer (Node-Skript, Bauwerkzeug, Testlaeufer) gehoert nicht zu den
         Seiten und MUSS unerreichbar sein. Er unter „laedt niemand" zu fuehren
         heisst, einen Loeschvorschlag fuer lebenden Code zu machen.
         """
-        return [p for p in self.dateien
-                if p not in self.geladen and p not in self.laeufer]
+        aus = []
+        for p in self.dateien:
+            if p in self.geladen or p in self.laeufer:
+                continue
+            if self._stillgelegt(p):
+                continue
+            aus.append(p)
+        return aus
+
+    def _stillgelegt(self, pfad):
+        """Traegt der Modulkopf den Vermerk mit Begruendung?"""
+        try:
+            kopf = "\n".join(Path(pfad).read_text(
+                encoding="utf-8", errors="replace").split("\n")[:30])
+        except OSError:
+            return False
+        return bool(self.STILLGELEGT.search(kopf))
 
     def fehlende(self):
         """Importe, die auf eine Datei zeigen, die es nicht gibt."""
@@ -182,8 +211,6 @@ class JsWaisen(Werkzeug2):
     dauer = "unter 1 s"
     kriterium = 5
 
-    NICHT_IM_PFAD = ("vendor", "theatre", "theatre-studio", "dist", "bundle",
-                     "node_modules")
 
     #: Drei Module, eine Vorlage: ``geladen.js`` haengt an der Seite und zieht
     #: ``teil.js`` nach - ``waise.js`` zieht niemand. Genau so waren
@@ -233,15 +260,11 @@ export function start() { return hilf(); }
                     "Seite geladen, und am Code erkannt (require/module.exports/"
                     "__dirname/process.env/defineConfig), nicht am Ordner.")
 
+    #: Ausschlussliste und Suche stehen seit dem 17.08.2026 in
+    #: ``Frontendquellen`` — vorher hatte sie jedes JS-Werkzeug einzeln,
+    #: in vier verschiedenen Fassungen.
     def _quellen(self):
-        raus = self.ausgeschlossen()
-        for pfad in sorted(self.wurzel().rglob("*.js")):
-            if any(teil in raus for teil in pfad.parts):
-                continue
-            if any(teil in JsWaisen.NICHT_IM_PFAD for teil in pfad.parts):
-                continue
-            if ".min." not in pfad.name:
-                yield pfad
+        return self.frontendquellen().pfade(".js")
 
     def _vorlagen(self):
         raus = self.ausgeschlossen()

@@ -6,19 +6,44 @@ from collections import defaultdict
 
 from .werkzeug_alt import Befund, Ergebnis, Werkzeug
 
-#: Wortpaare, die im selben Projekt dieselbe Sache meinen. Links das, was in
-#: gemischtsprachigen Projekten haeufig nebeneinander steht.
+#: Wortpaare, die im selben Projekt dieselbe Sache meinen — GETRENNT NACH
+#: SPRACHE.
+#:
+#: WARUM GETRENNT (17.08.2026, 3DTools): Die Gruppen standen gemischt
+#: (``('path', 'pfad', 'datei', 'file')``). In diesem Projekt heissen die alten
+#: API-Ansichten englisch (``character_bvh_file``) und alles Neue deutsch
+#: (``pfad_sichern``) — das ist die bewusste Lage, kein Versehen. Gemischte
+#: Gruppen melden deshalb JEDEN neuen deutschen Namen gegen seinen englischen
+#: Vorgaenger: ein Befund, aus dem nichts folgt, ausser den ganzen Umbau
+#: zurueckzudrehen.
+#:
+#: Innerhalb einer Sprache bleibt der Befund scharf und hat genau an diesem Tag
+#: einen echten Fall gefunden: ``get_pose`` neben ``studio_project_load`` — zwei
+#: englische Schreibweisen fuer „lesen" in derselben API. Umbenannt zu
+#: ``pose_load``.
 GLEICHBEDEUTEND = [
-    ('get', 'hole', 'lade', 'load', 'fetch'),
-    ('save', 'speichern', 'schreiben', 'write', 'store'),
-    ('delete', 'loeschen', 'remove', 'entfernen'),
-    ('list', 'liste', 'alle', 'all'),
-    ('create', 'anlegen', 'neu', 'new', 'build', 'bauen'),
-    ('update', 'aendern', 'setzen', 'set'),
-    ('check', 'pruefen', 'validate', 'testen'),
-    ('name', 'bezeichnung', 'label', 'titel', 'title'),
-    ('count', 'anzahl', 'zahl', 'num'),
-    ('path', 'pfad', 'datei', 'file'),
+    # Englisch
+    ('get', 'load', 'fetch', 'read'),
+    ('save', 'write', 'store'),
+    ('delete', 'remove'),
+    ('list', 'all'),
+    ('create', 'new', 'build'),
+    ('update', 'set'),
+    ('check', 'validate'),
+    ('name', 'label', 'title'),
+    ('count', 'num'),
+    ('path', 'file'),
+    # Deutsch
+    ('hole', 'lade', 'lesen'),
+    ('speichern', 'schreiben'),
+    ('loeschen', 'entfernen'),
+    ('liste', 'alle'),
+    ('anlegen', 'neu', 'bauen'),
+    ('aendern', 'setzen'),
+    ('pruefen', 'testen'),
+    ('bezeichnung', 'titel'),
+    ('anzahl', 'zahl'),
+    ('pfad', 'datei'),
 ]
 
 

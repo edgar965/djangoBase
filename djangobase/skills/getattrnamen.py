@@ -88,6 +88,21 @@ class Namensbestand:
                 self.bezeichner.add(k.arg)
             elif isinstance(k, ast.Constant) and isinstance(k.value, str):
                 self.zeichenketten.add(k.value)
+        # ``obj.__dict__['name'] = …`` IST eine Attributzuweisung (17.08.2026).
+        # Nur als Index gelesen zaehlte sie nicht, und ein Feld, das das Projekt
+        # SO setzt, galt als unbekannt: ``mail/compose`` legt ``_bcc_hidden``
+        # ueber ``msg.__dict__[...]`` an einer Standard-EmailMessage ab (an der
+        # ein normales ``msg.x = y`` nicht vorgesehen ist) — und wurde deshalb
+        # als Verdachtsfall gemeldet, obwohl zwei Stellen ihn setzen.
+        for k in ast.walk(baum):
+            if not isinstance(k, ast.Subscript):
+                continue
+            traeger = k.value
+            if (isinstance(traeger, ast.Attribute)
+                    and traeger.attr == "__dict__"
+                    and isinstance(k.slice, ast.Constant)
+                    and isinstance(k.slice.value, str)):
+                self.attribute.add(k.slice.value)
 
     def kennt(self, name):
         return name in self.attribute or name in self.bezeichner
@@ -174,10 +189,24 @@ def haelt_ueber_nacht(ts):
 
 def haelt_wirklich(ts):
     return getattr(ts, "position_ueber_nacht", False)
+
+
+def fassung(paketname):
+    """Ausnahme 1: ein Dunder nach Python-Konvention."""
+    paket = __import__(paketname)
+    return getattr(paket, "__version__", None)
+
+
+def kann_das(paketname):
+    """Ausnahme 2: ein MODUL als Empfaenger - fremder Code."""
+    paket = __import__(paketname)
+    return callable(getattr(paket, "irgendeine_funktion", None))
 '''},
+        mindestens=1, hoechstens=1,
         erwartet_in="orb_nacht",
         warum="Autotrader fragte ``orb_nacht``; das Feld heißt "
-              "``position_ueber_nacht`` (16.08.2026)")
+              "``position_ueber_nacht`` (16.08.2026). Die zwei Ausnahmen sind "
+              "die Fehlalarme aus 3DTools: Dunder und Modul-Empfänger.")
 
     def laufen(self):
         dateien = [d for d in self.dateien(".py") if d.baum is not None]
@@ -187,13 +216,17 @@ def haelt_wirklich(ts):
 
         stellen, gesamt = [], 0
         for d in dateien:
+            module = self._modulnamen(d.baum)
             for k in ast.walk(d.baum):
                 if not self._ist_getattr_mit_vorgabe(k):
                     continue
                 gesamt += 1
                 stelle = GetattrStelle(d.name, k)
-                if not bestand.kennt(stelle.feld):
-                    stellen.append(stelle)
+                if bestand.kennt(stelle.feld):
+                    continue
+                if self._nicht_zu_pruefen(stelle, module):
+                    continue
+                stellen.append(stelle)
 
         stellen.sort(key=lambda s: (s.datei, s.zeile))
         return Ergebnis(
@@ -218,6 +251,66 @@ def haelt_wirklich(ts):
         return ("%d von %d ``getattr``-Aufrufen mit Vorgabe nennen ein Feld, "
                 "das das Projekt sonst nicht kennt (häufigster Empfänger: %s, "
                 "%dx)." % (len(stellen), gesamt, haeufig[0], haeufig[1]))
+
+    @staticmethod
+    def _nicht_zu_pruefen(stelle, module):
+        u"""Zwei Faelle, in denen ein unbekannter Name in Ordnung IST.
+
+        Beide in 3DTools gemessen (17.08.2026) — es waren die einzigen zwei
+        Befunde des Werkzeugs dort, also 2 von 2 Fehlalarmen:
+
+        1. **Ein Dunder.** ``getattr(modul, "__version__", None)`` fragt eine
+           Python-Konvention ab. Kein Projekt definiert ``__version__`` fuer
+           fremde Pakete, und genau darum steht dort eine Vorgabe.
+        2. **Ein MODUL als Empfaenger.** ``modul = __import__(name)``, dann
+           ``getattr(modul, feld, None)`` — das ist eine Abfrage an fremden
+           oder erst zur Laufzeit bestimmten Code. In 3DTools traf es
+           zusaetzlich einen Namen, der in einem NACHBAR-Repo definiert ist
+           (`HumanBody/humanbody_core/skeleton.py`); der liegt ausserhalb der
+           Wurzel, die dieses Werkzeug durchsucht, und ist damit prinzipiell
+           unbelegbar.
+
+        Der Fall vom 16.08.2026 (``getattr(self.ts, "orb_nacht", False)``) faellt
+        unter keinen der beiden — der Empfaenger ist ein Objekt des Projekts.
+        """
+        if stelle.feld.startswith("__") and stelle.feld.endswith("__"):
+            return True
+        return stelle.empfaenger in module
+
+    @staticmethod
+    def _modulnamen(baum):
+        u"""Namen, die in dieser Datei ein MODUL bezeichnen.
+
+        Drei Wege: ``import x as m``, ``from p import x as m`` und die
+        Zuweisung eines Import-Aufrufs (``m = __import__(...)``,
+        ``m = importlib.import_module(...)``).
+
+        Bei ``from p import x`` bindet der Name nicht zwingend ein Modul — es
+        kann auch eine Klasse oder Funktion sein, und die kann sehr wohl dem
+        Projekt gehoeren. Gezaehlt wird deshalb nur, was nach Modul AUSSIEHT:
+        durchgaengig klein geschrieben (PEP 8). ``from x import Ding`` bleibt
+        damit pruefbar, ``from a.b import c as modul`` nicht — das ist die
+        gewollte Richtung, denn ein Modulname sagt nichts ueber seine Felder.
+        """
+        aus = set()
+        for k in ast.walk(baum):
+            if isinstance(k, ast.Import):
+                for name in k.names:
+                    aus.add(name.asname or name.name.split(".")[0])
+            elif isinstance(k, ast.ImportFrom):
+                for name in k.names:
+                    letzter = name.name.split(".")[-1]
+                    if letzter.islower():
+                        aus.add(name.asname or letzter)
+            elif isinstance(k, ast.Assign) and isinstance(k.value, ast.Call):
+                gerufen = k.value.func
+                name = (gerufen.attr if isinstance(gerufen, ast.Attribute)
+                        else getattr(gerufen, "id", ""))
+                if name in ("__import__", "import_module"):
+                    for ziel in k.targets:
+                        if isinstance(ziel, ast.Name):
+                            aus.add(ziel.id)
+        return aus
 
     @staticmethod
     def _ist_getattr_mit_vorgabe(k):

@@ -152,18 +152,23 @@ class AnlassfallCheck(Werkzeug2):
         if lauf.fehler:
             aus.grund = "wirft: %s" % lauf.fehler[:90]
             return aus
-        aus.gefunden = len(lauf.zeilen)
+        # Befunde, die gar nicht an einer Datei haengen (``ohne_arten``, etwa
+        # die LOGGING-Einstellung bei ``protokoll``), gehoeren in keine der
+        # beiden Zahlen — siehe `Anlassfall.ohne_arten`.
+        gefundene = aus.anlassfall.dateibezogen(lauf.zeilen)
+        aus.gefunden = len(gefundene)
 
         gegen = Probelauf(klasse, leer).fahren()
-        aus.im_leeren = len(gegen.zeilen)
-        if gegen.zeilen:
+        leere = aus.anlassfall.dateibezogen(gegen.zeilen)
+        aus.im_leeren = len(leere)
+        if leere:
             # ZUERST melden: Ein Werkzeug, das im Leeren etwas findet, sucht
             # woanders - dann sagt der Anlassfall-Lauf nichts aus, auch wenn
             # er gruen ist.
             aus.grund = ("meldet im Leeren %d — sucht nicht in der "
-                         "übergebenen Wurzel" % len(gegen.zeilen))
+                         "übergebenen Wurzel" % len(leere))
             return aus
-        aus.grund = aus.anlassfall.urteil(lauf.zeilen)
+        aus.grund = aus.anlassfall.urteil(gefundene)
         return aus
 
     @staticmethod

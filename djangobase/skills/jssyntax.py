@@ -46,8 +46,6 @@ class JsSyntax(Werkzeug2):
     dauer = "2-10 s (je Datei ein node-Aufruf)"
     kriterium = 3
 
-    NICHT_IM_PFAD = ("vendor", "theatre", "theatre-studio", "dist", "bundle",
-                     "node_modules")
 
     #: Eine fehlende schliessende Klammer - genau der Schaden, den ein
     #: Datei-Schnitt anrichtet, wenn der Fuss der Klasse nicht mitwandert.
@@ -103,13 +101,8 @@ class JsSyntax(Werkzeug2):
                 return zeile.strip()[:200]
         return (fertig.stderr or "unbekannter Fehler").strip()[:200]
 
+    #: Ausschlussliste und Suche stehen seit dem 17.08.2026 in
+    #: ``Frontendquellen`` — vorher hatte sie jedes JS-Werkzeug einzeln,
+    #: in vier verschiedenen Fassungen.
     def _quellen(self):
-        raus = self.ausgeschlossen()
-        for pfad in sorted(self.wurzel().rglob("*.js")):
-            if any(teil in raus for teil in pfad.parts):
-                continue
-            if any(teil in JsSyntax.NICHT_IM_PFAD for teil in pfad.parts):
-                continue
-            if ".min." in pfad.name:
-                continue
-            yield pfad
+        return self.frontendquellen().pfade(".js")

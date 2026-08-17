@@ -53,8 +53,16 @@ class KlassenJeDatei(Werkzeug):
             befunde.append(Befund(self.kurz(datei), beschreibung, warum, gewicht))
 
         befunde.sort(key=lambda b: (b.gewicht != Befund.WARNUNG, b.ort))
+        # Die Trennung gehoert in die KOPFZEILE, nicht nur in die Spalte
+        # „warum": In 3DTools waren alle 20 Zeilen ausdrueckliche Nicht-Verstoesse
+        # (Fehlerklasse neben ihrem Dienst, Attrappe neben ihrem Test) — die Zahl
+        # „20" liest sich aber wie 20 Mängel, und danach liest man 20 Zeilen
+        # (17.08.2026).
+        verstoesse = sum(1 for b in befunde if b.gewicht == Befund.WARNUNG)
         kopf = ['%d Klassen insgesamt' % gesamt,
-                '%d Dateien mit mindestens %d Klassen' % (len(befunde), grenze)]
+                '%d Dateien mit mindestens %d Klassen — davon %d mit mehr als '
+                'EINER eigenstaendigen Klasse (die Verstoesse)'
+                % (len(befunde), grenze, verstoesse)]
         return Ergebnis(self.name, kopf, befunde)
 
     @staticmethod

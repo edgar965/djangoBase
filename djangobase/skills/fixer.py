@@ -132,8 +132,12 @@ class Fixer:
     def raus(cls):
         """Ordnernamen, die kein Fixer anfassen darf."""
         from .werkzeug import AUSGESCHLOSSEN
-        eigen = ((getattr(settings, "DJANGOBASE", {}) or {})
-                 .get("skills2_ignorieren") or [])
+        # Beide Schluessel, siehe Werkzeug2.ausgeschlossen(): `skills2` ist der
+        # alte Paketname und steht noch in den Einstellungen der Projekte. Ein
+        # Fixer, der ihn nicht liest, SCHREIBT in Fremdcode.
+        cfg = getattr(settings, "DJANGOBASE", {}) or {}
+        eigen = (list(cfg.get("skills_ignorieren") or [])
+                 + list(cfg.get("skills2_ignorieren") or []))
         return (set(AUSGESCHLOSSEN) | set(cls.ZUSATZ_RAUS)
                 | {str(x) for x in eigen})
 

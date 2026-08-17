@@ -56,8 +56,6 @@ class JsRegistrierung(Werkzeug2):
     dauer = "unter 1 s"
     kriterium = 9
 
-    NICHT_IM_PFAD = ("vendor", "theatre", "theatre-studio", "dist", "bundle",
-                     "node_modules")
     #: Vorgabe-Registername, wenn das Projekt keinen nennt.
     VORGABE = ("fn",)
 
@@ -80,6 +78,12 @@ class JsRegistrierung(Werkzeug2):
         warum="Vier Namen wurden gerufen und nie angemeldet — die Fotoanalyse "
               "brach ab, drei weitere Knöpfe waren wirkungslos")
 
+    #: Was auf JEDER Funktion und jedem Objekt liegt — nie ein Registereintrag.
+    EINGEBAUT = frozenset({
+        "apply", "call", "bind", "toString", "valueOf", "constructor",
+        "hasOwnProperty", "then", "catch", "finally",
+    })
+
     def laufen(self):
         namen = "|".join(re.escape(n) for n in self.register())
         anmeldung = re.compile(r"\b(?:%s)\.(\w+)\s*=(?!=)" % namen)
@@ -92,6 +96,13 @@ class JsRegistrierung(Werkzeug2):
             for name in anmeldung.findall(ohne):
                 angemeldet.setdefault(name, []).append(pfad)
             for name in aufruf.findall(ohne):
+                # Eingebaute Funktions-Methoden sind keine angemeldeten Namen.
+                # ``fn.apply(this, args)`` ist JavaScript, kein Registereintrag —
+                # gemeldet wurde es, weil die HILFSVARIABLE in
+                # AiActionsController.js ebenfalls ``fn`` heisst und damit auf
+                # den Registernamen passte (17.08.2026).
+                if name in self.EINGEBAUT:
+                    continue
                 gerufen.setdefault(name, []).append(pfad)
             # Verweise OHNE die Anmeldezeilen zaehlen - sonst gilt jeder Name
             # als verwendet, weil seine eigene Anmeldung mitzaehlt.
@@ -119,20 +130,12 @@ class JsRegistrierung(Werkzeug2):
                     "gerufen\" ist ein Hinweis: Meist wird die Funktion direkt "
                     "importiert und die Anmeldung ist ueberfluessig.")
 
+    #: Ausschlussliste und Suche stehen seit dem 17.08.2026 in
+    #: ``Frontendquellen`` — vorher hatte sie jedes JS-Werkzeug einzeln,
+    #: in vier verschiedenen Fassungen.
     def _texte(self):
-        wurzel = self.wurzel()
-        raus = self.ausgeschlossen()
-        for endung in (".js", ".html"):
-            for pfad in sorted(wurzel.rglob("*" + endung)):
-                if any(teil in raus for teil in pfad.parts):
-                    continue
-                if any(teil in JsRegistrierung.NICHT_IM_PFAD
-                       for teil in pfad.parts):
-                    continue
-                if ".min." in pfad.name:
-                    continue
-                yield (pfad.relative_to(wurzel).as_posix(),
-                       pfad.read_text(encoding="utf-8", errors="replace"))
+        for pfad, kurz in self.frontendquellen().paare(".js", ".html"):
+            yield kurz, pfad.read_text(encoding="utf-8", errors="replace")
 
     @staticmethod
     def _ohne_kommentare(text):

@@ -68,6 +68,7 @@ from .jsfunktionen import JsFunktionen
 from .jsregistrierung import JsRegistrierung
 from .jsschnitt import JsSchnitt
 from .jsstilfassungen import JsStilfassungen
+from .jsstumm import JsStumm
 from .jssyntax import JsSyntax
 from .jsvererbung import JsVererbung
 from .jswaisen import JsWaisen
@@ -79,6 +80,7 @@ from .namensvarianten import Namensvarianten
 from .rueckgabedict import RueckgabeDict
 from .rueckgabetupel import RueckgabeTupel
 from .schleifenarbeit import Schleifenarbeit
+from .schreibrouten import Schreibrouten
 from .seitenzeiten import Seitenzeiten
 from .vorlagenblock import Vorlagenblock
 from .wachstum import Wachstum
@@ -143,10 +145,16 @@ NEUE = [
     JsVererbung,
     JsRegistrierung,
     JsFaenger,
+    # Direkt hinter JsFaenger: dieselbe Frage von der anderen Seite. Dort geht
+    # eine Ausnahme ungefangen verloren, hier wird sie GEFANGEN und dann
+    # weggeworfen — der Ausgang ist derselbe, nur sieht dieser sauber aus.
+    JsStumm,
     JsFunktionen,
     JsBefunde,
     JsStilfassungen,
     Frontendadressen,
+    # Datenverlust auf ein GET hin - vorn, weil es der teuerste Ausgang ist.
+    Schreibrouten,
     Seitenzeiten,
     Vorlagenblock,
     Doppelrumpf,

@@ -48,6 +48,13 @@ class Testdeckung(EigenesWerkzeug):
     FREMD = ("admin:", "djangobase:", "account_", "socialaccount",
              "django.contrib", "allauth", "static", "media")
 
+    #: Rahmencode. ``django.contrib`` allein reichte nicht: Djangos Admin legt
+    #: fuer die alte Objekt-Adresse (``/admin/auth/group/<id>/``) eine
+    #: ``RedirectView`` an, und die wohnt in ``django.views.generic.base``.
+    #: Sie stand in 3DTools als ungepruefte Projektseite in der Liste — ein
+    #: Fehlalarm, der eine echte Luecke verdeckt haette (17.08.2026).
+    RAHMEN = ("django.", "rest_framework.", "debug_toolbar.")
+
     def laufen(self):
         # Die Routen kommen aus DJANGO, nicht aus den geprueften Dateien. Auf
         # einem leeren Verzeichnis meldete das Werkzeug deshalb Seiten eines
@@ -104,15 +111,22 @@ class Testdeckung(EigenesWerkzeug):
                     continue
                 pfad = praefix + str(p.pattern)
                 ziel = getattr(p.callback, "__name__", "?")
-                modul = getattr(p.callback, "__module__", "")
+                modul = self._modul(p.callback)
                 name = getattr(p, "name", None) or ""
                 if any(f in modul or f in (name or "") for f in self.FREMD):
                     continue
+                if modul.startswith(self.RAHMEN):
+                    continue
                 if not modul.split(".")[0] or "djangobase" in modul:
                     continue
-                if ziel in gesehen:
+                # Der Schluessel braucht den PFAD. Auf den Zielnamen allein
+                # gestellt verschwanden dreizehn Seiten hinter einer: Djangos
+                # ``View.as_view()`` gibt eine Funktion zurueck, die immer
+                # ``view`` heisst — ein Projekt, das seine Seiten als Klassen
+                # baut, sah damit fast keine Luecken mehr (17.08.2026).
+                if (ziel, pfad) in gesehen:
                     continue
-                gesehen.add(ziel)
+                gesehen.add((ziel, pfad))
                 if self._kommt_vor(erwaehnt, ziel, name, pfad):
                     continue
                 # Der Pfad kommt OHNE fuehrenden Schraegstrich („api/audio/…"),
@@ -133,6 +147,28 @@ class Testdeckung(EigenesWerkzeug):
         except Exception:                                       # noqa: BLE001
             pass
         return aus
+
+    @staticmethod
+    def _modul(callback):
+        """Woher stammt diese Ansicht — vom Projekt oder vom Rahmen?
+
+        Bei einer klassenbasierten Ansicht ist ``callback`` die Funktion, die
+        ``View.as_view()`` gebaut hat; ihr ``__module__`` ist das der KLASSE.
+        Fuer Djangos eigene ``RedirectView`` ist das ``django.views.generic``,
+        fuer eine Projektklasse das Projektmodul — genau die Unterscheidung, die
+        hier gebraucht wird. ``view_class`` wird zuerst gefragt, weil ein
+        Dekorator (``xframe_options_sameorigin``) das ``__module__`` der
+        Funktion auf sein eigenes Modul setzen kann.
+
+        Bekannte Grenze: Ein Projekt, das ``TemplateView.as_view()`` OHNE eigene
+        Unterklasse direkt in ``urls.py`` eintraegt, ist von Djangos eigener
+        Ansicht nicht zu unterscheiden und faellt hier heraus. Eine eigene
+        Klasse zu schreiben ist ohnehin die Hausregel (eine Klasse je Datei).
+        """
+        klasse = getattr(callback, "view_class", None)
+        if klasse is not None:
+            return getattr(klasse, "__module__", "") or ""
+        return getattr(callback, "__module__", "") or ""
 
     def _menue(self, erwaehnt):
         """Die Menuepunkte aus DJANGOBASE - das ist die Sicht des Nutzers."""

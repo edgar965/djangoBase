@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""JsFaenger - werfende Server-Abrufe, die in keinem try-Block stehen.
+u"""JsFaenger - werfende Server-Abrufe, die niemand faengt.
 
 DER BEFUND (3DTools, 16.08.2026)
 ================================
@@ -15,20 +15,20 @@ die Fehlerklasse, die der Umbau beseitigen sollte.
 
 Im Ursprungsprojekt liefern 200 Stellen im Python-Teil einen echten Fehlerstatus
 (``status=400/404/500``) mitsamt JSON-Body. Diese Pruefung listet die
-JavaScript-Seiten, an denen so eine Antwort ungefangen bliebe: von 101 Aufrufen
-standen 16 ohne Faenger da, zwei davon hinter einem Nutzerklick ohne jede
-Rueckmeldung.
+JavaScript-Stellen, an denen so eine Antwort ungefangen bliebe.
 
 WIE GEPRUEFT WIRD
 =================
-Ab dem Aufruf rueckwaerts nach ``try {``, dann dessen Block ueber die
-Klammertiefe verfolgen (`jsklammern`): Dort muss ``catch`` oder ``finally``
-stehen. Ein ``catch`` irgendwo unterhalb beweist nichts - es kann zu einem
-spaeteren try gehoeren.
+Zwei Schritte, in zwei eigenen Modulen:
 
-GRENZE: Ein Aufruf in einer Funktion, die der AUFRUFER in einem try-Block hat,
-gilt trotzdem als offen. Die Aufrufkette verfolgt die Pruefung nicht. Die Liste
-ist zum Durchsehen gedacht, keine Fehlerliste.
+* ``Stelle`` (``jsstelle.py``) - deckt ein try-Block mit ``catch``/``finally``
+  diese Zeile? Blockende ueber die Klammertiefe, nicht ueber den Abstand.
+* ``Aufrufkette`` (``jsaufrufkette.py``) - wenn nicht: Faengt wenigstens ein
+  Glied darueber? Bis zu drei Ebenen, und nur dort, wo der Name sichtbar ist.
+
+Ohne den zweiten Schritt standen in 3DTools 20 Zeilen, von denen 18 keine
+Fundstelle waren (17.08.2026). Die Zahlen stehen in der Zusammenfassung
+getrennt: im try, ueber den Aufrufer gedeckt, offen.
 
 ANPASSEN: ``DJANGOBASE["skills2_abrufklassen"] = ["Serverabruf", "Api"]`` nennt
 die Klassen, deren Methoden werfen.
@@ -37,80 +37,28 @@ import re
 
 from django.conf import settings
 
-from .jsklammern import Klammerzaehler
 from .anlassfall import Anlassfall
+from .jsaufrufkette import Aufrufkette
+from .jsstelle import Stelle
 from .werkzeug import Ergebnis, Werkzeug2
 
 __all__ = ["JsFaenger"]
-
-
-class Stelle:
-    """Ein Aufruf und die Frage, ob ihn jemand faengt."""
-
-    #: So weit wird nach oben nach einem try gesucht.
-    #:
-    #: 60 war zu wenig: In `viewer/mesh.js` beginnt der try-Block 110 Zeilen
-    #: ueber dem Abruf, und die Stelle erschien als offen, obwohl der catch
-    #: direkt darunter steht. Zu gross kann der Wert nicht werden — das
-    #: Blockende wird ueber die Klammertiefe geprueft, nicht ueber den Abstand.
-    REICHWEITE = 250
-    #: So weit wird der try-Block hoechstens verfolgt.
-    BLOCKGRENZE = 400
-
-    def __init__(self, datei, zeilen, nummer):
-        self.datei = datei
-        self.zeilen = zeilen
-        self.nummer = nummer          # 0-basiert
-
-    def gefangen(self):
-        for anfang in self._try_bloecke():
-            ende = self._blockende(anfang)
-            if ende is None or ende <= self.nummer:
-                continue
-            if "catch" in self.zeilen[ende] or "finally" in self.zeilen[ende]:
-                return True
-        return False
-
-    def _try_bloecke(self):
-        """Zeilennummern der try-Bloecke oberhalb, von innen nach aussen."""
-        von = max(0, self.nummer - Stelle.REICHWEITE)
-        for i in range(self.nummer - 1, von - 1, -1):
-            if self.zeilen[i].strip().startswith("try {"):
-                yield i
-
-    def _blockende(self, anfang):
-        """Zeile, in der der in `anfang` geoeffnete Block wieder zugeht."""
-        zaehler = Klammerzaehler()
-        zaehler.zeile(self.zeilen[anfang].split("try", 1)[1])
-        bis = min(len(self.zeilen), anfang + Stelle.BLOCKGRENZE)
-        for i in range(anfang + 1, bis):
-            zaehler.zeile(self.zeilen[i])
-            # `tiefstand`, nicht die Tiefe am Zeilenende: `} catch (e) {`
-            # schliesst den Block im ERSTEN Zeichen.
-            if zaehler.tiefstand <= 0:
-                return i
-        return None
-
-    def als_zeile(self):
-        return {"ort": "%s:%d" % (self.datei, self.nummer + 1),
-                "text": self.zeilen[self.nummer].strip()[:110]}
 
 
 class JsFaenger(Werkzeug2):
     slug = "jsfaenger"
     titel = "Server-Abrufe ohne try-Block"
     zweck = ("Findet Aufrufe einer werfenden Abrufklasse (Vorgabe: "
-             "`Serverabruf.json/text/senden`), die in keinem try-Block stehen.")
+             "`Serverabruf.json/text/senden`), die weder selbst im try stehen "
+             "noch von einem Aufrufer gefangen werden.")
     befund = ("3DTools: 16 von 101 Aufrufen ohne Faenger. Zwei davon hingen "
               "direkt an einer Nutzeraktion (Koerperart wechseln, Pose "
               "anwenden) - ein Serverfehler blieb dort voellig stumm.")
-    abhilfe = ("try/catch mit sichtbarer Meldung ergaenzen, oder pruefen, ob "
-               "der Aufrufer faengt (dann ist der Treffer ein Fehlalarm).")
-    dauer = "unter 1 s"
+    abhilfe = ("try/catch mit sichtbarer Meldung ergaenzen. Die Spalte "
+               "„aufrufer\" nennt die Stelle, an der die Kette abreisst.")
+    dauer = "1–5 s"
     kriterium = 13
 
-    NICHT_IM_PFAD = ("vendor", "theatre", "theatre-studio", "dist", "bundle",
-                     "node_modules")
     VORGABE_KLASSEN = ("Serverabruf",)
     #: Methoden, die werfen. `jsonOderNull` faengt selbst und zaehlt nicht.
     METHODEN = ("json", "text", "senden", "formular")
@@ -120,8 +68,9 @@ class JsFaenger(Werkzeug2):
             "skills2_abrufklassen")
         return tuple(eigen) if eigen else JsFaenger.VORGABE_KLASSEN
 
-    #: Zweimal derselbe werfende Abruf - einmal ungefangen (Befund), einmal im
-    #: try-Block (darf nicht zaehlen).
+    #: Drei Faelle in einer Datei: ungefangen (Befund), im try-Block (darf nicht
+    #: zaehlen) und ueber den Aufrufer gedeckt (darf auch nicht zaehlen — das
+    #: war der Zustand, in dem 18 von 20 Zeilen Fehlalarm waren).
     anlassfall = Anlassfall(
         {"abruf.js": '''export async function ohneNetz(url) {
   const d = await Serverabruf.json(url);
@@ -136,11 +85,21 @@ export async function mitNetz(url) {
     return null;
   }
 }
+
+async function _helfer(url) {
+  const d = await Serverabruf.json(url);
+  return d.wert;
+}
+
+export async function ruftDenHelfer(url) {
+  try { return await _helfer(url); } catch (e) { return null; }
+}
 '''},
         mindestens=1, hoechstens=1,
-        erwartet_in="abruf.js",
+        erwartet_in="ohneNetz",
         warum="Ein werfender Serverabruf ohne try lässt die Seite still "
-              "stehenbleiben")
+              "stehenbleiben. Die zwei anderen Fälle sind die Ausnahmen: "
+              "eigener try-Block und ein Aufrufer, der fängt.")
 
     def laufen(self):
         klassen = self.klassen()
@@ -149,12 +108,13 @@ export async function mitNetz(url) {
                                "|".join(JsFaenger.METHODEN)))
         # Die Abrufklasse selbst SOLL werfen.
         eigene = tuple("%s.js" % k.lower() for k in klassen)
-        offen, gefangen = [], 0
-        for pfad, kurz in self._quellen():
-            if kurz.rsplit("/", 1)[-1] in eigene:
-                continue
-            zeilen = pfad.read_text(encoding="utf-8",
-                                    errors="replace").split("\n")
+        quellen = [(kurz, pfad.read_text(encoding="utf-8",
+                                         errors="replace").split("\n"))
+                   for pfad, kurz in self._quellen()
+                   if kurz.rsplit("/", 1)[-1] not in eigene]
+        kette = Aufrufkette(quellen, tuple("%s." % k for k in klassen))
+        offen, gefangen, ueber_aufrufer = [], 0, 0
+        for kurz, zeilen in quellen:
             for nummer, zeile in enumerate(zeilen):
                 if not muster.search(zeile):
                     continue
@@ -163,23 +123,25 @@ export async function mitNetz(url) {
                 stelle = Stelle(kurz, zeilen, nummer)
                 if stelle.gefangen():
                     gefangen += 1
+                    continue
+                urteil = kette.urteil(stelle)
+                if urteil == "":
+                    ueber_aufrufer += 1
                 else:
-                    offen.append(stelle.als_zeile())
+                    offen.append(stelle.als_zeile(urteil))
         return Ergebnis(
-            ["ort", "text"], offen,
-            zusammenfassung="%d Aufrufe, %d in einem try-Block, %d offen"
-                            % (gefangen + len(offen), gefangen, len(offen)),
-            hinweis="Zum Durchsehen: Ein Aufruf, dessen AUFRUFER faengt, steht "
-                    "hier ebenfalls - die Kette wird nicht verfolgt.")
+            ["ort", "text", "aufrufer"], offen,
+            zusammenfassung="%d Aufrufe, %d in einem try-Block, %d über den "
+                            "Aufrufer gedeckt, %d offen"
+                            % (gefangen + ueber_aufrufer + len(offen), gefangen,
+                               ueber_aufrufer, len(offen)),
+            hinweis="Die Aufrufkette wird bis zu %d Ebenen verfolgt und nur "
+                    "dort, wo der Name sichtbar ist (Import oder Sammelstelle). "
+                    "Was übrig bleibt, nennt die Stelle, an der sie abreißt."
+                    % Aufrufkette.TIEFE)
 
+    #: Ausschlussliste und Suche stehen seit dem 17.08.2026 in
+    #: ``Frontendquellen`` — vorher hatte sie jedes JS-Werkzeug einzeln,
+    #: in vier verschiedenen Fassungen.
     def _quellen(self):
-        wurzel = self.wurzel()
-        raus = self.ausgeschlossen()
-        for pfad in sorted(wurzel.rglob("*.js")):
-            if any(teil in raus for teil in pfad.parts):
-                continue
-            if any(teil in JsFaenger.NICHT_IM_PFAD for teil in pfad.parts):
-                continue
-            if ".min." in pfad.name:
-                continue
-            yield pfad, pfad.relative_to(wurzel).as_posix()
+        return self.frontendquellen().paare(".js")

@@ -83,22 +83,67 @@ class WerkzeugGrundlagenTest(BasisTest):
     #: (Der Test war seit Commit f2e691b rot: Das Werkzeug stand in WERKZEUGE,
     #: aber nicht hier. Nachgetragen am 17.08.2026.)
     #:
-    #: Die vier `vorlagen-*`/`endpunkt-*` kamen mit dem Zusammenlegen dazu
-    #: (17.08.2026). Sie stammen aus dem aelteren Kasten und fragen bewusst
-    #: DJANGO — die Vorlagen-Engine und die URL-Tabelle —, nicht das
-    #: Verzeichnis. Ein `override_settings(BASE_DIR=…)` erreicht sie deshalb
-    #: nicht: Sie sehen weiter die Vorlagen und Routen des laufenden Projekts.
-    #: Das ist ihr Bauprinzip („Django nach seinen eigenen Vorlagen und Routen
-    #: fragen, statt Pfade zu raten") und kein Fehler — nur eben nichts, was
-    #: dieser Test messen kann.
-    OHNE_PROJEKTCODE = {"wachstum", "seitenzeiten", "anlassfall-check",
-                        "vorlagen-kontext", "vorlagen-variablen",
-                        "endpunkt-zeiten", "endpunkt-profil"}
+    OHNE_PROJEKTCODE = {"wachstum", "seitenzeiten", "anlassfall-check"}
+
+    #: Fragen ebenfalls Django statt das Verzeichnis — aber was sie liefern,
+    #: haengt am HOST und nicht am Projektordner:
+    #:
+    #: * `vorlagen-kontext` meldet nur MAENGEL (Variablen, die eine Vorlage
+    #:   benutzt und die ``render()`` nicht mitgibt). Auf einem sauberen Host
+    #:   sind es null.
+    #: * `vorlagen-variablen` und die beiden `endpunkt-*` rufen echte Seiten
+    #:   auf. Der Testhost hat keine Startseite, also null Zeilen.
+    #:
+    #: Sie standen in ``OHNE_PROJEKTCODE`` („muss etwas finden") und waren damit
+    #: an die Zufaelligkeit gebunden, dass der Host eine Startseite und eine
+    #: kaputte Vorlage hat. Aufgefallen erst, als `protokoll` und `testaufbau`
+    #: davor gruen wurden und die Schleife bis hierher durchlief (17.08.2026) —
+    #: vorher brach der Test frueher ab und deckte den Fehler zu.
+    #:
+    #: Hier gilt deshalb nur: laeuft durch, liefert ein ``Ergebnis``. Ob sie
+    #: ihren eigenen Fall noch sehen, prueft das Werkzeug ``anlassfall-check``
+    #: — dort gegen eigens dafuer gebauten Code statt gegen einen leeren Ordner.
+    NUR_DURCHLAUF = {"vorlagen-kontext", "vorlagen-variablen",
+                     "endpunkt-zeiten", "endpunkt-profil"}
+
+    #: `protokoll` prueft eine Sache NICHT im Verzeichnis, sondern an
+    #: ``settings.LOGGING`` — rotierender Handler, Zeitstempel im Format, eigene
+    #: Fehlerdatei. Der Testhost hat keine Logging-Konfiguration, also meldete
+    #: das Werkzeug „LOGGING fehlt" und dieser Test war rot, obwohl beide recht
+    #: hatten (17.08.2026). Statt die Pruefung abzuschwaechen bekommt der
+    #: leere Lauf hier eine KORREKTE Konfiguration — dann heisst „findet
+    #: nichts" wieder, was es sagt.
+    LOGGING_SAUBER = {
+        "version": 1,
+        "formatters": {"voll": {"format": "{asctime} {levelname} {message}",
+                                "style": "{"}},
+        "handlers": {
+            "datei": {"class": "logging.handlers.RotatingFileHandler",
+                      "filename": "django.log", "formatter": "voll"},
+            "fehler": {"class": "logging.handlers.RotatingFileHandler",
+                       "filename": "error.log", "formatter": "voll"},
+        },
+    }
+
+    #: Dasselbe fuer `testaufbau`: Es liest ``DJANGOBASE['test_befehle']``, um
+    #: „laesst sich das ueberhaupt per Knopf starten?" zu beantworten. Auf dem
+    #: Testhost ist die Liste leer — also EIN Eintrag, der eine einzelne Art
+    #: faehrt. Nicht ersetzen, sondern ergaenzen: An ``DJANGOBASE`` haengen
+    #: weitere Werkzeuge.
+    @classmethod
+    def _djangobase_mit_befehlen(cls):
+        from django.conf import settings
+        cfg = dict(getattr(settings, "DJANGOBASE", {}) or {})
+        cfg["test_befehle"] = [{"slug": "unit", "name": "Unit",
+                                "cmd": "test djangobase.tests.unit"}]
+        return cfg
 
     def test_alle_laufen_auf_leerem_projekt(self):
         """Ein Projekt ohne Code darf kein Werkzeug zum Absturz bringen."""
         ordner = MiniProjekt().anlegen(self)
-        with override_settings(BASE_DIR=str(ordner)):
+        with override_settings(BASE_DIR=str(ordner),
+                               LOGGING=self.LOGGING_SAUBER,
+                               DJANGOBASE=self._djangobase_mit_befehlen()):
             for w in werkzeuge():
                 ergebnis = w.laufen()
                 self.assertIsInstance(ergebnis, Ergebnis,
@@ -107,6 +152,8 @@ class WerkzeugGrundlagenTest(BasisTest):
                     self.assertTrue(ergebnis.zeilen,
                                     "%s misst Python selbst und muss auch im "
                                     "leeren Projekt etwas liefern" % w.slug)
+                    continue
+                if w.slug in self.NUR_DURCHLAUF:
                     continue
                 self.assertEqual(ergebnis.zeilen, [],
                                  "%s findet etwas in einem leeren Projekt" % w.slug)

@@ -307,6 +307,126 @@ class JsFaengerTest(FrontendBasis):
         ergebnis = self.laufen("jsfaenger", {"static/a.js": inhalt})
         self.assertEqual(ergebnis.zeilen, [], self.orte(ergebnis))
 
+    # ------------------------------------------------------------ Aufrufkette
+
+    def test_einzeiliges_try_catch_zaehlt(self):
+        u"""`try { await x(); } catch (e) { … }` in EINER Zeile.
+
+        Bis zum 17.08.2026 fiel diese Form durch: `_blockende` sah die Zeile
+        nach der oeffnenden an und fand nie ein Ende. Genau so faengt
+        `properties.js` in 3DTools seinen Aufruf von `fetchMorphDefs()` — der
+        Abruf galt deshalb als ungedeckt.
+        """
+        ergebnis = self.laufen("jsfaenger", {"static/a.js":
+            "export async function laden() {\n"
+            "    try { const d = await Serverabruf.json('/api/x/'); return d; }\n"
+            "    catch (fehler) { return null; }\n}\n"})
+        self.assertEqual(ergebnis.zeilen, [], self.orte(ergebnis))
+
+    def test_aufrufer_deckt_den_helfer(self):
+        u"""Der Fall, der 18 von 20 Zeilen zu Fehlalarmen machte."""
+        ergebnis = self.laufen("jsfaenger", {"static/a.js":
+            "async function _helfer(u) {\n"
+            "    const d = await Serverabruf.json(u);\n"
+            "    return d;\n}\n"
+            "\n"
+            "export async function zeigen(u) {\n"
+            "    try { return await _helfer(u); } catch (e) { return null; }\n"
+            "}\n"})
+        self.assertEqual(ergebnis.zeilen, [], self.orte(ergebnis))
+        self.assertIn("1 über den Aufrufer gedeckt", ergebnis.zusammenfassung)
+
+    def test_ungefangener_aufrufer_bleibt_ein_befund(self):
+        u"""Gegenprobe zum vorigen Test: Faengt der Aufrufer NICHT, bleibt es
+        offen — und die Meldung nennt die Stelle, an der die Kette abreisst."""
+        ergebnis = self.laufen("jsfaenger", {"static/a.js":
+            "async function _helfer(u) {\n"
+            "    const d = await Serverabruf.json(u);\n"
+            "    return d;\n}\n"
+            "\n"
+            "export async function zeigen(u) {\n"
+            "    return await _helfer(u);\n"
+            "}\n"})
+        self.assertEqual(len(ergebnis.zeilen), 1, self.orte(ergebnis))
+        self.assertIn("_helfer", ergebnis.zeilen[0]["aufrufer"])
+
+    def test_gleichnamige_methode_woanders_deckt_nicht(self):
+        u"""`load()` heisst auch die Methode von Three.js' GLTFLoader.
+
+        Eine Datei, die den Namen weder importiert noch ueber eine Sammelstelle
+        sieht, darf nicht ueber den Befund entscheiden — in 3DTools galt
+        `gltfLoader.load(...)` kurzzeitig als der „Aufrufer" (17.08.2026).
+        """
+        ergebnis = self.laufen("jsfaenger", {
+            "static/a.js": "export class Figur {\n"
+                           "    async load() {\n"
+                           "        const d = await Serverabruf.json('/api/x/');\n"
+                           "        return d;\n"
+                           "    }\n}\n",
+            # Kein Import von a.js, keine Sammelstelle: fremdes `load`.
+            "static/fremd.js": "const lader = new GLTFLoader();\n"
+                               "export function holen(u) {\n"
+                               "    try { lader.load(u); } catch (e) {}\n"
+                               "}\n"})
+        self.assertEqual(len(ergebnis.zeilen), 1, self.orte(ergebnis))
+
+    def test_name_in_einer_meldung_ist_kein_aufruf(self):
+        u"""`throw new Error('laden() must be called first')` zaehlte als
+        ungefangener Aufruf — der Name steht dort in einer Zeichenkette."""
+        ergebnis = self.laufen("jsfaenger", {"static/a.js":
+            "let _wert = null;\n"
+            "export async function laden(u) {\n"
+            "    _wert = await Serverabruf.json(u);\n"
+            "    return _wert;\n}\n"
+            "\n"
+            "export function wert() {\n"
+            "    if (!_wert) throw new Error('laden() must be called first');\n"
+            "    return _wert;\n}\n"})
+        # Kein echter Aufrufer vorhanden -> offen, aber mit DIESER Begruendung.
+        self.assertEqual(len(ergebnis.zeilen), 1, self.orte(ergebnis))
+        self.assertIn("kein Aufrufer gefunden", ergebnis.zeilen[0]["aufrufer"])
+
+    def test_sammelstelle_zaehlt_als_sichtweg(self):
+        u"""`fn.X = X` traegt den Namen ohne Import weiter.
+
+        In 3DTools ruft `save_load.js` `fn.CharacterInstance.fromJSON(...)`,
+        ohne `character.js` zu importieren. Ohne diesen Weg hiess es „kein
+        Aufrufer gefunden", und ein gedeckter Abruf stand als Befund da.
+        """
+        ergebnis = self.laufen("jsfaenger", {
+            "static/a.js": "export class Figur {\n"
+                           "    async netzHolen() {\n"
+                           "        const d = await Serverabruf.json('/api/x/');\n"
+                           "        return d;\n"
+                           "    }\n}\n"
+                           "fn.Figur = Figur;\n",
+            "static/b.js": "export async function aufbauen() {\n"
+                           "    const f = new fn.Figur();\n"
+                           "    try { await f.netzHolen(); } catch (e) {}\n"
+                           "}\n"})
+        self.assertEqual(ergebnis.zeilen, [], self.orte(ergebnis))
+
+    def test_allerweltsname_geht_nicht_ueber_die_sammelstelle(self):
+        u"""Gegenprobe zum vorigen Test: Bei `load()` zaehlt nur der Import-Weg.
+
+        In 3DTools wurde `_loadHairForCharacter()` zum „Aufrufer" der
+        Netz-Ladefunktion, weil in dessen Naehe ein fremdes `load()` steht — eine
+        Kette, die es nicht gibt (17.08.2026). Hier faengt `b.js` woertlich
+        genauso wie oben, und der Befund bleibt trotzdem stehen: Der Name ist zu
+        haeufig, um ihn ueber eine Sammelstelle zuzuordnen."""
+        ergebnis = self.laufen("jsfaenger", {
+            "static/a.js": "export class Figur {\n"
+                           "    async load() {\n"
+                           "        const d = await Serverabruf.json('/api/x/');\n"
+                           "        return d;\n"
+                           "    }\n}\n"
+                           "fn.Figur = Figur;\n",
+            "static/b.js": "export async function aufbauen() {\n"
+                           "    const f = new fn.Figur();\n"
+                           "    try { await f.load(); } catch (e) {}\n"
+                           "}\n"})
+        self.assertEqual(len(ergebnis.zeilen), 1, self.orte(ergebnis))
+
 
 class JsBefundeTest(FrontendBasis):
 

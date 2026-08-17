@@ -110,9 +110,11 @@ class JsSchnitt(Werkzeug2):
 
     def laufen(self):
         zeilen = []
-        for pfad in self.dateien(".js"):
-            if pfad.suffix != ".js":
-                continue
+        # `frontendquellen()` statt `dateien(".js")`: Sonst steht das gebaute
+        # Vite-Buendel in der Liste — `theatre-app.js`, 7.163 Zeilen, „kein
+        # zirkelfreier Punkt". Erzeugten Code teilt niemand, und die Quelle
+        # daneben wird sowieso schon geprueft (17.08.2026, 3DTools).
+        for pfad, kurz in self.frontendquellen().paare(".js"):
             try:
                 text = pfad.read_text(encoding="utf-8", errors="replace")
             except OSError:

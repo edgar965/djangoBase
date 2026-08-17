@@ -134,9 +134,28 @@ def lesen():
         return aus
 
     def _mutationen(self, d):
-        """(Name, Zeile, Art) jeder Stelle, die eine Sammlung verändert."""
+        u"""(Name, Zeile, Art) jeder Stelle, die eine Sammlung verändert.
+
+        NUR MUTATIONEN IN FUNKTIONEN ZAEHLEN (17.08.2026): Was auf MODULEBENE
+        veraendert wird, laeuft beim Import — einmal, in einem Thread, bevor die
+        erste Anfrage da ist. Das ist Aufbau einer Konstantentabelle, nicht
+        geteilter veraenderlicher Zustand.
+
+        Belegter Fehlalarm: ``firma/verkauf_jahresvergleich_view.py`` baut
+        ``_FUSSNOTEN`` in einer ``for``-Schleife auf Modulebene aus einem festen
+        Schema auf. Gemeldet als „veraenderliche Sammlung, die mutiert wird" —
+        dabei fasst sie nach dem Import niemand mehr an. Gefaehrlich ist der
+        umgekehrte Fall: eine Anfrage, die anhaengt.
+        """
+        in_funktion = set()
+        for f in ast.walk(d.baum):
+            if isinstance(f, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+                for k in ast.walk(f):
+                    in_funktion.add(id(k))
         aus = []
         for k in ast.walk(d.baum):
+            if id(k) not in in_funktion:
+                continue
             if isinstance(k, ast.Call) and isinstance(k.func, ast.Attribute):
                 if k.func.attr in self.MUTATION and isinstance(k.func.value, ast.Name):
                     aus.append((k.func.value.id, k.lineno, k.func.attr))
