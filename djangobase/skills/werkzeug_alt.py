@@ -167,7 +167,13 @@ class Werkzeug:
             zusatz = tuple(str(x) for x in (conf().get('skills_ausser') or []))
         except Exception:  # noqa: BLE001 — ohne Konfiguration eben nur Standard
             zusatz = ()
-        return cls.AUSSER + zusatz
+        # DIESELBE QUELLE WIE DIE NEUE BASIS (17.08.2026): Zwei Listen fuer
+        # dieselbe Frage laufen auseinander, und genau das war der Fall —
+        # ``doppelcode`` meldete weiter 183 von 200 Befunden aus ``vendor/`` und
+        # ``unsloth_compiled_cache/``, waehrend die Werkzeuge der neuen Basis
+        # dort schon nicht mehr hinsahen.
+        from .werkzeug import AUSGESCHLOSSEN
+        return cls.AUSSER + zusatz + tuple(AUSGESCHLOSSEN)
 
     @classmethod
     def projektdateien(cls, endung='.py', ausser=None):

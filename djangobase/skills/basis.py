@@ -19,17 +19,22 @@ from .werkzeug import Werkzeug2
 
 __all__ = ["EigenesWerkzeug", "ZUSATZ_RAUS"]
 
-#: Ablagen, die kein eigener Quelltext sind - ueber Werkzeug2 hinaus.
-ZUSATZ_RAUS = {"vendor", "models", "tmp", "temp", "unsloth_compiled_cache",
-               "media", "logs", "output", "Output", "Datenbank", "fixtures",
-               ".claude", "docs", "htmlcov", ".idea", ".vscode"}
+#: STEHT JETZT IN ``werkzeug.AUSGESCHLOSSEN`` (17.08.2026).
+#:
+#: Diese Liste galt nur fuer die drei Werkzeuge auf DIESER Basis. Die anderen
+#: achtundzwanzig erben direkt von ``Werkzeug2`` und durchsuchten weiter
+#: ``vendor/``, ``unsloth_compiled_cache/`` und ``diktator/`` mit — 40 % aller
+#: Befunde kamen von dort. Der Name bleibt als leere Menge erhalten, weil
+#: Projekte ihn importieren koennten; ergaenzen laesst sich weiterhin ueber
+#: ``DJANGOBASE["skills2_ignorieren"]``.
+ZUSATZ_RAUS = frozenset()
 
 
 class EigenesWerkzeug(Werkzeug2):
-    """Basis der Werkzeuge zu den Kriterien 16 und 17."""
+    """Basis der Werkzeuge zu den Kriterien 16 und 17.
 
-    def ausgeschlossen(self):
-        return super().ausgeschlossen() | ZUSATZ_RAUS
+    Sie unterscheidet sich von ``Werkzeug2`` nur noch durch ``hat_code()`` —
+    die Ausschluesse sind dort zusammengefasst, wo alle Werkzeuge sie sehen."""
 
     def hat_code(self):
         """Gibt es im geprueften Baum ueberhaupt Quelltext ausser Tests?

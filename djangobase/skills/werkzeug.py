@@ -54,7 +54,30 @@ AUSGESCHLOSSEN = {".git", "__pycache__", "node_modules", "venv", "pythonVENV",
                   # * ``var`` - Laufzeitablage (Protokolle, Bilder, Profile)
                   #   neben ``logs`` und ``media``, kein Quelltext.
                   "virensuche_quarantine", "quarantine", "quarantaene",
-                  "chrome-profile", "Extensions", "var"}
+                  "chrome-profile", "Extensions", "var",
+                  # EINE GRENZE FUER ALLE WERKZEUGE (17.08.2026)
+                  # ==========================================
+                  # Diese Namen standen bis dahin nur in
+                  # ``basis.EigenesWerkzeug.ZUSATZ_RAUS`` — und die gilt fuer
+                  # genau DREI Werkzeuge. Die anderen achtundzwanzig erben von
+                  # ``Werkzeug2`` und durchsuchten weiter alles.
+                  #
+                  # Gemessen am Projekt assistant: 40 % aller Befunde kamen aus
+                  # fremdem Code. Bei ``doppelcode`` 39 von 40 gezeigten Zeilen,
+                  # bei ``rueckgabetupel`` 38, bei ``doppelrumpf`` und
+                  # ``dateigroesse`` 37. Der Spitzenbefund von ``dateigroesse``
+                  # war eine 4.741-Zeilen-Datei in ``unsloth_compiled_cache`` —
+                  # erzeugter Zwischenstand, den niemand aufteilt.
+                  #
+                  # Drei Listen fuer dieselbe Frage laufen auseinander; deshalb
+                  # steht sie jetzt hier, an der Wurzel.
+                  "vendor", "models", "tmp", "temp", "unsloth_compiled_cache",
+                  "media", "logs", "output", "Output", "Datenbank", "fixtures",
+                  ".claude", "docs", "htmlcov", ".idea", ".vscode",
+                  # Eigenstaendige Programme im Projektbaum, die der
+                  # Django-Testlaeufer nie faehrt (bei assistant: ein
+                  # Windows-Diktiergeraet mit eigener venv).
+                  "diktator"}
 
 
 class Quelldatei:
