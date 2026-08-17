@@ -25,8 +25,18 @@ nicht (17.08.2026).
 <script type="module">
   import { TabellenSortierung } from '/static/djangobase/js/tabellen_sortierung.js';
   import { TabellenBreiten } from '/static/djangobase/js/tabellen_breiten.js';
-  document.querySelectorAll('table[data-sort-key]').forEach((t) =>
-      new TabellenBreiten([t], t.dataset.sortKey).binden());
+  {% comment %}
+  EINE Gruppe für ALLE Tabellen der Seite (17.08.2026: „die spalten sollen die
+  gleiche Breite haben" · „verschieben der Spalten verschiebt alle Spalten auf
+  der Seite"). Vorher bekam jede Tabelle eine eigene Instanz mit eigenem
+  Speicher — dieselbe Spalte war in jeder Karte anders breit, und das erste
+  Ziehen fror die Ist-Breiten EINER Tabelle ein, wodurch dort alle Spalten
+  sprangen. Als Gruppe gilt: Alle Tabellen zeigen dieselbe Spalte gleich breit,
+  und Ziehen setzt sie überall zugleich — genau dafür ist die Gruppenfunktion
+  von TabellenBreiten gebaut.
+  {% endcomment %}
+  const tabellen = [...document.querySelectorAll('table[data-sort-key]')];
+  if (tabellen.length) new TabellenBreiten(tabellen, 'hilfe-tests').binden();
   TabellenSortierung.binden();
 </script>
 {% comment %}
@@ -36,6 +46,8 @@ schon einmal auf 420 Zeilen gewachsen).
 {% endcomment %}
 {{ verschieben_url|json_script:"ts-verschieben-url" }}
 <script src="{% static 'djangobase/js/tests_verschieben.js' %}"></script>
+{# Checkbox-Auswahl je Karte + „Ausgewählte ausführen" (ein Lauf für alle). #}
+<script src="{% static 'djangobase/js/tests_auswahl.js' %}"></script>
 {% endblock %}
 
 {% block content %}
@@ -74,28 +86,25 @@ schon einmal auf 420 Zeilen gewachsen).
         </div>
         {% endif %}
 
-        {# Unter-Reiter je Kategorie #}
-        <div class="ts-subtabs">
-            {% for a in alle_arten %}
-            <button type="button" class="ts-subtab" data-subtab="{{ a.art }}">{{ a.kurz }}
-                <span class="ts-count">{{ a.befehle|length }}</span></button>
-            {% endfor %}
-        </div>
-
+        {% comment %}
+        KEINE UNTER-REITER (Ansage 17.08.2026: „ich brauche keine Unter-Tabs!" —
+        und „die Alle Seite enthält nicht alle tests"). Vorher steckte je
+        Kategorie eine eigene Registerkarte, und darin standen die SUITEN, nicht
+        die Testfälle. Jetzt liegt alles untereinander auf EINER Seite: je
+        Kategorie ein Sammelknopf und darunter ihre Testfälle, vollständig.
+        {% endcomment %}
         {% for a in alle_arten %}
-        <div class="ts-subpanel" data-subpanel="{{ a.art }}">
-            {% if a.sammel %}
-            <div class="ts-card ts-alles">
-                <div class="ts-alles-text">
-                    <h3><i class="bi bi-play-circle"></i> {{ a.sammel.name }}
-                        <span class="ts-meta">· {{ a.sammel.anzahl }} Bereich{{ a.sammel.anzahl|pluralize:"e" }} in einem Lauf</span></h3>
-                    <code class="ts-id">{{ a.sammel.cmd|join:' ' }}</code>
-                </div>
-                <a class="ts-run gross" href="?run={{ a.sammel.slug }}&tab=Alle&unter={{ a.art }}"><i class="bi bi-play-fill"></i> Kategorie ausführen</a>
+        {% if a.sammel %}
+        <div class="ts-card ts-alles">
+            <div class="ts-alles-text">
+                <h3><i class="bi bi-play-circle"></i> {{ a.sammel.name }}
+                    <span class="ts-meta">· {{ a.sammel.anzahl }} Bereich{{ a.sammel.anzahl|pluralize:"e" }} in einem Lauf</span></h3>
+                <code class="ts-id">{{ a.sammel.cmd|join:' ' }}</code>
             </div>
-            {% endif %}
-            {% include "djangobase/_testkarte.html" with karte=a.karte %}
+            <a class="ts-run gross" href="?run={{ a.sammel.slug }}&tab=Alle"><i class="bi bi-play-fill"></i> Kategorie ausführen</a>
         </div>
+        {% endif %}
+        {% include "djangobase/_testkarte.html" with karte=a.karte %}
         {% endfor %}
     </div>
     {% endif %}
@@ -182,21 +191,11 @@ schon einmal auf 420 Zeilen gewachsen).
         start = tabs.length ? tabs[0].dataset.tab : "";
     if (start) aktiv(start);
 
-    // Zweite Ebene: die Kategorie-Reiter im Panel „Alle". Eigene Klassen, damit
-    // die Umschaltung der ersten Ebene sie nicht mit erwischt.
-    var subtabs = Array.prototype.slice.call(document.querySelectorAll(".ts-subtab"));
-    var subpanels = Array.prototype.slice.call(document.querySelectorAll(".ts-subpanel"));
-    function aktivUnter(name) {
-        subtabs.forEach(function (t) { t.classList.toggle("aktiv", t.dataset.subtab === name); });
-        subpanels.forEach(function (p) { p.classList.toggle("aktiv", p.dataset.subpanel === name); });
-    }
-    subtabs.forEach(function (t) {
-        t.addEventListener("click", function () { aktivUnter(t.dataset.subtab); });
-    });
-    var unter = page.getAttribute("data-aktiv-unter");
-    if (!unter || !subtabs.some(function (t) { return t.dataset.subtab === unter; }))
-        unter = subtabs.length ? subtabs[0].dataset.subtab : "";
-    if (unter) aktivUnter(unter);
+    // Die zweite Ebene (Kategorie-Reiter im Panel „Alle") ist am 17.08.2026
+    // ENTFALLEN: „ich brauche keine Unter-Tabs!" — dort liegt jetzt alles
+    // untereinander auf einer Seite. Die Umschaltlogik dafür ist mit raus; ein
+    // alter Link mit `&unter=…` schadet nicht, der Parameter wird nur ignoriert.
+
     // Wurde ein Test ausgeführt? Ergebnis in den Blick scrollen.
     var res = document.querySelector(".ts-result");
     if (res) res.scrollIntoView({ behavior: "smooth", block: "nearest" });

@@ -64,6 +64,10 @@ GRUPPEN = {
             ("sidebar_min", "int", "Sidebar-Mindestbreite (px)"),
             ("sidebar_max", "int", "Sidebar-Maximalbreite (px)"),
             ("toast_stack", "bool", "Toast-Meldungen anzeigen"),
+            ("tests_djangobase_sichtbar", "bool",
+             "djangoBase-Testcases sichtbar (Hilfe → Tests) — die Fälle, die "
+             "djangoBase selbst mitbringt (Grundtests, Endpunktprobe). Aus: "
+             "die Liste zeigt nur die Tests dieses Projekts."),
             # --- Navigation / Menue ---
             ("einstellungen_menu", "bool",
              "Menue-Gruppe 'Einstellungen' im djangoBase-Nav-Block einblenden"),

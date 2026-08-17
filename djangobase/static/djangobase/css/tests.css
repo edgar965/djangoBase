@@ -97,3 +97,38 @@ select.ts-kat:disabled { opacity: .6; cursor: progress; }
 .ts-kat-meldung.laeuft { color: #a9e6ff; }
 .ts-kat-meldung.gut { color: #8ef0ae; }
 .ts-kat-meldung.fehler { color: #ffb3b3; }
+
+/* Gleiche Spaltenbreiten in ALLEN Tabellen der Seite (Ansage 17.08.2026:
+   „die spalten sollen die gleiche Breite haben"). `table-layout: fixed` ohne
+   eigene Spaltenbreiten verteilt der Browser zu gleichen Teilen; die ziehbaren
+   Breiten (TabellenBreiten, eine Gruppe für die ganze Seite) setzen sich
+   darüber und gelten dann wieder für alle Tabellen zugleich. */
+.ts-page .db-tabelle { table-layout: fixed; width: 100%; }
+/* Die zwei Bedien-Spalten sind keine Datenspalten: Ein Kästchen braucht keine
+   338 px, der Run-Knopf auch nicht. Sie bekommen feste Breiten, die restlichen
+   SIEBEN teilen sich den Platz zu gleichen Teilen (das ist die Ansage „gleiche
+   Breite"). Mit 338 px je Spalte brachen sonst die Testnamen um, während neben
+   dem Kästchen Leere stand. */
+.ts-page .db-tabelle th:first-child,
+.ts-page .db-tabelle td:first-child { width: 40px; }
+.ts-page .db-tabelle th:last-child,
+.ts-page .db-tabelle td:last-child { width: 92px; }
+.ts-page .db-tabelle td { overflow: hidden; text-overflow: ellipsis; }
+/* Der Modulpfad ist lang und darf die Zeile nicht sprengen — voll im Tooltip. */
+.ts-page .db-tabelle td.ts-ziel { white-space: nowrap; }
+.ts-kat-fremd { font-style: italic; }
+
+/* ===== Auswahl-Spalte und ihre Knöpfe ==================================== */
+.ts-wahl-zelle { text-align: center; }
+input.ts-wahl { width: 15px; height: 15px; cursor: pointer; accent-color: #4ea8f6; }
+.ts-wahl-knoepfe { margin-left: auto; display: inline-flex; gap: 8px; }
+.ts-wahl-knoepfe button {
+    background: #15406e; border: 1px solid #1e5bb8; color: #e9f0f8;
+    border-radius: 6px; padding: 3px 10px; font-size: .8rem; cursor: pointer;
+}
+.ts-wahl-knoepfe button:hover:not(:disabled) { background: #1a5490; }
+.ts-wahl-knoepfe button:disabled { opacity: .45; cursor: default; }
+.ts-wahl-zahl {
+    background: #0d1117; color: #4ea8f6; border-radius: 10px;
+    padding: 0 6px; margin-left: 4px; font-size: .75rem;
+}

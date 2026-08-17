@@ -62,6 +62,22 @@ class Verschieber:
 
     # --------------------------------------------------------------- Lesen
 
+    #: Anzeigename der Faelle, die djangoBase selbst mitbringt.
+    EIGENE_KATEGORIE = "DjangoBase"
+
+    @staticmethod
+    def aus_djangobase(test_id):
+        u"""Stammt der Fall aus djangoBase selbst (statt aus dem Projekt)?
+
+        Am Modulpfad erkannt, nicht am Ordner: djangoBase laeuft als editable
+        Install, seine Testmodule heissen immer ``djangobase.…`` — egal, wo das
+        Paket auf der Platte liegt. Diese Faelle sind nicht verschiebbar (sie
+        gehoeren der Bibliothek) und stehen in der Liste des Projekts nur im
+        Weg; sichtbar sind sie ueber die Einstellung
+        ``DJANGOBASE["tests_djangobase_sichtbar"]``.
+        """
+        return str(test_id or "").startswith("djangobase.")
+
     @classmethod
     def art_von(cls, test_id):
         u"""Die Kategorie einer Test-ID - oder ``""``.

@@ -147,6 +147,13 @@ DEFAULTS = {
     # False = ausblenden (fuer Projekte mit nur EINEM Profil). Das Profil-System
     # bleibt intern bestehen; nur die UI verschwindet.
     "profile_switcher": True,
+    # ----- Hilfe -> Tests: die Testfaelle von djangoBase SELBST --------------
+    # djangoBase bringt eigene Faelle mit (Grundtests, Endpunktprobe). Sie
+    # laufen im Wirt-Projekt mit, gehoeren aber nicht zu SEINEM Code: Sie liegen
+    # in `A:\shared\djangoBase`, sind nicht verschiebbar, und in der Liste des
+    # Projekts stehen sie im Weg (Ansage 17.08.2026, deshalb Default AUS).
+    # True = sie erscheinen mit der Kategorie „DjangoBase".
+    "tests_djangobase_sichtbar": False,
     # ----- Verschiebbarer Splitter (Sidebar-Breite ziehbar) ----------------
     # Default aus, damit Projekte mit eigenem Resizer (z. B. Assistant)
     # unberuehrt bleiben. Breite wird clientseitig in localStorage gemerkt.

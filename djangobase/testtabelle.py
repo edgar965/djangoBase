@@ -67,6 +67,8 @@ class Testtabelle:
     """Baut die Tabellen-Struktur, die ``djangobase/_tabelle.html`` erwartet."""
 
     SPALTEN = (
+        {"label": "", "key": "wahl", "sortAus": True,
+         "titel": "auswählen — „Ausgewählte ausführen“ fährt sie in EINEM Lauf"},
         {"label": "Testcase", "key": "name"},
         {"label": "Ziel", "key": "ziel"},
         {"label": "letzte", "key": "letzte", "num": True,
@@ -95,11 +97,17 @@ class Testtabelle:
 
     # ------------------------------------------------------------- Umformer
 
-    def aus_tests(self, kategorie, tab=None):
-        """Tabelle für die Einzeltests einer Kategorie (Unit, Component, …)."""
+    def aus_tests(self, kategorie, tab=None, key=None):
+        u"""Tabelle für die Einzeltests einer Kategorie (Unit, Component, …).
+
+        ``key`` ist der Speicher-Schluessel (Sortierung, Spaltenbreiten). Er ist
+        uebergebbar, weil dieselben Testfaelle an ZWEI Stellen stehen: im Reiter
+        der Kategorie und im Reiter „Alle". Zwei Tabellen mit demselben
+        Schluessel wuerden sich die Sortierung gegenseitig ueberschreiben.
+        """
         return self.tabelle(
             [Eintrag.aus_test(t) for t in kategorie.get("tests", [])],
-            key="tests-%s" % (kategorie.get("typ") or "alle").lower(),
+            key=key or "tests-%s" % (kategorie.get("typ") or "alle").lower(),
             tab=kategorie.get("typ") if tab is None else tab,
             leer="Keine Tests gefunden — Labels in "
                  "DJANGOBASE[\"test_discover\"] prüfen.")
@@ -128,9 +136,14 @@ class Testtabelle:
         return {
             "klasse": "aktiv" if self.aktiver_slug == e.kennung else "",
             "zellen": [
+                {"html": '<input type="checkbox" class="ts-wahl" value="%s" '
+                         'aria-label="auswählen">' % escape(e.kennung),
+                 "sort": 0, "klasse": "ts-wahl-zelle"},
                 {"html": '<i class="bi bi-dot"></i> %s' % escape(e.name),
                  "titel": e.titel},
-                {"html": escape(e.ziel), "klasse": "ts-ziel"},
+                # Titel dazu: Die Spalten sind gleich breit, der Modulpfad wird
+                # abgeschnitten — vollständig steht er im Tooltip.
+                {"html": escape(e.ziel), "klasse": "ts-ziel", "titel": e.ziel},
                 {"html": self._sekunden(letzte), "sort": letzte, "klasse": "num"},
                 {"html": self._sekunden(schnitt), "sort": schnitt, "klasse": "num"},
                 {"html": ('<span class="ts-trend %s">%s</span>'
@@ -144,7 +157,7 @@ class Testtabelle:
             ],
         }
 
-    def _kategorie(self, e):
+    def _kategorie(self, e, kategorie_name=""):
         u"""Die Combo-Box „Verschieben" - oder nur der Name der Kategorie.
 
         Aenderbar ist sie fuer einzelne Python-Testfaelle: Dort ist die Kategorie
@@ -159,12 +172,22 @@ class Testtabelle:
             return ('<span class="ts-kat-fest" title="Kategorie steht im Ziel '
                     'der Suite">%s</span>'
                     % escape(Verschieber.NAMEN.get(art, art or "—")))
+        # Faelle, die djangoBase selbst mitbringt, tragen die Kategorie
+        # „DjangoBase" (Ansage 17.08.2026). Sie gehoeren der Bibliothek und sind
+        # nicht verschiebbar — vorher stand dort ein nacktes „—", das wie ein
+        # Fehler aussah.
+        if Verschieber.aus_djangobase(e.kennung):
+            return ('<span class="ts-kat-fest ts-kat-fremd" title="Testfall aus '
+                    'djangoBase selbst — gehört der Bibliothek, nicht diesem '
+                    'Projekt. Ein-/ausblenden über Einstellungen → djangoBase → '
+                    '„djangoBase-Testcases sichtbar".">%s</span>'
+                    % escape(Verschieber.EIGENE_KATEGORIE))
         art, datei = self.verschieber.moeglich(e.kennung)
         wahl = Verschieber.auswahl(art, datei is not None)
         if datei is None:
             return ('<span class="ts-kat-fest" title="nicht verschiebbar — die '
                     'Datei liegt nicht in einem tests/&lt;art&gt;/-Ordner">%s</span>'
-                    % escape(wahl[0][1]))
+                    % escape(kategorie_name or wahl[0][1]))
         felder = "".join(
             '<option value="%s"%s>%s</option>'
             % (escape(wert), " selected" if gesetzt else "", escape(name))

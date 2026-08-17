@@ -135,16 +135,30 @@ class TestsView(ZugriffMixin, View):
 
     # ------------------------------------------------------------------ Seite
 
-    def get(self, request):
+    def post(self, request):
+        u"""Die angehakten Fälle fahren — in EINEM Lauf.
+
+        Kommt von den Knöpfen im Kartenkopf (``tests_auswahl.js``). POST und
+        nicht GET: Bei „Alle auswählen" stehen hunderte Kennungen in der
+        Anfrage, das sprengt jede URL — und ein Testlauf ist nichts, was ein
+        Reload wiederholen soll.
+        """
+        return self.get(request, ids=request.POST.getlist("ids"))
+
+    def get(self, request, ids=None):
         c = conf()
         befehle = c.get("test_befehle", []) or self._befehle_abgeleitet()
         ui = c.get("test_ui") or None
         kat = Kategorien(befehle)
         discover = c.get("test_discover", []) or kat.discover()
 
-        kategorien, bekannte_ids = self._einzeltests(discover)
+        kategorien, bekannte_ids = self._einzeltests(
+            discover, mit_djangobase=bool(c.get("tests_djangobase_sichtbar")))
         slug = request.GET.get("run")
-        ergebnis = self._lauf(slug, kat, befehle, bekannte_ids)
+        if ids:
+            ergebnis = self._lauf_auswahl(ids, kat, befehle, bekannte_ids)
+        else:
+            ergebnis = self._lauf(slug, kat, befehle, bekannte_ids)
 
         # Laufzeiten NACH dem Lauf lesen, damit der gerade gefahrene Test seine
         # frische Zahl schon zeigt.
@@ -173,13 +187,32 @@ class TestsView(ZugriffMixin, View):
                     g["befehle"],
                     key="test-suiten-%s" % Kategorien.schluessel(g["name"]),
                     tab="Suiten")}
+        # Reiter „Alle": je Kategorie ihre TESTFAELLE, nicht ihre Suiten.
+        # Gemeldet am 17.08.2026: „die Alle Seite enthält nicht alle tests!" und
+        # „die verschieben Spalte hat keine Combo Box, ist also nutzlos" — beides
+        # dasselbe: Dort standen die Suiten (ganze Ordner), und eine Suite hat
+        # keine verschiebbare Datei. Mit den Faellen ist die Liste vollstaendig
+        # UND die Combo-Box da.
+        nach_typ = {k["typ"]: k for k in kategorien}
         for a in kat.arten:
+            faelle = nach_typ.get(a["kurz"])
+            if faelle is None:
+                # „Nach App" ist keine Art, sondern der Rest: Eintraege, deren
+                # Ziel keine erkennbare Kategorie traegt. Dafuer gibt es keine
+                # Einzelfall-Liste — hier stehen die Suiten selbst, sonst waere
+                # die Karte leer und der Bereich unsichtbar.
+                a["karte"] = {
+                    "titel": "%s — Suiten" % a["kurz"],
+                    "anzahl": len(a["befehle"]), "icon": "bi-collection-play",
+                    "tabelle": tabellen.aus_befehlen(
+                        a["befehle"], key="test-alle-%s" % a["art"], tab="Alle")}
+                continue
             a["karte"] = {
-                "titel": "Einzeln", "anzahl": len(a["befehle"]),
+                "titel": "%s — Testfälle" % a["kurz"],
+                "anzahl": len(faelle.get("tests") or []),
                 "icon": "bi-list-check",
-                "tabelle": tabellen.aus_befehlen(
-                    a["befehle"], key="test-alle-%s" % a["art"],
-                    tab="Alle", unter=a["art"])}
+                "tabelle": tabellen.aus_tests(faelle, tab="Alle",
+                                              key="test-alle-%s" % a["art"])}
 
         return render(request, "djangobase/hilfe/tests.html", {
             "aktiv": "tests",
@@ -217,19 +250,68 @@ class TestsView(ZugriffMixin, View):
 
     # ------------------------------------------------------------- Bausteine
 
-    def _einzeltests(self, discover):
-        """Die Reiter je Typ mit ihren Einzeltests - und alle bekannten IDs."""
+    def _einzeltests(self, discover, mit_djangobase=False):
+        u"""Die Reiter je Typ mit ihren Einzeltests - und alle bekannten IDs.
+
+        ``mit_djangobase`` schaltet die Faelle zu, die djangoBase SELBST
+        mitbringt (Grundtests, Endpunktprobe). Sie laufen im Wirt-Projekt mit,
+        gehoeren aber nicht zu seinem Code — und standen in der Liste ganz oben
+        im Weg. Vorgabe deshalb AUS, Schalter unter Einstellungen → djangoBase
+        (Ansage 17.08.2026).
+        """
+        from ..testverschieben import Verschieber
         kategorien, bekannte = [], set()
         for d in discover:
             tests = []
             for label in d.get("labels", []):
                 for tid in self._ids_gecacht(label):
+                    if not mit_djangobase and Verschieber.aus_djangobase(tid):
+                        continue
                     tests.append({"id": tid, "kurz": _kurz(tid)})
                     bekannte.add(tid)
             tests.sort(key=lambda t: t["id"])
             kategorien.append({"typ": d.get("typ", "Tests"), "tests": tests,
                                "anzahl": len(tests)})
         return kategorien, bekannte
+
+    @staticmethod
+    def _lauf_auswahl(ids, kat, befehle, bekannte_ids):
+        u"""Mehrere angehakte Einträge in EINEM ``manage.py test``-Aufruf.
+
+        Ein Lauf statt einer Kette: Die Testdatenbank wird EINMAL aufgebaut. Bei
+        zwanzig Haken wären das sonst zwanzig Aufbauten für Sekunden Testzeit.
+
+        Sicher wie der Einzellauf: Ein Eintrag zählt nur, wenn er eine ENTDECKTE
+        Test-ID ist oder der ``slug`` eines konfigurierten Befehls — dessen Ziele
+        werden eingesetzt. Alles andere wird verworfen, nichts aus der Anfrage
+        landet ungeprüft in der Kommandozeile.
+        """
+        nach_slug = {b.get("slug"): b for b in list(befehle) + kat.sammelbefehle()}
+        ziele, verworfen = [], 0
+        for kennung in ids:
+            kennung = str(kennung)[:300]
+            if kennung in bekannte_ids:
+                ziele.append(kennung)
+            elif kennung in nach_slug:
+                ziele.extend((nach_slug[kennung].get("ziel") or "").split())
+            else:
+                verworfen += 1
+        # Reihenfolge erhalten, Doppelte raus (zwei Haken können dasselbe Ziel
+        # meinen — eine Suite und ein Fall daraus).
+        ziele = list(dict.fromkeys(z for z in ziele if z))
+        if not ziele:
+            # Dictionary gewollt: dasselbe Format wie ein echter Lauf, damit die
+            # Vorlage nichts Zusätzliches können muss.
+            return {"name": "Auswahl", "cmd": "", "rc": -1, "ok": False,
+                    "out": "", "dauer": 0.0, "dauern": 0,
+                    "err": "Keine gültige Auswahl — %d Einträge verworfen."
+                           % verworfen}
+        cmd = ([Kategorien.python(befehle), "manage.py", "test"] + ziele
+               + ["--noinput", "-v", "2"])
+        name = "Auswahl: %d Ziel%s" % (len(ziele), "" if len(ziele) == 1 else "e")
+        if verworfen:
+            name += " (%d verworfen)" % verworfen
+        return Testlauf().fahren(cmd, name, Kategorien.SAMMEL_FRIST)
 
     @staticmethod
     def _lauf(slug, kat, befehle, bekannte_ids):
