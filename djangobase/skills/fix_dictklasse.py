@@ -328,7 +328,7 @@ class FixDictKlasse(Fixer):
 
     def _pyquellen(self):
         for pfad in sorted(self.wurzel().rglob("*.py")):
-            if any(t in self.RAUS for t in pfad.parts):
+            if not self.erlaubt(pfad):
                 continue
             yield pfad
 

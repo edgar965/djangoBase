@@ -139,8 +139,18 @@ class Werkzeug:
     # ------------------------------------------------------------- Hilfsmittel
 
     #: Immer uebersprungen — nichts davon ist eigener Quelltext.
+    #: Der zweite Block kam am 17.08.2026 dazu: Fremdcode, der in gewachsenen
+    #: Projekten NEBEN dem Quelltext liegt. Im Projekt assistant stammten 34 %
+    #: aller Befunde von dort — aus dem Quarantaeneordner des eigenen
+    #: Virenscanners und aus einem abgelegten Browser-Profil mit 437
+    #: JS-Dateien fremder Erweiterungen. Dieselbe Liste steht in der neuen
+    #: Basis (``werkzeug.AUSGESCHLOSSEN``); beide Kaesten durchsuchen denselben
+    #: Baum, also muessen sie dieselbe Grenze ziehen.
     AUSSER = ('__pycache__', 'migrations', 'node_modules', '.git', 'venv',
-              'site-packages', 'staticfiles', 'dist', 'build', '.venv')
+              'site-packages', 'staticfiles', 'dist', 'build', '.venv',
+              'virensuche_quarantine', 'quarantine', 'quarantaene',
+              'chrome-profile', 'Extensions', 'var', 'sicherung', 'backup',
+              '_anlassfall')
 
     @classmethod
     def ausnahmen(cls):

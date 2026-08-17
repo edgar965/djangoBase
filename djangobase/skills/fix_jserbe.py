@@ -498,7 +498,7 @@ class FixJsErbe(Fixer):
 
     def _kandidaten(self):
         for pfad in sorted(self.wurzel().rglob("*.js")):
-            if any(t in self.RAUS for t in pfad.parts):
+            if not self.erlaubt(pfad):
                 continue
             zeilen = pfad.read_text(encoding="utf-8", errors="replace").split("\n")
             if len(zeilen) <= self.GRENZE:

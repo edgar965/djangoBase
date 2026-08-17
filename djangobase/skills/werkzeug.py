@@ -36,7 +36,25 @@ AUSGESCHLOSSEN = {".git", "__pycache__", "node_modules", "venv", "pythonVENV",
                   # Der Wegwerf-Ordner des Anlassfall-Checks. Ohne ihn faenden
                   # die Werkzeuge im normalen Lauf ihre eigenen Testdateien -
                   # und meldeten absichtlich kaputten Code als Befund.
-                  "_anlassfall"}
+                  "_anlassfall",
+                  # FREMDER CODE, der in gewachsenen Projekten NEBEN dem
+                  # Quelltext liegt (belegt am 17.08.2026 im Projekt assistant:
+                  # 34 % ALLER Befunde kamen von dort).
+                  #
+                  # * ``virensuche_quarantine`` - 585 MB, in die der eigene
+                  #   Virenscanner Fundstuecke schiebt. Dort meldete ``jssyntax``
+                  #   drei „kaputte ES-Module": verseuchte Dateien, die genau
+                  #   deshalb dort liegen. Ein Werkzeug, das Schadcode zum
+                  #   Aufraeumen vorschlaegt, ist schlimmer als keins.
+                  # * ``chrome-profile`` / ``Extensions`` - ein abgelegtes
+                  #   Browser-Profil, 437 JS-Dateien aus fremden Erweiterungen
+                  #   (minifizierte webpack-Buendel). Daher kamen alle 16
+                  #   Befunde von ``js-vererbung`` und die Haelfte von
+                  #   ``jsregistrierung``.
+                  # * ``var`` - Laufzeitablage (Protokolle, Bilder, Profile)
+                  #   neben ``logs`` und ``media``, kein Quelltext.
+                  "virensuche_quarantine", "quarantine", "quarantaene",
+                  "chrome-profile", "Extensions", "var"}
 
 
 class Quelldatei:

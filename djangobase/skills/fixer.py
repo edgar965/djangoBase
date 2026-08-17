@@ -112,6 +112,36 @@ class Fixer:
     kriterium = 0
     dauer = "wenige Sekunden"
 
+    #: WO EIN FIXER NIE HINSCHREIBEN DARF (17.08.2026)
+    #: ================================================
+    #: ``FixDictKlasse`` fuehrte eine EIGENE Ausschlussliste - ohne ``vendor``,
+    #: ohne ``.venv``, ohne ``site-packages``. Sie kannte ``venv``, der Ordner
+    #: hiess aber ``.venv``. Folge: Der Fixer baute in
+    #: ``vendor/ace-step-1.5/.venv/Lib/site-packages/`` um - in pandas, sympy,
+    #: diffusers, modelscope. 40 fremde Dateien geaendert, 39 neue daneben
+    #: gelegt. Das Netz fing nur die fuenf, die danach nicht mehr
+    #: kompilierten; die anderen 74 sahen gesund aus.
+    #:
+    #: Deshalb steht die Grenze JETZT HIER, in der Basis, und wird aus
+    #: derselben Liste gespeist wie die der Pruefwerkzeuge. Ein Fixer mit
+    #: eigener Liste ist eine zweite Quelle, und die laeuft auseinander.
+    ZUSATZ_RAUS = frozenset({"vendor", ".venv", "site-packages", "dist-info",
+                             "diktator", "third_parts", "build"})
+
+    @classmethod
+    def raus(cls):
+        """Ordnernamen, die kein Fixer anfassen darf."""
+        from .werkzeug import AUSGESCHLOSSEN
+        eigen = ((getattr(settings, "DJANGOBASE", {}) or {})
+                 .get("skills2_ignorieren") or [])
+        return (set(AUSGESCHLOSSEN) | set(cls.ZUSATZ_RAUS)
+                | {str(x) for x in eigen})
+
+    @classmethod
+    def erlaubt(cls, pfad):
+        """Darf in diese Datei geschrieben werden?"""
+        return not (set(Path(pfad).parts) & cls.raus())
+
     def wurzel(self):
         """Die REPO-Wurzel, nicht nur der Django-Teil - wie bei ``Werkzeug2``.
 
@@ -159,6 +189,16 @@ class Fixer:
         aus = {"geschrieben": [], "zurueckgespielt": [], "uebersprungen": []}
         for a in self.vorschau().aenderungen:
             if nur and a.name not in nur:
+                continue
+            # ZWEITER RIEGEL, unmittelbar vor dem Schreiben. Der erste ist die
+            # Ausschlussliste des einzelnen Fixers - und genau die hat am
+            # 17.08.2026 versagt. Ein Riegel an der Stelle, an der wirklich
+            # geschrieben wird, gilt fuer JEDEN Fixer, auch fuer den naechsten,
+            # den jemand ohne Ausschlussliste baut.
+            if not self.erlaubt(a.pfad):
+                aus["uebersprungen"].append(
+                    {"datei": a.name,
+                     "grund": "fremder Code — kein Fixer schreibt dorthin"})
                 continue
             if not a.machbar:
                 aus["uebersprungen"].append({"datei": a.name,

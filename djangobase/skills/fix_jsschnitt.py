@@ -260,7 +260,7 @@ class FixJsSchnitt(Fixer):
 
     def _jsdateien(self):
         for pfad in self.wurzel().rglob("*.js"):
-            if any(t in self.RAUS for t in pfad.parts):
+            if not self.erlaubt(pfad):
                 continue
             yield pfad
 
@@ -276,7 +276,7 @@ class FixJsSchnitt(Fixer):
             aus = set()
             muster = re.compile(r"([\w.-]+\.js)['\"]?\s*\}?\}?\?v=")
             for pfad in self.wurzel().rglob("*.html"):
-                if any(t in self.RAUS for t in pfad.parts):
+                if not self.erlaubt(pfad):
                     continue
                 try:
                     text = pfad.read_text(encoding="utf-8", errors="replace")

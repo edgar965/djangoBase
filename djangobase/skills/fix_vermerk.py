@@ -162,7 +162,23 @@ class FixVermerk(Fixer):
                   "label", "data", "text", "url", "status", "title", "n", "count"}
     WORT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
     RAUS = ("__pycache__", "node_modules", "venv", "pythonVENV", ".git",
-            "sicherung", "backup", "archiv", "_web")
+            "sicherung", "backup", "archiv", "_web",
+            # Fremdcode, der neben dem Projekt liegt - siehe werkzeug.AUSGESCHLOSSEN
+            "virensuche_quarantine", "quarantine", "chrome-profile",
+            "Extensions", "var", "vendor")
+    #: Mitgelieferte Bibliotheken und Buendel. Ein Vermerk, der „geht an
+    #: aws-sdk.js" behauptet, ist keine Begruendung, sondern ein Zufallstreffer:
+    #: In einem 3-MB-Buendel steht JEDER kurze Bezeichner irgendwo.
+    FREMDE_DATEI = ("min.js", "-sdk", "bundle", "compiler", "vendor", "polyfill",
+                    "chunk", "runtime.", "jquery", "bootstrap", "htmx")
+    #: Zeilen ab dieser Laenge heissen: minifiziert. Auch das ist Fremdcode.
+    MINIFIZIERT_AB = 500
+    #: Wie viele der gefundenen Schluessel EINE Datei enthalten muss, damit sie
+    #: als Ziel genannt werden darf. Ohne diese Bedingung nannte der Fixer
+    #: schlicht die groessten Dateien des Projekts: Jede Datei, die EINEN
+    #: Schluessel enthielt, landete in der Begruendung — ein Verzeichnisvergleich
+    #: bekam „geht als JSON an svelte_compiler.js" (17.08.2026).
+    ANTEIL_JE_DATEI = 0.5
 
     def __init__(self):
         self._frontend = None
@@ -206,7 +222,7 @@ class FixVermerk(Fixer):
             aus = {}
             for muster in ("*.js", "*.mjs", "*.html"):
                 for pfad in self.wurzel().rglob(muster):
-                    if any(t in self.RAUS for t in pfad.parts):
+                    if not self.erlaubt(pfad):
                         continue
                     # AUCH AM DATEINAMEN, nicht nur am Ordner (16.08.2026): Der
                     # Ausschluss griff nur auf Verzeichnisse, und prompt belegte
@@ -217,9 +233,15 @@ class FixVermerk(Fixer):
                     if any(t in pfad.stem.lower()
                            for t in ("backup", "_alt", "_vor_", ".bak", "kopie")):
                         continue
+                    if any(t in pfad.name.lower() for t in self.FREMDE_DATEI):
+                        continue
                     try:
                         text = pfad.read_text(encoding="utf-8", errors="replace")
                     except OSError:
+                        continue
+                    # Minifiziert = fremdes Buendel. Dort steht jeder kurze
+                    # Bezeichner irgendwo, und ein Treffer belegt nichts.
+                    if any(len(z) > self.MINIFIZIERT_AB for z in text.split("\n")):
                         continue
                     for name in set(self.WORT.findall(text)):
                         aus.setdefault(name, []).append(pfad.name)
@@ -228,7 +250,7 @@ class FixVermerk(Fixer):
 
     def _pyquellen(self):
         for pfad in self.wurzel().rglob("*.py"):
-            if any(t in self.RAUS for t in pfad.parts):
+            if not self.erlaubt(pfad):
                 continue
             yield pfad
 
@@ -255,10 +277,27 @@ class FixVermerk(Fixer):
                 if any(MARKER in z for z in zeilen[von:k.lineno]):
                     continue
                 treffer = [s for s in aussage if s in self.frontend]
+                # NUR Dateien, die einen nennenswerten Teil der Schluessel
+                # WIRKLICH enthalten, duerfen als Ziel genannt werden. Vorher
+                # zaehlte jede Datei mit EINEM Treffer mit, und die Begruendung
+                # nannte am Ende die groessten Dateien des Projekts.
                 quellen = Counter(d for s in treffer for d in self.frontend[s])
-                fund = Fundstelle(pfad, k, aussage, treffer,
-                                  [d for d, _ in quellen.most_common(3)])
-                if len(treffer) / len(aussage) >= self.SCHWELLE:
+                noetig = max(2, int(len(treffer) * self.ANTEIL_JE_DATEI))
+                belegend = [d for d, n in quellen.most_common() if n >= noetig]
+                fund = Fundstelle(pfad, k, aussage, treffer, belegend[:3])
+                # ZWEI BELEGE, NICHT EINER (17.08.2026): Namensgleichheit allein
+                # traegt nicht. ``bank/views/neu.py`` bekam „geht als JSON an
+                # llm_settings.html" und ``compare_transcripts.py`` — ein
+                # Skript ohne jede Antwort — „geht als JSON an audio.html".
+                # Verlangt wird jetzt AUSSERDEM, dass die Rueckgabe nachweislich
+                # als JSON hinausgeht (Serialisierungsweg). Lieber ein Fixer,
+                # der wenig anfasst, als einer, der Behauptungen in den Code
+                # schreibt.
+                funktion_hier = self._funktion_um(baum, k.lineno)
+                geht_hinaus = bool(funktion_hier
+                                   and self.weg.beleg(pfad, funktion_hier))
+                if (belegend and geht_hinaus
+                        and len(treffer) / len(aussage) >= self.SCHWELLE):
                     yield fund
                     continue
                 # ZWEITER WEG: Die Schluessel stehen nirgends woertlich, aber das
