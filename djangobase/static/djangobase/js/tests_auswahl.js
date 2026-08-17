@@ -49,6 +49,21 @@
         }
     });
 
+    /** Die Zeilen EINES Bereichs: ab der Abschnittszeile bis zur nächsten.
+     *
+     *  Über die Nachbarschaft im DOM, nicht über `data-bereich` an der Zeile:
+     *  Nach einem Umsortieren stehen die Gruppen woanders, und die Zeile
+     *  zwischen zwei Abschnitten ist die, die sichtbar dazugehört. */
+    function gruppenKaesten(kopf) {
+        var aus = [];
+        for (var tr = kopf.nextElementSibling; tr; tr = tr.nextElementSibling) {
+            if (tr.dataset.gruppe !== undefined) break;
+            var c = tr.querySelector('input.ts-wahl');
+            if (c) aus.push(c);
+        }
+        return aus;
+    }
+
     document.addEventListener('click', function (e) {
         var alle = e.target.closest ? e.target.closest('.ts-wahl-alle') : null;
         if (alle) {
@@ -59,13 +74,45 @@
             return;
         }
         var run = e.target.closest ? e.target.closest('.ts-wahl-run') : null;
-        if (run) { starten(karte(run)); }
+        if (run) { starten(karte(run)); return; }
+        // --- Abschnittszeile eines Bereichs: an-/abhaken bzw. nur ihn fahren.
+        var bWahl = e.target.closest ? e.target.closest('.ts-ber-wahl') : null;
+        if (bWahl) {
+            var kopf = bWahl.closest('tr');
+            var kaest = gruppenKaesten(kopf);
+            var einAn = kaest.some(function (c) { return !c.checked; });
+            kaest.forEach(function (c) { c.checked = einAn; });
+            auffrischen(karte(bWahl));
+            return;
+        }
+        var bRun = e.target.closest ? e.target.closest('.ts-ber-run') : null;
+        if (bRun) {
+            var ids = gruppenKaesten(bRun.closest('tr'))
+                .map(function (c) { return c.value; });
+            if (ids.length) fahren(karte(bRun), ids);
+        }
     });
 
-    /** Auswahl als Formular abschicken — der Server fährt sie in einem Lauf. */
+    /** Auswahl als Formular abschicken — der Server fährt sie in einem Lauf.
+     *
+     *  AUSNAHME: Seiten mit eigenem Runner (`<body data-tests-auswahl="ereignis">`
+     *  bzw. ein Vorfahre mit diesem Attribut) bekommen stattdessen ein
+     *  CustomEvent `tests:auswahl-lauf` mit den Kennungen. Der assistant faehrt
+     *  seine `/tests/…`-Seiten per Streaming-API und schreibt den Fortschritt in
+     *  die Zeilen; ein Formular-POST wuerde die Seite neu laden und genau das
+     *  wegwerfen. Die Auswahl-Bedienung bleibt dieselbe — nur das Ziel wechselt. */
     function starten(k) {
-        var ids = gewaehlt(k).map(function (c) { return c.value; });
-        if (!ids.length) return;
+        fahren(k, gewaehlt(k).map(function (c) { return c.value; }));
+    }
+
+    function fahren(k, ids) {
+        if (!ids || !ids.length) return;
+        if (k.closest('[data-tests-auswahl="ereignis"]')) {
+            k.dispatchEvent(new CustomEvent('tests:auswahl-lauf', {
+                bubbles: true, detail: {ids: ids, karte: k},
+            }));
+            return;
+        }
         var f = document.createElement('form');
         f.method = 'post';
         f.action = location.pathname + location.search;

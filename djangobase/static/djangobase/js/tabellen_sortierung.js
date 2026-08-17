@@ -192,7 +192,14 @@ export class TabellenSortierung {
 
   static _anwenden(tabelle, idx, auf) {
     const koerper = tabelle.tBodies[0];
-    const zeilen = [...koerper.rows];
+    // ABSCHNITTSZEILEN (data-gruppe) sortieren nicht mit: Sie fassen die Zeilen
+    // darunter zusammen ("Bereich Musik" in den Testcase-Tabellen). Mitsortiert
+    // stuenden sie irgendwo mitten in einer fremden Gruppe. Sie werden entfernt;
+    // wer sie braucht, setzt sie im Ereignis `tabelle:sortiert` neu.
+    const zeilen = [...koerper.rows].filter(r => {
+      if (r.dataset && r.dataset.gruppe !== undefined) { r.remove(); return false; }
+      return true;
+    });
     const richtung = auf ? 1 : -1;
     zeilen.sort((a, b) => {
       const wa = TabellenSortierung._wert(a.cells[idx]);
@@ -208,6 +215,10 @@ export class TabellenSortierung {
     zeilen.forEach(r => koerper.appendChild(r));
     tabelle.dataset.sortIdx = idx;
     tabelle.dataset.sortDir = auf ? 'asc' : 'desc';
+    // Damit Gliederungen, die auf der Reihenfolge beruhen, nachziehen koennen.
+    tabelle.dispatchEvent(new CustomEvent('tabelle:sortiert', {
+      bubbles: true, detail: { idx: idx, auf: auf },
+    }));
   }
 
   // ---------------------------------------------------------- Merken (F5)
@@ -216,10 +227,23 @@ export class TabellenSortierung {
     return tabelle.dataset.sortKey ? SPEICHER + tabelle.dataset.sortKey : null;
   }
 
+  /** Sortierung merken — MIT dem Spalten-Key, nicht nur mit dem Index.
+   *
+   *  Der Index allein zeigt nach jeder Spaltenänderung auf etwas anderes.
+   *  Gemessen am 17.08.2026: Nach dem Einfügen der Spalten „Nr." und
+   *  „Kategorie" rutschte „Bereich" von Position 1 auf 3 — die gemerkte
+   *  Sortierung sortierte danach nach „Nr.", einer Spalte, die gar nicht
+   *  sortierbar ist. Sichtbare Folge: Die Bereichs-Abschnitte verschwanden,
+   *  weil die Seite dachte, es sei nach etwas anderem sortiert. */
   static _merken(tabelle, idx, auf) {
     const k = TabellenSortierung._key(tabelle);
     if (!k) return;
-    try { localStorage.setItem(k, JSON.stringify({ idx: idx, auf: auf })); } catch (e) {}
+    const kopf = TabellenSortierung._kopfzeile(tabelle);
+    const th = kopf && kopf.cells[idx];
+    const sk = th && th.dataset.key ? th.dataset.key : '';
+    try {
+      localStorage.setItem(k, JSON.stringify({ idx: idx, auf: auf, key: sk }));
+    } catch (e) {}
   }
 
   static _gemerktesAnwenden(tabelle) {
@@ -229,10 +253,25 @@ export class TabellenSortierung {
     try { s = JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return; }
     if (!s || typeof s.idx !== 'number' || s.idx < 0) return;
     const kopf = TabellenSortierung._kopfzeile(tabelle);
-    // Spaltenzahl kann sich geändert haben - dann lieber gar nicht sortieren,
-    // als nach der falschen Spalte.
-    if (!kopf || s.idx >= kopf.cells.length) return;
-    TabellenSortierung._anwenden(tabelle, s.idx, !!s.auf);
+    if (!kopf) return;
+    let idx = s.idx;
+    // Der KEY entscheidet, nicht der Index: Spalten kommen dazu und wandern.
+    if (s.key) {
+      idx = [...kopf.cells].findIndex(th => th.dataset.key === s.key);
+      if (idx < 0) { TabellenSortierung.vergessen(tabelle); return; }
+    } else if (s.idx >= kopf.cells.length) {
+      // Alter Eintrag ohne Key und die Spaltenzahl passt nicht mehr — lieber
+      // gar nicht sortieren als nach der falschen Spalte.
+      TabellenSortierung.vergessen(tabelle);
+      return;
+    }
+    // Eine Spalte, die ausdrücklich nicht sortiert (Kästchen, Nr., Run), darf
+    // auch aus dem Speicher nicht sortieren.
+    if (kopf.cells[idx] && kopf.cells[idx].dataset.sortAus !== undefined) {
+      TabellenSortierung.vergessen(tabelle);
+      return;
+    }
+    TabellenSortierung._anwenden(tabelle, idx, !!s.auf);
   }
 
   /** Gemerkte Sortierung einer Tabelle vergessen. */

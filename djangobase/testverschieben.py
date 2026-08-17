@@ -47,7 +47,7 @@ from .testhistorie import Testhistorie
 
 __all__ = ["Verschieber"]
 
-log = logging.getLogger("django")
+log = logging.getLogger("djangobase.tests")
 
 
 class Verschieber:
@@ -57,8 +57,14 @@ class Verschieber:
     #: Anzeigenamen der Kategorien - dieselbe Quelle wie die Reiter.
     NAMEN = Testbefehle.KURZ
 
-    def __init__(self, wurzel=None):
+    def __init__(self, wurzel=None, bereiche=None):
         self.wurzel = Path(wurzel or getattr(settings, "BASE_DIR", "."))
+        #: Die zweite Einteilung (Chat, Mail, Musik, …). Sie kommt aus den
+        #: Einstellungen des Projekts - siehe :mod:`.testbereiche`.
+        if bereiche is None:
+            from .testbereiche import Bereiche
+            bereiche = Bereiche.aus_einstellungen()
+        self.bereiche = bereiche
 
     # --------------------------------------------------------------- Lesen
 
@@ -149,9 +155,86 @@ class Verschieber:
             return False, "Verschieben fehlgeschlagen: %s" % fehler, ""
         neue_id = str(test_id).replace(".%s." % art, ".%s." % ziel_art, 1)
         self._historie_umhaengen(datei, art, ziel_art)
+        praefix = self._modulpraefix(datei)
+        if praefix:
+            self._reihenfolge_umziehen(
+                praefix, praefix.replace(".%s." % art, ".%s." % ziel_art, 1))
         log.info("Test verschoben: %s -> %s (%s)", datei.name, ziel_art, ziel)
         return True, ("%s liegt jetzt in „%s“."
                       % (datei.name, self.NAMEN.get(ziel_art, ziel_art))), neue_id
+
+    # ------------------------------------------------------- Bereich wechseln
+
+    def bereich_moeglich(self, test_id):
+        u"""``(slug, datei)`` wenn der Bereich wechselbar ist, sonst ``(slug, None)``.
+
+        Dieselben Bedingungen wie beim Kategoriewechsel — plus: Es muss ein
+        Zielbereich mit Modulpraefix konfiguriert sein. Ein Bereich, der nur
+        umbenennt, hat keinen Ordner und kann kein Ziel sein.
+        """
+        slug = self.bereiche.slug_von(test_id)
+        _art, datei = self.moeglich(test_id)
+        if datei is None or not self.bereiche.mit_ordner():
+            return slug, None
+        return slug, datei
+
+    def bereich_verschieben(self, test_id, ziel_slug):
+        u"""Die Testdatei in den Ordner eines ANDEREN Bereichs legen.
+
+            „der Bereich und die Kategorie können bei jedem test in der Tabelle
+            per Combo Box geändert werden" (Edgar, 17.08.2026)
+
+        Gleiche Bauart wie :meth:`verschieben`, nur wandert die Datei quer statt
+        laengs: Die Kategorie (der ``<art>``-Ordner) bleibt, der Weg davor
+        wechselt auf das Praefix des Zielbereichs::
+
+            search/tests/musik/unit/test_midi.py
+            -> search/tests/chat/unit/test_midi.py
+
+        Das ueberschreitet auch App-Grenzen (``mail.tests`` -> ``search.tests.
+        musik``) — genau das war die Ansage, und es ist derselbe Vorgang: Der
+        Bereich IST der Ordner, sonst wuerde ein Sammellauf ueber den Bereich
+        den Fall nicht mitfahren.
+        """
+        # NUR erlaubte Ziele: Ein Bereich, der ueber anderen liegt
+        # (`search.tests` ueber `search.tests.chat`), wuerde die Datei aus der
+        # Bereichsgliederung herausheben — siehe `Bereiche.ziele`.
+        ziel = self.bereiche.ziele().get(str(ziel_slug or ""), "")
+        if not ziel:
+            return False, ("Kein gültiges Ziel: %s (unbekannt oder Elternordner "
+                           "anderer Bereiche)" % ziel_slug), ""
+        art, datei = self.moeglich(test_id)
+        if datei is None:
+            return False, ("Dieser Fall lässt sich nicht verschieben — die Datei "
+                           "liegt nicht in einem `tests/<art>/`-Ordner."), ""
+        if self.bereiche.slug_von(test_id) == ziel_slug:
+            return False, "Liegt schon in diesem Bereich.", test_id
+        ziel_ordner = self.wurzel.joinpath(*ziel.split(".")) / art
+        neu_praefix = "%s.%s.%s" % (ziel, art, datei.stem)
+        ziel_datei = ziel_ordner / datei.name
+        if ziel_datei.exists():
+            return False, ("Am Ziel liegt schon eine Datei %s — bitte dort "
+                           "zuerst aufräumen." % datei.name), ""
+        alt_praefix = self._modulpraefix(datei)
+        try:
+            ziel_ordner.mkdir(parents=True, exist_ok=True)
+            self._paket_marke(ziel_ordner)
+            # Auch die Zwischenebene braucht die Marke: `search/tests/chat/`
+            # ohne __init__.py findet Djangos Discovery nicht.
+            self._paket_marke(ziel_ordner.parent)
+            shutil.move(str(datei), str(ziel_datei))
+        except OSError as fehler:
+            log.exception("Test %s konnte nicht in den Bereich %s verschoben "
+                          "werden", test_id, ziel_slug)
+            return False, "Verschieben fehlgeschlagen: %s" % fehler, ""
+        neue_id = neu_praefix + str(test_id)[len(alt_praefix):] \
+            if alt_praefix and str(test_id).startswith(alt_praefix) else ""
+        self._historie_umziehen(alt_praefix, neu_praefix)
+        self._reihenfolge_umziehen(alt_praefix, neu_praefix)
+        log.info("Test-Bereich gewechselt: %s -> %s (%s)",
+                 datei.name, ziel_slug, ziel_datei)
+        return True, ("%s liegt jetzt im Bereich „%s“."
+                      % (datei.name, self.bereiche.name_von(ziel_slug))), neue_id
 
     def _ziel_ordner(self, datei, art, ziel_art):
         u"""Der Schwesterordner der Zielkategorie - ``…/tests/<ziel_art>/``.
@@ -190,7 +273,30 @@ class Verschieber:
         alt_praefix = self._modulpraefix(datei)
         if not alt_praefix:
             return
-        neu_praefix = alt_praefix.replace(".%s." % art, ".%s." % ziel_art, 1)
+        self._historie_umziehen(
+            alt_praefix, alt_praefix.replace(".%s." % art, ".%s." % ziel_art, 1))
+
+    @staticmethod
+    def _reihenfolge_umziehen(alt_praefix, neu_praefix):
+        u"""Auch den Platz („Nr.") mitnehmen - gleiche Ueberlegung wie oben."""
+        from .testreihenfolge import Reihenfolge
+        Reihenfolge().umhaengen(alt_praefix, neu_praefix)
+
+    @staticmethod
+    def _historie_umziehen(alt_praefix, neu_praefix):
+        u"""Laufzeiten von einem Modulpraefix auf ein anderes schreiben.
+
+        Der gemeinsame Kern von Kategorie- und BEREICHS-Wechsel. Er fehlte beim
+        Bereichswechsel schlicht (``AttributeError`` im Betrieb, 17.08.2026) —
+        die Datei war da schon verschoben, die Antwort kam als Fehlerseite.
+
+        NUR DIESES PRAEFIX: Die erste Fassung des Kategoriewechsels nahm jede
+        ID, in der ``.unit.`` vorkam, und haette die Laufzeiten aller
+        Unit-Tests des Projekts umgeschrieben. Verglichen wird deshalb der
+        Modulpfad der EINEN Datei.
+        """
+        if not alt_praefix or not neu_praefix or alt_praefix == neu_praefix:
+            return
         historie = Testhistorie()
         umzug = {k: v for k, v in historie.daten["tests"].items()
                  if k.startswith(alt_praefix + ".")}
@@ -219,6 +325,12 @@ class Verschieber:
         hat: Der Ordner wird beim Verschieben angelegt. Ist der Fall nicht
         verschiebbar, kommt nur die aktuelle Kategorie zurueck.
         """
+        # Reihenfolge und Namen wie in den Reitern - beides ist einstellbar
+        # (siehe `testarten.Arten`), und zwei verschiedene Reihenfolgen fuer
+        # dieselbe Sache waeren genau der Unterschied, der niemandem auffaellt.
+        from .testarten import Arten
+        einteilung = Arten.aus_einstellungen()
         if not moeglich:
-            return [(art, cls.NAMEN.get(art, art or "—"), True)]
-        return [(a, cls.NAMEN.get(a, a), a == art) for a in cls.ARTEN]
+            return [(art, einteilung.name_von(art) if art else "—", True)]
+        return [(a, einteilung.name_von(a), a == art)
+                for a in einteilung.liste()]

@@ -66,10 +66,19 @@ zeigen, nicht die Aufmerksamkeit binden.
     </tr>
   </thead>
   <tbody>
+    {% comment %}
+    `data-gruppe` markiert Abschnittszeilen (eine Zelle über die volle Breite,
+    z.B. der Bereichskopf in den Testcase-Tabellen). Die Sortierung nimmt sie
+    heraus, statt sie mitzusortieren — sonst stünde „Musik" irgendwo zwischen
+    zwei Mail-Zeilen.
+    {% endcomment %}
     {% for z in tabelle.zeilen %}
-    <tr{% if z.klasse %} class="{{ z.klasse }}"{% endif %}>
+    <tr{% if z.klasse %} class="{{ z.klasse }}"{% endif %}
+       {% if z.gruppe %} data-gruppe="1"{% endif %}
+       {% if z.bereich %} data-bereich="{{ z.bereich }}"{% endif %}>
       {% for c in z.zellen %}
       <td{% if c.klasse %} class="{{ c.klasse }}"{% endif %}
+         {% if c.colspan %} colspan="{{ c.colspan }}"{% endif %}
          {% if c.sort != None %} data-sort="{{ c.sort }}"{% endif %}
          {% if c.titel %} title="{{ c.titel }}"{% endif %}>{{ c.html|safe }}</td>
       {% endfor %}

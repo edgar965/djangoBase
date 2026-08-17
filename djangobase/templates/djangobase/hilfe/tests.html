@@ -10,8 +10,8 @@ sichtbar, ziehbare Spaltenbreiten, gemerkt je Tabelle) — dafuer braucht die
 Seite das Stylesheet und die zwei Module. Ansage 17.08.2026.
 {% endcomment %}
 {% block head_extra %}{{ block.super }}
-<link rel="stylesheet" href="/static/djangobase/css/tabellen.css">
-<link rel="stylesheet" href="{% static 'djangobase/css/tests.css' %}">
+<link rel="stylesheet" href="/static/djangobase/css/tabellen.css?v={{ djangobase.statik_v }}">
+<link rel="stylesheet" href="{% static 'djangobase/css/tests.css' %}?v={{ djangobase.statik_v }}">
 {% endblock %}
 
 {% comment %}
@@ -23,8 +23,8 @@ nicht (17.08.2026).
 {% endcomment %}
 {% block body_scripts %}{{ block.super }}
 <script type="module">
-  import { TabellenSortierung } from '/static/djangobase/js/tabellen_sortierung.js';
-  import { TabellenBreiten } from '/static/djangobase/js/tabellen_breiten.js';
+  import { TabellenSortierung } from '/static/djangobase/js/tabellen_sortierung.js?v={{ djangobase.statik_v }}';
+  import { TabellenBreiten } from '/static/djangobase/js/tabellen_breiten.js?v={{ djangobase.statik_v }}';
   {% comment %}
   EINE Gruppe für ALLE Tabellen der Seite (17.08.2026: „die spalten sollen die
   gleiche Breite haben" · „verschieben der Spalten verschiebt alle Spalten auf
@@ -45,9 +45,28 @@ json_script im DOM, damit das Skript eine eigene Datei bleibt (das Template war
 schon einmal auf 420 Zeilen gewachsen).
 {% endcomment %}
 {{ verschieben_url|json_script:"ts-verschieben-url" }}
-<script src="{% static 'djangobase/js/tests_verschieben.js' %}"></script>
+<script src="{% static 'djangobase/js/tests_verschieben.js' %}?v={{ djangobase.statik_v }}"></script>
 {# Checkbox-Auswahl je Karte + „Ausgewählte ausführen" (ein Lauf für alle). #}
-<script src="{% static 'djangobase/js/tests_auswahl.js' %}"></script>
+<script src="{% static 'djangobase/js/tests_auswahl.js' %}?v={{ djangobase.statik_v }}"></script>
+{% comment %}
+Hält die Abschnittszeilen je Bereich in Ordnung, wenn nach einer anderen Spalte
+sortiert wird — die Sortierung nimmt sie heraus und meldet `tabelle:sortiert`.
+{% endcomment %}
+<script src="{% static 'djangobase/js/tests_bereiche.js' %}?v={{ djangobase.statik_v }}"></script>
+{% comment %}
+Der LIVE-Lauf (Ansage 17.08.2026): fängt die Run-Knöpfe ab, streamt den Lauf
+über `/hilfe/tests/strom/` und schreibt ✓/✗ sowie die Laufzeiten in die Zeilen.
+Lädt das Modul nicht, bleiben die `?run=`-Links wirksam — dann läuft es wie
+vorher mit Seitenwechsel.
+{% endcomment %}
+{% comment %}
+Die Spalte „Nr." — Zahl ändern verschiebt die Zeile (der Server bestätigt die
+neue Reihenfolge, erst dann hängt die Seite um).
+{% endcomment %}
+{{ nummer_url|json_script:"ts-nummer-url" }}
+<script src="{% static 'djangobase/js/tests_nummer.js' %}?v={{ djangobase.statik_v }}"></script>
+{{ strom_url|json_script:"ts-strom-url" }}
+<script type="module" src="{% static 'djangobase/js/tests_strom.js' %}?v={{ djangobase.statik_v }}"></script>
 {% endblock %}
 
 {% block content %}
@@ -104,7 +123,7 @@ schon einmal auf 420 Zeilen gewachsen).
             <a class="ts-run gross" href="?run={{ a.sammel.slug }}&tab=Alle"><i class="bi bi-play-fill"></i> Kategorie ausführen</a>
         </div>
         {% endif %}
-        {% include "djangobase/_testkarte.html" with karte=a.karte %}
+        {% for karte in a.karten %}{% include "djangobase/_testkarte.html" %}{% endfor %}
         {% endfor %}
     </div>
     {% endif %}
@@ -112,7 +131,7 @@ schon einmal auf 420 Zeilen gewachsen).
     {# ---------------- Panels: Einzeltests pro Typ ---------------- #}
     {% for k in kategorien %}
     <div class="ts-panel" data-panel="{{ k.typ }}">
-        {% include "djangobase/_testkarte.html" with karte=k.karte %}
+        {% for karte in k.karten %}{% include "djangobase/_testkarte.html" %}{% endfor %}
     </div>
     {% endfor %}
 
@@ -142,7 +161,13 @@ schon einmal auf 420 Zeilen gewachsen).
         </div>
         {{ ui_config|json_script:"ts-ui-config" }}
         {{ ui_historie|json_script:"ts-ui-historie" }}
-        <script src="{% static 'djangobase/js/tests_ui.js' %}?v={{ djangobase.js_version|default:1 }}"></script>
+        {% comment %}
+        `type="module"`: Die Datei importiert seit 17.08.2026 `testzeiten.js`
+        (gemeinsame Laufzeit-Darstellung). Ohne das Attribut bricht der Import
+        mit „Cannot use import statement outside a module" — und weil das im
+        Browser passiert, bliebe die UI-Liste einfach leer.
+        {% endcomment %}
+        <script type="module" src="{% static 'djangobase/js/tests_ui.js' %}?v={{ djangobase.statik_v }}"></script>
     </div>
     {% endif %}
 
@@ -156,10 +181,30 @@ schon einmal auf 420 Zeilen gewachsen).
     {% if befehle %}
     <div class="ts-panel" data-panel="Suiten">
         {% for g in suiten_gruppen %}
-        {% include "djangobase/_testkarte.html" with karte=g.karte %}
+        {% for karte in g.karten %}{% include "djangobase/_testkarte.html" %}{% endfor %}
         {% endfor %}
     </div>
     {% endif %}
+
+    {% comment %}
+    Der Live-Bericht. Versteckt, bis der erste Lauf startet — ein leerer
+    schwarzer Kasten über der Tabelle wäre nur im Weg. Er steht ÜBER dem
+    Ergebnis-Block des serverseitigen Laufs, damit beide Wege dieselbe Stelle
+    benutzen und man nicht sucht, wo die Ausgabe erscheint.
+    {% endcomment %}
+    <div class="ts-card ts-strom" hidden>
+        <div class="ts-strom-zeile">
+            <div class="ts-strom-kopf" id="ts-strom-kopf"></div>
+            {% comment %}
+            „Abbrechen" beendet den Prozessbaum serverseitig und löst die Sperre.
+            Nur die Verbindung zu schließen genügt nicht: Ein Test, der hängt und
+            nichts ausgibt, hält den Prozess sonst bis zur Frist.
+            {% endcomment %}
+            <button type="button" class="ts-strom-stop" id="ts-strom-stop" hidden>
+                <i class="bi bi-x-octagon"></i> Abbrechen</button>
+        </div>
+        <pre class="ts-pre" id="ts-strom-ausgabe"></pre>
+    </div>
 
     {# ---------------- Ergebnis (serverseitige Python-/Suiten-Läufe) ---------------- #}
     {% if ergebnis %}
@@ -167,7 +212,7 @@ schon einmal auf 420 Zeilen gewachsen).
         <h3>
             {% if ergebnis.ok %}<span class="ts-badge ok"><i class="bi bi-check-circle"></i> Bestanden</span>
             {% else %}<span class="ts-badge fail"><i class="bi bi-x-circle"></i> Fehlgeschlagen (rc={{ ergebnis.rc }})</span>{% endif %}
-            {{ ergebnis.name }} <span class="ts-meta">· {{ ergebnis.dauer }} s · <code>{{ ergebnis.cmd }}</code></span>
+            {{ ergebnis.name }} <span class="ts-meta">· {{ ergebnis.dauer_text|default:ergebnis.dauer }} · <code>{{ ergebnis.cmd }}</code></span>
         </h3>
         {% if ergebnis.out %}<div class="ts-label">stdout</div><pre class="ts-pre">{{ ergebnis.out }}</pre>{% endif %}
         {% if ergebnis.err %}<div class="ts-label">stderr</div><pre class="ts-pre err">{{ ergebnis.err }}</pre>{% endif %}

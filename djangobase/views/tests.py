@@ -34,11 +34,13 @@ from ..conf import conf
 from ..mixins import ZugriffMixin
 from ..testbefehle import Testbefehle
 from ..testhistorie import Testhistorie
+from ..testkarten import Karten
 from ..testkategorien import Kategorien
 from ..testlauf import Testlauf
 from ..testtabelle import Testtabelle
+from ..testziele import Testziele
 
-log = logging.getLogger("django")
+log = logging.getLogger("djangobase.tests")
 
 
 def _discover_ids(label):
@@ -155,10 +157,16 @@ class TestsView(ZugriffMixin, View):
         kategorien, bekannte_ids = self._einzeltests(
             discover, mit_djangobase=bool(c.get("tests_djangobase_sichtbar")))
         slug = request.GET.get("run")
+        # Die Sammel-Labels der Karten („Alle ausführen" im Kartenkopf) VOR dem
+        # Lauf bilden — sie sind erlaubte Laufziele. Die Karten selbst entstehen
+        # erst danach, sonst zeigte der gerade gefahrene Test seine alte Zeit.
+        labels = {Karten.label(k.get("tests") or []) for k in kategorien}
+        labels.discard("")
         if ids:
-            ergebnis = self._lauf_auswahl(ids, kat, befehle, bekannte_ids)
+            ergebnis = self._lauf_auswahl(ids, kat, befehle,
+                                          bekannte_ids, labels)
         else:
-            ergebnis = self._lauf(slug, kat, befehle, bekannte_ids)
+            ergebnis = self._lauf(slug, kat, befehle, bekannte_ids, labels)
 
         # Laufzeiten NACH dem Lauf lesen, damit der gerade gefahrene Test seine
         # frische Zahl schon zeigt.
@@ -171,22 +179,26 @@ class TestsView(ZugriffMixin, View):
         historie = Testhistorie()
         tabellen = Testtabelle(historie, aktiver_slug=slug or "",
                                tab=request.GET.get("tab", ""))
+        # EINE Karte je Kategorie; die Gliederung nach Bereich steckt in der
+        # Tabelle (Spalte „Bereich", Zeilen danach vorsortiert) — Ansage
+        # 17.08.2026: „Eine Tabelle je Kategorie, aber der Bereich ist nochmal
+        # extra markiert in der Tabelle".
+        karten = Karten(tabellen)
         for k in kategorien:
-            k["karte"] = {"titel": "%s-Tests" % k["typ"], "anzahl": k["anzahl"],
-                          "icon": "bi-list-check",
-                          "tabelle": tabellen.aus_tests(k)}
+            k["karten"] = karten.je_kategorie(
+                k.get("tests") or [], titel="%s-Tests" % k["typ"],
+                key="tests-%s" % Kategorien.schluessel(k["typ"]), tab=k["typ"])
         # EINMAL gruppieren und dieselben Objekte weitergeben: Ein zweiter Aufruf
         # von ``gruppen()`` baut neue Dictionaries, und die Karte haette an
         # Objekten gehangen, die die Vorlage nie sieht.
         gruppen = kat.gruppen()
         for g in gruppen:
-            g["karte"] = {
-                "titel": g["name"], "anzahl": len(g["befehle"]),
-                "icon": "bi-collection-play",
-                "tabelle": tabellen.aus_befehlen(
+            g["karten"] = karten.eine(
+                tabellen.aus_befehlen(
                     g["befehle"],
                     key="test-suiten-%s" % Kategorien.schluessel(g["name"]),
-                    tab="Suiten")}
+                    tab="Suiten"),
+                titel=g["name"], anzahl=len(g["befehle"]))
         # Reiter „Alle": je Kategorie ihre TESTFAELLE, nicht ihre Suiten.
         # Gemeldet am 17.08.2026: „die Alle Seite enthält nicht alle tests!" und
         # „die verschieben Spalte hat keine Combo Box, ist also nutzlos" — beides
@@ -201,18 +213,16 @@ class TestsView(ZugriffMixin, View):
                 # Ziel keine erkennbare Kategorie traegt. Dafuer gibt es keine
                 # Einzelfall-Liste — hier stehen die Suiten selbst, sonst waere
                 # die Karte leer und der Bereich unsichtbar.
-                a["karte"] = {
-                    "titel": "%s — Suiten" % a["kurz"],
-                    "anzahl": len(a["befehle"]), "icon": "bi-collection-play",
-                    "tabelle": tabellen.aus_befehlen(
-                        a["befehle"], key="test-alle-%s" % a["art"], tab="Alle")}
+                a["karten"] = karten.eine(
+                    tabellen.aus_befehlen(a["befehle"],
+                                          key="test-alle-%s" % a["art"],
+                                          tab="Alle"),
+                    titel="%s — Suiten" % a["kurz"], anzahl=len(a["befehle"]))
                 continue
-            a["karte"] = {
-                "titel": "%s — Testfälle" % a["kurz"],
-                "anzahl": len(faelle.get("tests") or []),
-                "icon": "bi-list-check",
-                "tabelle": tabellen.aus_tests(faelle, tab="Alle",
-                                              key="test-alle-%s" % a["art"])}
+            a["karten"] = karten.je_kategorie(
+                faelle.get("tests") or [],
+                titel="%s — Testfälle" % a["kurz"],
+                key="test-alle-%s" % a["art"], tab="Alle")
 
         return render(request, "djangobase/hilfe/tests.html", {
             "aktiv": "tests",
@@ -243,6 +253,11 @@ class TestsView(ZugriffMixin, View):
             "ergebnis": ergebnis,
             # Ziel der Combo-Box „Verschieben" (siehe tests_verschieben.js).
             "verschieben_url": reverse("djangobase:tests_verschieben"),
+            # Ziel des LIVE-Laufs (tests_strom.js). Steht als json_script im
+            # DOM, damit das Skript eine eigene Datei bleibt.
+            "strom_url": reverse("djangobase:tests_strom"),
+            # Ziel der Nummern-Spalte (tests_nummer.js).
+            "nummer_url": reverse("djangobase:tests_nummer"),
             "aktiver_slug": slug,
             "aktiver_tab": request.GET.get("tab", ""),
             "aktiver_unter": request.GET.get("unter", ""),
@@ -250,7 +265,8 @@ class TestsView(ZugriffMixin, View):
 
     # ------------------------------------------------------------- Bausteine
 
-    def _einzeltests(self, discover, mit_djangobase=False):
+    @classmethod
+    def _einzeltests(cls, discover, mit_djangobase=False):
         u"""Die Reiter je Typ mit ihren Einzeltests - und alle bekannten IDs.
 
         ``mit_djangobase`` schaltet die Faelle zu, die djangoBase SELBST
@@ -264,7 +280,7 @@ class TestsView(ZugriffMixin, View):
         for d in discover:
             tests = []
             for label in d.get("labels", []):
-                for tid in self._ids_gecacht(label):
+                for tid in cls._ids_gecacht(label):
                     if not mit_djangobase and Verschieber.aus_djangobase(tid):
                         continue
                     tests.append({"id": tid, "kurz": _kurz(tid)})
@@ -275,51 +291,33 @@ class TestsView(ZugriffMixin, View):
         return kategorien, bekannte
 
     @staticmethod
-    def _lauf_auswahl(ids, kat, befehle, bekannte_ids):
+    def _lauf_auswahl(ids, kat, befehle, bekannte_ids, labels=()):
         u"""Mehrere angehakte Einträge in EINEM ``manage.py test``-Aufruf.
 
-        Ein Lauf statt einer Kette: Die Testdatenbank wird EINMAL aufgebaut. Bei
-        zwanzig Haken wären das sonst zwanzig Aufbauten für Sekunden Testzeit.
-
-        Sicher wie der Einzellauf: Ein Eintrag zählt nur, wenn er eine ENTDECKTE
-        Test-ID ist oder der ``slug`` eines konfigurierten Befehls — dessen Ziele
-        werden eingesetzt. Alles andere wird verworfen, nichts aus der Anfrage
-        landet ungeprüft in der Kommandozeile.
+        Geprüft wird in :class:`~.testziele.Testziele` — dieselbe Stelle, die
+        auch der Live-Lauf (``/hilfe/tests/strom/``) benutzt. Zwei Prüfungen für
+        dieselbe Frage („was darf in die Kommandozeile?") laufen auseinander.
         """
-        nach_slug = {b.get("slug"): b for b in list(befehle) + kat.sammelbefehle()}
-        ziele, verworfen = [], 0
-        for kennung in ids:
-            kennung = str(kennung)[:300]
-            if kennung in bekannte_ids:
-                ziele.append(kennung)
-            elif kennung in nach_slug:
-                ziele.extend((nach_slug[kennung].get("ziel") or "").split())
-            else:
-                verworfen += 1
-        # Reihenfolge erhalten, Doppelte raus (zwei Haken können dasselbe Ziel
-        # meinen — eine Suite und ein Fall daraus).
-        ziele = list(dict.fromkeys(z for z in ziele if z))
-        if not ziele:
+        auswahl = Testziele(bekannte_ids, befehle, kat.sammelbefehle(), labels)
+        cmd, ziele, verworfen = auswahl.befehl(ids, Kategorien.python(befehle))
+        if not cmd:
             # Dictionary gewollt: dasselbe Format wie ein echter Lauf, damit die
             # Vorlage nichts Zusätzliches können muss.
             return {"name": "Auswahl", "cmd": "", "rc": -1, "ok": False,
-                    "out": "", "dauer": 0.0, "dauern": 0,
+                    "out": "", "dauer": 0.0, "dauer_text": "0,00 s", "dauern": 0,
                     "err": "Keine gültige Auswahl — %d Einträge verworfen."
                            % verworfen}
-        cmd = ([Kategorien.python(befehle), "manage.py", "test"] + ziele
-               + ["--noinput", "-v", "2"])
-        name = "Auswahl: %d Ziel%s" % (len(ziele), "" if len(ziele) == 1 else "e")
-        if verworfen:
-            name += " (%d verworfen)" % verworfen
-        return Testlauf().fahren(cmd, name, Kategorien.SAMMEL_FRIST)
+        return Testlauf().fahren(cmd, Testziele.name(ziele, verworfen),
+                                 Kategorien.SAMMEL_FRIST)
 
     @staticmethod
-    def _lauf(slug, kat, befehle, bekannte_ids):
+    def _lauf(slug, kat, befehle, bekannte_ids, labels=()):
         u"""Den angeforderten Lauf fahren - oder None.
 
-        NUR konfigurierte Befehle und ENTDECKTE Test-IDs; ein Label aus der Query
-        wird nie ausgefuehrt. Die abgeleiteten Sammelbefehle sind aus den
-        konfigurierten Eintraegen gebaut und deshalb ebenso sicher.
+        NUR konfigurierte Befehle, ENTDECKTE Test-IDs und die Sammel-Labels der
+        Karten; ein Label aus der Query wird nie ausgefuehrt. Die abgeleiteten
+        Sammelbefehle sind aus den konfigurierten Eintraegen gebaut und deshalb
+        ebenso sicher, die Karten-Labels aus den entdeckten IDs.
         """
         if not slug:
             return None
@@ -330,8 +328,10 @@ class TestsView(ZugriffMixin, View):
         if b:
             return laeufer.fahren(b["cmd"], b.get("name", slug), b.get("frist"),
                                   slug=slug)
-        if slug in bekannte_ids:
+        if slug in bekannte_ids or slug in (labels or ()):
             cmd = [Kategorien.python(befehle), "manage.py", "test", slug,
                    "--noinput", "-v", "2"]
-            return laeufer.fahren(cmd, _kurz(slug))
+            # Ein Karten-Label faehrt viele Faelle - es braucht die lange Frist.
+            frist = None if slug in bekannte_ids else Kategorien.SAMMEL_FRIST
+            return laeufer.fahren(cmd, _kurz(slug), frist)
         return None

@@ -8,6 +8,7 @@ from .views import (AktuellDatenView, AktuellLeerenView, AktuellView,
                     JobsView, LogsClearView, LogsView, ReviewNachfassenView,
                     ReviewStartView, ReviewStatusView, ReviewView, Skills3View,
                     Skills2View, SkillsView, TestDauerView, TestsView,
+                    TestNummerView, TestStromView,
                     TestVerschiebenView, TrafficView,
                     UebersetzungView, VersionsView)
 
@@ -29,6 +30,13 @@ urlpatterns = [
     # DATEI verschiebt — siehe testverschieben.py.
     path("tests/verschieben/", TestVerschiebenView.as_view(),
          name="tests_verschieben"),
+    # LIVE-Lauf: fährt die angeforderten Ziele und streamt den Fortschritt
+    # (Ansage 17.08.2026 „live fortschritt in djangoBase einbauen"). POST,
+    # weil bei „Alle auswählen" hunderte Kennungen mitkommen.
+    path("tests/strom/", TestStromView.as_view(), name="tests_strom"),
+    # Platz eines Falls in der Tabelle („Nr."-Spalte). POST, weil es
+    # `logs/testreihenfolge.json` SCHREIBT.
+    path("tests/nummer/", TestNummerView.as_view(), name="tests_nummer"),
     # DER Werkzeugkasten: alle Werkzeuge, alle Lehren, die Fixer und der
     # server-seitige Stapellauf mit Klartext-Bericht. Die Werkzeuge laufen im
     # Serverprozess und rufen ausschliesslich GET-Routen auf.

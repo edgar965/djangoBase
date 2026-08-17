@@ -38,6 +38,18 @@ DEFAULTS = {
     # Jeder gefundene Test (z. B. tests.unit.test_geo.GeoTest.test_x) ist einzeln
     # ausführbar (manage.py test <id>).
     "test_discover": [],
+    # Die BEREICHE (Spalte „Bereich" in jeder Testcase-Tabelle) — die zweite
+    # Einteilung neben der Kategorie: Kategorie = WIE getestet wird (unit,
+    # component, …), Bereich = WAS getestet wird (Chat, Mail, Musik, …).
+    # Gibt das PROJEKT an (Ansage 17.08.2026), hier oder ueber Einstellungen →
+    # djangoBase; leer = aus dem Ordner abgeleitet.
+    #   [{"slug": "musik", "name": "Musik", "praefixe": ["search.tests.musik"]}]
+    # Auch erlaubt: Zeilen „musik | Musik | search.tests.musik" (Oberflaeche)
+    # oder die Kurzform {"schedule": "Kalender"} (nur Umbenennung).
+    "test_bereiche": [],
+    # Reihenfolge und Anzeigenamen der KATEGORIEN (unit, component, …). Eine
+    # Zeile je Kategorie: „unit | Unit". Leer = eingebaute Reihenfolge.
+    "test_kategorien": [],
     # Browser-/UI-Tests (laufen client-seitig im Iframe). Optional:
     #   {"runner": "/static/tests/runner.js", "cases": "/static/tests/testcases.js",
     #    "seiten": {"navi": "/navi/ziel/?…&demo=1", "osm": "/ausfluege/", ...}}

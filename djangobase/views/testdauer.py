@@ -30,7 +30,7 @@ from django.views import View
 from ..mixins import ZugriffMixin
 from ..testhistorie import Testhistorie
 
-log = logging.getLogger("django")
+log = logging.getLogger("djangobase.tests")
 
 
 class TestDauerView(ZugriffMixin, View):

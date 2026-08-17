@@ -1,6 +1,8 @@
 from .logs import LogsView, LogsClearView
 from .versions import VersionsView
 from .testdauer import TestDauerView
+from .testnummer import TestNummerView
+from .teststrom import TestStromView
 from .testverschieben import TestVerschiebenView
 from .tests import TestsView
 from .jobs import JobsView
@@ -18,7 +20,7 @@ from .benutzer import (BenutzerListeView, BenutzerErstellenView,
                        BenutzerInlineView, BenutzerLoeschenView)
 
 __all__ = [
-    "api_system_stats","LogsView", "LogsClearView", "VersionsView", "TestsView", "TestDauerView", "TestVerschiebenView", "JobsView",
+    "api_system_stats","LogsView", "LogsClearView", "VersionsView", "TestsView", "TestDauerView", "TestStromView", "TestNummerView", "TestVerschiebenView", "JobsView",
            "ReviewView", "ReviewStartView", "ReviewNachfassenView", "ReviewStatusView",
            "AktuellView", "AktuellDatenView", "AktuellLeerenView",
            "EinstellungenView", "EinstellungenTabsView", "SkillsView", "Skills2View", "Skills3View",

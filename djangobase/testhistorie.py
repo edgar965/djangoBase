@@ -71,7 +71,7 @@ class Testhistorie:
             # verworfen und beim naechsten Lauf neu aufgebaut; die Meldung geht
             # ins Log, damit es nicht lautlos passiert.
             import logging
-            logging.getLogger("django").warning(
+            logging.getLogger("djangobase.tests").warning(
                 "Testhistorie %s ist nicht lesbar — sie wird neu aufgebaut",
                 self.pfad)
             return {"tests": {}, "suiten": {}}
@@ -107,7 +107,7 @@ class Testhistorie:
                                             indent=1), encoding="utf-8")
         except OSError:
             import logging
-            logging.getLogger("django").exception(
+            logging.getLogger("djangobase.tests").exception(
                 "Testhistorie %s nicht schreibbar — die Laufzeiten dieses "
                 "Durchgangs sind verloren", self.pfad)
 

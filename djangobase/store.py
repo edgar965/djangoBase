@@ -22,6 +22,7 @@ from django.conf import settings
 #   "int"   -> Zahlfeld          "color" -> Farbwaehler (-> farben.<key>)
 #   "theme" -> Auswahl aus theme_modes (Fallback: Textfeld)
 #   "csv"   -> Textfeld, im JSON als Liste gespeichert (Komma-getrennt)
+#   "zeilen"-> mehrzeiliges Feld, im JSON als Liste von Zeilen gespeichert
 #   "password" -> Passwort-Eingabefeld (Wert wird als Text gespeichert)
 #   "layout" -> Auswahl-Combobox der verfuegbaren Layout-Templates (base_template)
 
@@ -64,6 +65,14 @@ GRUPPEN = {
             ("sidebar_min", "int", "Sidebar-Mindestbreite (px)"),
             ("sidebar_max", "int", "Sidebar-Maximalbreite (px)"),
             ("toast_stack", "bool", "Toast-Meldungen anzeigen"),
+            ("test_bereiche", "zeilen",
+             "Test-Bereiche (Hilfe → Tests, Spalte „Bereich“) — eine Zeile je "
+             "Bereich: slug | Anzeigename | modulpraefix, modulpraefix. "
+             "Leer = aus dem Ordner abgeleitet."),
+            ("test_kategorien", "zeilen",
+             "Test-Kategorien — Reihenfolge und Namen der Reiter, eine Zeile "
+             "je Kategorie: slug | Anzeigename. Erlaubt sind nur die Ordner "
+             "unit, component, ui, automated, performance, longrunner."),
             ("tests_djangobase_sichtbar", "bool",
              "djangoBase-Testcases sichtbar (Hilfe → Tests) — die Fälle, die "
              "djangoBase selbst mitbringt (Grundtests, Endpunktprobe). Aus: "

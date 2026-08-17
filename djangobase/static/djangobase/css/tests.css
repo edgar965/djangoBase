@@ -132,3 +132,92 @@ input.ts-wahl { width: 15px; height: 15px; cursor: pointer; accent-color: #4ea8f
     background: #0d1117; color: #4ea8f6; border-radius: 10px;
     padding: 0 6px; margin-left: 4px; font-size: .75rem;
 }
+
+/* ===== Bereich: Spalte, Abschnittszeile, Trennlinie ======================
+   Die zweite Einteilung neben der Kategorie (Ansage 17.08.2026). Sie steht
+   links, weil die Zeilen danach vorsortiert sind — eine Gliederung, die man
+   rechts sucht, ist keine. */
+.ts-bereich {
+    display: inline-block; max-width: 100%; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap;
+    border-left: 3px solid #4ea8f6; padding-left: 6px;
+    color: #cfe0f2; font-size: .82rem;
+}
+select.ts-ber {
+    background: #12263f; color: #e0e8f0; border: 1px solid #2a466e;
+    border-radius: 6px; padding: 2px 6px; font-size: .8rem;
+    width: 100%; max-width: 12rem; cursor: pointer;
+}
+select.ts-ber option { background: #12263f; color: #e0e8f0; }
+select.ts-ber:disabled { opacity: .6; cursor: progress; }
+
+/* Abschnittszeile: eine Zelle über die volle Breite, deutlich abgesetzt. */
+.db-tabelle tr.ts-gruppe td {
+    background: #0f2744; border-top: 2px solid #4ea8f6;
+    padding: 6px 10px; white-space: nowrap;
+}
+.ts-gruppe-name { font-weight: 600; color: #e9f0f8; letter-spacing: .01em; }
+.ts-gruppe .ts-count { margin-left: 6px; }
+.ts-ber-wahl, .ts-ber-run {
+    background: #15406e; border: 1px solid #1e5bb8; color: #e9f0f8;
+    border-radius: 6px; padding: 2px 9px; font-size: .78rem; cursor: pointer;
+    margin-left: 8px;
+}
+.ts-ber-wahl:hover, .ts-ber-run:hover { background: #1a5490; }
+.ts-ber-run { background: #1c5a34; border-color: #2b8a4f; }
+.ts-ber-run:hover { background: #24743f; }
+
+/* Ohne Abschnittszeile (Tabelle ist nach etwas anderem sortiert) bleibt beim
+   Bereichswechsel wenigstens eine kräftige Linie. */
+.db-tabelle tr.ts-schnitt td { border-top: 2px solid #35618f; }
+
+/* Status, den ein Projekt-Runner in die Zeile schreibt (läuft …, ✓, ✗). */
+.ts-status { font-size: .78rem; margin-left: 6px; }
+.ts-status.laeuft { color: #a9e6ff; }
+.ts-status.ok { color: #8ef0ae; }
+.ts-status.fail { color: #ffb3b3; }
+.ts-wahl-lauf {
+    background: #1c5a34; border: 1px solid #2b8a4f; color: #e9f0f8;
+    border-radius: 6px; padding: 3px 10px; font-size: .8rem; cursor: pointer;
+    text-decoration: none; display: inline-flex; align-items: center; gap: 4px;
+}
+.ts-wahl-lauf:hover { background: #24743f; color: #fff; }
+.ts-bereich-zahl { color: #8aa0b8; font-size: .78rem; margin-left: 10px; }
+
+/* ===== Live-Lauf (tests_strom.js) ======================================== */
+.ts-strom { margin-top: 14px; }
+.ts-strom-kopf {
+    font-size: .9rem; margin-bottom: 8px; padding: 4px 8px;
+    border-radius: 6px; background: #0f2744; color: #cfe0f2;
+}
+.ts-strom-kopf.laeuft { color: #a9e6ff; }
+.ts-strom-kopf.gut    { color: #8ef0ae; border-left: 3px solid #2b8a4f; }
+.ts-strom-kopf.fehler { color: #ffb3b3; border-left: 3px solid #a33; }
+#ts-strom-ausgabe { max-height: 380px; overflow-y: auto; margin: 0; }
+/* Während ein Lauf läuft, sind die Startknöpfe gesperrt: Zwei Testprozesse
+   bauen dieselbe Testdatenbank zweimal auf und scheitern aneinander. */
+.gesperrt { opacity: .45; pointer-events: none; }
+
+/* ===== Spalte „Nr." (tests_nummer.js) =================================== */
+.ts-nr-zelle { text-align: right; }
+input.ts-nr {
+    width: 100%; max-width: 4.5rem; text-align: right;
+    background: #12263f; color: #e0e8f0; border: 1px solid #2a466e;
+    border-radius: 6px; padding: 2px 4px; font-size: .8rem;
+    font-variant-numeric: tabular-nums;
+}
+input.ts-nr:disabled { opacity: .6; cursor: progress; }
+.ts-nr-meldung { display: block; font-size: .74rem; margin-top: 2px; }
+.ts-nr-meldung.fehler { color: #ffb3b3; }
+/* Die Bedien-Spalten bleiben schmal — Kästchen, Nummer, Run. Die übrigen
+   teilen sich den Platz zu gleichen Teilen (Ansage „gleiche Breite"). */
+.ts-page .db-tabelle th:nth-child(2),
+.ts-page .db-tabelle td:nth-child(2) { width: 72px; }
+.ts-strom-zeile { display: flex; align-items: center; gap: 10px; }
+.ts-strom-zeile .ts-strom-kopf { flex: 1 1 auto; margin-bottom: 0; }
+.ts-strom-stop {
+    background: #5a1c1c; border: 1px solid #8a2b2b; color: #ffe9e9;
+    border-radius: 6px; padding: 3px 10px; font-size: .8rem; cursor: pointer;
+    flex: 0 0 auto;
+}
+.ts-strom-stop:hover { background: #742424; }

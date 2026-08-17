@@ -6,11 +6,22 @@
    vier Laeufe zeigen.
 
    Kopfzeile und Spalten kommen aus `Testtabelle.SPALTEN`; hier werden nur die
-   `<tr>` gefuellt. Reihenfolge:
-       Name · Ziel · letzte · Ø · Trend · letzte 4 Läufe · Run
+   `<tr>` gefuellt — NEUN Zellen, in dieser Reihenfolge:
+       Auswahl · Nr. · Kategorie · Bereich · Name · Ziel · letzte · Ø ·
+       Trend · letzte 4 Läufe · Run
+   Die Laufzeit-Zellen schreibt `testzeiten.js`, damit die Darstellung dieselbe
+   ist wie in den serverseitig gebauten Tabellen.
 
    Konfiguration steht im DOM (`#ts-ui-config`), nicht in Template-Variablen —
    sonst muesste diese Datei wieder ins Template zurueck. */
+
+/* Die eigene Versions-Query WEITERREICHEN. Ein `import` ohne sie holt das
+   Nachbarmodul aus dem Browser-Cache — gemessen am 17.08.2026: die
+   Einstiegsdatei war neu, das importierte Modul alt, und der Fehler sah aus
+   wie ein Fehler in der Darstellung. `import.meta.url` traegt die Query, mit
+   der diese Datei geladen wurde. */
+const { zeitenSchreiben, esc } =
+    await import("./testzeiten.js" + new URL(import.meta.url).search);
 
 (function () {
     var CFG = JSON.parse(document.getElementById("ts-ui-config").textContent || "{}");
@@ -49,8 +60,21 @@
                 n++;
                 var kennung = "ui:" + g + "." + c.id;
                 var tr = document.createElement("tr");
+                // ELF Zellen, genau wie `Testtabelle.SPALTEN` (Auswahl, Nr.,
+                // Kategorie, Bereich, Testcase, Ziel, letzte, Ø, Trend, Läufe,
+                // Run). Fehlt eine, rutscht alles Folgende in die falsche
+                // Spalte — und das faellt erst auf, wenn jemand die Zahlen
+                // liest. Der Test `test_js_kennt_dieselben_spalten` haelt die
+                // Zuordnung mit `SPALTEN` zusammen.
                 tr.innerHTML =
-                    '<td><i class="bi bi-dot"></i> ' + esc(c.name)
+                    '<td class="ts-wahl-zelle"><input type="checkbox" '
+                    + 'class="ts-wahl" value="' + esc(kennung)
+                    + '" aria-label="auswählen"></td>'
+                    + '<td class="ts-nr-zelle">' + n + '</td>'
+                    + '<td><span class="ts-kat-fest" title="Browser-Test aus der '
+                    + 'testcases.js — nicht verschiebbar">UI</span></td>'
+                    + '<td><span class="ts-bereich" data-bereich="ui">UI</span></td>'
+                    + '<td><i class="bi bi-dot"></i> ' + esc(c.name)
                     + ' <span class="ts-ui-status" data-st></span></td>'
                     + '<td class="ts-ziel">' + esc(g + " · " + c.id) + "</td>"
                     + '<td class="num" data-letzte></td>'
@@ -69,47 +93,6 @@
         });
         hintEl.style.display = "none";
         if (countEl) countEl.textContent = n;
-    }
-
-    /** Laufzeit-Spalten einer Zeile aus der Historie füllen. Gleiche
-     *  Darstellung wie serverseitig: Rohwert zum Sortieren, Anzeige in
-     *  Millisekunden unter 10 ms. */
-    function zeitenSchreiben(tr, laeufe) {
-        var letzte = laeufe.length ? laeufe[0].dauer : null;
-        var mittel = laeufe.length
-            ? laeufe.reduce(function (s, x) { return s + x.dauer; }, 0) / laeufe.length
-            : null;
-        setzeZeit(tr.querySelector("[data-letzte]"), letzte);
-        setzeZeit(tr.querySelector("[data-schnitt]"), mittel);
-        var zelle = tr.querySelector("[data-laeufe]");
-        zelle.dataset.sort = laeufe.length;
-        zelle.innerHTML = laeufe.length
-            ? laeufe.map(function (l) {
-                return '<span class="ts-lauf" title="' + esc(l.zeit) + '">'
-                    + esc(kurzeZeit(l.zeit)) + " · " + sekunden(l.dauer) + "</span>";
-            }).join(" ")
-            : '<span class="ts-nie">noch nie gelaufen</span>';
-    }
-
-    function setzeZeit(td, wert) {
-        if (wert === null || wert === undefined) {
-            td.removeAttribute("data-sort");
-            td.innerHTML = '<span class="ts-nie">—</span>';
-            return;
-        }
-        td.dataset.sort = wert;
-        td.textContent = sekunden(wert);
-    }
-
-    function sekunden(w) {
-        if (w === null || w === undefined) return "—";
-        if (w > 0 && w < 0.01) return Math.round(w * 1000) + " ms";
-        return w.toFixed(2).replace(".", ",") + " s";
-    }
-
-    function kurzeZeit(z) {
-        var t = String(z || "").split(" ");
-        return t.length === 2 ? t[0].slice(0, 6) + " " + t[1].slice(0, 5) : z;
     }
 
     /** Laufzeit an den Server melden — sonst hätten die Browser-Tests als
@@ -160,5 +143,4 @@
         } finally { btn.disabled = false; }
     }
 
-    function esc(s) { var d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
 })();

@@ -84,6 +84,125 @@ Fehlt `DJANGOBASE["test_discover"]`, leitet die Seite die Labels aus denselben
 `test_befehle` ab — die Einzeltest-Reiter stehen damit in JEDEM Projekt. Die
 Discovery ist 10 Minuten gecacht (sie importiert jedes Testmodul).
 
+### Zwei Einteilungen: Kategorie und Bereich (17.08.2026)
+
+**Kategorie** = wie getestet wird (`unit`, `component`, `ui`, `automated`,
+`performance`, `longrunner`). Sie ist der ORDNER `app/tests/<art>/`; die
+Combo-Box „Verschieben" hängt die Testdatei um (`testverschieben.Verschieber`).
+
+**Bereich** = was getestet wird (Chat, Mail, Musik …). Den gibt **das Projekt**
+an, in `settings.py` oder unter Einstellungen → djangoBase (Feldtyp `zeilen`,
+eine Angabe je Zeile):
+
+    DJANGOBASE["test_bereiche"] = [
+        {"slug": "musik", "name": "Musik", "praefixe": ["search.tests.musik"],
+         "beschreibung": "…"},          # oder: "musik | Musik | search.tests.musik | …"
+    ]
+
+Ohne Angabe wird der Bereich aus dem Ordner abgeleitet (`app/tests/<bereich>/
+<art>/`, sonst die App). Die REIHENFOLGE der Angabe ist die Reihenfolge in der
+Tabelle; dasselbe gilt für `test_kategorien` („unit | Unit", nur bekannte Slugs).
+
+Darstellung: **EINE Tabelle je Kategorie**, Bereich als eigene Spalte, Zeilen
+danach vorsortiert, vor jedem Bereich eine Abschnittszeile mit „Auswählen" und
+„Bereich ausführen". Sortiert der Nutzer nach einer anderen Spalte, nimmt
+`tabellen_sortierung.js` die Abschnittszeilen heraus (`data-gruppe`) und meldet
+`tabelle:sortiert`; `tests_bereiche.js` setzt sie zurück, sobald wieder nach
+Bereich sortiert wird.
+
+**Ein Bereich, dessen Präfix über anderen liegt** (`search.tests` über
+`search.tests.chat`), ist KEIN Verschiebeziel — sonst landet die Datei in
+`search/tests/<art>/` und verschwindet aus der Gliederung. Genau das ist am
+17.08.2026 einmal passiert (`Bereiche.ziele`).
+
+Projektseiten mit eigenem Runner nehmen `Testtabelle(..., run_modus="knopf")`
+(rendert `<button data-run=…>` statt `?run=`-Link) und setzen
+`data-tests-auswahl="ereignis"` auf einen Vorfahren; die Auswahl meldet dann
+`tests:auswahl-lauf` statt zu posten. Laufzeiten aus einem fremden Runner gehen
+über `testmitschrift.Mitschrift` in dieselbe Historie.
+
+**Statische Dateien:** Vorlagen hängen `?v={{ djangobase.statik_v }}` an Skripte
+UND an ES-Importe (`statik.Statik` = jüngste mtime der djangoBase-JS/CSS). Ohne
+das liefert der Browser-Cache alte Module — gemessen: mit Cache-Buster kam die
+neue Fassung, ohne die alte, bei frisch aktiviertem Service Worker.
+
+**Logging:** Testläufe und Verschiebungen loggen auf `djangobase.tests` (nicht
+`django` — dort hängt `django.server` mit jeder Anfrage). Ein Konsument, der
+nichts konfiguriert, sieht davon nichts; im assistant liegt dafür
+`djangobase.log` samt Eintrag in `log_sources`.
+
+### Live-Lauf und Spalte „Nr." (17.08.2026)
+
+**Live-Lauf:** `POST /hilfe/tests/strom/` (`teststrom.Teststrom`) fährt die
+geprüften Ziele und streamt JSON-Zeilen: `start` → `log`/`progress` → `summary`.
+`tests_strom.js` fängt Run-Link, „Alle ausführen", „Bereich ausführen" und die
+Checkbox-Auswahl ab, schreibt ✓/✗ in **alle** Zeilen mit dieser Test-ID (der
+Fall steht im Kategorie-Reiter UND in „Alle") und am Ende die Laufzeiten. Die
+`?run=`-Links bleiben im HTML — ohne das Modul läuft es wie vorher mit
+Seitenwechsel.
+
+**Der Prozess darf nie zurückbleiben — drei Netze, nicht eins** (18.08.2026
+nachgezogen; das `finally` allein deckte den Fall nicht ab):
+
+1. `readline()` blockiert, also kommt `GeneratorExit` erst beim nächsten `yield`.
+   Ein Test, der hängt und nichts ausgibt, hätte den Prozess endlos gehalten →
+   **Wächter-Thread** (`threading.Timer`) beendet nach Ablauf der Frist ohne auf
+   Ausgabe zu warten. Gemessen an einem Prozess, der eine Zeile schreibt und dann
+   schläft: Abbruch nach 6,2 s bei Frist 6 s (vorher: 300 s).
+2. `kill()` trifft nur den einen Prozess; ein Testlauf hat Kinder
+   (`ProcessPoolExecutor`), und auf Windows sterben die NICHT mit dem Eltern-
+   prozess → `testtoeter.Toeter` beendet den **Baum** (`taskkill /F /T` bzw.
+   `os.killpg`; dafür startet der Lauf auf POSIX mit `start_new_session=True`).
+3. Endet der SERVER mitten im Lauf, wäre der Testprozess verwaist → `atexit`.
+
+Nebenbefund derselben Runde: `OpenProcess` gelingt auf Windows auch für einen
+BEENDETEN Prozess, solange noch ein Handle offen ist. „Läuft der noch?" fragt
+deshalb `GetExitCodeProcess` (259 = `STILL_ACTIVE`) — sonst hätte eine vergessene
+Sperre bis zur Frist gehalten.
+
+**EIN Lauf zur Zeit** über `testsperre.Laufsperre`: eine Datei
+(`logs/teststrom.lock`, `O_EXCL`) mit der Server-PID. Die JS-Sperre der ersten
+Fassung galt nur für den EINEN Tab — ein zweiter Tab startete munter einen
+zweiten Lauf auf derselben Testdatenbank. Stirbt der Server, gilt die Sperre
+nicht mehr (PID-Prüfung), spätestens nach `FRIST` verfällt sie. Der Knopf
+**„Abbrechen"** (`POST … {"abbrechen": true}`) beendet Baum und Sperre — ohne ihn
+hielte ein hängender Lauf eine Stunde.
+
+Den Fortschritt aus der Ausgabe liest `testzeilen.Testzeilen` — drei gemessene
+Fallen: Name und Ergebnis stehen nicht in einer Zeile, Zeitstempel können mitten
+in der Zeile stehen, und bei Tests mit Docstring zeigt `-v 2` dessen erste Zeile
+statt des Namens.
+
+**Was ausgeführt werden darf** steht an EINER Stelle: `testziele.Testziele`
+(entdeckte Test-IDs, Slugs konfigurierter Befehle, Karten-Labels; Form geprüft).
+Seiten-Lauf und Live-Lauf benutzen sie gemeinsam.
+
+**Spalte „Nr.":** der Platz in der Tabelle, änderbar.
+`POST /hilfe/tests/nummer/` bekommt Kennung, Nummer und die aktuell angezeigte
+Reihenfolge des Abschnitts; `testreihenfolge.Reihenfolge` ordnet um und speichert
+`logs/testreihenfolge.json`. Erst die Antwort hängt die Zeilen um — sonst gäbe es
+zwei Meinungen darüber, wo ein Test steht. Die Nummer gilt INNERHALB des
+Bereichs und wandert beim Verschieben mit. Sie ist keine
+Ausführungsreihenfolge — `manage.py test` bestimmt die selbst.
+
+**Spaltenordnung** (in `Testtabelle.SPALTEN`, und `testzeiten.js` muss dazu
+passen — Test `test_js_kennt_dieselben_spalten`):
+Auswahl · Nr. · Kategorie · Bereich · Testcase · Ziel · letzte · Ø · Trend ·
+letzte 4 Läufe · Run.
+
+### Zwei Fallen in den Tabellen-Modulen, beide am 17.08.2026 behoben
+
+`TabellenBreiten` merkte beim Ziehen NUR die angefasste Spalte; nach F5 verteilte
+der Browser den Rest neu, und es sah aus wie „nicht gemerkt". Jetzt speichert
+`_merkenAlle()` die ganze Gruppe (gelesen aus einer SICHTBAREN Tabelle — in einem
+`display:none`-Panel ist jede Breite 0).
+
+`TabellenSortierung` merkte nur den Spalten-INDEX. Kommen Spalten dazu, zeigt er
+auf etwas anderes: Nach dem Einfügen von „Nr." und „Kategorie" sortierte die
+Seite nach „Nr." (einer `sortAus`-Spalte), und die Bereichs-Abschnitte
+verschwanden. Jetzt wird der Spalten-**Key** mitgespeichert, der Index daraus neu
+bestimmt, und ein Eintrag auf eine `sortAus`-Spalte wird verworfen.
+
 Regeln von `jsbefunde` stehen in `skills2/jsregeln.py` (eine Klasse je Regel),
 der Klammerzähler in `skills2/jsklammern.py` (Template-Strings über mehrere
 Zeilen, `} catch (e) {`).

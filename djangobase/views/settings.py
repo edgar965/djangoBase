@@ -27,6 +27,25 @@ from ..store import FARB_KEYS, GRUPPEN, LAYOUTS_BUILTIN
 TAB_GRUPPEN = ["website", "djangobase", "freigabe", "email"]
 
 
+def _zeilen_text(key, wert):
+    u"""Wert eines „zeilen"-Feldes als Text — eine Angabe je Zeile.
+
+    Die Listen in ``settings.py`` sind Dictionaries; im Formular muessen sie in
+    dem Format stehen, das beim Speichern wieder gelesen wird. Sonst macht ein
+    Klick auf Speichern aus einer gueltigen Angabe Unsinn (17.08.2026 im
+    Browser gesehen).
+    """
+    if isinstance(wert, str):
+        return wert
+    if key == "test_bereiche":
+        from ..testbereiche import Bereiche
+        return "\n".join(Bereiche.als_zeilen(wert))
+    if key == "test_kategorien":
+        from ..testarten import Arten
+        return "\n".join(Arten.als_zeilen(wert))
+    return "\n".join(str(x) for x in (wert or []))
+
+
 def _felder_werte(c, gruppe):
     """Aktuelle (effektive) Werte je Feld der Gruppe fuers Formular.
     CSV-Typ: Liste wird fuer die Anzeige zu 'a, b, c'."""
@@ -35,6 +54,11 @@ def _felder_werte(c, gruppe):
         wert = c["farben"].get(key, "") if key in FARB_KEYS else c.get(key, "")
         if typ == "csv" and isinstance(wert, (list, tuple)):
             wert = ", ".join(str(x) for x in wert)
+        # „zeilen": eine Angabe je Zeile (Textfeld ueber mehrere Zeilen). Fuer
+        # Listen, die zu lang und zu strukturiert fuer ein Komma-Feld sind —
+        # die Test-Bereiche etwa tragen Slug, Name und Modulpraefixe.
+        elif typ == "zeilen":
+            wert = _zeilen_text(key, wert)
         felder.append({"key": key, "typ": typ, "label": label, "wert": wert})
     return felder
 
@@ -54,6 +78,8 @@ def _werte_aus_post(request, gruppe):
                 continue  # leer/ungueltig -> Settings-Default behalten
         elif typ == "csv":
             werte[key] = [s.strip() for s in roh.split(",") if s.strip()]
+        elif typ == "zeilen":
+            werte[key] = [z.strip() for z in roh.splitlines() if z.strip()]
         else:
             werte[key] = roh
     return werte

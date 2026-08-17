@@ -72,6 +72,28 @@ export class TabellenBreiten {
     try { localStorage.setItem(this.key, JSON.stringify(b)); } catch (e) {}
   }
 
+  /** ALLE Spaltenbreiten der Gruppe merken - nicht nur die gezogene.
+   *
+   *  Gemeldet am 17.08.2026 („Du sollst dir die spaltenbreite merken nach jeder
+   *  Änderung"): Gespeichert wurde bisher genau die Spalte, die man angefasst
+   *  hat. Nach F5 bekam sie ihre Breite zurueck — und der Browser verteilte den
+   *  Rest neu auf die uebrigen zehn Spalten. Das Ergebnis sah anders aus als
+   *  vor dem Neuladen, also „nicht gemerkt".
+   *
+   *  Gelesen wird aus einer SICHTBAREN Tabelle: In einem ausgeblendeten Panel
+   *  (`display: none`) ist jede Breite 0, und die haette den Speicher mit
+   *  Nullen gefuellt. */
+  _merkenAlle() {
+    const t = this.ts.find(x => x.offsetParent !== null) || this.ts[0];
+    if (!t) return;
+    const b = this._laden();
+    this._ths(t).forEach((th, i) => {
+      const px = Math.round(th.getBoundingClientRect().width);
+      if (px >= TabellenBreiten.MIN_PX) b[this._sk(th, i)] = px;
+    });
+    try { localStorage.setItem(this.key, JSON.stringify(b)); } catch (e) {}
+  }
+
   /** Die Kopfzellen der UNTERSTEN <thead>-Zeile.
    *
    *  Nicht ``querySelectorAll('th')`` (Korrektur 11.08.2026): Tabellen mit einer
@@ -237,7 +259,8 @@ export class TabellenBreiten {
         document.removeEventListener('mouseup', up);
         document.body.classList.remove('lg-zieht');
         if (box) box.scrollLeft = sx;      // letzter Stand kann noch gekappt sein
-        this._merken(sk, th.getBoundingClientRect().width);
+        // Die ganze Gruppe, nicht nur `sk`: siehe `_merkenAlle`.
+        this._merkenAlle();
       };
       document.addEventListener('mousemove', move);
       document.addEventListener('mouseup', up);

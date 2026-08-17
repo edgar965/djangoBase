@@ -47,6 +47,11 @@
                 {% elif feld.typ == 'csv' %}
                     <input type="text" name="{{ feld.key }}" id="f-{{ feld.key }}" value="{{ feld.wert }}"
                            placeholder="Komma-getrennte Werte" class="set-input-wide">
+                {% elif feld.typ == 'zeilen' %}
+                    {# Eine Angabe je Zeile — z.B. die Test-Bereiche. #}
+                    <textarea name="{{ feld.key }}" id="f-{{ feld.key }}" rows="8"
+                              class="set-input-wide"
+                              placeholder="slug | Anzeigename | modulpraefix, modulpraefix">{{ feld.wert }}</textarea>
                 {% elif feld.typ == 'password' %}
                     <input type="password" name="{{ feld.key }}" id="f-{{ feld.key }}" value="{{ feld.wert }}"
                            autocomplete="new-password">
@@ -85,6 +90,9 @@
     width: 100%; max-width: 320px; background: #0d1117; color: #e9f0f8;
     border: 1px solid #2a466e; border-radius: 6px; padding: 6px 10px; font-size: .9rem; }
 .set-input input.set-input-wide { max-width: 560px; font-family: ui-monospace, Consolas, monospace; font-size: .85rem; }
+.set-input textarea.set-input-wide { width: 100%; max-width: 560px; font-family: ui-monospace, Consolas, monospace;
+    font-size: .85rem; background: #0d1b2e; color: #dbe7f5; border: 1px solid #2a466e;
+    border-radius: 6px; padding: 6px 8px; resize: vertical; }
 /* Lange Felder (dotted Paths, CSV) brauchen mehr Platz und Monospace fuer Lesbarkeit. */
 .set-row { flex-wrap: wrap; }
 .set-label { min-width: 280px; }

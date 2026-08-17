@@ -37,12 +37,28 @@ eigene Auswahl, sonst führe ein Klick in „Unit" Fälle aus „Component" mit 
         {% if karte.anzahl %}<span class="ts-count">{{ karte.anzahl }}</span>{% endif %}
         {% if karte.anzahl %}
         <span class="ts-wahl-knoepfe">
+            {% comment %}
+            „Alle ausführen" fährt EIN Label über die ganze Kategorie (siehe
+            `Karten.label`) — billiger und ehrlicher als hunderte Kennungen in
+            der Anfrage. Fehlt das Label (gemischte Herkunft), bleibt der Weg
+            über die Auswahl.
+            {% endcomment %}
+            {% if karte.lauf %}{% if karte.lauf_modus == 'knopf' %}
+            <button type="button" class="ts-wahl-lauf" data-run="{{ karte.lauf }}">
+                <i class="bi bi-play-fill"></i> Alle ausführen</button>
+            {% else %}
+            <a class="ts-wahl-lauf" href="?run={{ karte.lauf }}&tab={{ karte.lauf_tab }}">
+                <i class="bi bi-play-fill"></i> Alle ausführen</a>
+            {% endif %}{% endif %}
             <button type="button" class="ts-wahl-alle" data-an="0">
                 <i class="bi bi-check2-square"></i> Alle auswählen</button>
             <button type="button" class="ts-wahl-run" disabled>
                 <i class="bi bi-play-fill"></i> Ausgewählte ausführen
                 <span class="ts-wahl-zahl">0</span></button>
         </span>
+        {% endif %}
+        {% if karte.bereiche|length > 1 %}
+        <span class="ts-bereich-zahl">{{ karte.bereiche|length }} Bereiche</span>
         {% endif %}
     </h3>
     {% if karte.hinweis %}<p class="ts-meta">{{ karte.hinweis }}</p>{% endif %}

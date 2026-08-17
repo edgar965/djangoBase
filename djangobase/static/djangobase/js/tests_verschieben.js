@@ -1,6 +1,6 @@
-/* tests_verschieben.js — die Combo-Box „Verschieben" in den Testcase-Tabellen.
+/* tests_verschieben.js — die Combo-Boxen „Bereich" und „Verschieben".
    ==========================================================================
-   Auswahl einer anderen Kategorie schickt einen POST an
+   Auswahl einer anderen Kategorie ODER eines anderen Bereichs schickt POST an
    `/hilfe/tests/verschieben/`; der Server haengt die Testdatei in den Ordner der
    Zielkategorie um (siehe `testverschieben.py`).
 
@@ -33,9 +33,15 @@
         return span;
     }
 
+    /** Kategorie- ODER Bereichs-Box: dieselbe Mechanik, anderes Ziel.
+     *  `select.ts-kat` traegt die alte Art in `data-art`, `select.ts-ber` den
+     *  alten Bereich in `data-bereich`. Was gemeint ist, sagt `was` dem Server
+     *  (Ansage 17.08.2026: „der Bereich und die Kategorie können bei jedem test
+     *  in der Tabelle per Combo Box geändert werden"). */
     async function verschieben(box) {
         var ziel = box.value;
-        var vorher = box.dataset.art;
+        var istBereich = box.classList.contains('ts-ber');
+        var vorher = istBereich ? box.dataset.bereich : box.dataset.art;
         if (!URL_VERSCHIEBEN) {
             melden(box, 'Kein Endpunkt konfiguriert.', 'fehler');
             box.value = vorher;
@@ -49,7 +55,10 @@
                 headers: {'Content-Type': 'application/json',
                           'X-CSRFToken': csrf()},
                 credentials: 'same-origin',
-                body: JSON.stringify({id: box.dataset.testId, ziel: ziel}),
+                body: JSON.stringify({
+                    id: box.dataset.testId, ziel: ziel,
+                    was: istBereich ? 'bereich' : 'kategorie',
+                }),
             });
             var roh = await r.text();
             var d = null;
@@ -75,7 +84,8 @@
     // Delegiert am document: Die Tabellen werden beim Sortieren neu gehaengt,
     // ein Listener je Box waere danach am falschen Element.
     document.addEventListener('change', function (e) {
-        var box = e.target.closest ? e.target.closest('select.ts-kat') : null;
+        var box = e.target.closest
+            ? e.target.closest('select.ts-kat, select.ts-ber') : null;
         if (box) { verschieben(box); }
     });
 })();

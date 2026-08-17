@@ -1,5 +1,6 @@
 from . import jobs
 from .conf import conf
+from .statik import Statik
 from .pflichtmenue import PFLICHTSEITEN
 
 
@@ -10,6 +11,11 @@ def djangobase(request):
     von djangobase/_shell.html + base_app.html konsumiert."""
     c = conf()
     return {"djangobase": {
+        # Cache-Kennung der MITGELIEFERTEN JS/CSS. Vorlagen haengen sie an
+        # Skript-Adressen und ES-Importe (`?v={{ djangobase.statik_v }}`) —
+        # ohne sie liefert der Browser-Cache alte Module aus, und der Fix kommt
+        # nie an (gemessen 17.08.2026, siehe `statik.py`).
+        "statik_v": Statik.kennung(),
         "titel": c["titel"],
         "untertitel": c["untertitel"],
         "logo_icon": c["logo_icon"],
@@ -67,11 +73,32 @@ def djangobase(request):
 
 
 def _test_arten(c):
-    """[{'art','kurz','anzahl'}] - die Kategorien, die es wirklich gibt."""
-    from .views.tests import TestsView
+    u"""[{'art','kurz','anzahl'}] - die Kategorien, die es wirklich gibt.
+
+    STILLER FEHLER, gefunden am 17.08.2026: Hier stand ein Aufruf von
+    ``TestsView._kategorien_alle`` — eine Methode, die beim Aufteilen der View
+    nach :class:`~.testkategorien.Kategorien` gewandert war. Das ``except``
+    fing den ``AttributeError``, gab eine leere Liste zurueck, und im Menue
+    stand seither nur noch „Alle". Kein Fehler, keine Meldung, eine halbe
+    Navigation weniger.
+
+    Jetzt: die richtige Quelle, und ein Fehlschlag geht ins Log.
+    """
+    from .testkategorien import Kategorien
+    befehle = c.get("test_befehle") or []
     try:
-        _alles, arten, _rest = TestsView._kategorien_alle(c.get("test_befehle") or [])
+        if not befehle:
+            # Dieselbe Ableitung wie die Seite selbst - sonst haette ein
+            # Projekt ohne gepflegte `test_befehle` eine Seite voller Tests
+            # und ein leeres Menue.
+            from .views.tests import TestsView
+            befehle = TestsView._befehle_abgeleitet()
+        arten = Kategorien(befehle).arten
     except Exception:                                          # noqa: BLE001
+        import logging
+        logging.getLogger("djangobase.tests").exception(
+            "Test-Kategorien fuer das Menue nicht ermittelbar - der Eintrag "
+            "Tests zeigt dann nur 'Alle'")
         return []
     # Dictionary gewollt: geht unveraendert in die Vorlage.
     return [{"art": a["art"], "kurz": a["kurz"], "anzahl": len(a["befehle"])}

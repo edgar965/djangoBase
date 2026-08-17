@@ -20,7 +20,13 @@ Gebaut und niemand kommt hin ist dasselbe wie nicht gebaut.
     <i class="bi bi-collection-play"></i> Alle
 </a></li>
 {% for a in djangobase.test_arten %}
-<li><a class="nav-link" href="{% url 'djangobase:tests' %}?tab=Alle&unter={{ a.art }}">
+{% comment %}
+`?tab={{ a.kurz }}` und nicht mehr `?tab=Alle&unter=…`: Die Unter-Reiter im
+Panel „Alle" sind am 17.08.2026 entfallen („ich brauche keine Unter-Tabs!"),
+der Parameter zeigte seither ins Leere und jeder Kategorie-Link landete auf
+derselben Seite. Jetzt öffnet er den Reiter der Kategorie.
+{% endcomment %}
+<li><a class="nav-link" href="{% url 'djangobase:tests' %}?tab={{ a.kurz|urlencode }}">
     {% if a.art == 'automated' %}<i class="bi bi-lightning-charge"></i>
     {% elif a.art == 'unit' %}<i class="bi bi-code-slash"></i>
     {% elif a.art == 'component' %}<i class="bi bi-puzzle"></i>

@@ -21,11 +21,12 @@ import time
 from django.conf import settings
 
 from .testdauern import Dauern
+from .zeitformat import dauer_text
 from .testhistorie import Testhistorie
 
 __all__ = ["Testlauf"]
 
-log = logging.getLogger("django")
+log = logging.getLogger("djangobase.tests")
 
 #: Auf Windows kein Konsolenfenster je Lauf.
 _NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
@@ -53,7 +54,10 @@ class Testlauf:
             out, err, rc = r.stdout or "", r.stderr or "", r.returncode
         except Exception as exc:  # noqa: BLE001
             out, err, rc = "", str(exc), -1
-        dauer = round(time.time() - t0, 1)
+        # Drei Nachkommastellen, nicht eine: Ein Lauf unter einer Sekunde wird
+        # in Millisekunden angezeigt (Ansage 17.08.2026), und aus einer auf 0,1
+        # gerundeten Zahl wuerden dort Stufen von 100 ms.
+        dauer = round(time.time() - t0, 3)
         dauern = Dauern.lesen(out) or Dauern.lesen(err)
         self._merken(slug, name, dauer, rc == 0, dauern)
         # Dictionary gewollt: geht unveraendert in die Vorlage.
@@ -61,7 +65,8 @@ class Testlauf:
                 "cmd": " ".join(cmd) if isinstance(cmd, (list, tuple)) else str(cmd),
                 "rc": rc, "ok": rc == 0,
                 "out": out[-40000:], "err": err[-40000:],
-                "dauer": dauer, "dauern": len(dauern)}
+                "dauer": dauer, "dauer_text": dauer_text(dauer),
+                "dauern": len(dauern)}
 
     def _merken(self, slug, name, dauer, ok, dauern):
         zeit = time.strftime("%d.%m.%Y %H:%M:%S")

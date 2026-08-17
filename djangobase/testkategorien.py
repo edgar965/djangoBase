@@ -69,15 +69,20 @@ class Kategorien:
         python = self.python(self.befehle)
         alles = self.sammel(python, "alles", "Alles — jede Art, jede App", [])
         arten = []
-        for art in ARTEN:
+        # REIHENFOLGE UND NAMEN aus den Einstellungen (Ansage 17.08.2026: „auch
+        # die reihenfolge ist änderbar"). Ohne Angabe bleibt es bei der
+        # eingebauten Folge — erst schnell, zuletzt langsam.
+        from .testarten import Arten
+        einteilung = Arten.aus_einstellungen()
+        for art in einteilung.liste():
             dabei = nach_art.get(art) or []
             if not dabei:
                 continue
             ziele = [z for e in dabei for z in (e["ziel"] or "").split() if z]
-            arten.append({"art": art, "kurz": KURZ.get(art, art.capitalize()),
-                          "sammel": self.sammel(python, art,
-                                                "Alle %s" % ARTNAMEN.get(art, art),
-                                                ziele),
+            arten.append({"art": art, "kurz": einteilung.name_von(art),
+                          "sammel": self.sammel(
+                              python, art,
+                              "Alle %s" % einteilung.lang_von(art), ziele),
                           "befehle": dabei})
         if ohne_art:
             arten.append({"art": "apps", "kurz": "Nach App", "sammel": None,
