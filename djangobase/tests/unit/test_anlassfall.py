@@ -20,9 +20,9 @@ leeres Verzeichnis) und ist damit der langsamste Unit-Test hier. Das ist
 gewollt: Er ersetzt die Frage „stimmen die Zahlen noch?", die sonst niemand
 stellt.
 """
-from djangobase.skills2 import WERKZEUGE
-from djangobase.skills2.anlassfall import Anlassfall
-from djangobase.skills2.anlassfall_check import (ORDNER, AnlassfallCheck,
+from djangobase.skills import WERKZEUGE
+from djangobase.skills.anlassfall import Anlassfall
+from djangobase.skills.anlassfall_check import (ORDNER, AnlassfallCheck,
                                                  Probelauf)
 
 from ..base import BasisTest
@@ -97,7 +97,7 @@ class SabotageTest(BasisTest):
     """
 
     def test_ein_blindes_werkzeug_faellt_auf(self):
-        from djangobase.skills2.werkzeug import Ergebnis, Werkzeug2
+        from djangobase.skills.werkzeug import Ergebnis, Werkzeug2
 
         class BlindesWerkzeug(Werkzeug2):
             slug = "blind-zum-test"

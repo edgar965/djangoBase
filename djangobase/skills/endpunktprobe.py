@@ -6,7 +6,7 @@ from pathlib import Path
 from django.conf import settings
 
 from .routen import alle_routen, klient
-from .werkzeug import Befund, Ergebnis, Werkzeug
+from .werkzeug_alt import Befund, Ergebnis, Werkzeug
 
 
 class Endpunktprobe(Werkzeug):

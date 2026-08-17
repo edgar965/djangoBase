@@ -20,7 +20,7 @@ from pathlib import Path
 from django.test import override_settings
 from django.urls import path
 
-from djangobase.skills2 import werkzeug_finden
+from djangobase.skills import werkzeug_finden
 
 from ..base import BasisTest
 

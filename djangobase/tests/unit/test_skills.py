@@ -1,303 +1,328 @@
-"""Tests fuer den Skills-Werkzeugkasten.
+# -*- coding: utf-8 -*-
+u"""Tests fuer den Skills2-Werkzeugkasten.
 
-Zwei Dinge sollen die Tests festhalten:
+Skills2 liegt in djangoBase und laeuft damit in SECHS Projekten. Ein Werkzeug,
+das dort eine Ausnahme wirft, zerlegt eine Hilfe-Seite, die jemand gerade
+braucht. Deshalb haelt dieser Test drei Dinge fest:
 
-1. Die Werkzeuge laufen in JEDEM Projekt durch, ohne Konfiguration und ohne
-   eine Ausnahme nach oben durchzureichen — sie sind ein Hilfsmittel, und ein
-   Hilfsmittel darf die Hilfe-Seite nicht zerlegen.
-2. Der Stand der Lehren wird richtig gespeichert und ist im Auslieferungs-
-   zustand vollstaendig aktiv.
-
-Der Lehren-Stand liegt in einer Datei neben den Einstellungen; die Tests lenken
-ihn auf eine Temp-Datei um, damit sie den echten Stand des Host-Projekts nicht
-ueberschreiben.
+1. Jedes registrierte Werkzeug laeuft durch und liefert ein ``Ergebnis``, dessen
+   Zeilen zu den angekuendigten Spalten passen. Gepruoft wird gegen ein
+   ANGELEGTES Mini-Projekt, nicht gegen das Host-Projekt: Sonst haengt das
+   Ergebnis davon ab, wo der Test gerade laeuft.
+2. Die Werkzeuge FINDEN auch etwas - fuer jede Fehlerart wird eine Datei
+   angelegt, die sie enthaelt, und eine Gegenprobe ohne den Fehler.
+3. Die Marker (``geteilt gewollt``, ``Dictionary gewollt``,
+   ``in der Schleife gewollt``) stufen einen Befund ab. Ohne diesen Test faellt
+   ein kaputter Marker erst auf, wenn jemand eine Ausnahmeliste vermisst.
 """
 import tempfile
 from pathlib import Path
 
-from djangobase.skills import WERKZEUGE, werkzeug_finden, werkzeuge
-from djangobase.skills.lehren import BEREICHE, LEHREN, Lehrenstand
-from djangobase.skills.werkzeug import Ausgabe, Befund, Ergebnis, Werkzeug
+from django.test import override_settings
+
+from djangobase.skills import (KRITERIEN, LEHREN, OHNE_WERKZEUG, WERKZEUGE,
+                                gruppen, werkzeug_finden, werkzeuge)
+from djangobase.skills.werkzeug import Ergebnis, Werkzeug2
 
 from ..base import BasisTest
 
 
-class LehrenstandIsolation:
-    """Lenkt die Lehren-Datei auf eine Temp-Datei um."""
+class MiniProjekt:
+    """Ein winziges Projekt auf der Platte - Grundlage aller Werkzeug-Tests."""
 
-    def lehren_isolieren(self):
-        tmp = tempfile.NamedTemporaryFile(suffix='.json', delete=False)
-        tmp.close()
-        self._lehren_tmp = Path(tmp.name)
-        self._lehren_tmp.unlink()          # Startzustand: Datei fehlt
-        original = Lehrenstand._pfad
-        Lehrenstand._pfad = classmethod(lambda cls: self._lehren_tmp)
-        self.addCleanup(self._lehren_zurueck, original)
+    def anlegen(self, testfall):
+        ordner = Path(tempfile.mkdtemp(prefix="skills2_"))
+        testfall.addCleanup(self._weg, ordner)
+        return ordner
 
-    def _lehren_zurueck(self, original):
-        Lehrenstand._pfad = original
-        try:
-            self._lehren_tmp.unlink()
-        except OSError:
-            pass
+    @staticmethod
+    def _weg(ordner):
+        import shutil
+        shutil.rmtree(ordner, ignore_errors=True)
+
+    @staticmethod
+    def schreiben(ordner, name, inhalt):
+        pfad = ordner / name
+        pfad.parent.mkdir(parents=True, exist_ok=True)
+        pfad.write_text(inhalt, encoding="utf-8")
+        return pfad
 
 
 class WerkzeugGrundlagenTest(BasisTest):
+    """Was fuer JEDES Werkzeug gelten muss."""
 
-    def test_jedes_werkzeug_hat_die_pflichtangaben(self):
-        for klasse in WERKZEUGE:
-            with self.subTest(werkzeug=klasse.__name__):
-                for feld in ('slug', 'name', 'zweck', 'wann', 'dauer'):
-                    self.assertTrue(getattr(klasse, feld),
-                                    '%s fehlt %s' % (klasse.__name__, feld))
-
-    def test_kennungen_sind_eindeutig(self):
+    def test_registrierung_vollstaendig(self):
+        self.assertTrue(WERKZEUGE, "keine Werkzeuge registriert")
         slugs = [k.slug for k in WERKZEUGE]
-        self.assertEqual(len(slugs), len(set(slugs)))
+        self.assertEqual(len(slugs), len(set(slugs)), "doppelte Kennung: %s" % slugs)
+        for klasse in WERKZEUGE:
+            self.assertTrue(klasse.titel, "%s ohne Titel" % klasse.__name__)
+            self.assertTrue(klasse.zweck, "%s ohne Zweck" % klasse.__name__)
+            # Der Fall dahinter ist der Grund, warum es das Werkzeug gibt -
+            # ohne ihn ist es eine Formalie.
+            self.assertTrue(klasse.befund, "%s ohne Fall" % klasse.__name__)
+            self.assertIn(klasse.kriterium, KRITERIEN,
+                          "%s nennt Kriterium %s, das es nicht gibt"
+                          % (klasse.__name__, klasse.kriterium))
 
-    def test_werkzeug_finden(self):
+    def test_finden(self):
+        self.assertIsNone(werkzeug_finden("gibtesnicht"))
         self.assertIsNotNone(werkzeug_finden(WERKZEUGE[0].slug))
-        self.assertIsNone(werkzeug_finden('gibtsnicht'))
 
-    def test_eingabe_hat_drei_teile(self):
-        for klasse in WERKZEUGE:
-            if klasse.eingabe is not None:
-                with self.subTest(werkzeug=klasse.__name__):
-                    self.assertEqual(len(klasse.eingabe), 3)
+    #: Werkzeuge, die den PROJEKTCODE gar nicht ansehen. ``wachstum`` misst, wie
+    #: sich Python-Bauformen auf DIESER Maschine verhalten - es liefert seine
+    #: sechs Messzeilen auch in einem leeren Ordner, und das ist richtig so.
+    #: (16.08.2026: Der Test war rot, ohne dass etwas kaputt war - genau die
+    #: Sorte, die man abschaltet statt zu verstehen.)
+    #: `seitenzeiten` fragt die URL-Konfiguration des HOSTS, nicht das
+    #: Verzeichnis — es findet auch in einem leeren Ordner Seiten, und
+    #: das ist richtig so (17.08.2026).
+    #: `anlassfall-check` laeuft ueber die WERKZEUGE, nicht ueber das Projekt:
+    #: Es baut jedem Werkzeug seinen eigenen Anlassfall nach und berichtet je
+    #: Werkzeug eine Zeile — auch im leeren Ordner, und das ist der Zweck.
+    #: (Der Test war seit Commit f2e691b rot: Das Werkzeug stand in WERKZEUGE,
+    #: aber nicht hier. Nachgetragen am 17.08.2026.)
+    #:
+    #: Die vier `vorlagen-*`/`endpunkt-*` kamen mit dem Zusammenlegen dazu
+    #: (17.08.2026). Sie stammen aus dem aelteren Kasten und fragen bewusst
+    #: DJANGO — die Vorlagen-Engine und die URL-Tabelle —, nicht das
+    #: Verzeichnis. Ein `override_settings(BASE_DIR=…)` erreicht sie deshalb
+    #: nicht: Sie sehen weiter die Vorlagen und Routen des laufenden Projekts.
+    #: Das ist ihr Bauprinzip („Django nach seinen eigenen Vorlagen und Routen
+    #: fragen, statt Pfade zu raten") und kein Fehler — nur eben nichts, was
+    #: dieser Test messen kann.
+    OHNE_PROJEKTCODE = {"wachstum", "seitenzeiten", "anlassfall-check",
+                        "vorlagen-kontext", "vorlagen-variablen",
+                        "endpunkt-zeiten", "endpunkt-profil"}
 
-    def test_fehler_wird_gefangen_nicht_geworfen(self):
-        """Ein kaputtes Werkzeug darf die Seite nicht mitnehmen."""
+    def test_alle_laufen_auf_leerem_projekt(self):
+        """Ein Projekt ohne Code darf kein Werkzeug zum Absturz bringen."""
+        ordner = MiniProjekt().anlegen(self)
+        with override_settings(BASE_DIR=str(ordner)):
+            for w in werkzeuge():
+                ergebnis = w.laufen()
+                self.assertIsInstance(ergebnis, Ergebnis,
+                                      "%s liefert kein Ergebnis" % w.slug)
+                if w.slug in self.OHNE_PROJEKTCODE:
+                    self.assertTrue(ergebnis.zeilen,
+                                    "%s misst Python selbst und muss auch im "
+                                    "leeren Projekt etwas liefern" % w.slug)
+                    continue
+                self.assertEqual(ergebnis.zeilen, [],
+                                 "%s findet etwas in einem leeren Projekt" % w.slug)
 
-        class Kaputt(Werkzeug):
-            slug, name = 'kaputt', 'Kaputt'
-
-            def pruefen(self, **_argumente):
-                raise ValueError('absichtlich')
-
-        ergebnis = Kaputt().laufen()
-        self.assertIn('absichtlich', ergebnis.fehler)
-        self.assertIn('ValueError', ergebnis.fehler)
-        self.assertFalse(ergebnis.sauber)
-
-    def test_dauer_wird_gemessen(self):
-        class Schnell(Werkzeug):
-            slug, name = 'schnell', 'Schnell'
-
-            def pruefen(self, **_argumente):
-                return Ergebnis(self.name)
-
-        self.assertGreaterEqual(Schnell().laufen().dauer_s, 0.0)
-
-
-class ErgebnisTest(BasisTest):
-
-    def test_ohne_befunde_ist_sauber(self):
-        self.assertTrue(Ergebnis('X').sauber)
-        self.assertIn('Nichts gefunden', Ergebnis('X').text())
-
-    def test_text_enthaelt_kopf_und_befunde(self):
-        ergebnis = Ergebnis('X', ['zwei Dateien'],
-                            [Befund('a.py:1', 'tot: n', 'weil')])
-        text = ergebnis.text()
-        self.assertIn('zwei Dateien', text)
-        self.assertIn('a.py:1', text)
-        self.assertIn('weil', text)
-        self.assertIn('1 Befunde', text)
-        self.assertFalse(ergebnis.sauber)
-
-    def test_fehler_steht_im_text(self):
-        self.assertIn('FEHLER: kaputt', Ergebnis('X', fehler='kaputt').text())
-
-
-class AusgabeTest(BasisTest):
-    """Die Textbox-Sammlung: Abschnitte je Werkzeug, Anhaengen statt Ersetzen."""
-
-    class Beispiel(Werkzeug):
-        slug, name = 'beispiel', 'Beispiel'
-
-    def test_leere_sammlung(self):
-        self.assertEqual(Ausgabe().text(), '')
-        self.assertEqual(Ausgabe('   ').text(), '')
-
-    def test_abschnitt_hat_ueberschrift_mit_kennung(self):
-        text = (Ausgabe()
-                .anhaengen(self.Beispiel(), Ergebnis('Beispiel', ['zwei Dateien']))
-                .text())
-        self.assertIn('# Beispiel  [beispiel]', text)
-        self.assertIn('zwei Dateien', text)
-        self.assertIn('nichts gefunden', text)
-
-    def test_zwei_abschnitte_sind_getrennt(self):
-        sammlung = Ausgabe()
-        sammlung.anhaengen(self.Beispiel(), Ergebnis('A'))
-        sammlung.anhaengen(self.Beispiel(), Ergebnis('B'))
-        self.assertEqual(sammlung.text().count(Ausgabe.LINIE), 4)
-
-    def test_bisheriger_inhalt_bleibt_vorne(self):
-        text = Ausgabe('VORHER').anhaengen(self.Beispiel(), Ergebnis('A')).text()
-        self.assertTrue(text.startswith('VORHER'))
-
-    def test_befundzahl_steht_im_kopf(self):
-        text = Ausgabe().anhaengen(
-            self.Beispiel(),
-            Ergebnis('A', befunde=[Befund('a.py:1', 'x')])).text()
-        self.assertIn('1 Befunde', text)
+    def test_zeilen_passen_zu_spalten(self):
+        """Jede Zeile muss die angekündigten Spalten tragen - sonst steht in der
+        Tabelle und im Bericht eine leere Zelle, ohne dass jemand es merkt."""
+        ordner = MiniProjekt().anlegen(self)
+        MiniProjekt.schreiben(ordner, "modul.py", BEISPIEL_MIT_FEHLERN)
+        MiniProjekt.schreiben(ordner, "static/app.js", BEISPIEL_JS)
+        with override_settings(BASE_DIR=str(ordner)):
+            for w in werkzeuge():
+                ergebnis = w.laufen()
+                for zeile in ergebnis.zeilen:
+                    fehlend = [s for s in ergebnis.spalten if s not in zeile]
+                    self.assertFalse(fehlend, "%s: Spalte(n) %s fehlen in %s"
+                                     % (w.slug, fehlend, zeile))
 
 
-class WerkzeugeLaufenTest(BasisTest):
-    """Die Werkzeuge, die ohne Netz und ohne Endpunkte auskommen."""
+#: Eine Datei, die MEHRERE der gesuchten Muster enthaelt.
+BEISPIEL_MIT_FEHLERN = '''# -*- coding: utf-8 -*-
+"""Beispielmodul fuer die Tests."""
+import json
+from pathlib import Path
 
-    def test_dateilastige_werkzeuge_laufen_durch(self):
-        for werkzeug in werkzeuge():
-            if werkzeug.ruft_endpunkte_auf:
-                continue     # eigener Test — die brauchen den Test-Client
-            with self.subTest(werkzeug=werkzeug.slug):
-                argumente = ({werkzeug.eingabe[0]: werkzeug.eingabe[2]}
-                             if werkzeug.eingabe else {})
-                ergebnis = werkzeug.laufen(**argumente)
-                self.assertEqual(ergebnis.fehler, '')
-                self.assertTrue(ergebnis.kopf)
-
-    def test_vorlagen_variablen_setzt_den_zaehler_zurueck(self):
-        """Bleibt der Zaehler haengen, verlangsamt er jede weitere Anfrage."""
-        from django.template.base import Variable
-        vorher = Variable._resolve_lookup
-        werkzeug_finden('vorlagen-variablen').laufen(weg='/')
-        self.assertIs(Variable._resolve_lookup, vorher)
+GETEILT = []                    # veraenderlicher Zustand auf Modulebene
 
 
-class LehrenTest(LehrenstandIsolation, BasisTest):
-
-    def setUp(self):
-        super().setUp()
-        self.lehren_isolieren()
-
-    def test_jede_lehre_ist_vollstaendig(self):
-        for lehre in LEHREN:
-            with self.subTest(lehre=lehre.slug):
-                self.assertTrue(lehre.titel)
-                self.assertTrue(lehre.regel)
-                self.assertTrue(lehre.warum, 'ohne Begruendung keine Regel')
-                self.assertIn(lehre.bereich, BEREICHE)
-
-    def test_kennungen_sind_eindeutig(self):
-        slugs = [lehre.slug for lehre in LEHREN]
-        self.assertEqual(len(slugs), len(set(slugs)))
-
-    def test_vorgabe_ist_alles_an(self):
-        stand = Lehrenstand.laden()
-        self.assertEqual(len(stand), len(LEHREN))
-        self.assertTrue(all(stand.values()))
-
-    def test_speichern_und_laden(self):
-        eine = LEHREN[0].slug
-        Lehrenstand.speichern({eine})
-        stand = Lehrenstand.laden()
-        self.assertTrue(stand[eine])
-        self.assertFalse(any(v for k, v in stand.items() if k != eine))
-
-    def test_leere_auswahl_speichert_alles_aus(self):
-        Lehrenstand.speichern(set())
-        self.assertFalse(any(Lehrenstand.laden().values()))
-        self.assertEqual(Lehrenstand.aktive(), [])
-
-    def test_neue_lehre_ist_an_ohne_erneutes_speichern(self):
-        """Wer eine Lehre ergaenzt, soll sie nicht erst ankreuzen muessen."""
-        Lehrenstand.speichern({LEHREN[0].slug})
-        stand = Lehrenstand.laden()
-        self.assertIn(LEHREN[-1].slug, stand)
-        # Nur der gespeicherte Stand zaehlt — die uebrigen stehen auf aus,
-        # weil sie beim Speichern bewusst abgewaehlt wurden.
-        self.assertFalse(stand[LEHREN[-1].slug])
-
-    def test_kaputte_datei_faellt_auf_die_vorgabe_zurueck(self):
-        self._lehren_tmp.write_text('kein json', encoding='utf-8')
-        self.assertTrue(all(Lehrenstand.laden().values()))
-
-    def test_auftragstext_enthaelt_nur_aktive(self):
-        eine = LEHREN[0]
-        Lehrenstand.speichern({eine.slug})
-        text = Lehrenstand.auftragstext()
-        self.assertIn(eine.regel, text)
-        self.assertIn('Warum:', text)
-        andere = next(lehre for lehre in LEHREN if lehre.slug != eine.slug)
-        self.assertNotIn(andere.regel, text)
+def fuellen(pfad):
+    GETEILT.append(pfad)
 
 
-class SkillsSeiteTest(LehrenstandIsolation, BasisTest):
-    """Die Seite selbst — rendern, Werkzeug starten, Stand speichern."""
+def datensatz(a, b):
+    return {"eins": 1, "zwei": 2, "drei": 3, "vier": 4}
 
-    def setUp(self):
-        super().setUp()
-        self.lehren_isolieren()
-        self.klient = self.staff_client()
 
-    def url(self):
-        from django.urls import reverse
-        return reverse('djangobase:skills')
+def tupel(a, b):
+    return a, b, a + b, a - b, a * b
 
-    def test_seite_rendert(self):
-        antwort = self.klient.get(self.url())
-        self.assertEqual(antwort.status_code, 200)
-        self.assertContains(antwort, 'Werkzeuge')
-        self.assertContains(antwort, 'Lehren')
 
-    def test_alle_werkzeuge_stehen_in_der_tabelle(self):
-        antwort = self.klient.get(self.url())
-        for klasse in WERKZEUGE:
-            self.assertContains(antwort, klasse.name)
+def lesen(pfade):
+    """DIESELBE Datei je Durchlauf - das ist der Befund."""
+    aus = []
+    for p in pfade:
+        kopf = Path("vorlage.txt").read_text()
+        aus.append(kopf + p)
+    return aus
 
-    def test_unbekannte_kennung_startet_nichts(self):
-        """Ausgefuehrt wird nur, was in der Liste steht."""
-        antwort = self.klient.get(self.url(), {'run': 'rm -rf /'})
-        self.assertEqual(antwort.status_code, 200)
-        self.assertEqual(antwort.context['gelaufen'], [])
-        self.assertEqual(antwort.context['ausgabe'], '')
 
-    def test_werkzeug_laeuft_ueber_die_seite(self):
-        antwort = self.klient.get(self.url(), {'run': 'tote-importe'})
-        self.assertEqual(antwort.status_code, 200)
-        self.assertEqual(antwort.context['gelaufen'], ['tote-importe'])
-        self.assertIn('tote-importe', antwort.context['ausgabe'])
+def lesen_ok(pfade):
+    """Je Durchlauf eine ANDERE Datei - das ist der Zweck, kein Befund."""
+    aus = []
+    for p in pfade:
+        aus.append(Path(p).read_text())
+    return aus
+'''
 
-    def test_stapellauf_trennt_die_abschnitte(self):
-        """Mehrere Werkzeuge in einem Lauf — je Werkzeug eine Ueberschrift."""
-        antwort = self.klient.post(self.url(), {
-            'werkzeug': ['tote-importe', 'klassen-je-datei']})
-        text = antwort.context['ausgabe']
-        self.assertIn('[tote-importe]', text)
-        self.assertIn('[klassen-je-datei]', text)
-        self.assertEqual(text.count('=' * 78), 4)   # zwei Linien je Abschnitt
+BEISPIEL_JS = """import { Fehlt } from './gibtesnicht.js';
+export class App {}
+"""
 
-    def test_vorheriger_inhalt_bleibt_erhalten(self):
-        """Die Textbox schickt ihren Stand mit und wird ergaenzt, nicht ersetzt."""
-        antwort = self.klient.post(self.url(), {
-            'werkzeug': ['tote-importe'], 'ausgabe': 'ALTER INHALT'})
-        text = antwort.context['ausgabe']
-        self.assertTrue(text.startswith('ALTER INHALT'))
-        self.assertIn('[tote-importe]', text)
 
-    def test_vorgabefeld_wird_uebernommen(self):
-        antwort = self.klient.post(self.url(), {
-            'werkzeug': ['klassen-je-datei'], 'arg_klassen-je-datei': '99'})
-        self.assertIn('mindestens 99 Klassen', antwort.context['ausgabe'])
+class ModulZustandTest(BasisTest):
+    """Kriterium 9 - und der Marker, der einen Befund abstuft."""
 
-    def test_tabelle_hat_eine_zeile_je_werkzeug(self):
-        tabelle = self.klient.get(self.url()).context['tabelle']
-        self.assertEqual(len(tabelle['zeilen']), len(WERKZEUGE))
-        self.assertEqual(tabelle['key'], 'db-skills')
+    def test_findet_geteilten_zustand(self):
+        ordner = MiniProjekt().anlegen(self)
+        MiniProjekt.schreiben(ordner, "modul.py", BEISPIEL_MIT_FEHLERN)
+        with override_settings(BASE_DIR=str(ordner)):
+            zeilen = werkzeug_finden("modulzustand").laufen().zeilen
+        namen = [z["name"] for z in zeilen]
+        self.assertIn("GETEILT", namen)
+        self.assertEqual([z["bewertung"] for z in zeilen if z["name"] == "GETEILT"],
+                         ["prüfen"])
 
-    def test_speichern_setzt_den_stand(self):
-        eine = LEHREN[0].slug
-        antwort = self.klient.post(self.url(), {'aktion': 'lehren',
-                                                'lehre': [eine]})
-        self.assertEqual(antwort.status_code, 302)
-        stand = Lehrenstand.laden()
-        self.assertTrue(stand[eine])
-        self.assertFalse(stand[LEHREN[1].slug])
+    def test_marker_stuft_ab(self):
+        """Gegenprobe: mit Vermerk im Code ist derselbe Fund „belegt"."""
+        ordner = MiniProjekt().anlegen(self)
+        MiniProjekt.schreiben(ordner, "modul.py", BEISPIEL_MIT_FEHLERN.replace(
+            "GETEILT = []                    # veraenderlicher Zustand auf Modulebene",
+            "# geteilt gewollt: ein Vorrat je Server\nGETEILT = []"))
+        with override_settings(BASE_DIR=str(ordner)):
+            zeilen = werkzeug_finden("modulzustand").laufen().zeilen
+        belegt = [z["bewertung"] for z in zeilen if z["name"] == "GETEILT"]
+        self.assertEqual(belegt, ["belegt"],
+                         "Der Vermerk „geteilt gewollt" + '" wirkt nicht mehr')
 
-    def test_auftragstext_kommt_als_textdatei(self):
-        antwort = self.klient.get(self.url(), {'auftrag': '1'})
-        self.assertEqual(antwort.status_code, 200)
-        self.assertTrue(antwort['Content-Type'].startswith('text/plain'))
-        self.assertIn('Regeln fuer diesen Umbau', antwort.content.decode('utf-8'))
+
+class RueckgabeTest(BasisTest):
+    """Kriterien 10 und 11."""
+
+    def test_dictionary_und_tupel(self):
+        ordner = MiniProjekt().anlegen(self)
+        MiniProjekt.schreiben(ordner, "modul.py", BEISPIEL_MIT_FEHLERN)
+        with override_settings(BASE_DIR=str(ordner)):
+            dicts = werkzeug_finden("rueckgabedict").laufen().zeilen
+            tupel = werkzeug_finden("rueckgabetupel").laufen().zeilen
+        self.assertEqual([z["funktion"] for z in dicts], ["datensatz"])
+        self.assertEqual([z["funktion"] for z in tupel], ["tupel"])
+        self.assertEqual(tupel[0]["felder"], 5)
+
+    def test_dictionary_marker(self):
+        ordner = MiniProjekt().anlegen(self)
+        MiniProjekt.schreiben(ordner, "modul.py", BEISPIEL_MIT_FEHLERN.replace(
+            "def datensatz(a, b):\n    return {",
+            "def datensatz(a, b):\n    # Dictionary gewollt: geht als JSON hinaus\n    return {"))
+        with override_settings(BASE_DIR=str(ordner)):
+            dicts = werkzeug_finden("rueckgabedict").laufen().zeilen
+        self.assertEqual([z["bewertung"] for z in dicts], ["belegt"])
+
+
+class SchleifenTest(BasisTest):
+    """Kriterium 12 - inklusive Marker."""
+
+    def test_findet_lesen_in_schleife(self):
+        ordner = MiniProjekt().anlegen(self)
+        MiniProjekt.schreiben(ordner, "modul.py", BEISPIEL_MIT_FEHLERN)
+        with override_settings(BASE_DIR=str(ordner)):
+            zeilen = werkzeug_finden("schleifenarbeit").laufen().zeilen
+        self.assertTrue(any("read_text" in z["was"] for z in zeilen),
+                        "read_text in der Schleife nicht gefunden: %s" % zeilen)
+
+    def test_meldet_nicht_was_an_der_schleifenvariablen_haengt(self):
+        """DIE UNTERSCHEIDUNG, die das Werkzeug brauchbar macht (16.08.2026).
+
+        ``Path(p).read_text()`` in einer Schleife über ``p`` liest je Durchlauf
+        etwas anderes - das ist der Zweck jedes Werkzeugs, das über Dateien
+        läuft. Ohne diese Prüfung meldete das Werkzeug im shortlongx-Lauf 199
+        Stellen, von denen 190 genau dieses Muster waren; die neun echten Fälle
+        gingen darin unter."""
+        ordner = MiniProjekt().anlegen(self)
+        MiniProjekt.schreiben(ordner, "modul.py", BEISPIEL_MIT_FEHLERN)
+        with override_settings(BASE_DIR=str(ordner)):
+            zeilen = werkzeug_finden("schleifenarbeit").laufen().zeilen
+        treffer = [z for z in zeilen if z["zeile"] >= self._zeile_von(
+            BEISPIEL_MIT_FEHLERN, "def lesen_ok")]
+        self.assertEqual(treffer, [], "lesen_ok() darf keinen Befund liefern")
+
+    @staticmethod
+    def _zeile_von(text, marke):
+        for nr, z in enumerate(text.splitlines(), 1):
+            if z.startswith(marke):
+                return nr
+        raise AssertionError("Marke %r nicht im Beispiel" % marke)
+
+    def test_marker_stuft_ab(self):
+        ordner = MiniProjekt().anlegen(self)
+        MiniProjekt.schreiben(ordner, "modul.py", BEISPIEL_MIT_FEHLERN.replace(
+            '        kopf = Path("vorlage.txt").read_text()',
+            "        # in der Schleife gewollt: die Vorlage ändert sich je Lauf\n"
+            '        kopf = Path("vorlage.txt").read_text()'))
+        with override_settings(BASE_DIR=str(ordner)):
+            zeilen = werkzeug_finden("schleifenarbeit").laufen().zeilen
+        lesen = [z for z in zeilen if "read_text" in z["was"]]
+        self.assertEqual([z["bewertung"] for z in lesen], ["belegt"])
+
+
+class DoppelrumpfTest(BasisTest):
+    """Kriterium 6."""
+
+    def test_findet_zwei_gleiche_rumpfe(self):
+        ordner = MiniProjekt().anlegen(self)
+        rumpf = ('def rechnen(werte):\n'
+                 '    summe = 0\n'
+                 '    for w in werte:\n'
+                 '        summe += w * 2\n'
+                 '    return summe / len(werte)\n')
+        MiniProjekt.schreiben(ordner, "a.py", rumpf)
+        MiniProjekt.schreiben(ordner, "b.py", rumpf.replace("rechnen", "rechnen2"))
+        with override_settings(BASE_DIR=str(ordner)):
+            zeilen = werkzeug_finden("doppelrumpf").laufen().zeilen
+        self.assertEqual(len(zeilen), 1, "Duplikat nicht erkannt: %s" % zeilen)
+        self.assertEqual(zeilen[0]["kopien"], 2)
+
+    def test_verschiedene_rumpfe_sind_kein_befund(self):
+        """Gegenprobe - sonst meldet das Werkzeug alles."""
+        ordner = MiniProjekt().anlegen(self)
+        MiniProjekt.schreiben(ordner, "a.py",
+                              'def rechnen(w):\n    x = 1\n    y = 2\n    return x + y\n')
+        MiniProjekt.schreiben(ordner, "b.py",
+                              'def zaehlen(w):\n    x = 5\n    y = 9\n    return x * y\n')
+        with override_settings(BASE_DIR=str(ordner)):
+            self.assertEqual(werkzeug_finden("doppelrumpf").laufen().zeilen, [])
+
+
+class LehrenTest(BasisTest):
+    """Die Arbeitsliste - Struktur und Vollstaendigkeit."""
+
+    def test_struktur(self):
+        """Seit dem Zusammenlegen (17.08.2026) ist eine Lehre ein Dictionary.
+
+        Vorher waren es Tupel ``(slug, gruppe, titel, tun, fall)`` — die zweite
+        Sammlung (3DTools) hatte aber ``Lehre``-Objekte mit weiteren Feldern.
+        Beide auf EINE Form zu bringen war billiger, als jede Seite und jeden
+        Test beide kennen zu lassen."""
+        self.assertTrue(LEHREN)
+        slugs = [e["slug"] for e in LEHREN]
+        self.assertEqual(len(slugs), len(set(slugs)), "doppelter Lehren-Slug")
+        for l in LEHREN:
+            self.assertTrue(l["gruppe"] and l["titel"] and l["tun"])
+            # Ohne den Fall (oder wenigstens die Begruendung) ist eine Lehre
+            # eine Meinung.
+            self.assertTrue(l["fall"] or l["warum"],
+                            "Lehre %s ohne Fall und ohne Begründung" % l["slug"])
+            self.assertIn(l["herkunft"], ("review", "kriterien"))
+
+    def test_gruppen_enthalten_alle(self):
+        gezaehlt = sum(len(eintraege) for _, eintraege in gruppen())
+        self.assertEqual(gezaehlt, len(LEHREN))
+
+    def test_kriterien_ohne_werkzeug_sind_begruendet(self):
+        for nr, titel, text in OHNE_WERKZEUG:
+            self.assertIn(nr, KRITERIEN)
+            self.assertTrue(titel and len(text) > 40,
+                            "Kriterium %s ohne brauchbare Begründung" % nr)
+        # Und sie dürfen KEIN Werkzeug haben - sonst gehören sie nicht hierher.
+        mit_werkzeug = {k.kriterium for k in WERKZEUGE}
+        doppelt = [nr for nr, _, _ in OHNE_WERKZEUG if nr in mit_werkzeug]
+        self.assertFalse(doppelt, "Kriterien mit Werkzeug in OHNE_WERKZEUG: %s" % doppelt)

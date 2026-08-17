@@ -32,7 +32,7 @@ Einstellung - alles andere waere Beschaeftigung ohne Aussage.
 import ast
 import re
 
-from ..skills2.werkzeug import Ergebnis
+from .werkzeug import Ergebnis
 from .basis import EigenesWerkzeug
 
 __all__ = ["Protokoll"]
@@ -64,6 +64,10 @@ class Protokoll(EigenesWerkzeug):
                        "/tools/", "/tests", "conftest.py", "manage.py")
     LOGGER_RUF = re.compile(r"\b(logger|log|logging|self\.log)\b\s*\.\s*"
                             r"(debug|info|warning|warn|error|exception|critical)")
+    #: Vermerk am Code fuer einen Block, der bewusst stumm bleibt. Die
+    #: Begruendung MUSS dahinterstehen — „# stumm gewollt:" allein zaehlt nicht,
+    #: sonst wird der Vermerk zum Schalter, mit dem man jeden Befund abschaltet.
+    STUMM_GEWOLLT = re.compile(r"#\s*stumm gewollt:\s*\S+")
 
     def laufen(self):
         zeilen = []
@@ -133,13 +137,31 @@ class Protokoll(EigenesWerkzeug):
         """Ein except-Block ohne Protokoll - verschluckt oder nur stumm."""
         rumpf = [x for x in k.body
                  if not (isinstance(x, ast.Expr) and isinstance(x.value, ast.Constant))]
-        quelle = "\n".join(d.text.split("\n")[k.lineno - 1:
-                                              getattr(k, "end_lineno", k.lineno)])
+        alle = d.text.split("\n")
+        quelle = "\n".join(alle[k.lineno - 1:getattr(k, "end_lineno", k.lineno)])
+        # Der Vermerk steht ueblicherweise UEBER dem ``except`` — dort, wo man
+        # ihn beim Lesen braucht. Der erste Wurf las erst ab der except-Zeile
+        # und fand ihn deshalb nie (17.08.2026). Mitgelesen wird nur der
+        # unmittelbar davor stehende, zusammenhaengende Kommentarblock: So kann
+        # ein Vermerk nicht auf einen fremden Block abfaerben.
+        i = k.lineno - 2
+        davor = []
+        while i >= 0 and alle[i].strip().startswith("#"):
+            davor.insert(0, alle[i])
+            i -= 1
+        quelle = "\n".join(davor) + "\n" + quelle
         if self.LOGGER_RUF.search(quelle):
             return []
         # Ein `raise` reicht ebenfalls: die Ausnahme geht weiter nach oben und
         # landet dort im Log - sie verschwindet nicht.
         if any(isinstance(x, ast.Raise) for x in ast.walk(k)):
+            return []
+        # Vermerk im Code: Es gibt Blöcke, die stumm bleiben MÜSSEN — im
+        # Protokoll-Middleware selbst (ein Log dort ruft sich im Zweifel
+        # rekursiv auf) oder wenn ein Prozess zwischen zwei Zeilen verschwindet.
+        # Der Vermerk steht am Code und ist damit nachprüfbar; eine Ausnahmeliste
+        # im Werkzeug wäre es nicht (siehe skills2, gleiche Bauform).
+        if self.STUMM_GEWOLLT.search(quelle):
             return []
         stumm = all(isinstance(x, (ast.Pass, ast.Continue, ast.Break)) or
                     (isinstance(x, ast.Return) and x.value is None) for x in rumpf)

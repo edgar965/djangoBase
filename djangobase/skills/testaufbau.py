@@ -28,7 +28,7 @@ Eine Testdatei ohne einzige Zusicherung meldet „gruen" und prueft nichts. Im
 Ursprungsprojekt lagen 24 gleichnamige ``test_placeholder.py`` mit identischem
 Rumpf - eine Gliederung, die es nur dem Namen nach gab.
 """
-from ..skills2.werkzeug import Ergebnis
+from .werkzeug import Ergebnis
 from .basis import EigenesWerkzeug
 
 __all__ = ["Testaufbau"]
@@ -119,6 +119,12 @@ class Testaufbau(EigenesWerkzeug):
                 ungegliedert.append(d.name)
         aus = []
         if not dateien:
+            # „Keine Tests" ist nur dann ein Befund, wenn es etwas ZU testen
+            # gibt. Auf einem leeren Verzeichnis war die Meldung ein Fehlalarm —
+            # und genau den prüft die Gegenprobe „läuft auf leerem Projekt ohne
+            # Befund" ab (17.08.2026).
+            if not self.hat_code():
+                return []
             return [{"art": "Art fehlt", "stelle": "(Projekt)",
                      "befund": "keine Testdateien gefunden",
                      "abhilfe": "tests/{unit,component,ui,longrunner}/ anlegen"}]

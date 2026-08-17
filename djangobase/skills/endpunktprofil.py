@@ -5,7 +5,7 @@ import io
 import pstats
 
 from .routen import klient
-from .werkzeug import Befund, Ergebnis, Werkzeug
+from .werkzeug_alt import Befund, Ergebnis, Werkzeug
 
 
 class Endpunktprofil(Werkzeug):

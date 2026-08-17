@@ -26,7 +26,7 @@ stehen deshalb ganz oben.
 """
 import re
 
-from ..skills2.werkzeug import Ergebnis
+from .werkzeug import Ergebnis
 from .basis import EigenesWerkzeug
 
 __all__ = ["Testdeckung"]
@@ -49,6 +49,16 @@ class Testdeckung(EigenesWerkzeug):
              "django.contrib", "allauth", "static", "media")
 
     def laufen(self):
+        # Die Routen kommen aus DJANGO, nicht aus den geprueften Dateien. Auf
+        # einem leeren Verzeichnis meldete das Werkzeug deshalb Seiten eines
+        # Projekts, das dort gar nicht liegt — ein Fehlalarm, den die
+        # Gegenprobe „laeuft auf leerem Projekt ohne Befund" gefunden hat
+        # (17.08.2026).
+        if not self.hat_code():
+            return Ergebnis(["art", "stelle", "ziel", "hinweis"], [],
+                            "kein Quelltext gefunden — nichts zu prüfen",
+                            "Die Routen stammen aus Django; ohne Projektcode "
+                            "wäre jede Meldung eine über ein fremdes Projekt.")
         erwaehnt = self._testtexte()
         zeilen = []
         zeilen += self._menue(erwaehnt)
@@ -159,10 +169,21 @@ class Testdeckung(EigenesWerkzeug):
 
     @staticmethod
     def _kommt_vor(text, *marken):
+        """Wird die Marke irgendwo in den Testtexten erwaehnt?
+
+        Die Wortgrenze wird nur dort gesetzt, wo sie ueberhaupt greifen kann.
+        ``\\b`` hinter einem Pfad, der auf ``/`` endet, verlangt ein Wortzeichen
+        DANACH — in ``self.client.get("/einstellungen/tags-und-workflows/")``
+        folgt ein Anfuehrungszeichen, der Treffer fiel also immer durch. Drei
+        Seiten galten deshalb als ungeprueft, obwohl ein Test sie woertlich
+        aufruft (17.08.2026). Fehlalarme dieser Sorte verdecken die echten
+        Luecken."""
         for m in marken:
             m = (m or "").strip()
             if len(m) < 4:
                 continue
-            if re.search(r"\b%s\b" % re.escape(m), text):
+            vorn = r"\b" if m[:1].isalnum() or m[:1] == "_" else ""
+            hinten = r"\b" if m[-1:].isalnum() or m[-1:] == "_" else ""
+            if re.search(vorn + re.escape(m) + hinten, text):
                 return True
         return False

@@ -31,7 +31,7 @@ import re
 import sys
 from pathlib import Path
 
-from ..skills2.jsklammern import Klammerzaehler
+from ..skills.jsklammern import Klammerzaehler
 from .jsimporte import Importblock
 
 AUSSER = {'node_modules', 'vendor', 'theatre', 'theatre-studio', '__pycache__',

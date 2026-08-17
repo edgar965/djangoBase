@@ -70,19 +70,24 @@ class PflichtEintrag:
 
 #: Die Seiten selbst. Neue Pflichtseite? HIER eintragen - dann erscheint sie in
 #: allen drei Einbau-Wegen zugleich.
+#: „Skills" ist seit dem 17.08.2026 der EINE Werkzeugkasten. Skills2 und Skills3
+#: stehen nur noch als Übergang darunter — ihre Werkzeuge kommen aus dem Master,
+#: und sie verschwinden, sobald nichts mehr auf sie zeigt. Sie bleiben im Menü,
+#: weil eine Seite, die es noch gibt und die niemand findet, die schlechtere
+#: Zwischenstufe wäre.
 PFLICHTSEITEN = (
     PflichtEintrag(
         "Skills", "bi-tools", "skills",
-        "Werkzeugkasten: Prüfungen, die Django nach Vorlagen, Routen und "
-        "Modulen fragen"),
+        "Der Werkzeugkasten: alle Prüfungen und Fixer, Stapellauf mit Bericht "
+        "zum Mitnehmen, Sicherung und Netz"),
     PflichtEintrag(
-        "Skills1", "bi-union", "skills1",
-        "Beide Werkzeugkästen unter einem Dach: Stapellauf ankreuzen, ein "
-        "Bericht zum Mitnehmen, Fix-Aktionen mit Sicherung und Netz"),
+        "Skills2 (Übergang)", "bi-clipboard2-check", "skills2",
+        "Alte Adresse des shortlongx-Kastens — nutzt die Werkzeuge aus Skills "
+        "und wird abgeschafft"),
     PflichtEintrag(
-        "Skills2", "bi-clipboard2-check", "skills2",
-        "Zweiter Werkzeugkasten: die Prüfwerkzeuge und Lehren aus dem großen "
-        "Review"),
+        "Skills3 (Übergang)", "bi-clock-history", "skills3",
+        "Alte Adresse des 3DTools-Kastens — nutzt die Werkzeuge aus Skills "
+        "und wird abgeschafft"),
 )
 
 

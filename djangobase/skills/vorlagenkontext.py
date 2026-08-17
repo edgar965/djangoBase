@@ -8,7 +8,7 @@ from django.conf import settings
 from django.template.base import FilterExpression, Variable
 from django.template.loader import get_template
 
-from .werkzeug import Befund, Ergebnis, Werkzeug
+from .werkzeug_alt import Befund, Ergebnis, Werkzeug
 
 #: Namen, die aus Kontextprozessoren oder der Shell kommen, nicht aus der Ansicht.
 VON_AUSSEN = {

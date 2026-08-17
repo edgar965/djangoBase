@@ -1,188 +1,166 @@
-"""Basis fuer die Analysewerkzeuge der Skills-Seite."""
+# -*- coding: utf-8 -*-
+u"""Werkzeug2/Ergebnis - Grundgeruest der Skills2-Werkzeuge.
 
-import time
+Skills2 sammelt die Pruefwerkzeuge und die Lehren aus dem grossen Review- und
+Umbaudurchgang in shortlongx (August 2026). Sie liegen hier in djangoBase, weil
+KEINE davon etwas ueber das Projekt weiss: Gesucht wird immer unter
+``settings.BASE_DIR``, gelesen wird der Syntaxbaum.
+
+Warum ein eigenes Paket neben ``skills``: Die beiden sind zeitgleich entstanden
+(zwei Sitzungen, zwei Projekte). Getrennt zu halten war billiger, als zwei
+halbfertige Fassungen derselben Basisklasse gegeneinander zu mergen; wer sie
+spaeter zusammenlegt, hat hier eine vollstaendige, laufende Vorlage.
+
+Ein Werkzeug ist eine Klasse mit ``slug``, ``titel``, ``zweck``, ``befund`` und
+``laufen()``. ``laufen()`` gibt ein :class:`Ergebnis` zurueck - nie einen
+formatierten Text: Die Seite entscheidet ueber die Darstellung.
+"""
+import ast
+from pathlib import Path
+
+from django.conf import settings
+
+__all__ = ["Werkzeug2", "Ergebnis", "Quelldatei"]
+
+#: Verzeichnisse, die nie zum Projektcode gehoeren.
+#:
+#: „sicherung"/„archiv"/„alt" stehen hier aus einem gemessenen Grund: In
+#: shortlongx liegt unter ``werkzeug/sicherung`` eine Kopie von 405 Dateien
+#: (der Stand vor dem letzten Umbau, aus dem 53 Werkzeuge lesen). Ohne den
+#: Ausschluss meldete die Duplikat-Suche 1.426 Gruppen statt 329 - lauter
+#: „Duplikate", die genau dafuer da sind, Kopien zu sein.
+AUSGESCHLOSSEN = {".git", "__pycache__", "node_modules", "venv", "pythonVENV",
+                  ".venv", "env", "site-packages", "migrations", "staticfiles",
+                  ".mypy_cache", ".pytest_cache", "dist", "build",
+                  "sicherung", "backup", "archiv", "alt", "_alt", "old",
+                  # Der Wegwerf-Ordner des Anlassfall-Checks. Ohne ihn faenden
+                  # die Werkzeuge im normalen Lauf ihre eigenen Testdateien -
+                  # und meldeten absichtlich kaputten Code als Befund.
+                  "_anlassfall"}
 
 
-class Befund:
-    """Ein einzelner Fund eines Werkzeugs.
+class Quelldatei:
+    """Eine Python-Datei mit ihrem Syntaxbaum - einmal gelesen, einmal geparst."""
 
-    Eigene Klasse statt Dictionary — genau die Regel, die dieser Durchgang
-    hervorgebracht hat: Ein Datensatz mit mehr als drei Feldern, der seine
-    Ursprungsfunktion verlaesst und anderswo per ["schluessel"] gelesen wird,
-    gehoert in eine Klasse. Als Dictionary faellt ein Tippfehler im
-    Schluesselnamen erst zur Laufzeit auf, und niemand sieht der Uebergabe an,
-    welche Felder erwartet werden.
-    """
+    def __init__(self, pfad, wurzel):
+        self.pfad = Path(pfad)
+        self.name = self.pfad.relative_to(wurzel).as_posix()
+        self._text = None
+        self._baum = None
+        self._fehler = None
 
-    __slots__ = ('ort', 'was', 'warum', 'gewicht')
+    @property
+    def text(self):
+        if self._text is None:
+            try:
+                self._text = self.pfad.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                self._text = ""
+        return self._text
 
-    #: Gewichte, aufsteigend nach Dringlichkeit.
-    HINWEIS = 'hinweis'
-    WARNUNG = 'warnung'
-    FEHLER = 'fehler'
+    @property
+    def baum(self):
+        """Der Syntaxbaum - oder None, wenn die Datei nicht parst."""
+        if self._baum is None and self._fehler is None:
+            try:
+                self._baum = ast.parse(self.text)
+            except (SyntaxError, ValueError) as e:
+                self._fehler = str(e)
+        return self._baum
 
-    def __init__(self, ort, was, warum='', gewicht=HINWEIS):
-        self.ort = ort
-        self.was = was
-        self.warum = warum
-        self.gewicht = gewicht
+    @property
+    def zeilen(self):
+        return self.text.count("\n") + 1 if self.text else 0
 
-    def zeile(self):
-        teil = '%-9s %-55s %s' % (self.gewicht.upper(), self.ort, self.was)
-        return teil + ('  — ' + self.warum if self.warum else '')
+    def knoten(self, *arten):
+        """Alle Knoten der genannten Arten im ganzen Baum."""
+        if self.baum is None:
+            return []
+        return [k for k in ast.walk(self.baum) if isinstance(k, arten)]
 
 
 class Ergebnis:
-    """Was ein Werkzeug zurueckgibt: Kopfzeilen, Befunde, Laufzeit."""
+    """Was ein Werkzeug gefunden hat.
 
-    __slots__ = ('titel', 'kopf', 'befunde', 'dauer_s', 'fehler')
+    ``zeilen`` sind Dictionaries mit den Spalten, die ``spalten`` nennt - hier
+    ist das Dictionary richtig: Es geht unveraendert als JSON an die Seite
+    (siehe die Lehre „Dictionary oder Klasse?")."""
 
-    def __init__(self, titel, kopf=None, befunde=None, dauer_s=0.0, fehler=''):
-        self.titel = titel
-        #: Freie Zeilen ueber der Liste — Zusammenfassung, Zahlen, Messwerte.
-        self.kopf = list(kopf or [])
-        self.befunde = list(befunde or [])
-        self.dauer_s = dauer_s
-        self.fehler = fehler
+    def __init__(self, spalten, zeilen, zusammenfassung="", hinweis=""):
+        self.spalten = list(spalten)
+        self.zeilen = list(zeilen)
+        self.zusammenfassung = zusammenfassung
+        self.hinweis = hinweis
 
-    @property
-    def anzahl(self):
-        return len(self.befunde)
-
-    @property
-    def sauber(self):
-        return not self.befunde and not self.fehler
-
-    def text(self):
-        """Alles als Klartext — fuer die Zwischenablage und fuers Log."""
-        zeilen = list(self.kopf)
-        if self.fehler:
-            zeilen.append('FEHLER: ' + self.fehler)
-        if self.befunde:
-            zeilen.append('')
-            zeilen.extend(b.zeile() for b in self.befunde)
-            zeilen.append('')
-            zeilen.append('%d Befunde in %.1f s' % (self.anzahl, self.dauer_s))
-        elif not self.fehler:
-            zeilen.append('')
-            zeilen.append('Nichts gefunden (%.1f s).' % self.dauer_s)
-        return '\n'.join(zeilen)
+    def als_dict(self):
+        return {"spalten": self.spalten, "zeilen": self.zeilen,
+                "anzahl": len(self.zeilen),
+                "zusammenfassung": self.zusammenfassung, "hinweis": self.hinweis}
 
 
-class Ausgabe:
-    """Sammelt die Klartext-Ergebnisse mehrerer Werkzeuge in einem Feld.
+class Werkzeug2:
+    """Basis aller Skills2-Werkzeuge."""
 
-    Die Skills-Seite schreibt alles in eine Textbox, damit man den Inhalt einer
-    Claude-Sitzung als Arbeitsgrundlage geben kann. Deshalb steht vor jedem
-    Abschnitt eine deutliche Trennlinie mit Werkzeugname, Kennung, Laufzeit und
-    Trefferzahl: Wer mehrere Werkzeuge hintereinander laufen laesst, muss im
-    Text sofort erkennen, wo das eine endet und das naechste beginnt.
-    """
+    slug = ""
+    titel = ""
+    #: Wonach es sucht - eine Zeile, steht in der Tabelle.
+    zweck = ""
+    #: Der reale Befund, der es ausgeloest hat - das macht den Unterschied
+    #: zwischen „nettes Werkzeug" und „das brauchst du wirklich".
+    befund = ""
+    #: Was zu tun ist, wenn es etwas findet.
+    abhilfe = ""
+    #: Grobe Laufzeit, damit niemand versehentlich minutenlang wartet.
+    dauer = "unter 1 s"
+    #: Nummer des Auftrags-Kriteriums, das dieses Werkzeug bedient (0 = keines).
+    kriterium = 0
+    #: :class:`~.anlassfall.Anlassfall` - der Code, den dieses Werkzeug melden
+    #: MUSS. Geprueft von ``anlassfall-check``: Ein Pruefer, der nach einem
+    #: Umbau seinen eigenen Fall nicht mehr sieht, meldet null und sieht dabei
+    #: aus wie ein sauberes Projekt (zweimal passiert am 17.08.2026).
+    #: ``None`` ist erlaubt, wo es keinen dateibasierten Fall gibt - das Werkzeug
+    #: erscheint dann im Bericht als „ohne Anlassfall", nicht als bestanden.
+    anlassfall = None
 
-    LINIE = '=' * 78
+    def wurzel(self):
+        """Die Wurzel des PROJEKTS, nicht nur des Django-Teils.
 
-    def __init__(self, bisher=''):
-        self.teile = [bisher.rstrip()] if bisher and bisher.strip() else []
+        ``BASE_DIR`` zeigt auf das Verzeichnis mit ``manage.py``. In vielen
+        Projekten liegt daneben noch Code, der genauso dazugehört (bei
+        shortlongx: ``brain/``, ``depot/``, ``werkzeug/`` — zusammen zwei Drittel
+        der Zeilen). Eine Prüfung, die den nicht sieht, meldet 19 statt 31
+        Fundstellen und wirkt gründlicher, als sie ist.
 
-    def anhaengen(self, werkzeug, ergebnis, zeitstempel=''):
-        kopf = '%s  [%s]%s' % (werkzeug.name, werkzeug.slug,
-                               '  ' + zeitstempel if zeitstempel else '')
-        stand = ('%d Befunde' % ergebnis.anzahl if ergebnis.befunde
-                 else 'FEHLER' if ergebnis.fehler else 'nichts gefunden')
-        self.teile.append('\n'.join([
-            self.LINIE,
-            '# %s' % kopf,
-            '# %s · %.1f s' % (stand, ergebnis.dauer_s),
-            self.LINIE,
-            ergebnis.text(),
-        ]))
-        return self
+        Deshalb: eine Ebene höher, wenn dort das Git-Repo beginnt."""
+        basis = Path(getattr(settings, "BASE_DIR", "."))
+        eltern = basis.parent
+        if (eltern / ".git").exists() and not (basis / ".git").exists():
+            return eltern
+        return basis
 
-    def text(self):
-        return '\n\n'.join(self.teile).strip()
+    def ausgeschlossen(self):
+        """Verzeichnisnamen, die übersprungen werden.
 
+        Projekte können ergänzen: ``DJANGOBASE["skills2_ignorieren"] = [...]``."""
+        eigen = (getattr(settings, "DJANGOBASE", {}) or {}).get("skills2_ignorieren") or []
+        return AUSGESCHLOSSEN | {str(x) for x in eigen}
 
-class Werkzeug:
-    """Ein Analysewerkzeug. Unterklassen ueberschreiben `pruefen`."""
+    def dateien(self, endung=".py"):
+        """Alle Quelldateien des Projekts - ohne venv, Migrationen, Fremdcode."""
+        wurzel = self.wurzel()
+        raus = self.ausgeschlossen()
+        aus = []
+        for p in sorted(wurzel.rglob("*" + endung)):
+            if any(teil in raus for teil in p.parts):
+                continue
+            aus.append(Quelldatei(p, wurzel) if endung == ".py" else p)
+        return aus
 
-    #: Kennung in der URL — kleingeschrieben, mit Bindestrichen.
-    slug = ''
-    name = ''
-    #: Was das Werkzeug tut (eine Zeile).
-    zweck = ''
-    #: Wann man es einsetzt.
-    wann = ''
-    #: Was es im Ursprungsprojekt tatsaechlich gefunden hat — ohne so einen
-    #: Beleg glaubt man einem Werkzeug nicht, dass es sich lohnt.
-    beleg = ''
-    #: Grobe Laufzeit, damit niemand versehentlich eine Minute wartet.
-    dauer = 'Sekunden'
-    #: Optionales Textfeld auf der Seite: (name, beschriftung, vorgabe)
-    eingabe = None
-    #: True, wenn das Werkzeug Endpunkte des laufenden Servers aufruft.
-    ruft_endpunkte_auf = False
-
-    def laufen(self, **argumente):
-        """Werkzeug ausfuehren; faengt Fehler ab, damit die Seite stehen bleibt."""
-        start = time.perf_counter()
-        try:
-            ergebnis = self.pruefen(**argumente)
-        except Exception as fehler:  # noqa: BLE001 — die Seite darf nicht sterben
-            ergebnis = Ergebnis(self.name, fehler='%s: %s'
-                                % (type(fehler).__name__, fehler))
-        ergebnis.dauer_s = time.perf_counter() - start
-        return ergebnis
-
-    def pruefen(self, **argumente):
+    def laufen(self):                       # pragma: no cover - Schnittstelle
         raise NotImplementedError
 
-    # ------------------------------------------------------------- Hilfsmittel
-
-    #: Immer uebersprungen — nichts davon ist eigener Quelltext.
-    AUSSER = ('__pycache__', 'migrations', 'node_modules', '.git', 'venv',
-              'site-packages', 'staticfiles', 'dist', 'build', '.venv')
-
-    @classmethod
-    def ausnahmen(cls):
-        """Uebersprungene Ordnernamen — Standard plus Projektangabe.
-
-        Fremder Referenzcode im Projektbaum (mitgelieferte Fremdbibliotheken,
-        alte Staende, Vergleichsimplementierungen) erzeugt sonst so viele
-        Befunde, dass die eigenen darin untergehen. Ergaenzen ueber
-
-            DJANGOBASE = {..., "skills_ausser": ["TestCharakter", "alt"]}
-        """
-        try:
-            from ..conf import conf
-            zusatz = tuple(str(x) for x in (conf().get('skills_ausser') or []))
-        except Exception:  # noqa: BLE001 — ohne Konfiguration eben nur Standard
-            zusatz = ()
-        return cls.AUSSER + zusatz
-
-    @classmethod
-    def projektdateien(cls, endung='.py', ausser=None):
-        """Alle Projektdateien mit dieser Endung, unterhalb von BASE_DIR.
-
-        BASE_DIR statt eines konfigurierten Pfades: Es ist die einzige Angabe,
-        die jedes Django-Projekt hat.
-        """
-        from pathlib import Path
-
-        from django.conf import settings
-        uebergehen = tuple(ausser) if ausser is not None else cls.ausnahmen()
-        wurzel = Path(str(settings.BASE_DIR))
-        for pfad in sorted(wurzel.rglob('*' + endung)):
-            if any(teil in uebergehen for teil in pfad.parts):
-                continue
-            yield pfad
-
-    @staticmethod
-    def kurz(pfad):
-        """Pfad relativ zu BASE_DIR — absolute Pfade sind in Listen unlesbar."""
-        from pathlib import Path
-
-        from django.conf import settings
-        try:
-            return str(Path(pfad).relative_to(str(settings.BASE_DIR)))
-        except (ValueError, TypeError):
-            return str(pfad)
+    def als_dict(self):
+        # Dictionary gewollt: geht unveraendert in die Vorlage bzw. als JSON hinaus.
+        return {"slug": self.slug, "titel": self.titel, "zweck": self.zweck,
+                "befund": self.befund, "abhilfe": self.abhilfe,
+                "dauer": self.dauer, "kriterium": self.kriterium}

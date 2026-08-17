@@ -5,7 +5,7 @@ import collections
 from django.template.base import Variable
 
 from .routen import klient
-from .werkzeug import Befund, Ergebnis, Werkzeug
+from .werkzeug_alt import Befund, Ergebnis, Werkzeug
 
 
 class Vorlagenvariablen(Werkzeug):

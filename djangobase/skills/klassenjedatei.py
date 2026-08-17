@@ -2,7 +2,7 @@
 
 import ast
 
-from .werkzeug import Befund, Ergebnis, Werkzeug
+from .werkzeug_alt import Befund, Ergebnis, Werkzeug
 
 
 class KlassenJeDatei(Werkzeug):

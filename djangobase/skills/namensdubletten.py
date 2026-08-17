@@ -4,7 +4,7 @@ import ast
 import re
 from collections import defaultdict
 
-from .werkzeug import Befund, Ergebnis, Werkzeug
+from .werkzeug_alt import Befund, Ergebnis, Werkzeug
 
 #: Wortpaare, die im selben Projekt dieselbe Sache meinen. Links das, was in
 #: gemischtsprachigen Projekten haeufig nebeneinander steht.

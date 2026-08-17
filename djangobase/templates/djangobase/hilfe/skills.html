@@ -5,18 +5,12 @@
 {% block topbar_title %}<i class="bi bi-tools"></i> Hilfe · Skills{% endblock %}
 
 {% comment %}
-Zwei Teile:
-
-* Werkzeuge — in der djangoBase-Standardtabelle (`_tabelle.html`), also
-  sortierbar und mit ziehbaren Spalten. Auswahl per Ankreuzfeld, Start einzeln
-  oder als Stapel. Die Ergebnisse landen als Klartext in der Textbox darunter,
-  damit man sie einer Claude-Sitzung geben kann; ein zweiter Lauf haengt an,
-  getrennt durch eine Trennlinie je Werkzeug.
-* Lehren — Ankreuzliste (Vorgabe: an), daraus ein Auftragstext.
-
-Die Tabelle steht INNERHALB des Formulars: Die Zellen enthalten die Ankreuzfelder
-und die Vorgabefelder. Die Sortierung im Browser verschiebt nur Zeilen, die
-Felder bleiben dieselben.
+DER Werkzeugkasten: alle Werkzeuge aus skills2 und skills3 liegen jetzt hier (ueber
+einen Adapter). Server-seitiger Stapellauf: Auswahl ankreuzen, EIN POST, der
+Klartext-Bericht landet in der Textbox darunter - je Werkzeug ein Abschnitt mit
+Trennlinie, ein zweiter Lauf haengt an. Die Tabelle steht INNERHALB des Formulars
+(Ankreuz- und Vorgabefelder in den Zellen); die Sortierung im Browser verschiebt
+nur Zeilen.
 {% endcomment %}
 
 {% block head_extra %}{{ block.super }}
@@ -24,170 +18,188 @@ Felder bleiben dieselben.
 {% endblock %}
 
 {% block content %}
-<div class="sk-page">
+<div class="sk1-page">
 
-    {# ================= Werkzeuge ================= #}
-    <form method="post" id="sk-form">
+    <form method="post" id="sk1-form">
         {% csrf_token %}
-        <div class="sk-card">
+        <div class="sk1-card">
             <h3><i class="bi bi-wrench-adjustable"></i> Werkzeuge
-                <span class="sk-meta">· {{ anzahl_werkzeuge }} Analysen</span></h3>
-            <p class="sk-intro">
-                Jedes Werkzeug arbeitet im aktuellen Projekt
-                (<code>settings.BASE_DIR</code>) und braucht keine Konfiguration.
-                Werkzeuge mit dem Vermerk <span class="sk-ruft">ruft Endpunkte auf</span>
-                fahren die GET-Routen dieser Anwendung im laufenden Prozess an — auf
-                der echten Datenbank, nie mit POST.
-                <br>Übersprungene Ordner: <code>{{ ausnahmen }}</code> —
-                erweiterbar über <code>DJANGOBASE["skills_ausser"]</code>.
+                <span class="sk1-meta">· {{ anzahl_werkzeuge }} Analysen — der ganze Werkzeugkasten</span></h3>
+            <p class="sk1-intro">
+                Vereint die Werkzeuge beider Kaesten. Fundament ist die
+                Engine: sucht ab der Repo-Wurzel, liest den Syntaxbaum,
+                abgestufte Bewertung); die skills-Werkzeuge — Import-Graph,
+                Doppelcode über HTML, tote Importe, Synonyme, Vorlagen- und
+                Endpunkt-Analysen — kommen über einen Adapter dazu.
+                Die <b>Nr.</b> ist das Auftrags-Kriterium. Ein Knopf beantwortet
+                nur die mechanische Hälfte — die Bewertung bleibt Handarbeit.
             </p>
 
-            <div class="sk-stapel">
-                <button type="submit" class="sk-batch">
+            <div class="sk1-stapel">
+                <button type="submit" class="sk1-batch">
                     <i class="bi bi-play-circle"></i> Ausgewählte ausführen</button>
-                <button type="button" class="sk-knopf" id="sk-alle-an">alle</button>
-                <button type="button" class="sk-knopf" id="sk-keine">keine</button>
-                <span class="sk-leise" id="sk-zaehler"></span>
+                <button type="button" class="sk1-knopf" id="sk1-alle-an">alle</button>
+                <button type="button" class="sk1-knopf" id="sk1-keine">keine</button>
+                <span class="sk1-leise" id="sk1-zaehler"></span>
             </div>
 
             {% include "djangobase/_tabelle.html" with tabelle=tabelle %}
         </div>
 
-        {# ================= Ausgabe ================= #}
-        <div class="sk-card" id="ausgabe">
-            <h3><i class="bi bi-clipboard-data"></i> Ausgabe
-                <span class="sk-meta">· Klartext für die nächste Sitzung</span></h3>
-            <p class="sk-intro">
-                Alles, was die Werkzeuge gefunden haben — je Lauf ein Abschnitt mit
-                Überschrift. Der Inhalt wird beim nächsten Start mitgeschickt und
-                ergänzt, nicht überschrieben.
+        {# ============ Kriterium 16 + 17: Logging und Tests ============ #}
+        <div class="sk1-card">
+            <h3><i class="bi bi-journal-check"></i> Logging &amp; Tests
+                <span class="sk1-meta">· Kriterium 16 und 17</span></h3>
+            <p class="sk1-intro">
+                {% for nr, text in k1617_texte %}
+                <b>{{ nr }}.</b> {{ text }}<br>
+                {% endfor %}
             </p>
-            <div class="sk-stapel">
-                <button type="button" class="sk-knopf" id="sk-kopieren">
-                    <i class="bi bi-clipboard"></i> Kopieren</button>
-                <button type="button" class="sk-knopf sk-warn" id="sk-leeren">
-                    <i class="bi bi-trash"></i> Textbox leeren</button>
-                <span class="sk-leise" id="sk-mass"></span>
+            <div class="sk1-stapel">
+                <button type="submit" name="k1617" value="1" class="sk1-batch">
+                    <i class="bi bi-play-circle"></i> Logging &amp; Tests prüfen</button>
+                <span class="sk1-leise">fährt die {{ k1617|length }} Werkzeuge unten
+                    in einem Lauf — Bericht landet in der Ausgabe</span>
             </div>
-            <textarea name="ausgabe" id="sk-ausgabe" class="sk-textbox" rows="22"
+            {% for w in k1617 %}
+            <div class="sk1-fixzeile">
+                <span class="sk1-fixtext">
+                    <span class="sk1-name">{{ w.titel }}
+                        <span class="sk1-leise">· Kr. {{ w.kriterium }}</span></span>
+                    <span class="sk1-fixtut">{{ w.zweck }}</span>
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="sk1-card" id="ausgabe">
+            <h3><i class="bi bi-clipboard-data"></i> Ausgabe
+                <span class="sk1-meta">· Klartext für die nächste Sitzung</span></h3>
+            <p class="sk1-intro">
+                Alles, was die Werkzeuge gefunden haben — je Lauf ein Abschnitt mit
+                Überschrift, Datei und Zeile. Der Inhalt wird beim nächsten Start
+                mitgeschickt und ergänzt, nicht überschrieben.
+            </p>
+            <div class="sk1-stapel">
+                <button type="button" class="sk1-knopf" id="sk1-kopieren">
+                    <i class="bi bi-clipboard"></i> Kopieren</button>
+                <button type="button" class="sk1-knopf sk1-warn" id="sk1-leeren">
+                    <i class="bi bi-trash"></i> Textbox leeren</button>
+                <span class="sk1-leise" id="sk1-mass"></span>
+            </div>
+            <textarea name="ausgabe" id="sk1-ausgabe" class="sk1-textbox" rows="22"
                       spellcheck="false"
                       placeholder="Noch nichts ausgeführt. Werkzeuge auswählen und auf „Ausgewählte ausführen“ klicken.">{{ ausgabe }}</textarea>
         </div>
     </form>
 
-    {# ================= Lehren ================= #}
-    <div class="sk-card" id="lehren">
-        <h3><i class="bi bi-check2-square"></i> Lehren
-            <span class="sk-meta">· {{ anzahl_aktiv }} von {{ anzahl_lehren }} aktiv</span></h3>
-        <p class="sk-intro">
-            Regeln aus einem grossen Review- und Umbaudurchgang. Angekreuzt heisst:
-            gilt für dieses Projekt. Der Stand liegt in
-            <code>.djangobase-skills.json</code> neben den Einstellungen — die
-            Vorgabe ist überall <em>an</em>.
-            <a class="sk-auftrag" href="?auftrag=1" target="_blank" rel="noopener">
-                <i class="bi bi-clipboard-check"></i> Auftragstext aus den aktiven Regeln
-            </a>
+    {# ===================== Fix-Werkzeuge (schreiben Code) ===================== #}
+    <form method="post" class="sk1-card" id="sk1-fix-form">
+        {% csrf_token %}
+        <h3><i class="bi bi-tools"></i> Fix-Werkzeuge
+            <span class="sk1-meta">· schreiben Code — Diff-Vorschau zuerst</span></h3>
+        <p class="sk1-intro">
+            Nur Befunde mit <b>eindeutiger</b> Behebung tragen einen Fixer. Zuerst
+            <b>Vorschau</b> (die Liste erscheint oben in der Ausgabe), dann
+            <b>Anwenden</b>. Jede Datei wird vorher <b>gesichert</b>
+            (<code>werkzeug/sicherung/fixer/&lt;zeitstempel&gt;</code>) und nach dem
+            Schreiben geprüft — fällt das Netz, wird genau diese Datei
+            zurückgespielt. Konzeptuelle Befunde (Datei-Schnitt nach
+            Zuständigkeiten, Import-Zyklen, Funktion→Klasse) haben bewusst
+            <b>keinen</b> Knopf: die kann kein Algorithmus korrekt raten.
         </p>
+        <div class="sk1-stapel">
+            <label class="sk1-leise">Bereich (Unterordner, leer = ganzes Projekt):
+                <input type="text" name="fix_bereich" value="{{ fix.bereich|default:'' }}"
+                       placeholder="z. B. search" class="sk1-arg" style="width:12rem"></label>
+        </div>
+        {% for f in fixer_da %}
+        <div class="sk1-fixzeile">
+            <button type="submit" name="fix" value="vorschau:{{ f.slug }}" class="sk1-knopf">
+                <i class="bi bi-search"></i> Vorschau</button>
+            {% if fix and fix.modus == 'vorschau' and fix.slug == f.slug and fix.n %}
+            <button type="submit" name="fix" value="anwenden:{{ f.slug }}" class="sk1-batch">
+                <i class="bi bi-check2-circle"></i> Anwenden ({{ fix.n }}) — schreibt</button>
+            {% endif %}
+            <span class="sk1-fixtext">
+                <span class="sk1-name">{{ f.titel }}
+                    <span class="sk1-leise">· Kr. {{ f.kriterium }} · {{ f.dauer }}</span></span>
+                <span class="sk1-fixtut">{{ f.tut }}</span>
+                <span class="sk1-leise">Grenzen: {{ f.grenzen }}</span>
+            </span>
+        </div>
+        {% empty %}
+        <span class="sk1-leise">Noch kein Fixer registriert.</span>
+        {% endfor %}
 
-        <form method="post">
-            {% csrf_token %}
-            <input type="hidden" name="aktion" value="lehren">
-            {% for bereich in bereiche %}
-            <div class="sk-bereich">
-                <div class="sk-bereich-kopf">{{ bereich.name }}
-                    <span class="sk-count">{{ bereich.anzahl }}</span></div>
-                {% for eintrag in bereich.lehren %}
-                <label class="sk-lehre">
-                    <input type="checkbox" name="lehre" value="{{ eintrag.lehre.slug }}"
-                           {% if eintrag.an %}checked{% endif %}>
-                    <span class="sk-lehre-text">
-                        <span class="sk-lehre-titel">{{ eintrag.lehre.titel }}</span>
-                        <span class="sk-lehre-regel">{{ eintrag.lehre.regel }}</span>
-                        <span class="sk-lehre-warum"><b>Warum:</b> {{ eintrag.lehre.warum }}</span>
-                        {% if eintrag.lehre.beleg %}
-                        <span class="sk-lehre-beleg"><b>Beleg:</b> {{ eintrag.lehre.beleg }}</span>
-                        {% endif %}
-                    </span>
-                </label>
-                {% endfor %}
-            </div>
-            {% endfor %}
-            <div class="sk-stapel">
-                <button type="submit" class="sk-batch">
-                    <i class="bi bi-save"></i> Stand speichern</button>
-            </div>
-        </form>
-    </div>
+        {# --------- Umbau-Netz: für Umbauten, die kein Knopf machen kann --------- #}
+        <div class="sk1-fixzeile">
+            <button type="submit" name="netz" value="abnehmen" class="sk1-knopf">
+                <i class="bi bi-camera"></i> Abnahme (vorher)</button>
+            <button type="submit" name="netz" value="vergleichen" class="sk1-batch">
+                <i class="bi bi-shield-check"></i> Vergleich (nachher)</button>
+            <span class="sk1-fixtext">
+                <span class="sk1-name">{{ netz.titel }}</span>
+                <span class="sk1-fixtut">{{ netz.tut }}</span>
+                <span class="sk1-leise">{{ netz.warum }}</span>
+                <span class="sk1-leise">Grenzen: {{ netz.grenzen }}</span>
+            </span>
+        </div>
+    </form>
 </div>
 
 <style>
-.sk-page { padding: .5rem 0 2rem; }
-.sk-card {
+.sk1-page { padding: .5rem 0 2rem; }
+.sk1-card {
     background: var(--card-bg, #1b2028);
     border: 1px solid var(--card-border, #2b323d);
     border-radius: 10px; padding: 1rem 1.25rem 1.25rem; margin-bottom: 1.25rem;
 }
-.sk-card h3 { font-size: 1.05rem; margin: 0 0 .5rem; }
-.sk-meta { font-weight: 400; opacity: .65; font-size: .85rem; }
-.sk-intro { font-size: .88rem; opacity: .85; margin: 0 0 .85rem; line-height: 1.55; }
-.sk-leise { opacity: .6; font-size: .8rem; }
+.sk1-card h3 { font-size: 1.05rem; margin: 0 0 .5rem; }
+.sk1-meta { font-weight: 400; opacity: .65; font-size: .85rem; }
+.sk1-intro { font-size: .88rem; opacity: .85; margin: 0 0 .85rem; line-height: 1.55; }
+.sk1-leise { opacity: .6; font-size: .8rem; }
 
-/* Zellen der Standardtabelle */
-.sk-mitte { text-align: center; white-space: nowrap; }
-.sk-wname { display: block; font-weight: 600; }
-.sk-dauer { display: block; font-size: .74rem; opacity: .6; }
-.sk-ruft { display: block; font-size: .74rem; color: #e0a63c; }
-.sk-beleg { font-style: italic; opacity: .72; }
-.sk-arg {
+.sk1-mitte { text-align: center; white-space: nowrap; }
+.sk1-name { display: block; font-weight: 600; }
+.sk1-dauer { display: block; font-size: .74rem; opacity: .6; }
+.sk1-ruft { display: block; font-size: .74rem; color: #e0a63c; }
+.sk1-arg {
     background: var(--input-bg, #11151b); color: inherit;
     border: 1px solid var(--card-border, #2b323d);
     border-radius: 5px; padding: .2rem .35rem; font-size: .8rem;
 }
 .db-hervor { background: rgba(120,170,255,.08); }
 
-.sk-stapel { display: flex; gap: .5rem; align-items: center; margin: .5rem 0 .75rem; }
-.sk-batch, .sk-run, .sk-knopf {
+.sk1-stapel { display: flex; gap: .5rem; align-items: center; margin: .5rem 0 .75rem; }
+.sk1-batch, .sk1-run, .sk1-knopf {
     border: 0; border-radius: 5px; cursor: pointer; white-space: nowrap;
     font-size: .82rem; padding: .32rem .7rem;
 }
-.sk-batch { background: #2d6cdf; color: #fff; font-weight: 600; }
-.sk-run { background: #2d6cdf; color: #fff; }
-.sk-batch:hover, .sk-run:hover { background: #3a7cf0; }
-.sk-knopf {
+.sk1-batch { background: #2d6cdf; color: #fff; font-weight: 600; }
+.sk1-run { background: #2d6cdf; color: #fff; }
+.sk1-batch:hover, .sk1-run:hover { background: #3a7cf0; }
+.sk1-knopf {
     background: transparent; color: inherit;
     border: 1px solid var(--card-border, #2b323d);
 }
-.sk-knopf:hover { background: rgba(255,255,255,.06); }
-.sk-warn:hover { background: rgba(208,83,83,.18); border-color: #d05353; }
+.sk1-knopf:hover { background: rgba(255,255,255,.06); }
+.sk1-warn:hover { background: rgba(208,83,83,.18); border-color: #d05353; }
 
-.sk-textbox {
+.sk1-fixzeile {
+    display: flex; gap: .5rem; align-items: flex-start;
+    padding: .55rem .4rem; border-top: 1px solid var(--card-border, #2b323d);
+}
+.sk1-fixzeile:first-of-type { border-top: none; }
+.sk1-fixtext { display: flex; flex-direction: column; gap: .12rem; }
+.sk1-fixtut { font-size: .85rem; opacity: .9; }
+
+.sk1-textbox {
     width: 100%; background: #0e1116; color: #d7dee8;
     border: 1px solid var(--card-border, #2b323d); border-radius: 6px;
     padding: .7rem; font-family: ui-monospace, Consolas, monospace;
     font-size: .78rem; line-height: 1.45; white-space: pre; resize: vertical;
 }
-
-.sk-bereich { margin: 0 0 1rem; }
-.sk-bereich-kopf {
-    font-size: .8rem; text-transform: uppercase; letter-spacing: .06em;
-    opacity: .6; border-bottom: 1px solid var(--card-border, #2b323d);
-    padding-bottom: .25rem; margin-bottom: .5rem;
-}
-.sk-count {
-    background: rgba(255,255,255,.09); border-radius: 8px;
-    padding: 0 .35rem; font-size: .72rem; margin-left: .25rem;
-}
-.sk-lehre {
-    display: grid; grid-template-columns: 1.4rem 1fr; gap: .5rem;
-    padding: .5rem .4rem; border-radius: 6px; cursor: pointer;
-}
-.sk-lehre:hover { background: rgba(255,255,255,.04); }
-.sk-lehre input { margin-top: .25rem; width: 1rem; height: 1rem; }
-.sk-lehre-text { display: flex; flex-direction: column; gap: .15rem; }
-.sk-lehre-titel { font-weight: 600; font-size: .9rem; }
-.sk-lehre-regel { font-size: .84rem; opacity: .9; }
-.sk-lehre-warum, .sk-lehre-beleg { font-size: .78rem; opacity: .62; line-height: 1.5; }
-.sk-auftrag { margin-left: .5rem; white-space: nowrap; }
 </style>
 {% endblock %}
 
@@ -201,53 +213,50 @@ TabellenSortierung.binden();
 </script>
 <script>
 (function () {
-    const wahlen = () => Array.from(document.querySelectorAll('.sk-wahl'));
-    const ausgabe = document.getElementById('sk-ausgabe');
-    const zaehler = document.getElementById('sk-zaehler');
-    const mass = document.getElementById('sk-mass');
+    const wahlen = () => Array.from(document.querySelectorAll('.sk1-wahl'));
+    const ausgabe = document.getElementById('sk1-ausgabe');
+    const zaehler = document.getElementById('sk1-zaehler');
+    const mass = document.getElementById('sk1-mass');
 
-    function standAnzeigen() {
+    function stand() {
         const an = wahlen().filter(k => k.checked).length;
         zaehler.textContent = an ? an + ' ausgewählt' : 'nichts ausgewählt';
         const zeichen = (ausgabe.value || '').length;
         mass.textContent = zeichen ? zeichen.toLocaleString('de-DE') + ' Zeichen' : 'leer';
     }
 
-    // Kopfzeilen-Ankreuzfeld: schaltet alle. Das Feld sitzt im <th> der
-    // Standardtabelle, deshalb der Klick-Stopp — sonst sortiert die Tabelle
-    // gleich mit.
-    const alle = document.getElementById('sk-alle');
+    // Kopfzeilen-Ankreuzfeld im <th>: schaltet alle. Klick-Stopp, sonst sortiert
+    // die Tabelle gleich mit.
+    const alle = document.getElementById('sk1-alle');
     if (alle) {
         alle.addEventListener('click', e => e.stopPropagation());
         alle.addEventListener('change', () => {
             wahlen().forEach(k => { k.checked = alle.checked; });
-            standAnzeigen();
+            stand();
         });
     }
-    document.getElementById('sk-alle-an').addEventListener('click', () => {
+    document.getElementById('sk1-alle-an').addEventListener('click', () => {
         wahlen().forEach(k => { k.checked = true; });
-        standAnzeigen();
+        stand();
     });
-    document.getElementById('sk-keine').addEventListener('click', () => {
+    document.getElementById('sk1-keine').addEventListener('click', () => {
         wahlen().forEach(k => { k.checked = false; });
         if (alle) alle.checked = false;
-        standAnzeigen();
+        stand();
     });
-    wahlen().forEach(k => k.addEventListener('change', standAnzeigen));
+    wahlen().forEach(k => k.addEventListener('change', stand));
 
-    document.getElementById('sk-leeren').addEventListener('click', () => {
+    document.getElementById('sk1-leeren').addEventListener('click', () => {
         ausgabe.value = '';
-        standAnzeigen();
+        stand();
         ausgabe.focus();
     });
-    document.getElementById('sk-kopieren').addEventListener('click', async (e) => {
+    document.getElementById('sk1-kopieren').addEventListener('click', async (e) => {
         const knopf = e.currentTarget;
         try {
             await navigator.clipboard.writeText(ausgabe.value);
             knopf.innerHTML = '<i class="bi bi-check2"></i> kopiert';
         } catch (fehler) {
-            // Ohne Zwischenablage-Recht (kein HTTPS, kein Fokus) bleibt das
-            // Markieren — deshalb hier auswählen statt eine Fehlermeldung.
             ausgabe.select();
             knopf.innerHTML = '<i class="bi bi-cursor-text"></i> markiert';
             console.warn('Zwischenablage nicht verfügbar:', fehler);
@@ -255,8 +264,8 @@ TabellenSortierung.binden();
         setTimeout(() => { knopf.innerHTML =
             '<i class="bi bi-clipboard"></i> Kopieren'; }, 2000);
     });
-    ausgabe.addEventListener('input', standAnzeigen);
-    standAnzeigen();
+    ausgabe.addEventListener('input', stand);
+    stand();
 
     // Nach einem Lauf zur Ausgabe rollen, ohne die Adresse zu ändern.
     if ((ausgabe.value || '').trim() &&

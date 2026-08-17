@@ -3,7 +3,7 @@
 import ast
 import re
 
-from .werkzeug import Befund, Ergebnis, Werkzeug
+from .werkzeug_alt import Befund, Ergebnis, Werkzeug
 
 
 class Dateimass:

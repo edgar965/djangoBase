@@ -6,7 +6,7 @@ from .views import (AktuellDatenView, AktuellLeerenView, AktuellView,
                     BenutzerInlineView, BenutzerListeView, BenutzerLoeschenView,
                     BenutzerStatusView, EinstellungenTabsView, EinstellungenView,
                     JobsView, LogsClearView, LogsView, ReviewNachfassenView,
-                    ReviewStartView, ReviewStatusView, ReviewView, Skills1View,
+                    ReviewStartView, ReviewStatusView, ReviewView, Skills3View,
                     Skills2View, SkillsView, TestsView, TrafficView,
                     UebersetzungView, VersionsView)
 
@@ -20,18 +20,15 @@ urlpatterns = [
     path("logs/", LogsView.as_view(), name="logs"),
     path("logs/leeren/", LogsClearView.as_view(), name="logs_leeren"),
     path("tests/", TestsView.as_view(), name="tests"),
-    # Werkzeugkasten und Lehren aus Code-Reviews. Die Werkzeuge laufen im
-    # Serverprozess und rufen ausschliesslich GET-Routen auf; POST speichert nur
-    # die Ankreuzliste der Lehren.
+    # DER Werkzeugkasten: alle Werkzeuge, alle Lehren, die Fixer und der
+    # server-seitige Stapellauf mit Klartext-Bericht. Die Werkzeuge laufen im
+    # Serverprozess und rufen ausschliesslich GET-Routen auf.
     path("skills/", SkillsView.as_view(), name="skills"),
-    # Skills2: Werkzeuge und Lehren aus dem shortlongx-Review (16.08.2026).
-    # Bewusst neben „skills" und nicht darin: Beide sind am selben Tag in zwei
-    # Sitzungen entstanden; zusammenlegen kann man sie, wenn beide fertig sind.
+    # Skills2 und Skills3 sind UEBERGANGSSEITEN auf dem Weg zur Abschaffung
+    # (17.08.2026). Ihre Werkzeuge liegen im Master; sie bleiben nur, damit
+    # Lesezeichen und fremde Links nicht ins Leere zeigen.
     path("skills2/", Skills2View.as_view(), name="skills2"),
-    # Skills1: beide Kaesten vereint (skills2-Engine + skills-Werkzeuge ueber
-    # einen Adapter, server-seitiger Stapel mit Klartext-Bericht). Der Menuepunkt
-    # wird separat gesetzt (Navigation wird gerade umgebaut).
-    path("skills1/", Skills1View.as_view(), name="skills1"),
+    path("skills3/", Skills3View.as_view(), name="skills3"),
     path("jobs/", JobsView.as_view(), name="jobs"),
     # Rollierendes Fenster mit den Ergebnissen der Claude-CLI. Geschrieben wird
     # NUR ueber `manage.py aktuell` — es gibt bewusst keinen Schreib-Endpunkt.

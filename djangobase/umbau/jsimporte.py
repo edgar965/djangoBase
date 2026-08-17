@@ -21,7 +21,7 @@ import os
 import sys
 from pathlib import Path
 
-from ..skills2.jsklammern import Klammerzaehler
+from ..skills.jsklammern import Klammerzaehler
 
 #: Klasse -> Dateiname im Ordner `gemeinsam`
 GEMEINSAM = {

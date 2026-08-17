@@ -21,7 +21,7 @@ VIER SICHERUNGEN, DAMIT NUR EINDEUTIG TOTES FAELLT
 """
 import ast
 
-from ..skills2.fixer import Aenderung, Fixer, Vorschau
+from .fixer import Aenderung, Fixer, Vorschau
 
 __all__ = ["ImportFixer"]
 

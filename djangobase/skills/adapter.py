@@ -15,7 +15,7 @@ Die skills-Basisklasse faengt Ausnahmen bereits in ``laufen`` ab und liefert ein
 ``Ergebnis`` mit ``fehler`` - das wird hier in einen Tabellen-Hinweis uebersetzt,
 nicht noch einmal geworfen.
 """
-from ..skills2.werkzeug import Ergebnis, Werkzeug2
+from .werkzeug import Ergebnis, Werkzeug2
 
 __all__ = ["AltWerkzeug"]
 

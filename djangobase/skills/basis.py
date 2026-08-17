@@ -15,7 +15,7 @@ die echten Befunde, statt nur danebenzuliegen.
 Ergaenzbar bleibt es je Projekt ueber ``DJANGOBASE["skills2_ignorieren"]`` - die
 Liste hier ist nur die Grundausstattung.
 """
-from ..skills2.werkzeug import Werkzeug2
+from .werkzeug import Werkzeug2
 
 __all__ = ["EigenesWerkzeug", "ZUSATZ_RAUS"]
 
@@ -26,7 +26,24 @@ ZUSATZ_RAUS = {"vendor", "models", "tmp", "temp", "unsloth_compiled_cache",
 
 
 class EigenesWerkzeug(Werkzeug2):
-    """Basis der Skills1-eigenen Werkzeuge."""
+    """Basis der Werkzeuge zu den Kriterien 16 und 17."""
 
     def ausgeschlossen(self):
         return super().ausgeschlossen() | ZUSATZ_RAUS
+
+    def hat_code(self):
+        """Gibt es im geprueften Baum ueberhaupt Quelltext ausser Tests?
+
+        Zwei dieser Werkzeuge beantworten Fragen ueber das GANZE Projekt
+        („keine Tests", „diese Seite hat keinen Test") und holen sich einen Teil
+        ihrer Antwort nicht aus den Dateien, sondern aus Django selbst - der
+        URL-Tabelle. Auf einem leeren Verzeichnis melden sie dann Befunde ueber
+        ein Projekt, das dort gar nicht liegt. Das ist ein Fehlalarm, und die
+        Gegenprobe „laeuft auf leerem Projekt ohne Befund" faengt ihn (17.08.2026).
+        """
+        for d in self.dateien():
+            kurz = d.name.rsplit("/", 1)[-1]
+            if kurz == "__init__.py" or "/tests" in "/" + d.name:
+                continue
+            return True
+        return False
