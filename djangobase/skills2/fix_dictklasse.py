@@ -492,18 +492,55 @@ class FixDictKlasse(Fixer):
     def _ausdruck(text, knoten):
         return ast.get_source_segment(text, knoten) or "None"
 
-    @staticmethod
-    def _mit_import(zeilen, importzeile):
-        """Den Import hinter den letzten bestehenden setzen."""
+    #: Import-Zeile auf Modulebene - RELATIVE eingeschlossen (``from .x import``).
+    #:
+    #: Hier stand ``^(import|from)\s+\w``, und der Punkt fiel durch das ``\w``.
+    #: In Dateien, deren Importe ALLE relativ sind, fand die Suche deshalb
+    #: keinen einzigen - und der Zweig darunter gab die Zeilen unveraendert
+    #: zurueck. Ergebnis: Die Klasse wurde benutzt und nirgends importiert.
+    #: Getroffen hat es 2 von 14 Umbauten (``dax_signal_tabelle.py``,
+    #: ``orders_faelle.py``); gemeldet hat es das Vorwaermen des Servers mit
+    #: „name 'DaxSignalTabelleDaten' is not defined", nicht der Fixer.
+    IMPORTZEILE = re.compile(r"^(import|from)\s+[.\w]")
+
+    @classmethod
+    def _mit_import(cls, zeilen, importzeile):
+        """Den Import hinter den letzten bestehenden setzen.
+
+        Gibt es keinen, kommt er hinter den Modul-Docstring. STILL AUFGEBEN
+        gibt es nicht: Ein Fixer, der die Verwendung schreibt und den Import
+        weglaesst, erzeugt genau den Fehler, den er verhindern soll."""
         if any(importzeile in z for z in zeilen):
             return zeilen
         letzter = -1
         for i, z in enumerate(zeilen):
-            if re.match(r"^(import|from)\s+\w", z):
+            if cls.IMPORTZEILE.match(z):
                 letzter = i
         if letzter < 0:
-            return zeilen
+            letzter = cls._nach_docstring(zeilen)
+            return zeilen[:letzter] + [importzeile, ""] + zeilen[letzter:]
         return zeilen[:letzter + 1] + [importzeile] + zeilen[letzter + 1:]
+
+    @staticmethod
+    def _nach_docstring(zeilen):
+        """Index der ersten Zeile hinter Kodierungszeile und Modul-Docstring."""
+        i = 0
+        while i < len(zeilen) and (not zeilen[i].strip()
+                                   or zeilen[i].lstrip().startswith("#")):
+            i += 1
+        if i >= len(zeilen):
+            return len(zeilen)
+        auf = re.match(r"^[a-z]*(\"\"\"|''')", zeilen[i])
+        if not auf:
+            return i
+        zeichen = auf.group(1)
+        # Einzeiliger Docstring: Anfang und Ende in derselben Zeile.
+        if zeilen[i].count(zeichen) >= 2:
+            return i + 1
+        for j in range(i + 1, len(zeilen)):
+            if zeichen in zeilen[j]:
+                return j + 1
+        return i
 
     def pruefen(self, aenderung):
         """Beide Dateien müssen kompilieren, und die Felder müssen stimmen."""

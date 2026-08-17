@@ -210,6 +210,24 @@ LEHREN = [
      "defined“, geworfen erst beim Bauen der ersten Zelle. Seitdem baut die "
      "Prüfung alle 24 Zellfunktionen mit einer echten Zeile."),
 
+    ("selbstbezug-erst-beim-aufruf", "Fehler verhindern",
+     "Ein Klassenname in der Basisklasse bricht erst beim AUFRUF, nicht beim Laden",
+     "Beim Teilen über Vererbung wandert Code in die Basis — der Name der "
+     "abgeleiteten Klasse nicht. Steht er in einer Methode, lädt das Modul "
+     "trotzdem sauber und wirft erst, wenn jemand die Methode ruft. Richtig ist "
+     "<code>new this.constructor(…)</code> bzw. "
+     "<code>this.constructor.KONSTANTE</code>; das ist zur Laufzeit die "
+     "tatsächliche Klasse und überlebt auch eine zweite Ableitung. Werkzeug: "
+     "<code>js-vererbung</code>.",
+     "<code>clone() { return new TradeSystemConfig(…) }</code> stand in "
+     "<code>TradeSystemConfigBasis</code>. Der Name existiert dort nicht, ein "
+     "Import zurück wäre ein Zirkel — ein sicherer ReferenceError, den nur "
+     "deshalb niemand sah, weil <code>clone()</code> gerade niemand ruft. "
+     "Unterschied zu <i>Modul bricht ganz</i>: Dort fällt es sofort auf, hier "
+     "erst Wochen später. Und: Wird der Name irgendwo ans Fenster gehängt "
+     "(<code>window.X = X</code>), läuft es sogar — dann hängt die Datei still "
+     "an einer Zuweisung in einer anderen."),
+
     ("module-brechen-ganz", "Fehler verhindern",
      "Ein Modul, das beim Laden wirft, reißt die ganze Seite mit",
      "Der Browser verwirft es komplett — samt aller Namen, die es auf `window` "
@@ -238,6 +256,19 @@ LEHREN = [
      "als Ausnahme führte — 75 Dateiänderungen ohne Wirkung. Umgekehrt hielt "
      "eine Zusatzbedingung „mindestens zwei Leser“ den Klassen-Fixer von genau "
      "den Stellen fern, die gemeldet waren."),
+
+    ("fixer-gibt-nie-still-auf", "Werkzeuge",
+     "Ein Fixer, der einen Teilschritt nicht schafft, darf nicht weiterschreiben",
+     "Jeder Zweig, der „dann eben nicht“ bedeutet, muss werfen oder den ganzen "
+     "Umbau abbrechen. Ein halb angewandter Fix ist schlechter als keiner: Der "
+     "Befund gilt als erledigt, und der Schaden steht im Code.",
+     "Das Muster für Importzeilen (<code>^(import|from)\\s+\\w</code>) erkannte "
+     "<code>from .modul import X</code> nicht — der Punkt fiel durch das "
+     "<code>\\w</code>. Ohne Treffer gab die Funktion die Zeilen unverändert "
+     "zurück und schrieb die Verwendung trotzdem. In 2 von 14 Umbauten wurde "
+     "die Klasse damit benutzt und nirgends importiert; beide Dateien parsen "
+     "einwandfrei, der Fehler kommt erst beim Aufruf. Gemeldet hat es das "
+     "Vorwärmen des Servers, nicht der Fixer und nicht sein Netz."),
 
     ("zwei-zaehlungen", "Messen",
      "Widersprechen sich zwei Zählungen, hat die genauere recht",

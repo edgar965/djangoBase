@@ -38,6 +38,7 @@ from .jsfunktionen import JsFunktionen
 from .jsregistrierung import JsRegistrierung
 from .jsstilfassungen import JsStilfassungen
 from .jssyntax import JsSyntax
+from .jsvererbung import JsVererbung
 from .jswaisen import JsWaisen
 from .jsschnitt import JsSchnitt
 from .kapselung import Kapselung
@@ -49,6 +50,7 @@ from .modulzustand import ModulZustand
 from .namensvarianten import Namensvarianten
 from .rueckgabedict import RueckgabeDict
 from .seitenzeiten import Seitenzeiten
+from .vorlagenblock import Vorlagenblock
 from .rueckgabetupel import RueckgabeTupel
 from .schleifenarbeit import Schleifenarbeit
 from .wachstum import Wachstum
@@ -69,12 +71,17 @@ WERKZEUGE = [
     # fehlende Anmeldung), dann was still ausfaellt (Faenger), dann Mengen.
     JsSyntax,
     JsWaisen,
+    # Direkt hinter den Waisen: Beide melden Fehler, die beim Laden NICHT
+    # auffallen. Ein Klassenname, den die Basisklasse nicht kennt, wirft erst
+    # beim ersten Aufruf - und dann mitten im Betrieb.
+    JsVererbung,
     JsRegistrierung,
     JsFaenger,
     JsFunktionen,
     JsBefunde,
     JsStilfassungen,
     Seitenzeiten,
+    Vorlagenblock,
     Doppelrumpf,
     RueckgabeDict,
     RueckgabeTupel,

@@ -31,6 +31,7 @@ from django.shortcuts import render
 from django.views import View
 
 from ..conf import conf
+from ..gitabfrage import Gitabfrage
 from ..mixins import ZugriffMixin
 
 logger = logging.getLogger(__name__)
@@ -308,15 +309,16 @@ def _fetch_tags(repo):
 
 
 def _git(repo_path, *args, timeout=5):
-    try:
-        r = subprocess.run(["git", "-C", str(repo_path), *args], capture_output=True,
-                           text=True, timeout=timeout, encoding="utf-8", errors="replace",
-                           creationflags=_NO_WINDOW)
-        if r.returncode == 0:
-            return r.stdout
-    except (OSError, subprocess.TimeoutExpired):
-        pass
-    return ""
+    u"""`git` im Repo aufrufen — ueber :class:`Gitabfrage`, also mit Cache.
+
+    GEMESSEN (17.08.2026): Diese Funktion war der ganze Aufwand der Seite —
+    650 von 690 ms warm, bei 0 SQL-Abfragen. Zwoelf Aufrufe (vier Repos mal
+    `remote get-url` / `rev-parse` / `status --porcelain`), jeder rund 50 ms,
+    weil das STARTEN eines Prozesses unter Windows so viel kostet. Die
+    Begruendung fuer den Cache und seine Haltbarkeit steht in
+    ``djangobase/gitabfrage.py``.
+    """
+    return Gitabfrage.lauf(repo_path, *args, timeout=timeout)
 
 
 # Matcht den GitHub-Slug 'owner/repo' aus SSH- und HTTPS-Remotes:

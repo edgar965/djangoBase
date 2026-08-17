@@ -118,6 +118,73 @@ class JsWaisenTest(FrontendBasis):
         self.assertIn("tot.js", self.orte(ergebnis))
 
 
+class VorlagenblockTest(FrontendBasis):
+    u"""Der Fall: `{% block extra_styles %}`, den `base.html` nicht kennt.
+
+    Django verwirft ihn still. In 3DTools verschwand so der ganze Stilblock einer
+    Seite — 180 Vorschaubilder waren danach 0x0 Pixel gross, bei HTTP 200.
+    """
+
+    ELTERN = ("<html><head>{% block extra_head %}{% endblock %}</head>"
+              "<body>{% block content %}{% endblock %}</body></html>\n")
+
+    def test_findet_unbekannten_block(self):
+        ergebnis = self.laufen("vorlagenblock", {
+            "templates/base.html": VorlagenblockTest.ELTERN,
+            "templates/seite.html": '{% extends "base.html" %}\n'
+                                    "{% block extra_styles %}<style>"
+                                    ".x{color:red}</style>{% endblock %}\n",
+        })
+        self.assertIn("extra_styles", self.orte(ergebnis) + str(ergebnis.zeilen))
+
+    def test_bekannter_block_ist_kein_befund(self):
+        ergebnis = self.laufen("vorlagenblock", {
+            "templates/base.html": VorlagenblockTest.ELTERN,
+            "templates/seite.html": '{% extends "base.html" %}\n'
+                                    "{% block extra_head %}<style>"
+                                    ".x{color:red}</style>{% endblock %}\n",
+        })
+        self.assertEqual(ergebnis.zeilen, [], str(ergebnis.zeilen))
+
+    def test_geschachtelter_block_ist_kein_befund(self):
+        u"""Die entscheidende Unterscheidung.
+
+        Ein Block INNERHALB eines bekannten Blocks wird an seiner Stelle
+        gerendert — er ist eine Erweiterungsstelle fuer eigene Kinder. Ohne diese
+        Regel meldete die Pruefung im echten Projekt 11 statt 1 Fundstelle, und
+        `character_viewer.html` (acht solche Bloecke) haette wie ein Fehler
+        ausgesehen.
+        """
+        ergebnis = self.laufen("vorlagenblock", {
+            "templates/base.html": VorlagenblockTest.ELTERN,
+            "templates/seite.html": '{% extends "base.html" %}\n'
+                                    "{% block content %}\n"
+                                    "  {% block werkzeugleiste %}Knoepfe"
+                                    "{% endblock %}\n"
+                                    "{% endblock %}\n",
+        })
+        self.assertEqual(ergebnis.zeilen, [], str(ergebnis.zeilen))
+
+    def test_block_der_grosseltern_zaehlt(self):
+        u"""`extends`-Ketten werden verfolgt, nicht nur eine Ebene."""
+        ergebnis = self.laufen("vorlagenblock", {
+            "templates/base.html": VorlagenblockTest.ELTERN,
+            "templates/mitte.html": '{% extends "base.html" %}\n'
+                                    "{% block content %}{% endblock %}\n",
+            "templates/seite.html": '{% extends "mitte.html" %}\n'
+                                    "{% block extra_head %}<style>"
+                                    ".x{color:red}</style>{% endblock %}\n",
+        })
+        self.assertEqual(ergebnis.zeilen, [], str(ergebnis.zeilen))
+
+    def test_fehlende_elternvorlage_wird_gemeldet(self):
+        ergebnis = self.laufen("vorlagenblock", {
+            "templates/seite.html": '{% extends "gibtesnicht.html" %}\n'
+                                    "{% block content %}x{% endblock %}\n",
+        })
+        self.assertIn("Elternvorlage fehlt", str(ergebnis.zeilen))
+
+
 class JsRegistrierungTest(FrontendBasis):
 
     def test_findet_gerufen_ohne_anmeldung(self):
