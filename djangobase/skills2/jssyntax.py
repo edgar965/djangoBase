@@ -27,6 +27,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+from .anlassfall import Anlassfall
 from .werkzeug import Ergebnis, Werkzeug2
 
 __all__ = ["JsSyntax"]
@@ -47,6 +48,23 @@ class JsSyntax(Werkzeug2):
 
     NICHT_IM_PFAD = ("vendor", "theatre", "theatre-studio", "dist", "bundle",
                      "node_modules")
+
+    #: Eine fehlende schliessende Klammer - genau der Schaden, den ein
+    #: Datei-Schnitt anrichtet, wenn der Fuss der Klasse nicht mitwandert.
+    #: Daneben eine heile Datei, damit auffiele, wenn das Werkzeug pauschal
+    #: alles meldet.
+    anlassfall = Anlassfall(
+        {"kaputt.js": '''export class Halb {
+  eins() { return 1; }
+''',
+         "heil.js": '''export class Ganz {
+  eins() { return 1; }
+}
+'''},
+        mindestens=1, hoechstens=1,
+        erwartet_in="kaputt.js",
+        warum="Beim Teilen ging die schließende Klammer verloren; das Symptom "
+              "war ein rätselhaftes „Unexpected token '.'“ weiter unten")
 
     def laufen(self):
         node = shutil.which("node")

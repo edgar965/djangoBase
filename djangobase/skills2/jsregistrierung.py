@@ -33,6 +33,7 @@ import re
 
 from django.conf import settings
 
+from .anlassfall import Anlassfall
 from .werkzeug import Ergebnis, Werkzeug2
 
 __all__ = ["JsRegistrierung"]
@@ -63,6 +64,21 @@ class JsRegistrierung(Werkzeug2):
     def register(self):
         eigen = (getattr(settings, "DJANGOBASE", {}) or {}).get("skills2_register")
         return tuple(eigen) if eigen else JsRegistrierung.VORGABE
+
+    #: Zwei Namen werden gerufen, nur einer ist angemeldet. Ein Register hat
+    #: kein Netz: Fehlt die Anmeldung, passiert beim Klick gar nichts - kein
+    #: Fehler, kein Log-Eintrag.
+    anlassfall = Anlassfall(
+        {"anmeldung.js": '''fn.speichern = () => 1;
+''',
+         "aufruf.js": '''export function knopf() {
+  fn.speichern();
+  fn.verwerfen();
+}
+'''},
+        erwartet_in="verwerfen",
+        warum="Vier Namen wurden gerufen und nie angemeldet — die Fotoanalyse "
+              "brach ab, drei weitere Knöpfe waren wirkungslos")
 
     def laufen(self):
         namen = "|".join(re.escape(n) for n in self.register())

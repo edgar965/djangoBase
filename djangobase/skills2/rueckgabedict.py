@@ -32,6 +32,7 @@ import ast
 import re
 from collections import Counter
 
+from .anlassfall import Anlassfall
 from .werkzeug import Ergebnis, Werkzeug2
 
 
@@ -119,6 +120,26 @@ class RueckgabeDict(Werkzeug2):
     #: Serialisierungs-Methoden - ihr Dictionary IST die Speicherform.
     SERIALISIERUNG = {"to_dict", "als_dict", "as_dict", "serialize", "to_json",
                       "als_json", "speicherform"}
+
+    #: Zwei Rueckgabe-Woerterbuecher mit je vier festen Schluesseln - eines
+    #: OHNE Marker (Befund), eines MIT (darf nicht zaehlen). Der Marker ist die
+    #: Abkuerzung fuer „geht unveraendert als JSON hinaus"; wer ihn ignoriert,
+    #: meldet jede Serialisierung als Umbaubedarf.
+    anlassfall = Anlassfall(
+        {"auswertung.py": '''def bilanz(werte):
+    return {"n": len(werte), "summe": sum(werte),
+            "min": min(werte), "max": max(werte)}
+
+
+def als_json(werte):
+    # Dictionary gewollt: geht unveraendert als JSON an die Seite.
+    return {"n": len(werte), "summe": sum(werte),
+            "min": min(werte), "max": max(werte)}
+'''},
+        mindestens=1, hoechstens=1,
+        erwartet_in="bilanz",
+        warum="Kriterium 11: Datensatz mit mehr als drei festen Schlüsseln "
+              "gehört in eine Klasse")
 
     def laufen(self):
         zeilen = []

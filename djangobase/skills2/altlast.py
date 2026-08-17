@@ -27,6 +27,7 @@ import ast
 import re
 from collections import Counter
 
+from .anlassfall import Anlassfall
 from .werkzeug import AUSGESCHLOSSEN, Ergebnis, Werkzeug2
 
 
@@ -45,6 +46,42 @@ class Altlast(Werkzeug2):
     #: Verdaechtige Ordnernamen - dieselben, die auch die Suche ausschliesst.
     SICHERUNGSNAMEN = {"sicherung", "backup", "archiv", "alt", "_alt", "old"}
     EINSTIEGE = {"main", "haupt", "handle", "run", "ready", "setUp", "tearDown"}
+
+    #: Ein Modul, das niemand importiert, und ein Name, der nur an seiner
+    #: Definition vorkommt. Daneben ein SKRIPT (``__main__``) - das wird
+    #: ausgefuehrt statt importiert und darf nicht als tot gelten; genau diese
+    #: Verwechslung hat einmal Loeschvorschlaege fuer lebenden Code erzeugt.
+    anlassfall = Anlassfall(
+        {"benutzt.py": '''from .helfer import gebraucht
+
+
+def haupt():
+    return gebraucht()
+''',
+         "helfer.py": '''def gebraucht():
+    return 1
+
+
+def nie_gerufen():
+    return 2
+''',
+         "tot.py": '''def niemand_importiert_mich():
+    return 3
+''',
+         "werkzeug_start.py": '''import sys
+
+
+def main():
+    print("laeuft")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+'''},
+        erwartet_in="tot.py",
+        warum="„Modul wird nirgends erwähnt“ hielt fünf lebende Dateien für "
+              "tot — die teuerste Sorte Fehlalarm")
 
     def laufen(self):
         wurzel = self.wurzel()

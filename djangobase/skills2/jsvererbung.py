@@ -33,6 +33,7 @@ erhalten.
 """
 import re
 
+from .anlassfall import Anlassfall
 from .werkzeug import Ergebnis, Werkzeug2
 
 
@@ -107,6 +108,34 @@ class JsVererbung(Werkzeug2):
     dauer = "unter 1 s"
 
     SPALTEN = ("basisdatei", "zeile", "nennt", "erbt", "code", "folge")
+
+    #: Der Fall vom 17.08.2026. Drei Fallen auf einmal, damit eine Verschaerfung
+    #: nicht unbemerkt eine davon verliert:
+    #:   * ``new Kind(…)`` in der Basis          -> muss gemeldet werden
+    #:   * derselbe Name im KOPFKOMMENTAR        -> darf NICHT zaehlen
+    #:   * derselbe Name in einer Zeichenkette   -> darf NICHT zaehlen
+    #: Erwartet wird deshalb GENAU EIN Befund, nicht „mindestens einer".
+    anlassfall = Anlassfall(
+        {"kind.js": """import { KindBasis } from './kind_basis.js';
+
+export class Kind extends KindBasis {
+  static ANZAHL = 3;
+}
+""",
+         "kind_basis.js": """/* KindBasis - die untere Haelfte von kind.js.
+   Der Name Kind steht hier absichtlich im Kommentar. */
+
+export class KindBasis {
+
+  kopie() { return new Kind(this.stand); }
+
+  melden() { console.warn('Kind: %d Zellen ohne Rolle', this.n); }
+}
+"""},
+        mindestens=1,
+        erwartet_in="kopie",
+        warum="``clone()`` rief ``new TradeSystemConfig(…)`` in der "
+              "Basisklasse — ReferenceError beim ersten Aufruf (17.08.2026)")
 
     def laufen(self):
         dateien = {p.name: p.read_text(encoding="utf-8", errors="replace")

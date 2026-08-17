@@ -38,6 +38,7 @@ import re
 from django.conf import settings
 
 from .jsklammern import Klammerzaehler
+from .anlassfall import Anlassfall
 from .werkzeug import Ergebnis, Werkzeug2
 
 __all__ = ["JsFaenger"]
@@ -118,6 +119,28 @@ class JsFaenger(Werkzeug2):
         eigen = (getattr(settings, "DJANGOBASE", {}) or {}).get(
             "skills2_abrufklassen")
         return tuple(eigen) if eigen else JsFaenger.VORGABE_KLASSEN
+
+    #: Zweimal derselbe werfende Abruf - einmal ungefangen (Befund), einmal im
+    #: try-Block (darf nicht zaehlen).
+    anlassfall = Anlassfall(
+        {"abruf.js": '''export async function ohneNetz(url) {
+  const d = await Serverabruf.json(url);
+  return d.wert;
+}
+
+export async function mitNetz(url) {
+  try {
+    const d = await Serverabruf.json(url);
+    return d.wert;
+  } catch (e) {
+    return null;
+  }
+}
+'''},
+        mindestens=1, hoechstens=1,
+        erwartet_in="abruf.js",
+        warum="Ein werfender Serverabruf ohne try lässt die Seite still "
+              "stehenbleiben")
 
     def laufen(self):
         klassen = self.klassen()

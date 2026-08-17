@@ -24,6 +24,7 @@ Eine Liste hier raet, was der Autor gemeint hat, und liegt irgendwann daneben.
 """
 import ast
 
+from .anlassfall import Anlassfall
 from .werkzeug import Ergebnis, Werkzeug2
 
 
@@ -50,6 +51,34 @@ class Schleifenarbeit(Werkzeug2):
              "count": "zählt in der Datenbank"}
     #: Nur bei diesen Empfaengern ist get/filter/all eine DB-Abfrage.
     DB_EMPFAENGER = ("objects", "queryset", "qs")
+
+    #: Dateizugriff in der Schleife - und darunter dieselbe Form MIT Marker,
+    #: die nicht zaehlen darf. Der Unterschied ist wichtig: ``read_text`` in
+    #: einer Schleife ist nur dann Verschwendung, wenn jedes Mal DASSELBE
+    #: gelesen wird; haengt der Pfad an der Schleifenvariablen, ist es Arbeit.
+    anlassfall = Anlassfall(
+        {"lader.py": '''from pathlib import Path
+
+
+def summe(namen, vorlage):
+    aus = []
+    for name in namen:
+        kopf = Path(vorlage).read_text(encoding="utf-8")
+        aus.append(kopf + name)
+    return aus
+
+
+def je_datei(pfade):
+    aus = []
+    for p in pfade:
+        # in der Schleife gewollt: jede Datei ist eine andere.
+        aus.append(Path(p).read_text(encoding="utf-8"))
+    return aus
+'''},
+        mindestens=1, hoechstens=1,
+        erwartet_in="read_text",
+        warum="``struktur_analyse.py`` las neunmal dieselben Quellen — der "
+              "eine reale Performance-Fall lag unter 190 Fehlalarmen")
 
     def laufen(self):
         zeilen = []

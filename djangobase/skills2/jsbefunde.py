@@ -23,6 +23,7 @@ Die Regeln stehen in `jsregeln.py` - eine Klasse je Auffaelligkeit, jede mit dem
 Fehlalarm, der beim Bau aufgefallen ist.
 """
 from .jsregeln import REGELN
+from .anlassfall import Anlassfall
 from .werkzeug import Ergebnis, Werkzeug2
 
 __all__ = ["JsBefunde"]
@@ -49,6 +50,27 @@ class JsBefunde(Werkzeug2):
     ENDUNGEN = (".js", ".html")
     #: Fremdcode und Bauergebnisse zaehlen nicht.
     NICHT_IM_PFAD = ("vendor", "theatre", "theatre-studio", "dist", "bundle")
+
+    #: Mehrere der zehn Auffaelligkeiten auf einmal: ``var``, ``console.log``,
+    #: ``fetch`` ohne ok-Pruefung und ein loser Vergleich. Die beiden
+    #: Fehlalarm-Fallen stehen bewusst daneben und duerfen NICHT zaehlen:
+    #: ``== null`` (die uebliche Pruefung auf null oder undefined) und ``==``
+    #: in einem Django-Vorlagen-Tag, wo es die einzige richtige Form ist.
+    anlassfall = Anlassfall(
+        {"seite.js": '''var alt = 1;
+
+export async function laden(url) {
+  console.log('lade', url);
+  const d = await fetch(url).then(r => r.json());
+  if (d.wert == '3') return d;
+  return alt == null ? null : d;
+}
+''',
+         "seite.html": '''{% if job.status == 'complete' %}<b>fertig</b>{% endif %}
+'''},
+        erwartet_in="var",
+        warum="Zehn objektiv prüfbare Auffälligkeiten — mit den zwei "
+              "Fehlalarm-Fallen daneben, die vier Regeln erst brauchbar machten")
 
     def laufen(self):
         gruppen = {}

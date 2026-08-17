@@ -25,6 +25,7 @@ import re
 
 from django.conf import settings
 
+from .anlassfall import Anlassfall
 from .werkzeug import Ergebnis, Werkzeug2
 
 __all__ = ["JsFunktionen"]
@@ -61,6 +62,14 @@ class JsFunktionen(Werkzeug2):
             return int(eigen)
         except (TypeError, ValueError):
             return JsFunktionen.VORGABE_GRENZE
+
+    #: Eine Funktion mit 100 Zeilen (Vorgabe-Grenze 90), erzeugt statt getippt.
+    anlassfall = Anlassfall(
+        {"lang.js": "export function vielZuLang(werte) {\n  const aus = [];\n"
+                    + "".join("  aus.push(werte[%d]);\n" % i for i in range(100))
+                    + "  return aus;\n}\n"},
+        erwartet_in="vielZuLang",
+        warum="Kriterium 3: die dicken Funktionen, nicht die dicken Dateien")
 
     def laufen(self):
         grenze = self.grenze()

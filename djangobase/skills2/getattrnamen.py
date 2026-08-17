@@ -54,6 +54,7 @@ Parameter wirft von selbst und braucht keine Pruefung.
 import ast
 from collections import Counter
 
+from .anlassfall import Anlassfall
 from .werkzeug import Ergebnis, Werkzeug2
 
 
@@ -152,6 +153,31 @@ class GetattrNamen(Werkzeug2):
 
     SPALTEN = ("datei", "zeile", "empfänger", "gefragtes Feld", "Vorgabe",
                "belegt")
+
+    #: Der Fall vom 16.08.2026, auf das Noetige eingedampft. ``position_ueber_
+    #: nacht`` ist das echte Feld, ``orb_nacht`` der Tippfehler. Die erste
+    #: Fassung dieses Werkzeugs haette ihn NICHT gefunden - sie liess jede
+    #: Zeichenkette als Beleg gelten, und der Name steht als Zeichenkette in der
+    #: Pruefung, die ihn dokumentiert. Genau dafuer gibt es diesen Anlassfall.
+    anlassfall = Anlassfall(
+        {"handel.py": '''# -*- coding: utf-8 -*-
+
+
+class System:
+    def __init__(self):
+        self.position_ueber_nacht = False
+
+
+def haelt_ueber_nacht(ts):
+    return getattr(ts, "orb_nacht", False)
+
+
+def haelt_wirklich(ts):
+    return getattr(ts, "position_ueber_nacht", False)
+'''},
+        erwartet_in="orb_nacht",
+        warum="Autotrader fragte ``orb_nacht``; das Feld heißt "
+              "``position_ueber_nacht`` (16.08.2026)")
 
     def laufen(self):
         dateien = [d for d in self.dateien(".py") if d.baum is not None]

@@ -38,6 +38,7 @@ genau die Sorte stiller Fehler, gegen die der ganze Durchgang laeuft.
 import ast
 from collections import Counter
 
+from .anlassfall import Anlassfall
 from .werkzeug import Ergebnis, Werkzeug2
 
 
@@ -79,6 +80,32 @@ class Klassenplan(Werkzeug2):
     AB_FUNKTIONEN = 3
     UNINTERESSANT = {"self", "cls", "request", "args", "kwargs",
                      "x", "y", "n", "i", "k", "v", "s", "t"}
+
+    #: Vier freie Funktionen, die zwei Werte ueberall mitschleppen
+    #: (``konto``, ``kurse``) und einen dritten nur an einer Stelle brauchen.
+    #: Genau diese Unterscheidung ist der Zweck: Was wird Feld, was bleibt
+    #: Parameter.
+    anlassfall = Anlassfall(
+        {"depot.py": '''def wert(konto, kurse):
+    return sum(konto[s] * kurse[s] for s in konto)
+
+
+def gewichtung(konto, kurse):
+    gesamt = wert(konto, kurse)
+    return {s: konto[s] * kurse[s] / gesamt for s in konto}
+
+
+def abweichung(konto, kurse, ziel):
+    ist = gewichtung(konto, kurse)
+    return {s: ziel.get(s, 0) - ist.get(s, 0) for s in konto}
+
+
+def bericht(konto, kurse):
+    return "%.2f" % wert(konto, kurse)
+'''},
+        erwartet_in="konto",
+        warum="Kriterium 1: was mehrfach durchgereicht wird, ist ein Feld — "
+              "was nur einmal vorkommt, bleibt Parameter")
 
     def laufen(self):
         zeilen = []

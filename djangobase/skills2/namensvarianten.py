@@ -29,6 +29,7 @@ import ast
 import re
 from collections import defaultdict
 
+from .anlassfall import Anlassfall
 from .werkzeug import Ergebnis, Werkzeug2
 
 
@@ -51,6 +52,25 @@ class Namensvarianten(Werkzeug2):
     #: Namen, die ueberall vorkommen und nichts aussagen.
     RAUSCHEN = {"value", "values", "index", "result", "results", "config",
                 "params", "options", "context", "request", "response"}
+
+    #: DERSELBE Name in zwei Schreibweisen, nicht zwei verwandte Namen - beim
+    #: ersten Versuch standen hier ``datenbasis_laden`` und
+    #: ``daten_basis_pruefen``, deren Kerne sich unterscheiden (…laden gegen
+    #: …pruefen). Verglichen wird der Kern ohne Trennzeichen und Grossschreibung.
+    anlassfall = Anlassfall(
+        {"konto.py": '''def laden(datenbasis):
+    return {"name": datenbasis}
+
+
+def pruefen(daten_basis):
+    return bool(laden(daten_basis))
+''',
+         "sicht.py": '''def zeigen(datenBasis):
+    return str(datenBasis)
+'''},
+        erwartet_in="daten",
+        warum="Kriterium 7: zwei Parameter blieben wirkungslos, weil Formular, "
+              "JSON und Engine denselben Wert leicht verschieden schrieben")
 
     def laufen(self):
         vorkommen = defaultdict(lambda: defaultdict(set))   # kern -> name -> dateien

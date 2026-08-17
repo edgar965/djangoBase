@@ -33,6 +33,7 @@ stuetzt, kann sie hier nachrechnen.
 import ast
 from collections import Counter
 
+from .anlassfall import Anlassfall
 from .werkzeug import Ergebnis, Werkzeug2
 
 
@@ -124,6 +125,29 @@ class LeserzahlWerkzeug(Werkzeug2):
 
     MIN_SCHLUESSEL = 4
     SPALTEN = ("datei", "funktion", "schlüssel", "leser", "wer liest")
+
+    #: Ein Rueckgabe-Woerterbuch mit vier Schluesseln und ZWEI Lesern - genau
+    #: die Bedingung, um die es geht. Die Leser stehen in derselben Datei und
+    #: rufen ueber den Modulnamen; die Zaehlung ist dreimal daneben gegangen,
+    #: bevor sie beides erfasste (siehe Modulkopf).
+    anlassfall = Anlassfall(
+        {"kennzahlen.py": '''def bilanz(werte):
+    return {"n": len(werte), "summe": sum(werte),
+            "min": min(werte), "max": max(werte)}
+
+
+def anzeigen(werte):
+    b = bilanz(werte)
+    return "%d Werte" % b["n"]
+
+
+def pruefen(werte):
+    b = bilanz(werte)
+    return b["max"] > b["min"]
+'''},
+        erwartet_in="bilanz",
+        warum="Kriterium 11 verlangt mehrere Leser — die zweite Hälfte der "
+              "Bedingung zählte fast kein Prüfwerk mit")
 
     def laufen(self):
         baeume = {}

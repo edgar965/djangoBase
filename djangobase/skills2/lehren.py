@@ -257,6 +257,26 @@ LEHREN = [
      "eine Zusatzbedingung „mindestens zwei Leser“ den Klassen-Fixer von genau "
      "den Stellen fern, die gemeldet waren."),
 
+    ("anlassfall-am-werkzeug", "Werkzeuge",
+     "Jedes Prüfwerkzeug trägt den Fall bei sich, für den es gebaut wurde",
+     "Ein paar Zeilen Code im Feld <code>anlassfall</code>, die das Werkzeug "
+     "melden MUSS — plus die Ausnahme daneben, die es nicht melden darf. "
+     "<code>anlassfall-check</code> schreibt sie in ein Wegwerf-Verzeichnis und "
+     "fragt jedes Werkzeug ab. Zweiter Lauf auf leerem Verzeichnis: Wer dort "
+     "meldet, ignoriert die übergebene Wurzel — dann sagt auch der grüne Lauf "
+     "nichts.",
+     "Beim Einbau fielen fünf Werkzeuge durch, jedes aus einem anderen Grund: "
+     "<code>modulzustand</code> reagiert nur auf Mutation, nicht auf "
+     "Neuzuweisung; <code>namensvarianten</code> braucht denselben Wortkern, "
+     "nicht zwei verwandte Namen; <code>schleifenarbeit</code> meldet keine "
+     "Funktionsnamen; <code>jsschnitt</code> bekam eine Datei von 122 Zeilen "
+     "vorgesetzt und lag mit seiner Grenze von 200 richtig; "
+     "<code>esmodulimporte</code> las <code>settings.BASE_DIR</code> statt "
+     "<code>self.wurzel()</code> und ließ sich gar nicht auf ein anderes "
+     "Verzeichnis richten. Vier meiner Annahmen waren falsch, eine war ein "
+     "echter Mangel am Werkzeug — ohne den Check hätte ich alle fünf für "
+     "korrekt gehalten."),
+
     ("fixer-gibt-nie-still-auf", "Werkzeuge",
      "Ein Fixer, der einen Teilschritt nicht schafft, darf nicht weiterschreiben",
      "Jeder Zweig, der „dann eben nicht“ bedeutet, muss werfen oder den ganzen "

@@ -5,3 +5,7 @@ build/
 dist/
 .DS_Store
 *.log
+
+# Wegwerf-Ordner des Anlassfall-Checks (skills2). Er raeumt selbst auf; bricht
+# ein Lauf ab, bleibt er liegen und gehoert trotzdem nicht ins Repo.
+_anlassfall/

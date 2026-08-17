@@ -22,6 +22,7 @@ laufen meist direkt in eine Schleife, die sie sofort auspackt.
 """
 import ast
 
+from .anlassfall import Anlassfall
 from .werkzeug import Ergebnis, Werkzeug2
 
 
@@ -45,6 +46,21 @@ class RueckgabeTupel(Werkzeug2):
     #: die einen Cache-Eintrag bestimmen - als Klasse wäre das mehr Code für
     #: exakt dasselbe Verhalten.
     SCHLUESSEL_ENDUNGEN = ("schluessel", "schlüssel", "_key", "key", "kennung")
+
+    #: Vier Werte in fester Reihenfolge zurueck - beim Auspacken entscheidet
+    #: die Position, und ein vertauschtes Paar faellt nirgends auf.
+    anlassfall = Anlassfall(
+        {"lauf.py": '''def messen(werte):
+    return len(werte), sum(werte), min(werte), max(werte)
+
+
+def bericht(werte):
+    anzahl, summe, klein, gross = messen(werte)
+    return "%d Werte, %s bis %s (Summe %s)" % (anzahl, klein, gross, summe)
+'''},
+        erwartet_in="messen",
+        warum="Vier Rückgabewerte in fester Reihenfolge — ein vertauschtes "
+              "Paar wirft nichts")
 
     def laufen(self):
         zeilen = []

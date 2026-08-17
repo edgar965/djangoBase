@@ -29,6 +29,7 @@ import ast
 import re
 from collections import Counter
 
+from .anlassfall import Anlassfall
 from .werkzeug import Ergebnis, Werkzeug2
 
 
@@ -96,6 +97,22 @@ class Anzeigeformat(Werkzeug2):
                   "label", "data", "text", "url", "status", "title", "n", "count"}
     #: Ab diesem Anteil gilt es als Anzeigeformat.
     SCHWELLE = 0.7
+
+    #: Ein Rueckgabe-Woerterbuch, dessen Schluessel woertlich im JavaScript
+    #: stehen. Das ist kein Umbaukandidat, sondern ein ANZEIGEFORMAT - der
+    #: Auftrag gibt es selbst vor. Von 204 Befunden waren 134 genau das.
+    anlassfall = Anlassfall(
+        {"api.py": '''def antwort(t):
+    return {"kurs": t.kurs, "zeit": t.zeit,
+            "menge": t.menge, "richtung": t.richtung}
+''',
+         "tabelle.js": '''export function zeile(d) {
+  return `${d.kurs} ${d.zeit} ${d.menge} ${d.richtung}`;
+}
+'''},
+        erwartet_in="antwort",
+        warum="134 von 204 Befunden waren Anzeigeformate — Schlüssel, die die "
+              "Oberfläche wörtlich liest und die deshalb bleiben müssen")
 
     def laufen(self):
         frontend = FrontendNamen(self.wurzel(), self.ausgeschlossen())

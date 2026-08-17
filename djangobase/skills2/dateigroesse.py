@@ -26,6 +26,7 @@ es. Deshalb: Methodenliste VORHER und NACHHER vergleichen (siehe die Lehre
 """
 import ast
 
+from .anlassfall import Anlassfall
 from .werkzeug import Ergebnis, Werkzeug2
 
 
@@ -45,6 +46,16 @@ class Dateigroesse(Werkzeug2):
     GRENZE_DATEI = 300
     GRENZE_KLASSE = 300
     GRENZE_FUNKTION = 60
+
+    #: Eine Funktion mit 70 Zeilen (Grenze 60). Der Rumpf wird erzeugt statt
+    #: ausgeschrieben - eine Grenze prueft man mit Zaehlen, nicht mit Tippen.
+    anlassfall = Anlassfall(
+        {"lang.py": "def viel_zu_lang(werte):\n    aus = []\n"
+                    + "".join("    aus.append(werte[%d])\n" % i
+                              for i in range(70))
+                    + "    return aus\n"},
+        erwartet_in="viel_zu_lang",
+        warum="Kriterium 2: Dateien 200–300 Zeilen, Funktionen unter 60")
 
     def laufen(self):
         zeilen = []

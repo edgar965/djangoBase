@@ -18,6 +18,7 @@ import tempfile
 from pathlib import Path
 
 from django.test import override_settings
+from django.urls import path
 
 from djangobase.skills2 import werkzeug_finden
 
@@ -116,6 +117,72 @@ class JsWaisenTest(FrontendBasis):
             "static/tot.js": "export function nie() { return 1; }\n",
         })
         self.assertIn("tot.js", self.orte(ergebnis))
+
+
+class FrontendadressenTest(FrontendBasis):
+    u"""Der Fall: acht Aufrufe auf eine Adresse, die es nicht gibt.
+
+    Die Kontextmenues zweier Listen riefen `/api/character/garment/manage/` —
+    diesen Endpunkt gab es nicht. Vier tote Menuepunkte, ohne Hinweis fuer den
+    Benutzer, bei HTTP 200.
+
+    Die Tests hier pruefen vor allem die FEHLALARME weg: Die erste Fassung des
+    Werkzeugs meldete 13 Adressen, davon 12 falsch.
+    """
+
+    def laufen_mit_urls(self, dateien):
+        u"""Wie `laufen`, aber mit der URL-Konfiguration dieses Testmoduls."""
+        from django.test import override_settings as ueberschreiben
+        with ueberschreiben(ROOT_URLCONF=__name__):
+            return self.laufen("frontendadressen", dateien)
+
+    def test_findet_unbekannte_adresse(self):
+        ergebnis = self.laufen_mit_urls({
+            "static/a.js": "await fetch('/api/gibtesnicht/');\n",
+        })
+        self.assertIn("/api/gibtesnicht/", str(ergebnis.zeilen))
+
+    def test_bekannte_adresse_ist_kein_befund(self):
+        ergebnis = self.laufen_mit_urls({
+            "static/a.js": "await fetch('/api/da/');\n",
+        })
+        self.assertEqual(ergebnis.zeilen, [], str(ergebnis.zeilen))
+
+    def test_konstante_ist_kein_aufruf(self):
+        u"""`static ENDPUNKT = '/api/x/'` ist ein Anfang, keine Adresse."""
+        ergebnis = self.laufen_mit_urls({
+            "static/a.js": "class X { static ENDPUNKT = '/api/gibtesnicht/'; }\n",
+        })
+        self.assertEqual(ergebnis.zeilen, [], str(ergebnis.zeilen))
+
+    def test_verkettung_ueber_zeilen_ist_kein_befund(self):
+        u"""Der Zusatz stand 42 Leerzeichen eingerueckt in der naechsten Zeile —
+        mit einem zu kleinen Suchfenster blieb genau das ein Fehlalarm."""
+        ergebnis = self.laufen_mit_urls({
+            "static/a.js": "await fetch('/api/da/'\n"
+                           + " " * 42 + "+ encodeURIComponent(name) + '/');\n",
+        })
+        self.assertEqual(ergebnis.zeilen, [], str(ergebnis.zeilen))
+
+    def test_kommentar_ist_kein_befund(self):
+        ergebnis = self.laufen_mit_urls({
+            "static/a.js": "// await fetch('/api/gibtesnicht/');\n",
+        })
+        self.assertEqual(ergebnis.zeilen, [], str(ergebnis.zeilen))
+
+    def test_platzhalter_wird_probiert(self):
+        u"""Ohne mehrere Kandidaten meldet jede `<uuid:...>`-Route Fehlalarm."""
+        ergebnis = self.laufen_mit_urls({
+            "static/a.js": "await fetch(`/api/auftrag/${id}/`);\n",
+        })
+        self.assertEqual(ergebnis.zeilen, [], str(ergebnis.zeilen))
+
+    def test_alle_stellen_werden_gezaehlt(self):
+        ergebnis = self.laufen_mit_urls({
+            "static/a.js": "fetch('/api/weg/');\nfetch('/api/weg/');\n",
+            "static/b.js": "fetch('/api/weg/');\n",
+        })
+        self.assertEqual(ergebnis.zeilen[0]["stellen"], 3, str(ergebnis.zeilen))
 
 
 class VorlagenblockTest(FrontendBasis):
@@ -369,3 +436,18 @@ class JsSyntaxTest(FrontendBasis):
             self.assertIn("geprueft", ergebnis.zusammenfassung)
         else:
             self.assertIn("node nicht gefunden", ergebnis.zusammenfassung)
+
+
+# --------------------------------------------------------------------------
+# URL-Konfiguration NUR fuer FrontendadressenTest: `ROOT_URLCONF=__name__`
+# laesst Django dieses Modul als URLconf lesen. So haengen die Tests nicht am
+# Bestand des Test-Hosts, und `<uuid:...>` ist als Fall abgedeckt.
+def _leer(request):                                          # pragma: no cover
+    from django.http import HttpResponse
+    return HttpResponse("")
+
+
+urlpatterns = [
+    path("api/da/", _leer, name="da"),
+    path("api/auftrag/<uuid:kennung>/", _leer, name="auftrag"),
+]

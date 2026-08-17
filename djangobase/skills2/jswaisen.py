@@ -33,6 +33,7 @@ alle vier lud niemand. Erst der Lauf von den Vorlagen aus zeigt das.
 import re
 from pathlib import Path
 
+from .anlassfall import Anlassfall
 from .werkzeug import Ergebnis, Werkzeug2
 
 __all__ = ["JsWaisen"]
@@ -183,6 +184,26 @@ class JsWaisen(Werkzeug2):
 
     NICHT_IM_PFAD = ("vendor", "theatre", "theatre-studio", "dist", "bundle",
                      "node_modules")
+
+    #: Drei Module, eine Vorlage: ``geladen.js`` haengt an der Seite und zieht
+    #: ``teil.js`` nach - ``waise.js`` zieht niemand. Genau so waren
+    #: ``ib_aktionen.js`` und ``ib_spielmodus.js`` verwaist, und damit war jeder
+    #: Spielmodus- und Bracket-Knopf tot, ohne eine Zeile in der Konsole.
+    anlassfall = Anlassfall(
+        {"templates/seite.html": '''<script type="module"
+        src="/static/app/geladen.js"></script>
+''',
+         "static/app/geladen.js": '''import { hilf } from './teil.js';
+
+export function start() { return hilf(); }
+''',
+         "static/app/teil.js": '''export function hilf() { return 1; }
+''',
+         "static/app/waise.js": '''export function niemandLaedtMich() { return 2; }
+'''},
+        erwartet_in="waise.js",
+        warum="Zwei verwaiste Teildateien machten alle Spielmodus- und "
+              "Bracket-Knöpfe wirkungslos — ohne Fehlermeldung")
 
     def laufen(self):
         wurzel = self.wurzel()

@@ -25,6 +25,7 @@ und die Aenderung wird im Browser gegengemessen
 import re
 from collections import Counter
 
+from .anlassfall import Anlassfall
 from .werkzeug import Ergebnis, Werkzeug2
 
 __all__ = ["JsStilfassungen"]
@@ -52,6 +53,16 @@ class JsStilfassungen(Werkzeug2):
                      "node_modules", "staticfiles")
     #: So viele Fassungen kommen in die Tabelle.
     OBEN = 25
+
+    #: Dieselbe Inline-Fassung dreimal - der Fall, in dem sich eine CSS-Klasse
+    #: lohnt. Beim naechsten Farbwechsel muss man sonst alle drei finden.
+    anlassfall = Anlassfall(
+        {"seite.html": '''<div style="display:flex;gap:.5rem;align-items:center">eins</div>
+<div style="display:flex;gap:.5rem;align-items:center">zwei</div>
+<div style="display:flex;gap:.5rem;align-items:center">drei</div>
+'''},
+        erwartet_in="display:flex",
+        warum="Kriterium 6: dieselbe Inline-Fassung mehrfach statt einer Klasse")
 
     def laufen(self):
         fassungen = Counter()

@@ -28,6 +28,7 @@ IM WERKZEUG waere die schlechtere Loesung: Sie raet, was der Autor gemeint hat.
 """
 import ast
 
+from .anlassfall import Anlassfall
 from .werkzeug import Ergebnis, Werkzeug2
 
 
@@ -49,6 +50,37 @@ class ModulZustand(Werkzeug2):
     #: Methoden, die eine Sammlung veraendern.
     MUTATION = {"append", "extend", "insert", "remove", "pop", "clear", "update",
                 "add", "discard", "setdefault", "popitem"}
+
+    #: Eine Modul-Globale, die MUTIERT wird (``append``/``update``) - eine
+    #: blosse Neuzuweisung reicht nicht, und das war beim ersten Versuch der
+    #: Fehler: ``_DATEN = {...}`` löste nichts aus, weil es keine Mutation ist.
+    #:
+    #: Die zweite Sammlung traegt den Marker. Dieses Werkzeug FILTERT ihn nicht
+    #: weg, es bewertet ihn als „belegt" - deshalb sind ZWEI Zeilen richtig, und
+    #: das Wort „belegt" muss in einer davon stehen. (Zweiter Irrtum beim Bauen
+    #: dieses Anlassfalls: ``hoechstens=1`` erwartete eine Filterung, die es
+    #: hier gar nicht gibt.)
+    anlassfall = Anlassfall(
+        {"speicher.py": '''_WARNUNGEN = []
+#: geteilt gewollt: der Zaehler laeuft absichtlich ueber alle Anfragen.
+_ZAEHLER = {}
+
+
+def merken(text):
+    _WARNUNGEN.append(text)
+
+
+def zaehlen(name):
+    _ZAEHLER.update({name: _ZAEHLER.get(name, 0) + 1})
+
+
+def lesen():
+    return list(_WARNUNGEN)
+'''},
+        mindestens=2, hoechstens=2,
+        erwartet_in="belegt",
+        warum="Modul-Globale statt übergebenem Datensatz — zwei gleichzeitige "
+              "Läufe ziehen sie sich gegenseitig weg")
 
     def laufen(self):
         dateien = [d for d in self.dateien() if d.baum is not None]

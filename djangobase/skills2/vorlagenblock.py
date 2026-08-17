@@ -34,6 +34,7 @@ import re
 
 from django.conf import settings
 
+from .anlassfall import Anlassfall
 from .werkzeug import Ergebnis, Werkzeug2
 
 __all__ = ["Vorlagenblock"]
@@ -58,6 +59,26 @@ class Vorlagenblock(Werkzeug2):
                "einfuehren. Welche Namen es gibt, steht in der Spalte „bekannt\".")
     dauer = "unter 1 s"
     kriterium = 5
+
+    #: Ein Block, den die Elternvorlage nicht kennt (``extra_styles`` statt
+    #: ``extra_head``) - und daneben ein GESCHACHTELTER Block, der zwar auch
+    #: unbekannt ist, aber an seiner Stelle gerendert wird und deshalb NICHT
+    #: zaehlen darf. Ohne diese Unterscheidung meldete die Pruefung 11 statt 1.
+    anlassfall = Anlassfall(
+        {"eltern.html": '''<html><head>{% block extra_head %}{% endblock %}</head>
+<body>{% block inhalt %}{% endblock %}</body></html>
+''',
+         "kind.html": '''{% extends "eltern.html" %}
+{% block extra_styles %}<style>p{color:red}</style>{% endblock %}
+{% block inhalt %}
+  {% block eigene_stelle %}Text{% endblock %}
+{% endblock %}
+'''},
+        mindestens=1, hoechstens=1,
+        erwartet_in="extra_styles",
+        warum="``{% block extra_styles %}`` statt ``extra_head`` ließ einen "
+              "ganzen Stilblock verschwinden — 180 Vorschaubilder 0x0, bei "
+              "HTTP 200")
 
     def laufen(self):
         vorlagen = self._vorlagen()

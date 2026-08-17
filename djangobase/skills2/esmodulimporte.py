@@ -35,6 +35,7 @@ from pathlib import Path
 
 from django.conf import settings
 
+from .anlassfall import Anlassfall
 from .werkzeug import Ergebnis, Werkzeug2
 
 
@@ -55,8 +56,14 @@ class EsModulImporte(Werkzeug2):
                  "prototype", "constructor", "hasOwnProperty", "from", "of"}
 
     def _js_verzeichnisse(self):
-        """Alle statischen Verzeichnisse DES PROJEKTS, die JS enthalten."""
-        wurzel = Path(getattr(settings, "BASE_DIR", "."))
+        """Alle statischen Verzeichnisse DES PROJEKTS, die JS enthalten.
+
+        ``self.wurzel()`` und nicht ``settings.BASE_DIR`` (17.08.2026): Erstens
+        liegt neben dem Django-Teil oft weiterer Code (die Basisklasse erklärt
+        es), zweitens war dieses Werkzeug damit das einzige, das sich NICHT auf
+        ein anderes Verzeichnis richten ließ - der Anlassfall-Check bekam es
+        nicht zu fassen und meldete „blind", obwohl es sehen konnte."""
+        wurzel = Path(self.wurzel())
         aus = []
         for p in wurzel.rglob("static"):
             if any(t in ("node_modules", ".git", "staticfiles") for t in p.parts):
@@ -84,6 +91,20 @@ class EsModulImporte(Werkzeug2):
                 treffer = treffer[0] if treffer else None
             return Path(treffer) if treffer else None
         return None                      # externe URL - nicht prüfbar
+
+    #: Ein Import auf einen Namen, den die Zieldatei NICHT exportiert. Der
+    #: Browser verwirft dann das ganze Modul - samt aller Namen, die es
+    #: registrieren wollte.
+    anlassfall = Anlassfall(
+        {"static/app/quelle.js": '''export function vorhanden() { return 1; }
+''',
+         "static/app/ziel.js": '''import { vorhanden, gibtEsNicht } from './quelle.js';
+
+export function nutzen() { return vorhanden() + gibtEsNicht(); }
+'''},
+        erwartet_in="gibtEsNicht",
+        warum="Ein Import ins Leere reißt das ganze Modul mit — die Seite lädt "
+              "mit 200 und der halbe Bildschirm ist tot")
 
     def laufen(self):
         dateien = []

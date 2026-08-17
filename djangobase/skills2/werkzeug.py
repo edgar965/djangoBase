@@ -32,7 +32,11 @@ __all__ = ["Werkzeug2", "Ergebnis", "Quelldatei"]
 AUSGESCHLOSSEN = {".git", "__pycache__", "node_modules", "venv", "pythonVENV",
                   ".venv", "env", "site-packages", "migrations", "staticfiles",
                   ".mypy_cache", ".pytest_cache", "dist", "build",
-                  "sicherung", "backup", "archiv", "alt", "_alt", "old"}
+                  "sicherung", "backup", "archiv", "alt", "_alt", "old",
+                  # Der Wegwerf-Ordner des Anlassfall-Checks. Ohne ihn faenden
+                  # die Werkzeuge im normalen Lauf ihre eigenen Testdateien -
+                  # und meldeten absichtlich kaputten Code als Befund.
+                  "_anlassfall"}
 
 
 class Quelldatei:
@@ -110,6 +114,13 @@ class Werkzeug2:
     dauer = "unter 1 s"
     #: Nummer des Auftrags-Kriteriums, das dieses Werkzeug bedient (0 = keines).
     kriterium = 0
+    #: :class:`~.anlassfall.Anlassfall` - der Code, den dieses Werkzeug melden
+    #: MUSS. Geprueft von ``anlassfall-check``: Ein Pruefer, der nach einem
+    #: Umbau seinen eigenen Fall nicht mehr sieht, meldet null und sieht dabei
+    #: aus wie ein sauberes Projekt (zweimal passiert am 17.08.2026).
+    #: ``None`` ist erlaubt, wo es keinen dateibasierten Fall gibt - das Werkzeug
+    #: erscheint dann im Bericht als „ohne Anlassfall", nicht als bestanden.
+    anlassfall = None
 
     def wurzel(self):
         """Die Wurzel des PROJEKTS, nicht nur des Django-Teils.

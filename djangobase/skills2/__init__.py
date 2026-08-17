@@ -22,6 +22,8 @@ halbfertige Fassungen derselben Basisklasse gegeneinander zu mergen waere
 teurer gewesen als zwei saubere Pakete.
 """
 from .altlast import Altlast
+from .anlassfall import Anlassfall
+from .anlassfall_check import AnlassfallCheck
 from .anzeigeformat import Anzeigeformat
 from .dateigroesse import Dateigroesse
 from .doppelrumpf import Doppelrumpf
@@ -49,6 +51,7 @@ from .lehren import LEHREN, gruppen
 from .modulzustand import ModulZustand
 from .namensvarianten import Namensvarianten
 from .rueckgabedict import RueckgabeDict
+from .frontendadressen import Frontendadressen
 from .seitenzeiten import Seitenzeiten
 from .vorlagenblock import Vorlagenblock
 from .rueckgabetupel import RueckgabeTupel
@@ -80,6 +83,7 @@ WERKZEUGE = [
     JsFunktionen,
     JsBefunde,
     JsStilfassungen,
+    Frontendadressen,
     Seitenzeiten,
     Vorlagenblock,
     Doppelrumpf,
@@ -97,6 +101,9 @@ WERKZEUGE = [
     Klassenplan,     # Feld oder blosses Zwischenergebnis?
     JsSchnitt,       # wo laesst sich teilen, ohne Zirkel zu erzeugen
     Wachstum,        # misst nach, statt „quadratisch" zu behaupten
+    # Zuletzt, weil es ueber die anderen laeuft: Sieht jedes Werkzeug noch den
+    # Fall, fuer den es gebaut wurde? Zwei waren blind, ohne dass es auffiel.
+    AnlassfallCheck,
 ]
 
 

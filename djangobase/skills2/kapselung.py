@@ -24,6 +24,7 @@ seine Zahl im Kopf jeder Signatur ist das Mass dafuer, wie viel Kapselung fehlt.
 import ast
 from collections import Counter
 
+from .anlassfall import Anlassfall
 from .werkzeug import Ergebnis, Werkzeug2
 
 
@@ -45,6 +46,25 @@ class Kapselung(Werkzeug2):
     EINSTIEGE = {"main", "haupt", "run", "handle"}
     #: Argumentnamen, die nichts ueber Zustand aussagen.
     UNINTERESSANT = {"self", "cls", "request", "args", "kwargs", "x", "n", "i"}
+
+    #: Drei freie Funktionen, die denselben Zustand von Hand durchreichen -
+    #: genau das ist eine Klasse, die noch keine ist (Kriterium 1).
+    anlassfall = Anlassfall(
+        {"depot.py": '''def wert(konto, kurse):
+    return sum(konto[s] * kurse[s] for s in konto)
+
+
+def gewichtung(konto, kurse):
+    gesamt = wert(konto, kurse)
+    return {s: konto[s] * kurse[s] / gesamt for s in konto}
+
+
+def umschichten(konto, kurse, ziel):
+    ist = gewichtung(konto, kurse)
+    return {s: ziel.get(s, 0) - ist.get(s, 0) for s in konto}
+'''},
+        warum="Kriterium 1: Funktionen, die denselben Zustand durchreichen, "
+              "sind eine Klasse ohne Konstruktor")
 
     def laufen(self):
         zeilen = []

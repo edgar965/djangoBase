@@ -25,6 +25,7 @@ identische Funktionen als verschieden, nur weil eine besser erklaert ist.
 import ast
 from collections import defaultdict
 
+from .anlassfall import Anlassfall
 from .werkzeug import Ergebnis, Werkzeug2
 
 
@@ -44,6 +45,30 @@ class Doppelrumpf(Werkzeug2):
     #: Rumpfe unter dieser Zeilenzahl sind zu klein, um etwas auszusagen
     #: (``return self.x`` steht zu Recht ueberall).
     MINDEST_ZEILEN = 4
+
+    #: Derselbe Rumpf in zwei Dateien, mit ABWEICHENDER Begruendung im
+    #: Docstring - so sehen echte Kopien aus. Verglichen wird deshalb der Rumpf
+    #: ohne Docstrings und Kommentare.
+    anlassfall = Anlassfall(
+        {"lader_a.py": '''def kopf_ende(zeilen):
+    """Wo der Importkopf endet - hier steht die eine Begruendung."""
+    letzter = 0
+    for i, z in enumerate(zeilen):
+        if z.startswith(("import", "from")):
+            letzter = i
+    return letzter + 1
+''',
+         "lader_b.py": '''def kopf_ende(zeilen):
+    # Und hier steht gar keine.
+    letzter = 0
+    for i, z in enumerate(zeilen):
+        if z.startswith(("import", "from")):
+            letzter = i
+    return letzter + 1
+'''},
+        erwartet_in="kopf_ende",
+        warum="Vier Werkzeuge trugen denselben Ablauf; beim Umbau zeigte einer "
+              "ins Leere und war drei Tage lang eine Sicherung ohne Wirkung")
 
     def laufen(self):
         gruppen = defaultdict(list)

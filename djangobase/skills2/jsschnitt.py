@@ -25,6 +25,7 @@ Mensch. Das Werkzeug nennt die Stelle, nicht den Grund.
 """
 import re
 
+from .anlassfall import Anlassfall
 from .werkzeug import Ergebnis, Werkzeug2
 
 
@@ -92,6 +93,20 @@ class JsSchnitt(Werkzeug2):
     GRENZE = 200
     #: Naeher als so viele Zeilen an den Rand wird nicht geschnitten.
     RAND = 40
+
+    #: Eine JS-Datei ueber der Grenze, aufgebaut aus zwei klar trennbaren
+    #: Haelften - so muss eine Trennlinie zu finden sein. Je 120 Funktionen:
+    #: Der erste Versuch hatte 122 Zeilen und lag damit UNTER der Grenze von
+    #: 200 - der Check meldete „blind", obwohl das Werkzeug recht hatte.
+    anlassfall = Anlassfall(
+        {"gross.js": "const A = 1;\n"
+                     + "".join("export function ersteHaelfte%d() { return A + %d; }\n"
+                               % (i, i) for i in range(120))
+                     + "const B = 2;\n"
+                     + "".join("export function zweiteHaelfte%d() { return B + %d; }\n"
+                               % (i, i) for i in range(120))},
+        erwartet_in="gross.js",
+        warum="Kriterium 3: JS-Module unter 200 Zeilen halten")
 
     def laufen(self):
         zeilen = []
