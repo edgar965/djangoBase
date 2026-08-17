@@ -208,6 +208,8 @@ class TestsView(ZugriffMixin, View):
                           "seiten": (ui or {}).get("seiten", {}),
                           "dauerUrl": reverse("djangobase:tests_dauer")},
             "ergebnis": ergebnis,
+            # Ziel der Combo-Box „Verschieben" (siehe tests_verschieben.js).
+            "verschieben_url": reverse("djangobase:tests_verschieben"),
             "aktiver_slug": slug,
             "aktiver_tab": request.GET.get("tab", ""),
             "aktiver_unter": request.GET.get("unter", ""),

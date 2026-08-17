@@ -78,6 +78,9 @@ class Testtabelle:
                   "Abweichung"},
         {"label": "letzte 4 Läufe", "key": "laeufe",
          "titel": "Datum · Uhrzeit · Laufzeit, neuester zuerst"},
+        {"label": "Verschieben", "key": "kategorie", "sortAus": True,
+         "titel": "Kategorie des Falls — Auswahl verschiebt seine Testdatei in "
+                  "den Ordner der Zielkategorie"},
         {"label": "", "key": "run", "sortAus": True},
     )
 
@@ -85,6 +88,10 @@ class Testtabelle:
         self.historie = historie
         self.aktiver_slug = aktiver_slug or ""
         self.tab = tab or ""
+        # EIN Verschieber fuer die ganze Seite: Er sucht die Datei zu jeder
+        # Test-ID auf der Platte. Je Zeile ein neuer waere derselbe Weg 173-mal.
+        from .testverschieben import Verschieber
+        self.verschieber = Verschieber()
 
     # ------------------------------------------------------------- Umformer
 
@@ -131,10 +138,41 @@ class Testtabelle:
                  "sort": self._trendwert(trendtext), "klasse": "num"},
                 {"html": self._laufliste(laeufe, mit_status=e.ist_suite),
                  "sort": len(laeufe)},
+                {"html": self._kategorie(e)},
                 {"html": self._knopf(e.kennung,
                                      self.tab if tab is None else tab, unter)},
             ],
         }
+
+    def _kategorie(self, e):
+        u"""Die Combo-Box „Verschieben" - oder nur der Name der Kategorie.
+
+        Aenderbar ist sie fuer einzelne Python-Testfaelle: Dort ist die Kategorie
+        der ORDNER, und die Auswahl haengt die Testdatei um (siehe
+        ``testverschieben``). Suiten und die Faelle aus einer ``testcases.js``
+        bzw. hinter einem Projekt-Endpunkt tragen ihre Kategorie anderswo — die
+        Spalte zeigt sie dort nur an, statt einen Klick anzubieten, der nichts tut.
+        """
+        from .testverschieben import Verschieber
+        if e.ist_suite:
+            art = Verschieber.art_von(e.ziel) or Verschieber.art_von(e.kennung)
+            return ('<span class="ts-kat-fest" title="Kategorie steht im Ziel '
+                    'der Suite">%s</span>'
+                    % escape(Verschieber.NAMEN.get(art, art or "—")))
+        art, datei = self.verschieber.moeglich(e.kennung)
+        wahl = Verschieber.auswahl(art, datei is not None)
+        if datei is None:
+            return ('<span class="ts-kat-fest" title="nicht verschiebbar — die '
+                    'Datei liegt nicht in einem tests/&lt;art&gt;/-Ordner">%s</span>'
+                    % escape(wahl[0][1]))
+        felder = "".join(
+            '<option value="%s"%s>%s</option>'
+            % (escape(wert), " selected" if gesetzt else "", escape(name))
+            for wert, name, gesetzt in wahl)
+        return ('<select class="ts-kat" data-test-id="%s" data-art="%s" '
+                'title="verschiebt %s in den Ordner der gewählten Kategorie — '
+                'weitere Fälle in derselben Datei gehen mit">%s</select>'
+                % (escape(e.kennung), escape(art), escape(datei.name), felder))
 
     @staticmethod
     def _schnitt(laeufe):

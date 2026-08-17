@@ -7,7 +7,8 @@ from .views import (AktuellDatenView, AktuellLeerenView, AktuellView,
                     BenutzerStatusView, EinstellungenTabsView, EinstellungenView,
                     JobsView, LogsClearView, LogsView, ReviewNachfassenView,
                     ReviewStartView, ReviewStatusView, ReviewView, Skills3View,
-                    Skills2View, SkillsView, TestDauerView, TestsView, TrafficView,
+                    Skills2View, SkillsView, TestDauerView, TestsView,
+                    TestVerschiebenView, TrafficView,
                     UebersetzungView, VersionsView)
 
 app_name = "djangobase"
@@ -23,6 +24,11 @@ urlpatterns = [
     # Laufzeit eines im Browser gefahrenen UI-Tests. Der EINZIGE
     # Schreib-Endpunkt der Tests-Seite; Grenzen siehe testdauer.py.
     path("tests/dauer/", TestDauerView.as_view(), name="tests_dauer"),
+    # Testfall in eine andere Kategorie umhaengen (Combo-Box
+    # „Verschieben" in jeder Testcase-Tabelle). POST, weil es eine
+    # DATEI verschiebt — siehe testverschieben.py.
+    path("tests/verschieben/", TestVerschiebenView.as_view(),
+         name="tests_verschieben"),
     # DER Werkzeugkasten: alle Werkzeuge, alle Lehren, die Fixer und der
     # server-seitige Stapellauf mit Klartext-Bericht. Die Werkzeuge laufen im
     # Serverprozess und rufen ausschliesslich GET-Routen auf.

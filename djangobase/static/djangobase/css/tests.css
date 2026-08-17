@@ -76,3 +76,24 @@
     font-size: .8rem; max-height: 50vh; overflow: auto; white-space: pre-wrap; word-break: break-word; }
 .ts-pre.err { color: #f85149; }
 .ts-empty { color: #8aa0b8; }
+
+/* ===== Spalte „Verschieben" ==============================================
+   Combo-Box je Zeile: aktuelle Kategorie sichtbar, Auswahl haengt die
+   Testdatei um (Ansage 17.08.2026). Native <select> erben kein Theme —
+   Farben deshalb ausdruecklich, sonst weisse Schrift auf weissem Dropdown. */
+select.ts-kat {
+    background: rgba(255,255,255,0.08);
+    color: #e0e8f0;
+    border: 1px solid #1e3a5f;
+    border-radius: 6px;
+    padding: 2px 6px;
+    font-size: .82rem;
+    max-width: 12rem;
+}
+select.ts-kat option { background: #12263f; color: #e0e8f0; }
+select.ts-kat:disabled { opacity: .6; cursor: progress; }
+.ts-kat-fest { color: #8aa0b8; font-size: .82rem; }
+.ts-kat-meldung { display: block; font-size: .76rem; margin-top: 2px; }
+.ts-kat-meldung.laeuft { color: #a9e6ff; }
+.ts-kat-meldung.gut { color: #8ef0ae; }
+.ts-kat-meldung.fehler { color: #ffb3b3; }

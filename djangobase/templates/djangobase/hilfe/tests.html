@@ -29,6 +29,13 @@ nicht (17.08.2026).
       new TabellenBreiten([t], t.dataset.sortKey).binden());
   TabellenSortierung.binden();
 </script>
+{% comment %}
+Die Combo-Box „Verschieben" in jeder Testcase-Tabelle. Die Ziel-URL steht als
+json_script im DOM, damit das Skript eine eigene Datei bleibt (das Template war
+schon einmal auf 420 Zeilen gewachsen).
+{% endcomment %}
+{{ verschieben_url|json_script:"ts-verschieben-url" }}
+<script src="{% static 'djangobase/js/tests_verschieben.js' %}"></script>
 {% endblock %}
 
 {% block content %}
