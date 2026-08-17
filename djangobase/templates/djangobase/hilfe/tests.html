@@ -3,6 +3,32 @@
 {% block title_extra %} · Tests{% endblock %}
 {% block topbar_title %}<i class="bi bi-bug"></i> Hilfe · Tests{% endblock %}
 
+{% comment %}
+Die Testcase-Tabellen erben die gemeinsame Bedienung (Sortierpfeile immer
+sichtbar, ziehbare Spaltenbreiten, gemerkt je Tabelle) — dafuer braucht die
+Seite das Stylesheet und die zwei Module. Ansage 17.08.2026.
+{% endcomment %}
+{% block head_extra %}{{ block.super }}
+<link rel="stylesheet" href="/static/djangobase/css/tabellen.css">
+{% endblock %}
+
+{% comment %}
+``body_scripts`` und nicht ``extra_js``: Die Shell (``_shell.html``) kennt nur
+``head_meta``, ``head_css``, ``head_scripts``, ``head_extra``,
+``body_scripts_core`` und ``body_scripts``. Ein Block, den es nicht gibt, wird
+von Django stillschweigend verworfen — das Stylesheet kam an, die Sortierung
+nicht (17.08.2026).
+{% endcomment %}
+{% block body_scripts %}{{ block.super }}
+<script type="module">
+  import { TabellenSortierung } from '/static/djangobase/js/tabellen_sortierung.js';
+  import { TabellenBreiten } from '/static/djangobase/js/tabellen_breiten.js';
+  document.querySelectorAll('table[data-sort-key]').forEach((t) =>
+      new TabellenBreiten([t], t.dataset.sortKey).binden());
+  TabellenSortierung.binden();
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="ts-page" data-aktiv-tab="{{ aktiver_tab }}" data-aktiv-unter="{{ aktiver_unter }}">
 
@@ -87,21 +113,14 @@
     <div class="ts-panel" data-panel="{{ k.typ }}">
         <div class="ts-card">
             <h3><i class="bi bi-list-check"></i> {{ k.typ }}-Tests <span class="ts-meta">· {{ k.anzahl }} Tests</span></h3>
-            {% if k.tests %}
-            <div class="ts-list">
-                {% for t in k.tests %}
-                <div class="ts-item {% if aktiver_slug == t.id %}aktiv{% endif %}">
-                    <span class="ts-name"><i class="bi bi-dot"></i> {{ t.kurz }}</span>
-                    <code class="ts-id">{{ t.id }}</code>
-                    <a class="ts-run" href="?run={{ t.id|urlencode }}&tab={{ k.typ }}" title="Diesen Test ausführen">
-                        <i class="bi bi-play-fill"></i> Run</a>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <p class="ts-empty">Keine Tests gefunden. Labels in
-                <code>DJANGOBASE["test_discover"]</code> prüfen.</p>
-            {% endif %}
+            {% comment %}
+            Sortierbare djangoBase-Tabelle statt einer Reihe von <div>s
+            (Ansage 17.08.2026: „alle Tabellen mit Testcases sollen erben von der
+            djangoBase sortierbaren Tabelle"). Damit sind die Laufzeit-Spalten
+            sortierbar — die eigentliche Frage lautet „welcher Test ist der
+            langsamste" bzw. „welcher ist langsamer geworden".
+            {% endcomment %}
+            {% include "djangobase/_tabelle.html" with tabelle=k.tabelle %}
         </div>
     </div>
     {% endfor %}
@@ -208,15 +227,8 @@
         <div class="ts-card">
             <h3><i class="bi bi-collection-play"></i> {{ g.name }}
                 <span class="ts-count">{{ g.befehle|length }}</span></h3>
-            <div class="ts-list">
-                {% for b in g.befehle %}
-                <div class="ts-item {% if aktiver_slug == b.slug %}aktiv{% endif %}">
-                    <span class="ts-name"><i class="bi bi-play-circle"></i> {{ b.name }}</span>
-                    <code class="ts-id">{{ b.cmd|join:' ' }}</code>
-                    <a class="ts-run" href="?run={{ b.slug }}&tab=Suiten"><i class="bi bi-play-fill"></i> Run</a>
-                </div>
-                {% endfor %}
-            </div>
+            {# Auch hier die sortierbare Tabelle — mit der Laufzeit-Historie. #}
+            {% include "djangobase/_tabelle.html" with tabelle=g.tabelle %}
         </div>
         {% endfor %}
     </div>
@@ -274,7 +286,24 @@
 </script>
 
 <style>
-.ts-page { padding: 1.25rem 1.5rem 4rem; max-width: 1050px; }
+/* Volle Breite: Die Testcase-Tabelle hat sechs Spalten, darunter „letzte 4
+   Läufe". Mit `max-width: 1050px` (vorher) stand sie im eigenen Weg — und die
+   Vorgabe lautet ohnehin, dass Inhaltsseiten den Bereich rechts ausfüllen. */
+.ts-page { padding: 1.25rem 1.5rem 4rem; }
+/* --- Laufzeiten in den Testcase-Tabellen ---------------------------------- */
+.ts-lauf { display: inline-block; background: #0d1117; border: 1px solid #1e3a5f;
+    border-radius: 10px; padding: 0 7px; margin: 1px 2px 1px 0;
+    font-size: .78rem; color: #b9c9db; white-space: nowrap; }
+.ts-lauf .ts-ok { color: #5fd97a; }
+.ts-lauf .ts-fehler { color: #ff8080; }
+.ts-nie { color: #6b7d92; font-style: italic; }
+/* Trend: langsamer geworden faellt auf, schneller ist erfreulich — beides nur
+   ab 25 % Abweichung, darunter ist es Rauschen (siehe Testhistorie.trend). */
+.ts-trend.schlecht { color: #ffb3b3; font-weight: 600; }
+.ts-trend.gut { color: #8ef0ae; font-weight: 600; }
+.db-tabelle td.num, .db-tabelle th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.db-tabelle tr.aktiv td { background: rgba(78,168,246,0.12); }
+.db-tabelle .ts-ziel { color: #8aa0b8; font-family: ui-monospace, Consolas, monospace; font-size: .78rem; }
 .ts-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; border-bottom: 1px solid #1e3a5f; }
 .ts-tab { background: transparent; border: 1px solid transparent; border-bottom: none; color: #8aa0b8;
     padding: 8px 16px; border-radius: 8px 8px 0 0; cursor: pointer; font-size: .92rem; font-weight: 600; }

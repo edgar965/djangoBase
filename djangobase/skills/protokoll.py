@@ -75,17 +75,28 @@ class Protokoll(EigenesWerkzeug):
     #:   nicht: Der Unterstrich ist ein Wortzeichen, also gibt es vor „logger"
     #:   keine Wortgrenze. Beide Stellen protokollierten und wurden gemeldet.
     #:
-    #: ``(\w+_)?`` verlangt den Unterstrich, damit nicht jedes Wort auf „log"
+    #: ``(\w*_)?`` verlangt den Unterstrich, damit nicht jedes Wort auf „log"
     #: mitzaehlt: ``dialog.error(…)`` oder ``katalog.info(…)`` bleiben aussen.
+    #:
+    #: ``\w*`` statt ``\w+`` seit dem 17.08.2026: Mit ``\w+_`` braucht es
+    #: mindestens ein Zeichen VOR dem Unterstrich, und damit fiel der haeufigste
+    #: Fall durch — ``_log = logging.getLogger('mail')``. Drei Module
+    #: (``mail/ai/DailyScan.py``, ``MailKiAnalyzer.py``, ``dav/CardDavImporter.py``)
+    #: fuehren ihren Logger so; ihre ordentlich protokollierten Bloecke galten
+    #: als stumm. Aufgefallen ist es, weil ``fix-ausnahme`` dort einen Log-Aufruf
+    #: setzte und die eigene Gegenprobe danach weiter „stumm" meldete.
+    #: ``self\._?log`` deckt dieselbe Schreibweise als Attribut ab.
     LOGGER_RUF = re.compile(
-        r"(?:(?<![\w.])(?:\w+_)?(?:logger|logging|log)"
-        r"|self\.log|getLogger\([^)]*\))"
+        r"(?:(?<![\w.])(?:\w*_)?(?:logger|logging|log)(?:_\w+)?"
+        r"|self\._?log(?:ger)?|getLogger\([^)]*\))"
         r"\s*\.\s*"
         r"(?:debug|info|warning|warn|error|exception|critical)")
     #: Vermerk am Code fuer einen Block, der bewusst stumm bleibt. Die
     #: Begruendung MUSS dahinterstehen — „# stumm gewollt:" allein zaehlt nicht,
     #: sonst wird der Vermerk zum Schalter, mit dem man jeden Befund abschaltet.
     STUMM_GEWOLLT = re.compile(r"#\s*stumm gewollt:\s*\S+")
+    #: Django-Messages: der Grund landet sichtbar beim Nutzer, nicht im Nichts.
+    MELDUNG_AN_NUTZER = re.compile(r"messages\.(error|warning)\s*\(")
 
     #: Der echte Fall steht oben, darunter die DREI Ausnahmen, die dieses
     #: Werkzeug am 17.08.2026 gelernt hat. `hoechstens=1` haelt sie fest: Jede
@@ -258,13 +269,50 @@ def schlucken(fall):
             if weich:
                 continue
             for k in d.knoten(ast.Call):
-                if getattr(k.func, "id", "") == "print":
-                    aus.append({"art": "print statt Logger", "datei": d.name,
-                                "zeile": k.lineno, "fundstelle": "print(…)",
-                                "hinweis": "Logger nutzen — print landet in keiner "
-                                           "Datei" + ("" if hat_logger
-                                                      else "; Modul hat noch keinen Logger")})
+                if getattr(k.func, "id", "") != "print":
+                    continue
+                # DANEBEN STEHT SCHON EIN LOG-AUFRUF (17.08.2026)
+                # ===============================================
+                # Zwei Fundstellen im Projekt assistant lauteten:
+                #     def _log(self, msg):
+                #         logger.info(msg)
+                #         if self.progress_cb is None:
+                #             print(msg, flush=True)
+                # Dieselbe Zeile geht ins Log UND auf die Konsole - das ist kein
+                # „print statt Logger", sondern ein Fortschrittsbalken fuer den
+                # Aufruf von Hand. Gemeldet wird nur, was NEBEN dem print keinen
+                # Log-Aufruf in derselben Funktion hat.
+                if self._funktion_loggt(d, k):
+                    continue
+                aus.append({"art": "print statt Logger", "datei": d.name,
+                            "zeile": k.lineno, "fundstelle": "print(…)",
+                            "hinweis": "Logger nutzen — print landet in keiner "
+                                       "Datei" + ("" if hat_logger
+                                                  else "; Modul hat noch keinen Logger")})
         return aus
+
+    @classmethod
+    def _funktion_loggt(cls, d, aufruf):
+        u"""Steht in derselben Funktion auch ein Logger-Aufruf?
+
+        Gesucht wird die INNERSTE Funktion, die den ``print`` umschliesst, und
+        darin nach ``LOGGER_RUF``. Ohne die Eingrenzung auf die Funktion wuerde
+        jedes Modul mit irgendeinem Logger jeden ``print`` freigeben.
+        """
+        zeilen = d.text.split("\n")
+        beste = None
+        for k in ast.walk(d.baum):
+            if not isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            ende = getattr(k, "end_lineno", k.lineno)
+            if k.lineno <= aufruf.lineno <= ende:
+                if beste is None or k.lineno > beste.lineno:
+                    beste = k
+        if beste is None:
+            return False
+        rumpf = "\n".join(zeilen[beste.lineno - 1:
+                                 getattr(beste, "end_lineno", beste.lineno)])
+        return bool(cls.LOGGER_RUF.search(rumpf))
 
     @staticmethod
     def _ist_skript(baum):
@@ -338,6 +386,15 @@ def schlucken(fall):
         if status is not None and 400 <= status < 500:
             return []
         if self._eigener_code(k) or self._testbericht(d, k):
+            return []
+        # DEM NUTZER GEMELDET ist auch gemeldet (17.08.2026). Django-Messages
+        # zeigen den Grund auf der naechsten Seite an:
+        #   except Exception as exc:
+        #       messages.error(request, f'Import fehlgeschlagen: {exc}')
+        # Das ist keine verschluckte Ausnahme, sondern der Weg, auf dem der
+        # Nutzer sie zu sehen bekommt. Aufgefallen an `steuer_web/views/api.py`,
+        # das `fix-ausnahme` deshalb nicht ruhigstellen konnte.
+        if self.MELDUNG_AN_NUTZER.search(quelle):
             return []
         stumm = all(isinstance(x, (ast.Pass, ast.Continue, ast.Break)) or
                     (isinstance(x, ast.Return) and x.value is None) for x in rumpf)

@@ -28,6 +28,9 @@ from django.views import View
 from ..conf import conf
 from ..mixins import ZugriffMixin
 from ..testbefehle import Testbefehle
+from ..testdauern import Dauern
+from ..testhistorie import Testhistorie
+from ..testtabelle import Testtabelle
 
 _NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
@@ -85,6 +88,29 @@ class TestsView(ZugriffMixin, View):
                      "--top-level-directory", "--testrunner", "--tag",
                      "--exclude-tag", "--parallel", "-k", "--shuffle",
                      "--durations", "--pdb"}
+
+    #: So lange gilt eine einmal ermittelte Testliste. Die Discovery importiert
+    #: jedes Testmodul; bei dreissig Labels kostet das mehrere Sekunden, und die
+    #: Liste aendert sich nur, wenn jemand eine Testdatei anlegt.
+    DISCOVER_FRIST = 600
+
+    @staticmethod
+    def _ids_gecacht(label):
+        u"""Test-IDs eines Labels, kurz zwischengespeichert.
+
+        Ohne den Zwischenspeicher laedt JEDER Aufruf von /hilfe/tests/ alle
+        Testmodule neu — im Projekt assistant sind das ueber dreissig Labels.
+        Der Cache liegt in Djangos Cache-Rahmen (Vorgabe: im Speicher des
+        Prozesses), nicht in einer Modulvariablen: veraenderlicher Zustand auf
+        Modulebene gilt fuer ALLE Anfragen gleichzeitig.
+        """
+        from django.core.cache import cache
+        schluessel = "djangobase:testids:%s" % label
+        ids = cache.get(schluessel)
+        if ids is None:
+            ids = _discover_ids(label)
+            cache.set(schluessel, ids, TestsView.DISCOVER_FRIST)
+        return ids
 
     # ------------------------------------------------------- Reiter „Alle"
 
@@ -217,20 +243,29 @@ class TestsView(ZugriffMixin, View):
         discover = c.get("test_discover", []) or []
         ui = c.get("test_ui") or None
 
+        alles, alle_arten, suiten = self._kategorien_alle(befehle)
+        if not discover:
+            # ABGELEITET, wenn das Projekt keine `test_discover` pflegt: Die
+            # Einzeltest-Reiter (und damit die Laufzeit je Testcase) sollen
+            # ueberall stehen, nicht nur dort, wo jemand die Labels von Hand
+            # eingetragen hat. Quelle sind dieselben Ziele wie fuer die
+            # Sammelknoepfe — eine Liste, kein zweiter Ort (17.08.2026).
+            discover = [{"typ": a["kurz"],
+                         "labels": (a["sammel"]["ziel"] or "").split()}
+                        for a in alle_arten if a.get("sammel")]
+
         # Kategorien (Tabs) mit ihren Einzeltests aufbauen
         kategorien = []
         bekannte_ids = set()
         for d in discover:
             tests = []
             for label in d.get("labels", []):
-                for tid in _discover_ids(label):
+                for tid in self._ids_gecacht(label):
                     tests.append({"id": tid, "kurz": _kurz(tid)})
                     bekannte_ids.add(tid)
             tests.sort(key=lambda t: t["id"])
             kategorien.append({"typ": d.get("typ", "Tests"), "tests": tests,
                                "anzahl": len(tests)})
-
-        alles, alle_arten, suiten = self._kategorien_alle(befehle)
 
         slug = request.GET.get("run")
         ergebnis = None
@@ -241,10 +276,25 @@ class TestsView(ZugriffMixin, View):
             kandidaten = list(befehle) + self._sammelbefehle(alles, alle_arten)
             b = next((x for x in kandidaten if x.get("slug") == slug), None)
             if b:
-                ergebnis = self._run(b["cmd"], b.get("name", slug), b.get("frist"))
+                ergebnis = self._run(b["cmd"], b.get("name", slug),
+                                     b.get("frist"), slug=slug)
             elif slug in bekannte_ids:                      # einzelner Test (nur bekannte IDs)
-                cmd = [sys.executable, "manage.py", "test", slug, "--noinput", "-v", "2"]
+                cmd = [self._python(befehle), "manage.py", "test", slug,
+                       "--noinput", "-v", "2"]
                 ergebnis = self._run(cmd, _kurz(slug))
+
+        # Laufzeiten NACH dem Lauf lesen, damit der gerade gefahrene Test seine
+        # frische Zahl schon zeigt.
+        tabellen = Testtabelle(Testhistorie(), aktiver_slug=slug or "",
+                               tab=request.GET.get("tab", ""))
+        for k in kategorien:
+            k["tabelle"] = tabellen.einzeltests(k)
+        # EINMAL gruppieren und dieselben Objekte weitergeben: Ein zweiter Aufruf
+        # von `_gruppen` baut neue Dictionaries, und die Tabelle haette an
+        # Objekten gehangen, die die Vorlage nie sieht.
+        gruppen = self._gruppen(suiten)
+        for g in gruppen:
+            g["tabelle"] = tabellen.suiten(g["befehle"], g["name"])
 
         return render(request, "djangobase/hilfe/tests.html", {
             "aktiv": "tests",
@@ -252,7 +302,7 @@ class TestsView(ZugriffMixin, View):
             "alles": alles,
             "alle_arten": alle_arten,
             "suiten": suiten,
-            "suiten_gruppen": self._gruppen(suiten),
+            "suiten_gruppen": gruppen,
             "kategorien": kategorien,
             "ui": ui,
             "ergebnis": ergebnis,
@@ -261,7 +311,14 @@ class TestsView(ZugriffMixin, View):
             "aktiver_unter": request.GET.get("unter", ""),
         })
 
-    def _run(self, cmd, name, frist=None):
+    def _run(self, cmd, name, frist=None, slug=""):
+        u"""Einen Lauf fahren - und seine Laufzeiten in die Historie schreiben.
+
+        ``--durations 0`` kommt dazu, wenn der Interpreter des Projekts es kennt
+        (Python 3.12+); die Zahlen werden anschliessend aus der Ausgabe gelesen.
+        Damit steht neben jedem Testcase, wie lange er in den letzten vier
+        Durchgaengen gebraucht hat (Ansage 17.08.2026)."""
+        cmd = Dauern.option_setzen(cmd)
         t0 = time.time()
         try:
             r = subprocess.run(cmd, capture_output=True, text=True,
@@ -271,10 +328,31 @@ class TestsView(ZugriffMixin, View):
             out, err, rc = r.stdout or "", r.stderr or "", r.returncode
         except Exception as exc:  # noqa: BLE001
             out, err, rc = "", str(exc), -1
+        dauer = round(time.time() - t0, 1)
+        # Der Block „Slowest test durations" landet auf demselben Strom wie die
+        # Testergebnisse - je nach Django/unittest ist das stdout ODER stderr.
+        # Deshalb beide lesen, statt zu raten.
+        dauern = Dauern.lesen(out) or Dauern.lesen(err)
+        self._merken(slug, name, dauer, rc == 0, dauern)
         return {
             "name": name,
             "cmd": " ".join(cmd) if isinstance(cmd, (list, tuple)) else str(cmd),
             "rc": rc, "ok": rc == 0,
             "out": out[-40000:], "err": err[-40000:],
-            "dauer": round(time.time() - t0, 1),
+            "dauer": dauer,
+            "dauern": len(dauern),
         }
+
+    @staticmethod
+    def _merken(slug, name, dauer, ok, dauern):
+        """Laufzeiten wegschreiben - ein Fehler dabei darf den Lauf nicht kosten."""
+        zeit = time.strftime("%d.%m.%Y %H:%M:%S")
+        suite = ({"slug": slug, "name": name, "dauer": dauer, "ok": ok,
+                  "tests": len(dauern)} if slug else None)
+        try:
+            Testhistorie().merken(zeit, dauern, suite)
+        except Exception:  # noqa: BLE001
+            import logging
+            logging.getLogger("django").exception(
+                "Testhistorie nicht geschrieben — der Lauf selbst ist "
+                "unberührt, nur seine Laufzeiten fehlen")

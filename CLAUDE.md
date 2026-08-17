@@ -51,6 +51,38 @@ Drei Pakete, drei Zwecke — nicht vermischen:
 | `jsfaenger` | werfende Server-Abrufe ohne `try` | 16 von 101; zwei direkt hinter einem Nutzerklick |
 | `jsfunktionen` | Funktionen ab N Zeilen (`skills2_funktionsgrenze`) | `loadClothUI` mit 245 Zeilen |
 | `jsbefunde` | 10 zählbare Auffälligkeiten in `.js`/`.html` | 3.290 Befunde erhoben, davon `.ok`-Prüfung 71→0, `console.log` 144→0, `var` 157→0 |
+| `jsstumm` | verschluckte Rückmeldungen: Meldung hängt an einem fehlenden Element, `catch` ohne Inhalt, `.catch(() => {})`, `if (!antwort.ok) return;` | assistant 67 → 0. Anlass: ein Sync-Knopf gab 31 s keine Rückmeldung, weil `if (!el) return;` in der Anzeige-Methode stand (17.08.2026) |
+
+### Fixer, der schreibt: `fix-ausnahme` (17.08.2026, aus assistant)
+
+Setzt in stumme `except`-Blöcke einen Log-Aufruf — Stufe aus dem Code abgeleitet
+(`debug` bei `continue` in Schleifen, `warning` bei erwarteten Typen wie
+ValueError/KeyError, `exception` mit Traceback bei `except Exception`) — und
+`# stumm gewollt: <Grund>` bei ImportError/KeyboardInterrupt. Die Meldung nennt
+nur Funktionsname und Typ, nie Variablen: So kann durch den Umbau nichts
+Geheimes ins Log geraten. Im Projekt assistant: 636 Blöcke in 205 Modulen,
+`protokoll` 656 → 0, danach 649 Tests grün.
+
+**Netz (nicht verhandelbar):** `compile()`, „`protokoll` sieht hier weniger", UND
+die Frage, ob der Name `logging` modulweit gebunden ist. Der letzte Punkt kostete
+einen Vorfall: In `mail/models.py` stand weiter unten `import logging as
+_logging`; der Fixer hielt das für den Import, die Datei kompilierte, und die
+Anwendung startete nicht mehr (`NameError`).
+
+### Testlaufzeiten je Testcase (Hilfe → Tests)
+
+`testdauern.Dauern` hängt `--durations 0` an (nur wenn der Interpreter des
+Projekts Python 3.12+ ist — sonst bricht der Lauf an einem unbekannten Argument
+ab) und liest die Laufzeiten aus der Ausgabe. `testhistorie.Testhistorie` hält
+die **letzten vier Läufe je Testcase und je Suite** mit Datum/Uhrzeit in
+`BASE_DIR/logs/testhistorie.json` (keine DB — die Seite muss auch beim
+Neuaufbau der Test-DB Zahlen zeigen). `testtabelle.Testtabelle` baut daraus die
+sortierbare Tabelle (`_tabelle.html`): Testcase · letzte · Ø · Trend ·
+letzte 4 Läufe · Run. Trend erst ab 25 % Abweichung, alles darunter ist Rauschen.
+
+Fehlt `DJANGOBASE["test_discover"]`, leitet die Seite die Labels aus denselben
+`test_befehle` ab — die Einzeltest-Reiter stehen damit in JEDEM Projekt. Die
+Discovery ist 10 Minuten gecacht (sie importiert jedes Testmodul).
 
 Regeln von `jsbefunde` stehen in `skills2/jsregeln.py` (eine Klasse je Regel),
 der Klammerzähler in `skills2/jsklammern.py` (Template-Strings über mehrere

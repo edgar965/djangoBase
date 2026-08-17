@@ -140,9 +140,24 @@ def pruefen(daten_basis):
         Python-Datei ist ein Drahtname — sonst galt ``job_id`` neben ``"jobId"``
         als Bruch „in einer Sprache", obwohl beides in Python-Dateien stand.
         """
+        # EIN NAME, DER AUF DEM DRAHT VORKOMMT, IST EIN DRAHTNAME — überall
+        # (17.08.2026, 3DTools). `bildexport.js` hält seinen Zustand als
+        # `{cropX: …}` und schickt ihn als `{crop_x: …}`; die Gegenseite liest
+        # `daten.get('crop_x')`. Beide Schlüssel stehen in JavaScript, also galt
+        # das als „in einer Sprache" — dabei ist die eine Schreibweise der
+        # INTERNE Zustand und die andere der Vertrag mit dem Server. Wer sie
+        # angleicht, ändert das Protokoll.
+        #
+        # Sobald eine Schreibweise irgendwo als Drahtname gesehen wurde, zählt
+        # sie überall als Drahtname. Das waren acht der 24 „echten" Befunde
+        # (crop_x/y/w/h, start_time, end_time und zwei weitere).
+        drahtnamen = {name for name, stellen in namen.items()
+                      if any(w == "Draht" for _d, w in stellen)}
         je_welt = {}
         for name, stellen in namen.items():
             for _datei, welt in stellen:
+                if name in drahtnamen:
+                    welt = "Draht"
                 # Verglichen wird nur innerhalb DERSELBEN Rolle: `MeshData` ist
                 # eine Klasse, `mesh_data` eine Variable, `BVHTEXT` eine
                 # Konstante. Dass die drei verschieden geschrieben sind, VERLANGT

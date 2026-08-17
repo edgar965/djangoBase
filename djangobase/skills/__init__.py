@@ -105,6 +105,7 @@ from .testaufbau import Testaufbau
 from .testdeckung import Testdeckung
 
 # --- Fixer -------------------------------------------------------------------
+from .fix_ausnahme import FixAusnahme
 from .fix_dictklasse import FixDictKlasse
 from .fix_importe import ImportFixer
 from .fix_jserbe import FixJsErbe
@@ -226,6 +227,9 @@ WERKZEUGE = NEUE
 #: WERKZEUGE, weil sie schreiben: jeder braucht Vorschau, Sicherung und ein Netz
 #: (siehe ``fixer.py``). Ein Fix-Knopf neben einem Pruef-Knopf waere eine Falle.
 FIXER = [
+    # Vorne: die teuerste Fehlerklasse. Eine verschluckte Ausnahme kostet
+    # spaeter Stunden, weil die Ursache nirgends steht.
+    FixAusnahme,
     FixVermerk,
     FixJsSchnitt,
     FixJsErbe,
