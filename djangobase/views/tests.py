@@ -4,41 +4,41 @@
   Reiter „Alle": ein Knopf je Kategorie (Automated, Unit, Component, UI,
   Performance, Longrunner), der ALLE Tests dieser Art in EINEM Lauf fährt, plus
   einen für das ganze Projekt. Darunter Unter-Reiter je Kategorie mit den
-  einzelnen Bereichen. Die Kategorien werden aus den Einträgen ABGELEITET (Art
-  notfalls aus dem Kommando gelesen), damit der Reiter auch in den Projekten
-  steht, die ihre ``test_befehle`` von Hand pflegen.
+  einzelnen Bereichen.
 - ``test_discover`` – Einzeltest-Discovery pro Typ (Tabs Unit/Component/…), jeder
-  Test einzeln per ``manage.py test <id>`` ausführbar.
+  Test einzeln per ``manage.py test <id>`` ausführbar. Fehlt der Schlüssel, wird
+  er aus denselben ``test_befehle`` abgeleitet.
 - ``test_ui``       – Browser-/UI-Tests, laufen client-seitig (Iframe), Liste kommt
   aus der testcases.js; siehe Template.
 
 Sicherheit: Es werden NUR bekannte (entdeckte) Test-IDs bzw. konfigurierte Befehle
 ausgeführt – keine beliebigen Labels aus der Query.
+
+DREI AUFGABEN, DREI DATEIEN (17.08.2026)
+========================================
+Diese Datei war auf 399 Zeilen gewachsen, weil sie Herleitung, Ausführung und
+Darstellung zugleich trug. Jetzt:
+
+    testkategorien.Kategorien   was sich aus ``test_befehle`` ableiten lässt
+    testlauf.Testlauf           Kommando fahren + Laufzeiten festhalten
+    testtabelle.Testtabelle     EINE Tabelle für alle Testcase-Listen
 """
-import re
-import subprocess
-import sys
-import time
+import logging
 import unittest
 
-from django.conf import settings
 from django.shortcuts import render
+from django.urls import reverse
 from django.views import View
 
 from ..conf import conf
 from ..mixins import ZugriffMixin
 from ..testbefehle import Testbefehle
-from ..testdauern import Dauern
 from ..testhistorie import Testhistorie
+from ..testkategorien import Kategorien
+from ..testlauf import Testlauf
 from ..testtabelle import Testtabelle
 
-_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
-
-#: Die Test-Arten und ihre Namen stehen an EINER Stelle (Testbefehle) - die
-#: Seite leiht sie sich, statt eine zweite Liste zu fuehren, die auseinanderlaeuft.
-ARTEN = Testbefehle.ARTEN
-ARTNAMEN = Testbefehle.ARTNAMEN
-KURZ = Testbefehle.KURZ
+log = logging.getLogger("django")
 
 
 def _discover_ids(label):
@@ -78,24 +78,13 @@ def _kurz(test_id):
 class TestsView(ZugriffMixin, View):
     """Hilfe -> Tests. Der Reiter „Alle" wird in JEDEM Projekt gebaut."""
 
-    #: Wie lange ein Sammellauf hoechstens dauern darf. Der Einzellauf begnuegt
-    #: sich mit den 10 Minuten aus ``_run``; „Alles" kann laenger brauchen, und
-    #: ein Abbruch nach Zeitablauf sieht auf der Seite aus wie ein Fehlschlag.
-    SAMMEL_FRIST = 3600
-    #: Optionen von ``manage.py test``, auf die ein WERT folgt - deren Wert ist
-    #: kein Test-Label (``-v 2`` waere sonst das Label „2").
-    WERT_OPTIONEN = {"-v", "--verbosity", "--settings", "--pythonpath", "-t",
-                     "--top-level-directory", "--testrunner", "--tag",
-                     "--exclude-tag", "--parallel", "-k", "--shuffle",
-                     "--durations", "--pdb"}
-
     #: So lange gilt eine einmal ermittelte Testliste. Die Discovery importiert
     #: jedes Testmodul; bei dreissig Labels kostet das mehrere Sekunden, und die
     #: Liste aendert sich nur, wenn jemand eine Testdatei anlegt.
     DISCOVER_FRIST = 600
 
-    @staticmethod
-    def _ids_gecacht(label):
+    @classmethod
+    def _ids_gecacht(cls, label):
         u"""Test-IDs eines Labels, kurz zwischengespeichert.
 
         Ohne den Zwischenspeicher laedt JEDER Aufruf von /hilfe/tests/ alle
@@ -109,250 +98,156 @@ class TestsView(ZugriffMixin, View):
         ids = cache.get(schluessel)
         if ids is None:
             ids = _discover_ids(label)
-            cache.set(schluessel, ids, TestsView.DISCOVER_FRIST)
+            cache.set(schluessel, ids, cls.DISCOVER_FRIST)
         return ids
 
-    # ------------------------------------------------------- Reiter „Alle"
+    #: So lange gilt die aus dem Dateibestand abgeleitete Befehlsliste.
+    BEFEHLE_FRIST = 600
 
     @classmethod
-    def _kategorien_alle(cls, befehle):
-        """Der Reiter „Alle": je Kategorie ein Sammelknopf + seine Einzel-Suiten.
+    def _befehle_abgeleitet(cls):
+        u"""``test_befehle`` aus dem Dateibestand - wenn das Projekt keine pflegt.
 
-        WIRD ABGELEITET, NICHT VORAUSGESETZT (Korrektur 17.08.2026): Die erste
-        Fassung erwartete fertige Sammel-Eintraege aus
-        ``djangobase.testbefehle.Testbefehle``. Damit hatten ihn genau die
-        Projekte NICHT, die ihre ``test_befehle`` von Hand pflegen — WalkHop,
-        NoiseSpy, HumanBodyWeb, shortlongx. Jetzt liest die Seite Art und Ziel
-        notfalls aus dem Kommando (``manage.py test app.tests.unit`` -> „unit"),
-        und der Reiter steht ueberall.
+        VORGABE FUER ALLE (Ansage 17.08.2026: „aktiviere das per default für alle
+        in djangoBase!"). Ohne das war die Seite in jedem Konsumenten leer, der
+        den Schluessel nicht gesetzt hat — und damit gab es dort auch keine
+        Laufzeiten je Testcase. :class:`~.testbefehle.Testbefehle` sucht die
+        ``tests``-Ordner unter ``BASE_DIR`` und baut je App und Art einen Eintrag;
+        genau das hatte der assistant von Hand in seinen Einstellungen stehen.
 
-        Zurueck kommt ``(alles, arten, rest)``: der Eintrag fuer das ganze
-        Projekt, die Unter-Reiter, und die Liste fuer den Suiten-Reiter."""
-        if not befehle:
-            return None, [], befehle
-        angereichert, nach_art, ohne_art = [], {}, []
-        for b in befehle:
-            # Dictionary gewollt: angereicherte Kopie, das Original bleibt heil.
-            e = dict(b)
-            e["ziel"] = b.get("ziel") or " ".join(cls._ziele(b.get("cmd")))
-            e["art"] = b.get("art") or cls._art(e["ziel"])
-            angereichert.append(e)
-            if e["art"]:
-                nach_art.setdefault(e["art"], []).append(e)
-            else:
-                ohne_art.append(e)
-        python = cls._python(befehle)
-        alles = cls._sammel(python, "alles", "Alles — jede Art, jede App", [])
-        arten = []
-        for art in ARTEN:
-            dabei = nach_art.get(art) or []
-            if not dabei:
-                continue
-            ziele = [z for e in dabei for z in (e["ziel"] or "").split() if z]
-            arten.append({"art": art, "kurz": KURZ.get(art, art.capitalize()),
-                          "sammel": cls._sammel(python, art,
-                                                "Alle %s" % ARTNAMEN.get(art, art),
-                                                ziele),
-                          "befehle": dabei})
-        if ohne_art:
-            arten.append({"art": "apps", "kurz": "Nach App", "sammel": None,
-                          "befehle": ohne_art})
-        return alles, arten, angereichert
+        Ein Projekt, das ``DJANGOBASE["test_befehle"]`` setzt, behaelt seine
+        Liste — die Vorgabe greift nur, wo nichts steht.
+        """
+        from django.core.cache import cache
+        from django.conf import settings
+        gecacht = cache.get("djangobase:testbefehle")
+        if gecacht is not None:
+            return gecacht
+        try:
+            befehle = Testbefehle(settings.BASE_DIR).liste()
+        except Exception:  # noqa: BLE001
+            # Nicht stumm: Bleibt die Seite leer, soll im Log stehen, warum.
+            log.exception("test_befehle konnten nicht aus dem Dateibestand "
+                          "abgeleitet werden — die Tests-Seite bleibt leer")
+            befehle = []
+        cache.set("djangobase:testbefehle", befehle, cls.BEFEHLE_FRIST)
+        return befehle
 
-    @classmethod
-    def _sammel(cls, python, art, name, ziele):
-        """Ein Sammelbefehl - alle Ziele einer Art in EINEM Lauf.
-
-        Ein Lauf statt sechs heisst auch: die Testdatenbank wird einmal
-        aufgebaut, nicht sechsmal."""
-        # Dictionary gewollt: dasselbe Format wie DJANGOBASE["test_befehle"],
-        # damit ``get()`` es ohne Sonderweg ausfuehren kann.
-        return {"slug": "sammel-" + art, "name": name, "art": art,
-                "ziel": " ".join(ziele), "anzahl": len(ziele),
-                "frist": cls.SAMMEL_FRIST,
-                "cmd": [python, "manage.py", "test"] + list(ziele)
-                       + ["--noinput", "-v", "2"]}
-
-    @classmethod
-    def _sammelbefehle(cls, alles, arten):
-        """Alle abgeleiteten Eintraege - fuer die Ausfuehrung per ``?run=``."""
-        aus = [alles] if alles else []
-        return aus + [a["sammel"] for a in arten if a.get("sammel")]
-
-    @staticmethod
-    def _python(befehle):
-        """Der Interpreter, mit dem das Projekt seine Tests faehrt.
-
-        Aus den vorhandenen Eintraegen genommen, nicht geraten: In mehreren
-        Projekten steht dort ein fester venv-Pfad, und ``sys.executable`` ist
-        beim Server ein anderer."""
-        for b in befehle:
-            cmd = b.get("cmd") or []
-            if cmd and str(cmd[0]).lower() not in ("python", "python3"):
-                return str(cmd[0])
-        return sys.executable
-
-    @classmethod
-    def _ziele(cls, cmd):
-        """Die Test-Labels eines Kommandos (alles nach ``test``, ohne Optionen)."""
-        toks = [str(t) for t in (cmd or [])]
-        if "test" not in toks:
-            return []
-        aus, vorher = [], ""
-        for t in toks[toks.index("test") + 1:]:
-            if t.startswith("-"):
-                vorher = t
-                continue
-            if vorher in cls.WERT_OPTIONEN:     # der Wert der Option, kein Label
-                vorher = ""
-                continue
-            vorher = ""
-            aus.append(t)
-        return aus
-
-    @staticmethod
-    def _art(ziel):
-        """„search.tests.chat.unit" -> „unit"; „tracker" -> None."""
-        for teil in re.split(r"[.\\/\s]+", ziel or ""):
-            if teil in ARTEN:
-                return teil
-        return None
-
-    @staticmethod
-    def _gruppen(befehle):
-        """Suiten nach ``gruppe`` buendeln - Reihenfolge wie eingetragen.
-
-        Eintraege OHNE ``gruppe`` landen zusammen unter „Test-Suiten (Batch)":
-        Projekte, die ihre Liste von Hand pflegen, sehen die Seite damit
-        unveraendert. Wer ``djangobase.testbefehle.Testbefehle`` benutzt,
-        bekommt je Bereich eine eigene Karte (Kriterium 17: keine flache Liste
-        aus hundert Eintraegen)."""
-        aus, nach_name = [], {}
-        for b in befehle:
-            name = b.get("gruppe") or "Test-Suiten (Batch)"
-            if name not in nach_name:
-                # Dictionary gewollt: geht unveraendert in die Vorlage.
-                nach_name[name] = {"name": name, "befehle": []}
-                aus.append(nach_name[name])
-            nach_name[name]["befehle"].append(b)
-        return aus
+    # ------------------------------------------------------------------ Seite
 
     def get(self, request):
         c = conf()
-        befehle = c.get("test_befehle", []) or []
-        discover = c.get("test_discover", []) or []
+        befehle = c.get("test_befehle", []) or self._befehle_abgeleitet()
         ui = c.get("test_ui") or None
+        kat = Kategorien(befehle)
+        discover = c.get("test_discover", []) or kat.discover()
 
-        alles, alle_arten, suiten = self._kategorien_alle(befehle)
-        if not discover:
-            # ABGELEITET, wenn das Projekt keine `test_discover` pflegt: Die
-            # Einzeltest-Reiter (und damit die Laufzeit je Testcase) sollen
-            # ueberall stehen, nicht nur dort, wo jemand die Labels von Hand
-            # eingetragen hat. Quelle sind dieselben Ziele wie fuer die
-            # Sammelknoepfe — eine Liste, kein zweiter Ort (17.08.2026).
-            discover = [{"typ": a["kurz"],
-                         "labels": (a["sammel"]["ziel"] or "").split()}
-                        for a in alle_arten if a.get("sammel")]
-
-        # Kategorien (Tabs) mit ihren Einzeltests aufbauen
-        kategorien = []
-        bekannte_ids = set()
-        for d in discover:
-            tests = []
-            for label in d.get("labels", []):
-                for tid in self._ids_gecacht(label):
-                    tests.append({"id": tid, "kurz": _kurz(tid)})
-                    bekannte_ids.add(tid)
-            tests.sort(key=lambda t: t["id"])
-            kategorien.append({"typ": d.get("typ", "Tests"), "tests": tests,
-                               "anzahl": len(tests)})
-
+        kategorien, bekannte_ids = self._einzeltests(discover)
         slug = request.GET.get("run")
-        ergebnis = None
-        if slug:
-            # Die abgeleiteten Sammelbefehle sind aus den konfigurierten
-            # Eintraegen gebaut, nicht aus der Query - deshalb ebenso sicher.
-            # Eigene Eintraege haben Vorrang, falls ein Projekt denselben slug fuehrt.
-            kandidaten = list(befehle) + self._sammelbefehle(alles, alle_arten)
-            b = next((x for x in kandidaten if x.get("slug") == slug), None)
-            if b:
-                ergebnis = self._run(b["cmd"], b.get("name", slug),
-                                     b.get("frist"), slug=slug)
-            elif slug in bekannte_ids:                      # einzelner Test (nur bekannte IDs)
-                cmd = [self._python(befehle), "manage.py", "test", slug,
-                       "--noinput", "-v", "2"]
-                ergebnis = self._run(cmd, _kurz(slug))
+        ergebnis = self._lauf(slug, kat, befehle, bekannte_ids)
 
         # Laufzeiten NACH dem Lauf lesen, damit der gerade gefahrene Test seine
         # frische Zahl schon zeigt.
-        tabellen = Testtabelle(Testhistorie(), aktiver_slug=slug or "",
+        #
+        # ALLE Testcase-Listen der Seite kommen von HIER. Vorher hatte jede ihr
+        # eigenes Markup, und beim Umbau auf die sortierbare Tabelle blieb eine
+        # zurueck („warum gibt es kein Test Seiten template, wo du das nur einmal
+        # aenderst??", 17.08.2026). Jetzt: eine Tabellen-Definition
+        # (``Testtabelle``), eine Karte (``_testkarte.html``), vier Aufrufe.
+        historie = Testhistorie()
+        tabellen = Testtabelle(historie, aktiver_slug=slug or "",
                                tab=request.GET.get("tab", ""))
         for k in kategorien:
-            k["tabelle"] = tabellen.einzeltests(k)
+            k["karte"] = {"titel": "%s-Tests" % k["typ"], "anzahl": k["anzahl"],
+                          "icon": "bi-list-check",
+                          "tabelle": tabellen.aus_tests(k)}
         # EINMAL gruppieren und dieselben Objekte weitergeben: Ein zweiter Aufruf
-        # von `_gruppen` baut neue Dictionaries, und die Tabelle haette an
+        # von ``gruppen()`` baut neue Dictionaries, und die Karte haette an
         # Objekten gehangen, die die Vorlage nie sieht.
-        gruppen = self._gruppen(suiten)
+        gruppen = kat.gruppen()
         for g in gruppen:
-            g["tabelle"] = tabellen.suiten(g["befehle"], g["name"])
+            g["karte"] = {
+                "titel": g["name"], "anzahl": len(g["befehle"]),
+                "icon": "bi-collection-play",
+                "tabelle": tabellen.aus_befehlen(
+                    g["befehle"],
+                    key="test-suiten-%s" % Kategorien.schluessel(g["name"]),
+                    tab="Suiten")}
+        for a in kat.arten:
+            a["karte"] = {
+                "titel": "Einzeln", "anzahl": len(a["befehle"]),
+                "icon": "bi-list-check",
+                "tabelle": tabellen.aus_befehlen(
+                    a["befehle"], key="test-alle-%s" % a["art"],
+                    tab="Alle", unter=a["art"])}
 
         return render(request, "djangobase/hilfe/tests.html", {
             "aktiv": "tests",
             "befehle": befehle,
-            "alles": alles,
-            "alle_arten": alle_arten,
-            "suiten": suiten,
+            "alles": kat.alles,
+            "alle_arten": kat.arten,
+            "suiten": kat.suiten,
             "suiten_gruppen": gruppen,
             "kategorien": kategorien,
             "ui": ui,
+            # Die UI-Tests stehen in ``testcases.js``, nicht im Server — die
+            # Zeilen baut das JavaScript. Von hier kommen nur die KOPFZEILE
+            # (dieselben Spalten wie ueberall) und die bisherigen Laufzeiten.
+            "ui_karte": {"titel": "UI-Tests", "icon": "bi-window",
+                         "hinweis": "laufen im Browser (Iframe)",
+                         "tabelle": tabellen.tabelle([], key="tests-ui-browser",
+                                                     tab="UI",
+                                                     leer="Lade Test-Liste …")},
+            "ui_historie": {k: v for k, v in historie.daten["tests"].items()
+                            if k.startswith("ui:")},
+            # Alles, was `static/djangobase/js/tests_ui.js` braucht - im DOM und
+            # nicht als Template-Variable, damit das Skript eine eigene Datei
+            # bleiben kann (das Template war auf 420 Zeilen gewachsen).
+            "ui_config": {"runner": (ui or {}).get("runner", ""),
+                          "cases": (ui or {}).get("cases", ""),
+                          "seiten": (ui or {}).get("seiten", {}),
+                          "dauerUrl": reverse("djangobase:tests_dauer")},
             "ergebnis": ergebnis,
             "aktiver_slug": slug,
             "aktiver_tab": request.GET.get("tab", ""),
             "aktiver_unter": request.GET.get("unter", ""),
         })
 
-    def _run(self, cmd, name, frist=None, slug=""):
-        u"""Einen Lauf fahren - und seine Laufzeiten in die Historie schreiben.
+    # ------------------------------------------------------------- Bausteine
 
-        ``--durations 0`` kommt dazu, wenn der Interpreter des Projekts es kennt
-        (Python 3.12+); die Zahlen werden anschliessend aus der Ausgabe gelesen.
-        Damit steht neben jedem Testcase, wie lange er in den letzten vier
-        Durchgaengen gebraucht hat (Ansage 17.08.2026)."""
-        cmd = Dauern.option_setzen(cmd)
-        t0 = time.time()
-        try:
-            r = subprocess.run(cmd, capture_output=True, text=True,
-                               timeout=int(frist or 600),
-                               encoding="utf-8", errors="replace",
-                               cwd=str(settings.BASE_DIR), creationflags=_NO_WINDOW)
-            out, err, rc = r.stdout or "", r.stderr or "", r.returncode
-        except Exception as exc:  # noqa: BLE001
-            out, err, rc = "", str(exc), -1
-        dauer = round(time.time() - t0, 1)
-        # Der Block „Slowest test durations" landet auf demselben Strom wie die
-        # Testergebnisse - je nach Django/unittest ist das stdout ODER stderr.
-        # Deshalb beide lesen, statt zu raten.
-        dauern = Dauern.lesen(out) or Dauern.lesen(err)
-        self._merken(slug, name, dauer, rc == 0, dauern)
-        return {
-            "name": name,
-            "cmd": " ".join(cmd) if isinstance(cmd, (list, tuple)) else str(cmd),
-            "rc": rc, "ok": rc == 0,
-            "out": out[-40000:], "err": err[-40000:],
-            "dauer": dauer,
-            "dauern": len(dauern),
-        }
+    def _einzeltests(self, discover):
+        """Die Reiter je Typ mit ihren Einzeltests - und alle bekannten IDs."""
+        kategorien, bekannte = [], set()
+        for d in discover:
+            tests = []
+            for label in d.get("labels", []):
+                for tid in self._ids_gecacht(label):
+                    tests.append({"id": tid, "kurz": _kurz(tid)})
+                    bekannte.add(tid)
+            tests.sort(key=lambda t: t["id"])
+            kategorien.append({"typ": d.get("typ", "Tests"), "tests": tests,
+                               "anzahl": len(tests)})
+        return kategorien, bekannte
 
     @staticmethod
-    def _merken(slug, name, dauer, ok, dauern):
-        """Laufzeiten wegschreiben - ein Fehler dabei darf den Lauf nicht kosten."""
-        zeit = time.strftime("%d.%m.%Y %H:%M:%S")
-        suite = ({"slug": slug, "name": name, "dauer": dauer, "ok": ok,
-                  "tests": len(dauern)} if slug else None)
-        try:
-            Testhistorie().merken(zeit, dauern, suite)
-        except Exception:  # noqa: BLE001
-            import logging
-            logging.getLogger("django").exception(
-                "Testhistorie nicht geschrieben — der Lauf selbst ist "
-                "unberührt, nur seine Laufzeiten fehlen")
+    def _lauf(slug, kat, befehle, bekannte_ids):
+        u"""Den angeforderten Lauf fahren - oder None.
+
+        NUR konfigurierte Befehle und ENTDECKTE Test-IDs; ein Label aus der Query
+        wird nie ausgefuehrt. Die abgeleiteten Sammelbefehle sind aus den
+        konfigurierten Eintraegen gebaut und deshalb ebenso sicher.
+        """
+        if not slug:
+            return None
+        laeufer = Testlauf()
+        # Eigene Eintraege haben Vorrang, falls ein Projekt denselben slug fuehrt.
+        kandidaten = list(befehle) + kat.sammelbefehle()
+        b = next((x for x in kandidaten if x.get("slug") == slug), None)
+        if b:
+            return laeufer.fahren(b["cmd"], b.get("name", slug), b.get("frist"),
+                                  slug=slug)
+        if slug in bekannte_ids:
+            cmd = [Kategorien.python(befehle), "manage.py", "test", slug,
+                   "--noinput", "-v", "2"]
+            return laeufer.fahren(cmd, _kurz(slug))
+        return None

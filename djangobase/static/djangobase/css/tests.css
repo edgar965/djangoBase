@@ -1,0 +1,78 @@
+/* tests.css — Aussehen der Seite Hilfe → Tests.
+   ==========================================================================
+   Aus dem Template herausgeloest (17.08.2026): `hilfe/tests.html` war mit den
+   Laufzeit-Spalten auf 420 Zeilen gewachsen und trug Markup, Stil UND das
+   Browser-Test-Skript. Regel im Haus: Wer eine Datei ueber ~300 Zeilen anfasst,
+   teilt den angefassten Teil ab. */
+
+/* Volle Breite: Die Testcase-Tabelle hat sechs Spalten, darunter „letzte 4
+   Läufe". Mit `max-width: 1050px` (vorher) stand sie im eigenen Weg — und die
+   Vorgabe lautet ohnehin, dass Inhaltsseiten den Bereich rechts ausfüllen. */
+.ts-page { padding: 1.25rem 1.5rem 4rem; }
+/* --- Laufzeiten in den Testcase-Tabellen ---------------------------------- */
+.ts-lauf { display: inline-block; background: #0d1117; border: 1px solid #1e3a5f;
+    border-radius: 10px; padding: 0 7px; margin: 1px 2px 1px 0;
+    font-size: .78rem; color: #b9c9db; white-space: nowrap; }
+.ts-lauf .ts-ok { color: #5fd97a; }
+.ts-lauf .ts-fehler { color: #ff8080; }
+.ts-nie { color: #6b7d92; font-style: italic; }
+/* Trend: langsamer geworden faellt auf, schneller ist erfreulich — beides nur
+   ab 25 % Abweichung, darunter ist es Rauschen (siehe Testhistorie.trend). */
+.ts-trend.schlecht { color: #ffb3b3; font-weight: 600; }
+.ts-trend.gut { color: #8ef0ae; font-weight: 600; }
+.db-tabelle td.num, .db-tabelle th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.db-tabelle tr.aktiv td { background: rgba(78,168,246,0.12); }
+.db-tabelle .ts-ziel { color: #8aa0b8; font-family: ui-monospace, Consolas, monospace; font-size: .78rem; }
+.ts-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; border-bottom: 1px solid #1e3a5f; }
+.ts-tab { background: transparent; border: 1px solid transparent; border-bottom: none; color: #8aa0b8;
+    padding: 8px 16px; border-radius: 8px 8px 0 0; cursor: pointer; font-size: .92rem; font-weight: 600; }
+.ts-tab:hover { color: #e9f0f8; }
+.ts-tab.aktiv { color: #e9f0f8; background: #142136; border-color: #1e3a5f; }
+.ts-count { background: #0d1117; color: #4ea8f6; border-radius: 10px; padding: 0 7px; font-size: .72rem; margin-left: 4px; }
+.ts-panel { display: none; }
+.ts-panel.aktiv { display: block; }
+.ts-subtabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
+.ts-subtab { background: #0f1d31; border: 1px solid #1e3a5f; color: #8aa0b8;
+    padding: 6px 14px; border-radius: 20px; cursor: pointer; font-size: .85rem; font-weight: 600; }
+.ts-subtab:hover { color: #e9f0f8; border-color: #1e5bb8; }
+.ts-subtab.aktiv { color: #fff; background: #15406e; border-color: #1e5bb8; }
+.ts-subpanel { display: none; }
+.ts-subpanel.aktiv { display: block; }
+.ts-alles { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.ts-alles-text { flex: 1 1 320px; min-width: 0; }
+.ts-alles h3 { margin-bottom: 6px; }
+.ts-alles p { margin: 0; }
+/* Ein Sammelbefehl mit dreizehn Zielen ist laenger als der Bildschirm. Als
+   INLINE-Element (code) greift text-overflow nicht — dann schiebt er die ganze
+   Seite waagerecht auf. Also: eigener Rollbereich, die Seite bleibt ruhig. */
+.ts-alles .ts-id { display: block; max-width: 100%; overflow-x: auto;
+    text-overflow: clip; padding: 3px 6px; }
+.ts-run.gross { padding: 9px 20px; font-size: .92rem; flex: 0 0 auto; }
+.ts-card { background: #142136; border: 1px solid #1e3a5f; border-radius: 10px; padding: 16px 20px; margin-bottom: 18px; }
+.ts-card h3 { color: #e9f0f8; font-size: 1.05rem; margin: 0 0 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ts-card h3 i { color: #4ea8f6; }
+.ts-list { display: flex; flex-direction: column; gap: 6px; }
+.ts-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px;
+    background: #0f1d31; border: 1px solid #1e3a5f; }
+.ts-item.aktiv { border-color: #1e5bb8; background: #14365f; }
+.ts-name { color: #e9f0f8; font-size: .9rem; white-space: nowrap; }
+.ts-name i { color: #4ea8f6; }
+.ts-id { background: #0d1117; color: #a5d6ff; padding: 1px 6px; border-radius: 4px; font-size: .72rem;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 auto; min-width: 0; }
+.ts-run { display: inline-flex; align-items: center; gap: 4px; text-decoration: none; flex: 0 0 auto;
+    background: #15406e; color: #dbeafe; border: 1px solid #1e5bb8; border-radius: 6px; padding: 4px 10px;
+    font-size: .8rem; font-weight: 600; cursor: pointer; }
+.ts-run:hover { background: #1e5bb8; color: #fff; }
+.ts-run:disabled { opacity: .4; cursor: not-allowed; }
+.ts-ui-status { flex: 0 0 auto; font-size: .78rem; min-width: 64px; text-align: right; }
+.ts-ui-status.ok { color: #34d399; } .ts-ui-status.fail { color: #f87171; } .ts-ui-status.laeuft { color: #fbbf24; }
+.ts-frame { width: 100%; height: 320px; border: 1px solid #1e3a5f; border-radius: 8px; background: #fff; }
+.ts-badge { border-radius: 6px; padding: 3px 10px; font-size: .8rem; font-weight: 700; }
+.ts-badge.ok { background: #15803d; color: #fff; } .ts-badge.fail { background: #b91c1c; color: #fff; }
+.ts-meta { color: #8aa0b8; font-size: .82rem; font-weight: 400; }
+.ts-meta code { background: #0d1117; color: #a5d6ff; padding: 1px 6px; border-radius: 4px; }
+.ts-label { color: #8aa0b8; font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; margin: 10px 0 4px; }
+.ts-pre { background: #0d1117; border: 1px solid #1e3a5f; border-radius: 6px; padding: 12px 14px; color: #c9d1d9;
+    font-size: .8rem; max-height: 50vh; overflow: auto; white-space: pre-wrap; word-break: break-word; }
+.ts-pre.err { color: #f85149; }
+.ts-empty { color: #8aa0b8; }

@@ -7,7 +7,7 @@ from .views import (AktuellDatenView, AktuellLeerenView, AktuellView,
                     BenutzerStatusView, EinstellungenTabsView, EinstellungenView,
                     JobsView, LogsClearView, LogsView, ReviewNachfassenView,
                     ReviewStartView, ReviewStatusView, ReviewView, Skills3View,
-                    Skills2View, SkillsView, TestsView, TrafficView,
+                    Skills2View, SkillsView, TestDauerView, TestsView, TrafficView,
                     UebersetzungView, VersionsView)
 
 app_name = "djangobase"
@@ -20,6 +20,9 @@ urlpatterns = [
     path("logs/", LogsView.as_view(), name="logs"),
     path("logs/leeren/", LogsClearView.as_view(), name="logs_leeren"),
     path("tests/", TestsView.as_view(), name="tests"),
+    # Laufzeit eines im Browser gefahrenen UI-Tests. Der EINZIGE
+    # Schreib-Endpunkt der Tests-Seite; Grenzen siehe testdauer.py.
+    path("tests/dauer/", TestDauerView.as_view(), name="tests_dauer"),
     # DER Werkzeugkasten: alle Werkzeuge, alle Lehren, die Fixer und der
     # server-seitige Stapellauf mit Klartext-Bericht. Die Werkzeuge laufen im
     # Serverprozess und rufen ausschliesslich GET-Routen auf.

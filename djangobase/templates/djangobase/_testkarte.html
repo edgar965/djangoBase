@@ -1,0 +1,34 @@
+{% comment %}
+djangobase/_testkarte.html — EINE Karte mit einer Testcase-Tabelle.
+==============================================================================
+    „warum gibt es kein Test Seiten template, wo du das nur einmal änderst??"
+    (Edgar, 17.08.2026)
+
+Die Tests-Seite hatte vier Listen mit derselben Aufgabe (Reiter „Alle" je
+Kategorie, Einzeltests je Typ, Suiten je Gruppe, UI-Tests) — jede mit eigenem
+Markup. Beim Umbau auf die sortierbare Tabelle blieb eine davon zurück, und das
+fiel erst im Betrieb auf. Seither gibt es diese Karte: Wer am Aussehen oder an
+der Bedienung einer Testcase-Liste etwas ändert, ändert es HIER, einmal.
+
+    {% include "djangobase/_testkarte.html" with karte=meine_karte %}
+
+ERWARTETE STRUKTUR (``karte``):
+
+    {
+      "titel":   "Unit-Tests",             Pflicht
+      "icon":    "bi-list-check",          optional (Vorgabe: bi-list-check)
+      "anzahl":  173,                      optional, als Chip hinter dem Titel
+      "hinweis": "…",                      optional, kleine Zeile darunter
+      "tabelle": {…},                      Pflicht — siehe _tabelle.html
+    }
+
+Die Tabelle selbst kommt aus ``testtabelle.Testtabelle`` und ist damit für alle
+vier Listen dieselbe: Name · Ziel · letzte · Ø · Trend · letzte 4 Läufe · Run.
+{% endcomment %}
+<div class="ts-card">
+    <h3><i class="bi {{ karte.icon|default:'bi-list-check' }}"></i> {{ karte.titel }}
+        {% if karte.anzahl %}<span class="ts-count">{{ karte.anzahl }}</span>{% endif %}
+    </h3>
+    {% if karte.hinweis %}<p class="ts-meta">{{ karte.hinweis }}</p>{% endif %}
+    {% include "djangobase/_tabelle.html" with tabelle=karte.tabelle %}
+</div>
