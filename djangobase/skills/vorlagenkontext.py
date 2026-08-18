@@ -11,12 +11,47 @@ from django.template.loader import get_template
 from .befund import Befund, Befundsatz, BefundWerkzeug
 
 #: Namen, die aus Kontextprozessoren oder der Shell kommen, nicht aus der Ansicht.
+_PROZESSOR_CACHE = None
+
 VON_AUSSEN = {
     'request', 'user', 'perms', 'messages', 'csrf_token', 'settings', 'DEBUG',
     'True', 'False', 'None', 'block', 'forloop', 'djangobase', 'aktiv',
     'LANGUAGE_CODE', 'LANGUAGE_BIDI', 'TIME_ZONE', 'aktives_theme',
     'sidebar_initial_width', 'JS_VERSION', 'DJANGOBASE',
 }
+
+def _prozessor_namen():
+    """Namen, die JEDE Vorlage bekommt, weil ein Kontextprozessor sie liefert.
+
+    Ohne diese Abfrage meldete das Werkzeug am 18.08.2026 in CamTrack 260
+    „FEHLEND" — davon 255 Namen, die acht Kontextprozessoren an jede Vorlage
+    liefern (``STATIC_V``, ``active_section``, ``record_service_running`` …).
+    Ein Prüfer, dem man zu 98 % nicht glauben kann, wird nicht gelesen.
+
+    Gefragt werden die Prozessoren selbst, nicht eine gepflegte Liste: Was ein
+    Projekt global liefert, weiß nur seine Konfiguration. Jeder wird einzeln
+    gekapselt — einer, der ohne echte Anfrage nicht kann, darf die Prüfung
+    nicht mitnehmen.
+    """
+    global _PROZESSOR_CACHE
+    if _PROZESSOR_CACHE is not None:
+        return _PROZESSOR_CACHE
+
+    from django.test import RequestFactory
+    from django.utils.module_loading import import_string
+
+    namen = set()
+    anfrage = RequestFactory().get("/")
+    anfrage.user = None
+    for eintrag in settings.TEMPLATES:
+        for pfad in (eintrag.get("OPTIONS") or {}).get("context_processors", []):
+            try:
+                namen |= set(import_string(pfad)(anfrage) or {})
+            except Exception:  # noqa: BLE001 - siehe Docstring
+                continue
+    _PROZESSOR_CACHE = namen
+    return namen
+
 
 #: Ueber diese Attribute fuehrt der Weg aus der Vorlage heraus: jeder Knoten
 #: kennt seine Herkunft, die ihren Lader, der die Engine — und deren Cache
@@ -185,6 +220,7 @@ class Vorlagenkontext(BefundWerkzeug):
             if stelle.vollstaendig:
                 fehlend = sorted(n for n in gelesen - stelle.schluessel
                                  - ansicht.alle_lokal() - VON_AUSSEN - einbinde
+                                 - _prozessor_namen()
                                  if _ist_name(n))
                 for name in fehlend:
                     befunde.append(Befund(
