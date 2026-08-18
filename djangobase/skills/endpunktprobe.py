@@ -30,6 +30,10 @@ class Endpunktprobe(BefundWerkzeug):
 
     DATEI = '.djangobase-endpunkte.json'
 
+    #: Kein Anlassfall - und das ist in Ordnung:
+    ohne_anlassfall_weil = ("fragt den LAUFENDEN Server - "
+                            "vergleicht Antworten gegen eine frueher aufgenommene Referenz")
+
     def pruefen(self, modus='pruefen', **_argumente):
         besucher = klient()
         aktuell = {}

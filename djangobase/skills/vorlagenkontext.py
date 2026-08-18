@@ -157,6 +157,10 @@ class Vorlagenkontext(BefundWerkzeug):
              'je Aufruf und zwei unerreichbare Vorlagen.')
     dauer = 'wenige Sekunden'
 
+    #: Kein Anlassfall - und das ist in Ordnung:
+    ohne_anlassfall_weil = ("braucht den Django-Template-Loader - "
+                            "in einem Wegwerf-Verzeichnis gibt es keine Vorlagen")
+
     def pruefen(self, **_argumente):
         stellen = self._renderstellen()
         sicht, befunde = {}, []

@@ -68,6 +68,10 @@ class Seitenzeiten(Werkzeug):
     AUSSER = ("logout", "delete", "loeschen", "abmelden", "start", "stop",
               "bulk", "reset", "admin/", "__debug__", "media/", "static/")
 
+    #: Kein Anlassfall - und das ist in Ordnung:
+    ohne_anlassfall_weil = ("misst nur (Ladezeiten je Seite) - "
+                            "eine Messung hat keinen Fall, den man nachbauen koennte")
+
     def seiten(self):
         u"""Benannte GET-Routen ohne Parameter — von Django selbst erfragt."""
         eigen = (getattr(settings, "DJANGOBASE", {}) or {}).get(

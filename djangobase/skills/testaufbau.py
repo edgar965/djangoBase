@@ -51,6 +51,9 @@ class Testaufbau(EigenesWerkzeug):
     #: Ab so vielen Test-Bereichen lohnen eigene Gruppen/Unterseiten.
     VIEL = 4
 
+    #: Kein Anlassfall - und das ist in Ordnung:
+    ohne_anlassfall_weil = "misst nur (wie die Testsuite gegliedert ist)"
+
     def laufen(self):
         dateien = [d for d in self.dateien()
                    if self._ist_testdatei(d) and self._ist_django_app(d)]

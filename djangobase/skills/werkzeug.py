@@ -159,9 +159,18 @@ class Werkzeug:
     #: MUSS. Geprueft von ``anlassfall-check``: Ein Pruefer, der nach einem
     #: Umbau seinen eigenen Fall nicht mehr sieht, meldet null und sieht dabei
     #: aus wie ein sauberes Projekt (zweimal passiert am 17.08.2026).
-    #: ``None`` ist erlaubt, wo es keinen dateibasierten Fall gibt - das Werkzeug
-    #: erscheint dann im Bericht als „ohne Anlassfall", nicht als bestanden.
     anlassfall = None
+
+    #: Wer KEINEN Anlassfall hat, sagt hier in einem Satz warum - sonst gilt er
+    #: als blind. Beispiele: ein Werkzeug, das nur MISST (Zeilen, Zeiten), oder
+    #: eines, das den laufenden Server bzw. den Django-Renderer braucht; in
+    #: einem Wegwerf-Verzeichnis gibt es dafuer nichts nachzubauen.
+    #:
+    #: Der Grund steht HIER und nicht in einer Liste woanders (bis zum
+    #: 18.08.2026 fuehrte der Test dazu ein eigenes Namensregister). Zwei Orte
+    #: fuer dieselbe Angabe laufen auseinander, und der zweite ist immer der,
+    #: den man beim Umbau vergisst.
+    ohne_anlassfall_weil = ""
 
     def wurzel(self):
         """Die Wurzel des PROJEKTS, nicht nur des Django-Teils.

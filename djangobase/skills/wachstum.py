@@ -130,6 +130,10 @@ class Wachstum(Werkzeug):
         ("s += '…' (2. Referenz)", _text_gehalten, 4000, "linear"),
     )
 
+    #: Kein Anlassfall - und das ist in Ordnung:
+    ohne_anlassfall_weil = ("misst nur (wie viel Code dazugekommen ist) - "
+                            "dafuer gibt es keinen Beispielcode")
+
     def laufen(self):
         zeilen, abweichungen = [], 0
         for name, fn, klein, erwartet in self.FORMEN:

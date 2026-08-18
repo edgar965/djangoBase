@@ -55,6 +55,9 @@ class Testdeckung(EigenesWerkzeug):
     #: Fehlalarm, der eine echte Luecke verdeckt haette (17.08.2026).
     RAHMEN = ("django.", "rest_framework.", "debug_toolbar.")
 
+    #: Kein Anlassfall - und das ist in Ordnung:
+    ohne_anlassfall_weil = "misst nur (welche Bereiche Tests haben)"
+
     def laufen(self):
         # Die Routen kommen aus DJANGO, nicht aus den geprueften Dateien. Auf
         # einem leeren Verzeichnis meldete das Werkzeug deshalb Seiten eines

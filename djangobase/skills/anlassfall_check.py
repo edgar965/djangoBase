@@ -80,10 +80,30 @@ class Pruefergebnis:
     def geprueft(self):
         return self.anlassfall is not None
 
+    #: Die vier moeglichen Staende - EIN Feld statt Textvergleichen.
+    #: Vorher lasen die Tests den Urteilstext gegen eine Liste erlaubter
+    #: Formulierungen; eine neue Formulierung machte sie prompt rot, obwohl
+    #: sich an der Sache nichts geaendert hatte (18.08.2026).
+    SIEHT = "sieht"            # geprueft, findet seinen Fall
+    BLIND = "blind"            # geprueft, findet ihn NICHT
+    ERKLAERT = "erklaert"      # kein Anlassfall moeglich, Grund steht am Werkzeug
+    UNGEPRUEFT = "ungeprueft"  # kein Anlassfall, kein Grund
+
+    @property
+    def stand(self):
+        if self.geprueft:
+            return self.BLIND if self.grund else self.SIEHT
+        return (self.ERKLAERT if getattr(self.klasse, "ohne_anlassfall_weil", "")
+                else self.UNGEPRUEFT)
+
     @property
     def urteil(self):
         if not self.geprueft:
-            return "ohne Anlassfall"
+            # Der Grund steht AM WERKZEUG (``ohne_anlassfall_weil``). Wer
+            # keinen angibt, ist schlicht ungeprueft - und das soll man sehen.
+            grund = getattr(self.klasse, "ohne_anlassfall_weil", "")
+            return ("kein Anlassfall nötig: %s" % grund if grund
+                    else "UNGEPRÜFT — kein Anlassfall, kein Grund angegeben")
         return self.grund or "sieht seinen Fall"
 
     @property
@@ -92,6 +112,7 @@ class Pruefergebnis:
 
     def als_zeile(self):
         return {"werkzeug": self.klasse.slug,
+                "stand": self.stand,
                 "kriterium": self.klasse.kriterium or "—",
                 "im Anlassfall": self.gefunden if self.geprueft else "—",
                 "im Leeren": self.im_leeren if self.geprueft else "—",
@@ -117,8 +138,8 @@ class AnlassfallCheck(Werkzeug):
     kriterium = 0
     dauer = "10–30 s"
 
-    SPALTEN = ("werkzeug", "kriterium", "im Anlassfall", "im Leeren", "urteil",
-               "nachgebaut")
+    SPALTEN = ("werkzeug", "stand", "kriterium", "im Anlassfall", "im Leeren",
+               "urteil", "nachgebaut")
 
     def laufen(self):
         from . import WERKZEUGE

@@ -26,6 +26,10 @@ class Vorlagenvariablen(BefundWerkzeug):
     dauer = 'Sekunden'
     eingabe = ('weg', 'Welche Route? (z. B. /hilfe/versionen/)', '/')
 
+    #: Kein Anlassfall - und das ist in Ordnung:
+    ohne_anlassfall_weil = ("braucht den Renderer zur Laufzeit - "
+                            "gezaehlt wird, was beim Rendern aufgeloest wird")
+
     def pruefen(self, weg='/', **_argumente):
         ziel = (str(weg).strip() or '/')
         if not ziel.startswith('/'):

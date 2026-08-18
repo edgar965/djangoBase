@@ -54,8 +54,13 @@ class AnlassfallCheckTest(BasisTest):
         self.ergebnis = AnlassfallCheck().laufen()
 
     def test_kein_werkzeug_ist_blind(self):
-        blind = [z for z in self.ergebnis.zeilen
-                 if z["urteil"] not in ("sieht seinen Fall", "ohne Anlassfall")]
+        u"""Geprüft und trotzdem nichts gefunden — das ist der schlimme Fall.
+
+        Gelesen wird das Feld ``stand``, nicht der Urteilstext: Die Liste
+        erlaubter Formulierungen war vorher der Grund, warum dieser Test bei
+        einer neuen Formulierung rot wurde, ohne dass sich etwas geändert hatte.
+        """
+        blind = [z for z in self.ergebnis.zeilen if z["stand"] == "blind"]
         self.assertFalse(
             blind,
             "Diese Werkzeuge finden ihren eigenen Anlassfall nicht mehr: %s"
@@ -73,47 +78,26 @@ class AnlassfallCheckTest(BasisTest):
         self.assertFalse(laut, "meldet ohne Code: %s"
                          % ", ".join(z["werkzeug"] for z in laut))
 
-    #: Werkzeuge, die (noch) keinen Anlassfall haben — namentlich, nicht als
-    #: Quote. Bis zum 18.08.2026 stand hier „höchstens ein Drittel"; das ging
-    #: auf, solange die elf befundbasierten Werkzeuge über einen Adapter liefen
-    #: und der Check sie gar nicht sah. Seit alle auf EINER Basis stehen, sind
-    #: es 15 von 44 — die Quote kippte, ohne dass sich an der Sache etwas
-    #: geändert hätte.
-    #:
-    #: Eine Namensliste ist schärfer als eine Quote: Ein NEUES Werkzeug ohne
-    #: Selbsttest macht diesen Test rot, statt im Rauschen unterzugehen. Wer
-    #: einen Anlassfall nachrüstet, streicht seinen Namen hier.
-    OHNE_ANLASSFALL = {
-        # Messwerkzeuge: Sie zählen und messen, statt einen bestimmten
-        # Code-Fall zu finden — für „wie viele Zeilen sind dazugekommen" gibt
-        # es keinen Fall, den man nachbauen könnte.
-        "seitenzeiten", "wachstum", "testaufbau", "testdeckung",
-        # Diese drei rufen ENDPUNKTE des laufenden Servers auf. Ihr Fall ist
-        # eine Antwortzeit, keine Datei; ein Wegwerf-Verzeichnis beweist da
-        # nichts.
-        "endpunkt-zeiten", "endpunkt-probe", "endpunkt-profil",
-        # Beide hängen am Django-Template-Loader bzw. am Renderer zur Laufzeit
-        # (aufgelöste Variablen), nicht an Dateien im Verzeichnis.
-        "vorlagen-kontext", "vorlagen-variablen",
-    }
-
-    def test_nur_bekannte_werkzeuge_ohne_anlassfall(self):
-        u"""Kein NEUES Werkzeug ohne Selbsttest.
+    def test_jedes_werkzeug_ist_geprueft_oder_erklaert(self):
+        u"""Anlassfall — oder ein Satz, warum es keinen geben kann.
 
         Ein Prüfer, der nach einem Umbau seinen eigenen Fall nicht mehr sieht,
-        meldet null und sieht dabei aus wie ein sauberes Projekt. Deshalb muss
-        jedes Werkzeug seinen Anlassfall mitbringen — die Ausnahmen stehen
-        namentlich in :data:`OHNE_ANLASSFALL`.
+        meldet null und sieht dabei aus wie ein sauberes Projekt. Deshalb
+        bringt jedes Werkzeug seinen Anlassfall mit.
+
+        Manche können keinen haben: Sie messen nur (Zeilen, Zeiten) oder
+        brauchen den laufenden Server bzw. den Django-Renderer. Die sagen das
+        selbst — ``ohne_anlassfall_weil`` steht AM WERKZEUG. Hier stand bis zum
+        18.08.2026 eine Namensliste; zwei Orte für dieselbe Angabe laufen
+        auseinander, und der zweite ist immer der, den man beim Umbau vergisst.
         """
-        ohne = {z["werkzeug"] for z in self.ergebnis.zeilen
-                if z["urteil"] == "ohne Anlassfall"}
-        neu = sorted(ohne - self.OHNE_ANLASSFALL)
-        self.assertFalse(neu, "Werkzeug ohne Anlassfall: %s" % ", ".join(neu))
-        # Gegenrichtung: Wer einen nachgerüstet hat, soll die Liste kürzen.
-        veraltet = sorted(self.OHNE_ANLASSFALL - ohne)
-        self.assertFalse(veraltet,
-                         "hat jetzt einen Anlassfall, steht aber noch in der "
-                         "Ausnahmeliste: %s" % ", ".join(veraltet))
+        stumm = [z["werkzeug"] for z in self.ergebnis.zeilen
+                 if z["stand"] == "ungeprueft"]
+        self.assertFalse(
+            stumm,
+            "ohne Anlassfall und ohne Begründung: %s — entweder einen "
+            "Anlassfall bauen oder `ohne_anlassfall_weil` setzen"
+            % ", ".join(stumm))
 
     def test_raeumt_hinter_sich_auf(self):
         self.assertFalse((AnlassfallCheck().wurzel() / ORDNER).exists(),

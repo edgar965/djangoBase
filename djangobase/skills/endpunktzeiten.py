@@ -46,6 +46,10 @@ class Endpunktzeiten(BefundWerkzeug):
     #: So viele Zeilen werden angezeigt — der Rest steht in der Zusammenfassung.
     ZEILEN = 40
 
+    #: Kein Anlassfall - und das ist in Ordnung:
+    ohne_anlassfall_weil = ("fragt den LAUFENDEN Server - "
+                            "der Fall ist eine Antwortzeit, keine Datei")
+
     def pruefen(self, laeufe='3', **_argumente):
         try:
             anzahl = max(1, min(10, int(str(laeufe).strip() or 3)))
