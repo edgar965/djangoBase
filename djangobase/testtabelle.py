@@ -174,9 +174,37 @@ class Testtabelle:
                            self.reihenfolge.platz(e.kennung), e.kennung))
         zeilen = self._nummerieren(self._mit_gruppen(
             [self._zeile(e, tab, unter) for e in eintraege]))
+        for z in zeilen:
+            z["html"] = self._zellen_html(z["zellen"])
         # Dictionary gewollt: geht unveraendert in `_tabelle.html`.
         return {"key": key, "spalten": [dict(s) for s in self.SPALTEN],
                 "zeilen": zeilen, "leer": leer, "anzahl": len(zeilen)}
+
+    #: Die Zellen einer Zeile als fertige ``<td>``-Kette zusammensetzen.
+    #: Gemessen am 18.08.2026: Der Seitenaufbau steckte zu drei Vierteln in der
+    #: Vorlage — 120.898 Variablen-Aufloesungen (`_resolve_lookup`, 1,9 s), weil
+    #: JEDE der rund 30.000 Zellen ein Dictionary mit vier optionalen
+    #: Schluesseln war und die Vorlage sie einzeln abfragte. Der Inhalt steht
+    #: hier ohnehin schon fest; ihn hier zu setzen kostet nichts.
+    @staticmethod
+    def _zellen_html(zellen):
+        stuecke = []
+        for z in zellen:
+            teile = ["<td"]
+            if z.get("klasse"):
+                teile.append(' class="%s"' % z["klasse"])
+            if z.get("colspan"):
+                teile.append(' colspan="%d"' % z["colspan"])
+            sortwert = z.get("sort")
+            if sortwert is not None:
+                teile.append(' data-sort="%s"' % escape(str(sortwert)))
+            if z.get("titel"):
+                teile.append(' title="%s"' % escape(str(z["titel"])))
+            teile.append(">")
+            teile.append(z.get("html") or "")
+            teile.append("</td>")
+            stuecke.append("".join(teile))
+        return "".join(stuecke)
 
     def _mit_gruppen(self, zeilen):
         u"""Vor jedem neuen Bereich eine Abschnittszeile einziehen.
@@ -322,14 +350,13 @@ class Testtabelle:
         _slug, datei = self.verschieber.bereich_moeglich(e.kennung)
         if datei is None:
             return marke
-        felder = "".join(
-            '<option value="%s"%s>%s</option>'
-            % (escape(wert), " selected" if gesetzt else "", escape(n))
-            for wert, n, gesetzt in self.bereiche.auswahl(slug))
-        return ('<select class="ts-ber" data-test-id="%s" data-bereich="%s" '
+        return ('<select class="ts-ber ts-lazy" data-test-id="%s" '
+                'data-bereich="%s" data-liste="ts-ber-optionen" '
                 'title="verschiebt %s in den Ordner des gewählten Bereichs — '
-                'weitere Fälle in derselben Datei gehen mit">%s</select>'
-                % (escape(e.kennung), escape(slug), escape(datei.name), felder))
+                'weitere Fälle in derselben Datei gehen mit">'
+                '<option value="%s" selected>%s</option></select>'
+                % (escape(e.kennung), escape(slug), escape(datei.name),
+                   escape(slug), escape(name)))
 
     def _kategorie(self, e, kategorie_name=""):
         u"""Die Combo-Box „Verschieben" - oder nur der Name der Kategorie.
@@ -362,14 +389,33 @@ class Testtabelle:
             return ('<span class="ts-kat-fest" title="nicht verschiebbar — die '
                     'Datei liegt nicht in einem tests/&lt;art&gt;/-Ordner">%s</span>'
                     % escape(kategorie_name or wahl[0][1]))
-        felder = "".join(
-            '<option value="%s"%s>%s</option>'
-            % (escape(wert), " selected" if gesetzt else "", escape(name))
-            for wert, name, gesetzt in wahl)
-        return ('<select class="ts-kat" data-test-id="%s" data-art="%s" '
+        # NUR die aktuelle Option (Ansage: der Aufbau war langsam). Die
+        # restlichen holt `tests_combo.js` beim Aufklappen aus EINER Liste im
+        # DOM. Gemessen am 18.08.2026: 2.750 Zeilen x 21 Optionen sind rund
+        # 58.000 `<option>` und damit über die Hälfte der 4,4 MB, die die Seite
+        # wog — für Auswahlfelder, von denen man eines benutzt.
+        return ('<select class="ts-kat ts-lazy" data-test-id="%s" data-art="%s" '
+                'data-liste="ts-kat-optionen" '
                 'title="verschiebt %s in den Ordner der gewählten Kategorie — '
-                'weitere Fälle in derselben Datei gehen mit">%s</select>'
-                % (escape(e.kennung), escape(art), escape(datei.name), felder))
+                'weitere Fälle in derselben Datei gehen mit">'
+                '<option value="%s" selected>%s</option></select>'
+                % (escape(e.kennung), escape(art), escape(datei.name),
+                   escape(art), escape(Verschieber.NAMEN.get(art, art))))
+
+    def optionen(self):
+        u"""Die vollstaendigen Auswahllisten - EINMAL je Seite.
+
+        Sie gehen als JSON ins DOM; `tests_combo.js` fuellt damit die Combo-Box,
+        die gerade aufgeklappt wird. Vorher stand jede Liste in JEDER Zeile.
+        """
+        from .testverschieben import Verschieber
+        # Dictionary gewollt: geht als json_script in die Vorlage.
+        return {
+            "kategorie": [{"wert": a, "name": Verschieber.NAMEN.get(a, a)}
+                          for a, _n, _g in Verschieber.auswahl("", True)],
+            "bereich": [{"wert": w, "name": n}
+                        for w, n, _g in self.bereiche.auswahl("", True)],
+        }
 
     @staticmethod
     def _schnitt(laeufe):

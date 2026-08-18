@@ -22,29 +22,26 @@ von Django stillschweigend verworfen — das Stylesheet kam an, die Sortierung
 nicht (17.08.2026).
 {% endcomment %}
 {% block body_scripts %}{{ block.super }}
-<script type="module">
-  import { TabellenSortierung } from '/static/djangobase/js/tabellen_sortierung.js?v={{ djangobase.statik_v }}';
-  import { TabellenBreiten } from '/static/djangobase/js/tabellen_breiten.js?v={{ djangobase.statik_v }}';
-  {% comment %}
-  EINE Gruppe für ALLE Tabellen der Seite (17.08.2026: „die spalten sollen die
-  gleiche Breite haben" · „verschieben der Spalten verschiebt alle Spalten auf
-  der Seite"). Vorher bekam jede Tabelle eine eigene Instanz mit eigenem
-  Speicher — dieselbe Spalte war in jeder Karte anders breit, und das erste
-  Ziehen fror die Ist-Breiten EINER Tabelle ein, wodurch dort alle Spalten
-  sprangen. Als Gruppe gilt: Alle Tabellen zeigen dieselbe Spalte gleich breit,
-  und Ziehen setzt sie überall zugleich — genau dafür ist die Gruppenfunktion
-  von TabellenBreiten gebaut.
-  {% endcomment %}
-  const tabellen = [...document.querySelectorAll('table[data-sort-key]')];
-  if (tabellen.length) new TabellenBreiten(tabellen, 'hilfe-tests').binden();
-  TabellenSortierung.binden();
-</script>
+{% comment %}
+Reiter umschalten UND den Inhalt der übrigen bei Bedarf nachladen; bindet danach
+Sortierung und Spaltenbreiten neu. Ersetzt das frühere Inline-Skript (die Seite
+war schon einmal auf 420 Zeilen gewachsen).
+{% endcomment %}
+<script type="module" src="{% static 'djangobase/js/tests_tabs.js' %}?v={{ djangobase.statik_v }}"></script>
 {% comment %}
 Die Combo-Box „Verschieben" in jeder Testcase-Tabelle. Die Ziel-URL steht als
 json_script im DOM, damit das Skript eine eigene Datei bleibt (das Template war
 schon einmal auf 420 Zeilen gewachsen).
 {% endcomment %}
 {{ verschieben_url|json_script:"ts-verschieben-url" }}
+{% comment %}
+Die Auswahllisten der Combo-Boxen — EINMAL, nicht in jeder Zeile. Der Server
+rendert je Feld nur den aktuellen Wert; `tests_combo.js` füllt beim Aufklappen
+nach. Das waren über die Hälfte der 4,4 MB, die diese Seite gewogen hat.
+{% endcomment %}
+{{ combo_kategorie|json_script:"ts-kat-optionen" }}
+{{ combo_bereich|json_script:"ts-ber-optionen" }}
+<script src="{% static 'djangobase/js/tests_combo.js' %}?v={{ djangobase.statik_v }}"></script>
 <script src="{% static 'djangobase/js/tests_verschieben.js' %}?v={{ djangobase.statik_v }}"></script>
 {# Checkbox-Auswahl je Karte + „Ausgewählte ausführen" (ein Lauf für alle). #}
 <script src="{% static 'djangobase/js/tests_auswahl.js' %}?v={{ djangobase.statik_v }}"></script>
@@ -80,7 +77,7 @@ neue Reihenfolge, erst dann hängt die Seite um).
     <div class="ts-tabs" id="ts-tabs">
         {% if alles %}<button type="button" class="ts-tab" data-tab="Alle">
             <i class="bi bi-play-circle-fill"></i> Alle
-            <span class="ts-count">{{ alle_arten|length }}</span></button>{% endif %}
+            <span class="ts-count">{{ arten_anzahl }}</span></button>{% endif %}
         {% for k in kategorien %}
         <button type="button" class="ts-tab" data-tab="{{ k.typ }}">{{ k.typ }}
             <span class="ts-count">{{ k.anzahl }}</span></button>
@@ -89,133 +86,19 @@ neue Reihenfolge, erst dann hängt die Seite um).
         {% if suiten %}<button type="button" class="ts-tab" data-tab="Suiten">Suiten <span class="ts-count">{{ suiten|length }}</span></button>{% endif %}
     </div>
 
-    {# ---------------- Panel: Alle (Kategorie-Sammelläufe) ---------------- #}
-    {% if alles %}
-    <div class="ts-panel" data-panel="Alle">
-
-        {% if alles %}
-        <div class="ts-card ts-alles">
-            <div class="ts-alles-text">
-                <h3><i class="bi bi-collection-play"></i> {{ alles.name }}</h3>
-                <p class="ts-meta">Ein einziger Lauf über das ganze Projekt — die
-                    Testdatenbank wird einmal aufgebaut statt je Kategorie neu.
-                    Longrunner laufen mit, das kann Minuten dauern.</p>
-            </div>
-            <a class="ts-run gross" href="?run={{ alles.slug }}&tab=Alle"><i class="bi bi-play-fill"></i> Alles ausführen</a>
-        </div>
-        {% endif %}
-
-        {% comment %}
-        KEINE UNTER-REITER (Ansage 17.08.2026: „ich brauche keine Unter-Tabs!" —
-        und „die Alle Seite enthält nicht alle tests"). Vorher steckte je
-        Kategorie eine eigene Registerkarte, und darin standen die SUITEN, nicht
-        die Testfälle. Jetzt liegt alles untereinander auf EINER Seite: je
-        Kategorie ein Sammelknopf und darunter ihre Testfälle, vollständig.
-        {% endcomment %}
-        {% for a in alle_arten %}
-        {% if a.sammel %}
-        <div class="ts-card ts-alles">
-            <div class="ts-alles-text">
-                <h3><i class="bi bi-play-circle"></i> {{ a.sammel.name }}
-                    <span class="ts-meta">· {{ a.sammel.anzahl }} Bereich{{ a.sammel.anzahl|pluralize:"e" }} in einem Lauf</span></h3>
-                <code class="ts-id">{{ a.sammel.cmd|join:' ' }}</code>
-            </div>
-            <a class="ts-run gross" href="?run={{ a.sammel.slug }}&tab=Alle"><i class="bi bi-play-fill"></i> Kategorie ausführen</a>
-        </div>
-        {% endif %}
-        {% for karte in a.karten %}{% include "djangobase/_testkarte.html" %}{% endfor %}
-        {% endfor %}
-    </div>
-    {% endif %}
-
-    {# ---------------- Panels: Einzeltests pro Typ ---------------- #}
-    {% for k in kategorien %}
-    <div class="ts-panel" data-panel="{{ k.typ }}">
-        {% for karte in k.karten %}{% include "djangobase/_testkarte.html" %}{% endfor %}
+    {% comment %}
+    NUR DER AKTIVE REITER steht hier (Ansage 18.08.2026 „der aufbau der
+    testseiten ist langsam"). Vorher rendere die Seite alle sechs — 1.513
+    Tabellenzeilen und 2,92 MB, obwohl man einen sieht. Die übrigen sind leere
+    Hüllen; `tests_tabs.js` holt ihren Inhalt beim ersten Klick über
+    `?tab=…&teil=1` nach und setzt ihn hier ein.
+    {% endcomment %}
+    {% for name in tab_namen %}
+    <div class="ts-panel{% if name == aktiver_tab %} aktiv{% endif %}"
+         data-panel="{{ name }}"{% if name != aktiver_tab %} data-lazy="1"{% endif %}>
+        {% if name == aktiver_tab %}{% include "djangobase/_testpanel.html" %}{% endif %}
     </div>
     {% endfor %}
-
-    {# ---------------- Panel: UI-/Browser-Tests ---------------- #}
-    {% if ui %}
-    <div class="ts-panel" data-panel="UI">
-        {% comment %}
-        Dieselbe Karte und dieselbe Tabelle wie überall — die Kopfzeile kommt aus
-        `Testtabelle.SPALTEN`, die Zeilen füllt das JavaScript unten (die Liste
-        der UI-Fälle steht in `testcases.js`, nicht im Server). Damit gibt es
-        auch für die Browser-Tests genau EINE Spaltendefinition.
-        {% endcomment %}
-        {% include "djangobase/_testkarte.html" with karte=ui_karte %}
-        {% comment %}
-        Leer bis etwas schiefgeht: „Lade Test-Liste …" steht schon in der Tabelle
-        (als `leer`-Text), zweimal wäre es doppelt. Dieses Feld trägt nur den
-        Fehlerfall („Konnte Test-Dateien nicht laden").
-
-        `{% comment %}` und nicht `{# … #}`: Django-Kurzkommentare gelten nur für
-        EINE Zeile, der Rest landet in der Ausgabe. Genau daran ist der Test
-        `test_keine_mehrzeiligen_kurz_kommentare` rot geworden (17.08.2026).
-        {% endcomment %}
-        <p class="ts-empty" id="ts-ui-hint"></p>
-        <div class="ts-card">
-            <div class="ts-label">Test-Bühne (Iframe)</div>
-            <iframe id="ts-ui-frame" class="ts-frame" title="UI-Test-Bühne"></iframe>
-        </div>
-        {{ ui_config|json_script:"ts-ui-config" }}
-        {{ ui_historie|json_script:"ts-ui-historie" }}
-        {% comment %}
-        `type="module"`: Die Datei importiert seit 17.08.2026 `testzeiten.js`
-        (gemeinsame Laufzeit-Darstellung). Ohne das Attribut bricht der Import
-        mit „Cannot use import statement outside a module" — und weil das im
-        Browser passiert, bliebe die UI-Liste einfach leer.
-        {% endcomment %}
-        <script type="module" src="{% static 'djangobase/js/tests_ui.js' %}?v={{ djangobase.statik_v }}"></script>
-    </div>
-    {% endif %}
-
-    {# ---------------- Panel: Suiten (Batch-Kommandos) ---------------- #}
-    {% comment %}
-       Je Gruppe eine eigene Karte („Search · chat", „Firma", …). Ohne
-       `gruppe`-Schluessel liefert die View EINE Gruppe — dann sieht die Seite
-       aus wie bisher. Mit vielen Bereichen waere eine flache Liste sonst genau
-       das, wovor Kriterium 17 warnt: hundert Eintraege ohne Ordnung.
-    {% endcomment %}
-    {% if befehle %}
-    <div class="ts-panel" data-panel="Suiten">
-        {% for g in suiten_gruppen %}
-        {% for karte in g.karten %}{% include "djangobase/_testkarte.html" %}{% endfor %}
-        {% endfor %}
-    </div>
-    {% endif %}
-
-    {% comment %}
-    Der Live-Bericht. Versteckt, bis der erste Lauf startet — ein leerer
-    schwarzer Kasten über der Tabelle wäre nur im Weg. Er steht ÜBER dem
-    Ergebnis-Block des serverseitigen Laufs, damit beide Wege dieselbe Stelle
-    benutzen und man nicht sucht, wo die Ausgabe erscheint.
-    {% endcomment %}
-    <div class="ts-card ts-strom" hidden>
-        {% comment %}
-        Der Fortschrittsbalken (Ansage 18.08.2026 „ich sehe noch nicht die
-        progress bar"). Bis der Lauf sagt, wie viele Tests kommen („Found N
-        test(s)."), läuft er UNBESTIMMT — das ist die Phase, in der die
-        Testdatenbank aufgebaut wird, und die dauert am längsten. Ein Balken, der
-        dabei auf 0 % steht, sieht aus wie „hängt".
-        {% endcomment %}
-        <div class="ts-strom-zeile">
-            <div class="ts-strom-kopf" id="ts-strom-kopf"></div>
-            <div class="ts-strom-balken unbestimmt" id="ts-strom-balken">
-                <div class="ts-strom-fuellung" id="ts-strom-fuellung"></div>
-            </div>
-            <span class="ts-strom-zahl" id="ts-strom-zahl"></span>
-            {% comment %}
-            „Abbrechen" beendet den Prozessbaum serverseitig und löst die Sperre.
-            Nur die Verbindung zu schließen genügt nicht: Ein Test, der hängt und
-            nichts ausgibt, hält den Prozess sonst bis zur Frist.
-            {% endcomment %}
-            <button type="button" class="ts-strom-stop" id="ts-strom-stop" hidden>
-                <i class="bi bi-x-octagon"></i> Abbrechen</button>
-        </div>
-        <pre class="ts-pre" id="ts-strom-ausgabe"></pre>
-    </div>
 
     {# ---------------- Ergebnis (serverseitige Python-/Suiten-Läufe) ---------------- #}
     {% if ergebnis %}
@@ -231,31 +114,16 @@ neue Reihenfolge, erst dann hängt die Seite um).
     {% endif %}
 </div>
 
-<script>
-// Tab-Umschaltung (client-seitig). Aktiver Tab kommt nach einem Run aus ?tab=.
+{% comment %}
+Die Tab-Umschaltung steckt jetzt in `tests_tabs.js` (samt Nachladen). Hier stand
+sie inline, zusammen mit der Logik für die entfallenen Unter-Reiter.
+{% endcomment %}
+{% if ergebnis %}<script>
+// Wurde ein Test ausgeführt? Ergebnis in den Blick scrollen.
 (function () {
-    var page = document.querySelector(".ts-page");
-    var tabs = Array.prototype.slice.call(document.querySelectorAll(".ts-tab"));
-    var panels = Array.prototype.slice.call(document.querySelectorAll(".ts-panel"));
-    function aktiv(name) {
-        tabs.forEach(function (t) { t.classList.toggle("aktiv", t.dataset.tab === name); });
-        panels.forEach(function (p) { p.classList.toggle("aktiv", p.dataset.panel === name); });
-    }
-    tabs.forEach(function (t) { t.addEventListener("click", function () { aktiv(t.dataset.tab); }); });
-    var start = page.getAttribute("data-aktiv-tab");
-    if (!start || !tabs.some(function (t) { return t.dataset.tab === start; }))
-        start = tabs.length ? tabs[0].dataset.tab : "";
-    if (start) aktiv(start);
-
-    // Die zweite Ebene (Kategorie-Reiter im Panel „Alle") ist am 17.08.2026
-    // ENTFALLEN: „ich brauche keine Unter-Tabs!" — dort liegt jetzt alles
-    // untereinander auf einer Seite. Die Umschaltlogik dafür ist mit raus; ein
-    // alter Link mit `&unter=…` schadet nicht, der Parameter wird nur ignoriert.
-
-    // Wurde ein Test ausgeführt? Ergebnis in den Blick scrollen.
     var res = document.querySelector(".ts-result");
     if (res) res.scrollIntoView({ behavior: "smooth", block: "nearest" });
 })();
-</script>
+</script>{% endif %}
 
 {% endblock %}

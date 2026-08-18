@@ -69,6 +69,8 @@ class Bereiche:
         #: Beschreibung, Praefixe). Projektseiten bauen daraus ihre Navigation,
         #: statt die Liste ein zweites Mal zu fuehren.
         self.angaben = []
+        #: Ergebnis von :meth:`ziele` - siehe dort.
+        self._ziele = None
         self._lesen(angabe)
 
     def _lesen(self, angabe):
@@ -216,7 +218,7 @@ class Bereiche:
         return self.praefixe.get(str(slug or ""), "")
 
     def ziele(self):
-        u"""Die Bereiche, in die verschoben werden DARF.
+        u"""Die Bereiche, in die verschoben werden DARF (gecacht).
 
         Ausgeschlossen sind Bereiche, deren Praefix ueber anderen liegt:
         ``search.tests`` ist der Elternordner von ``search.tests.chat``,
@@ -230,13 +232,19 @@ class Bereiche:
         sonst waere die Datei still an einem Ort gelandet, an dem sie niemand
         sucht. Solche Bereiche bleiben ANZEIGBAR, sind aber nicht waehlbar.
         """
-        aus = {}
-        for slug, praefix in self.praefixe.items():
-            if any(p != praefix and p.startswith(praefix + ".")
-                   for p in self.praefixe.values()):
-                continue
-            aus[slug] = praefix
-        return aus
+        # EINMAL rechnen: Die Menge haengt nur an der Angabe, wird aber je
+        # Tabellenzeile gebraucht. Gemessen am 18.08.2026: 2.612 Aufrufe und
+        # 592.924 Vergleiche je Seitenaufbau — 0,76 s für ein Ergebnis, das
+        # sich nie ändert.
+        if self._ziele is None:
+            aus = {}
+            for slug, praefix in self.praefixe.items():
+                if any(p != praefix and p.startswith(praefix + ".")
+                       for p in self.praefixe.values()):
+                    continue
+                aus[slug] = praefix
+            self._ziele = aus
+        return self._ziele
 
     def auswahl(self, slug, moeglich=True):
         u"""Die Eintraege der Combo-Box „Bereich" - ``[(wert, name, gesetzt)]``.

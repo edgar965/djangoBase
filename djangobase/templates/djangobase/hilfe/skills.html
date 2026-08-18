@@ -146,6 +146,50 @@ nur Zeilen.
             </span>
         </div>
     </form>
+
+    {# ================= Lehren ================= #}
+    <div class="sk-card" id="lehren">
+        <h3><i class="bi bi-check2-square"></i> Lehren
+            <span class="sk-meta">· {{ anzahl_aktiv }} von {{ anzahl_lehren }} aktiv</span></h3>
+        <p class="sk-intro">
+            Regeln aus einem grossen Review- und Umbaudurchgang. Angekreuzt heisst:
+            gilt für dieses Projekt. Der Stand liegt in
+            <code>.djangobase-skills.json</code> neben den Einstellungen — die
+            Vorgabe ist überall <em>an</em>.
+            <a class="sk-auftrag" href="?auftrag=1" target="_blank" rel="noopener">
+                <i class="bi bi-clipboard-check"></i> Auftragstext aus den aktiven Regeln
+            </a>
+        </p>
+
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="aktion" value="lehren">
+            {% for bereich in lehren_bereiche %}
+            <div class="sk-bereich">
+                <div class="sk-bereich-kopf">{{ bereich.name }}
+                    <span class="sk-count">{{ bereich.anzahl }}</span></div>
+                {% for eintrag in bereich.lehren %}
+                <label class="sk-lehre">
+                    <input type="checkbox" name="lehre" value="{{ eintrag.lehre.slug }}"
+                           {% if eintrag.an %}checked{% endif %}>
+                    <span class="sk-lehre-text">
+                        <span class="sk-lehre-titel">{{ eintrag.lehre.titel }}</span>
+                        <span class="sk-lehre-regel">{{ eintrag.lehre.regel }}</span>
+                        <span class="sk-lehre-warum"><b>Warum:</b> {{ eintrag.lehre.warum }}</span>
+                        {% if eintrag.lehre.beleg %}
+                        <span class="sk-lehre-beleg"><b>Beleg:</b> {{ eintrag.lehre.beleg }}</span>
+                        {% endif %}
+                    </span>
+                </label>
+                {% endfor %}
+            </div>
+            {% endfor %}
+            <div class="sk-stapel">
+                <button type="submit" class="sk-batch">
+                    <i class="bi bi-save"></i> Stand speichern</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <style>
@@ -275,3 +319,29 @@ TabellenSortierung.binden();
 })();
 </script>
 {% endblock %}
+
+<style>
+/* Lehren-Liste, uebernommen von der entfallenen Seite Skills3. */
+.sk-intro { font-size: .88rem; opacity: .85; margin: 0 0 .85rem; line-height: 1.55; }
+.sk-bereich { margin: 0 0 1rem; }
+.sk-bereich-kopf {
+    font-size: .8rem; text-transform: uppercase; letter-spacing: .06em;
+    opacity: .6; border-bottom: 1px solid var(--card-border, #2b323d);
+    padding-bottom: .25rem; margin-bottom: .5rem;
+}
+.sk-count {
+    background: rgba(255,255,255,.09); border-radius: 8px;
+    padding: 0 .35rem; font-size: .72rem; margin-left: .25rem;
+}
+.sk-lehre {
+    display: grid; grid-template-columns: 1.4rem 1fr; gap: .5rem;
+    padding: .5rem .4rem; border-radius: 6px; cursor: pointer;
+}
+.sk-lehre:hover { background: rgba(255,255,255,.04); }
+.sk-lehre input { margin-top: .25rem; width: 1rem; height: 1rem; }
+.sk-lehre-text { display: flex; flex-direction: column; gap: .15rem; }
+.sk-lehre-titel { font-weight: 600; font-size: .9rem; }
+.sk-lehre-regel { font-size: .84rem; opacity: .9; }
+.sk-lehre-warum, .sk-lehre-beleg { font-size: .78rem; opacity: .62; line-height: 1.5; }
+.sk-auftrag { margin-left: .5rem; white-space: nowrap; }
+</style>

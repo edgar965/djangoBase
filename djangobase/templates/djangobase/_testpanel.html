@@ -1,0 +1,56 @@
+{% comment %}
+djangobase/_testpanel.html — der INHALT eines Reiters, für sich allein.
+==============================================================================
+    „der aufbau der testseiten ist langsam" (Edgar, 18.08.2026)
+
+Gemessen war: 2,92 MB HTML und 1.513 Tabellenzeilen — für sechs Reiter, von
+denen man einen sieht. Deshalb rendert die Seite nur noch den AKTIVEN Reiter;
+die anderen sind leere Hüllen, deren Inhalt beim ersten Klick über
+`?tab=…&teil=1` genau hier hereinkommt (`tests_tabs.js`).
+
+Ein Fragment ohne Shell: Wer es per fetch holt, bekommt nur diesen Block.
+{% endcomment %}
+{% if panel.alles %}
+{% comment %} Reiter „Alle": Sammelläufe je Kategorie, darunter ihre Fälle. {% endcomment %}
+<div class="ts-card ts-alles">
+    <div class="ts-alles-text">
+        <h3><i class="bi bi-collection-play"></i> {{ panel.alles.name }}</h3>
+        <p class="ts-meta">Ein einziger Lauf über das ganze Projekt — die
+            Testdatenbank wird einmal aufgebaut statt je Kategorie neu.
+            Longrunner laufen mit, das kann Minuten dauern.</p>
+    </div>
+    <a class="ts-run gross" href="?run={{ panel.alles.slug }}&tab=Alle"><i class="bi bi-play-fill"></i> Alles ausführen</a>
+</div>
+{% for a in panel.arten %}
+{% if a.sammel %}
+<div class="ts-card ts-alles">
+    <div class="ts-alles-text">
+        <h3><i class="bi bi-play-circle"></i> {{ a.sammel.name }}
+            <span class="ts-meta">· {{ a.sammel.anzahl }} Bereich{{ a.sammel.anzahl|pluralize:"e" }} in einem Lauf</span></h3>
+        <code class="ts-id">{{ a.sammel.cmd|join:' ' }}</code>
+    </div>
+    <a class="ts-run gross" href="?run={{ a.sammel.slug }}&tab=Alle"><i class="bi bi-play-fill"></i> Kategorie ausführen</a>
+</div>
+{% endif %}
+{% for karte in a.karten %}{% include "djangobase/_testkarte.html" %}{% endfor %}
+{% endfor %}
+{% endif %}
+
+{% for karte in panel.karten %}{% include "djangobase/_testkarte.html" %}{% endfor %}
+
+{% if panel.ui %}
+{% comment %}
+Browser-/UI-Tests: Dieselbe Karte und dieselbe Tabelle wie überall — die
+Kopfzeile kommt aus `Testtabelle.SPALTEN`, die Zeilen füllt `tests_ui.js` aus
+der `testcases.js` des Projekts.
+{% endcomment %}
+{% include "djangobase/_testkarte.html" with karte=panel.ui_karte %}
+<p class="ts-empty" id="ts-ui-hint"></p>
+<div class="ts-card">
+    <div class="ts-label">Test-Bühne (Iframe)</div>
+    <iframe id="ts-ui-frame" class="ts-frame" title="UI-Test-Bühne"></iframe>
+</div>
+{{ panel.ui_config|json_script:"ts-ui-config" }}
+{{ panel.ui_historie|json_script:"ts-ui-historie" }}
+<script type="module" src="/static/djangobase/js/tests_ui.js?v={{ djangobase.statik_v }}"></script>
+{% endif %}

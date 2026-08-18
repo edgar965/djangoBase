@@ -49,7 +49,20 @@ class Statik:
 
     @classmethod
     def kennung(cls):
-        """Zahl, die sich mit jeder Aenderung an djangoBase-JS/CSS aendert."""
+        u"""Zahl, die sich mit jeder Aenderung an djangoBase-JS/CSS aendert.
+
+        IM ENTWICKLUNGSBETRIEB jedes Mal frisch (``settings.DEBUG``): Der
+        Django-Entwicklungsserver startet bei Aenderungen an ``.py`` neu, NICHT
+        bei ``.js``. Eine einmal gemerkte Kennung blieb damit stehen, der
+        Browser lieferte die alte Datei aus seinem Cache — und ein Fix schien
+        wirkungslos (gemessen 18.08.2026 an ``tests_bereiche.js``: der neue
+        Listener kam nie an, die Bereichs-Abschnitte kehrten nach dem Sortieren
+        nicht zurueck). Der Verzeichnisdurchlauf kostet wenige Millisekunden;
+        in Produktion (DEBUG aus) bleibt es beim einmaligen Rechnen.
+        """
+        from django.conf import settings
+        if getattr(settings, "DEBUG", False):
+            return cls._berechnen()
         if cls._kennung is None:
             cls._kennung = cls._berechnen()
         return cls._kennung

@@ -6,8 +6,8 @@ from .views import (AktuellDatenView, AktuellLeerenView, AktuellView,
                     BenutzerInlineView, BenutzerListeView, BenutzerLoeschenView,
                     BenutzerStatusView, EinstellungenTabsView, EinstellungenView,
                     JobsView, LogsClearView, LogsView, ReviewNachfassenView,
-                    ReviewStartView, ReviewStatusView, ReviewView, Skills3View,
-                    Skills2View, SkillsView, TestDauerView, TestsView,
+                    ReviewStartView, ReviewStatusView, ReviewView,
+                    SkillsView, TestDauerView, TestsView,
                     TestNummerView, TestStromView,
                     TestVerschiebenView, TrafficView,
                     UebersetzungView, VersionsView)
@@ -44,8 +44,6 @@ urlpatterns = [
     # Skills2 und Skills3 sind UEBERGANGSSEITEN auf dem Weg zur Abschaffung
     # (17.08.2026). Ihre Werkzeuge liegen im Master; sie bleiben nur, damit
     # Lesezeichen und fremde Links nicht ins Leere zeigen.
-    path("skills2/", Skills2View.as_view(), name="skills2"),
-    path("skills3/", Skills3View.as_view(), name="skills3"),
     path("jobs/", JobsView.as_view(), name="jobs"),
     # Rollierendes Fenster mit den Ergebnissen der Claude-CLI. Geschrieben wird
     # NUR ueber `manage.py aktuell` — es gibt bewusst keinen Schreib-Endpunkt.

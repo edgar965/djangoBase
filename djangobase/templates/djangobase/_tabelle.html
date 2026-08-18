@@ -73,16 +73,23 @@ zeigen, nicht die Aufmerksamkeit binden.
     zwei Mail-Zeilen.
     {% endcomment %}
     {% for z in tabelle.zeilen %}
+    {% comment %}
+    `z.html` ist die FERTIGE Zellenkette (setzt `Testtabelle` zusammen). Ohne
+    sie fragt die Vorlage je Zelle vier optionale Schlüssel ab — bei rund 30.000
+    Zellen waren das 120.898 Variablen-Auflösungen und 1,9 s allein dafür
+    (gemessen 18.08.2026). Wer `zellen` liefert, wird weiter wie bisher
+    gerendert: Die Tabelle steht in mehreren Projekten.
+    {% endcomment %}
     <tr{% if z.klasse %} class="{{ z.klasse }}"{% endif %}
        {% if z.gruppe %} data-gruppe="1"{% endif %}
-       {% if z.bereich %} data-bereich="{{ z.bereich }}"{% endif %}>
+       {% if z.bereich %} data-bereich="{{ z.bereich }}"{% endif %}>{% if z.html %}{{ z.html|safe }}{% else %}
       {% for c in z.zellen %}
       <td{% if c.klasse %} class="{{ c.klasse }}"{% endif %}
          {% if c.colspan %} colspan="{{ c.colspan }}"{% endif %}
          {% if c.sort != None %} data-sort="{{ c.sort }}"{% endif %}
          {% if c.titel %} title="{{ c.titel }}"{% endif %}>{{ c.html|safe }}</td>
       {% endfor %}
-    </tr>
+    {% endif %}</tr>
     {% empty %}
     <tr><td colspan="{{ tabelle.spalten|length }}" class="db-leer">{{ tabelle.leer|default:"keine Einträge" }}</td></tr>
     {% endfor %}

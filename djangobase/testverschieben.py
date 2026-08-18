@@ -65,6 +65,8 @@ class Verschieber:
             from .testbereiche import Bereiche
             bereiche = Bereiche.aus_einstellungen()
         self.bereiche = bereiche
+        #: {Modulpfad: Datei|None} - siehe :meth:`modul`.
+        self._module = {}
 
     # --------------------------------------------------------------- Lesen
 
@@ -101,13 +103,28 @@ class Verschieber:
         Die ID endet auf ``Klasse.test_fall``; davor steht der Modulpfad. Weil
         die Zahl der Endstuecke schwanken kann (Unterklassen, ``subTest``), wird
         von hinten gekuerzt, bis eine Datei existiert.
+
+        GEMERKT je Modulpfad (18.08.2026, „der aufbau der testseiten ist
+        langsam"): Die Datei haengt am MODUL, nicht am einzelnen Fall — 335
+        Component-Faelle teilen sich rund 40 Dateien. Ohne das kostete jede
+        Tabellenzeile ihre eigene Suche auf der Platte: gemessen 5.224
+        ``is_file``-Aufrufe je Seitenaufbau.
         """
         teile = str(test_id or "").split(".")
+        if len(teile) < 2:
+            return None
+        # Klasse und Methode weg - der Rest ist der Modulpfad.
+        schluessel = ".".join(teile[:-2]) or ".".join(teile)
+        if schluessel in self._module:
+            return self._module[schluessel]
+        gefunden = None
         for schnitt in range(len(teile) - 1, 0, -1):
             pfad = self.wurzel.joinpath(*teile[:schnitt]).with_suffix(".py")
             if pfad.is_file():
-                return pfad
-        return None
+                gefunden = pfad
+                break
+        self._module[schluessel] = gefunden
+        return gefunden
 
     def moeglich(self, test_id):
         u"""``(art, datei)`` wenn verschiebbar, sonst ``(art, None)``."""

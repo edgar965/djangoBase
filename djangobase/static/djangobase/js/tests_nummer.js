@@ -108,6 +108,34 @@
         });
     }
 
+    /** Nach dem Sortieren die Nummern neu durchzählen — sie zeigen die
+     *  SICHTBARE Position.
+     *
+     *  Sonst behauptet die Spalte etwas anderes, als man sieht: Nach einem
+     *  Umsortieren standen dort vier Einsen untereinander (gemessen
+     *  18.08.2026), weil jede Zahl aus der Grundordnung ihres Bereichs stammte.
+     *  Wer dann eine Zahl ändert, ordnet die ANGEZEIGTE Reihenfolge um — und
+     *  genau die schickt `setzen()` auch an den Server. */
+    function nachzaehlen(tabelle) {
+        const koerper = tabelle.tBodies[0];
+        if (!koerper) return;
+        let platz = 0;
+        [].slice.call(koerper.rows).forEach(function (tr) {
+            if (tr.dataset.gruppe !== undefined) { platz = 0; return; }
+            const feld = tr.querySelector('input.ts-nr');
+            if (!feld) return;
+            platz++;
+            feld.value = platz;
+            feld.dataset.stand = String(platz);
+            const zelle = feld.closest('td');
+            if (zelle) zelle.dataset.sort = String(platz);
+        });
+    }
+
+    document.addEventListener('tabelle:sortiert', function (e) {
+        if (e.target && e.target.tBodies) nachzaehlen(e.target);
+    });
+
     // Delegiert am document: Die Zeilen werden umgehängt und beim Sortieren neu
     // angeordnet — ein Listener je Feld wäre danach am falschen Element.
     document.addEventListener('change', function (e) {

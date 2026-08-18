@@ -94,6 +94,17 @@ class Bereichsgliederung {
     }
 }
 
-document.querySelectorAll('table[data-sort-key]').forEach(t => {
-    if (t.tBodies.length) new Bereichsgliederung(t).binden();
-});
+function alleBinden(wurzel) {
+    (wurzel || document).querySelectorAll('table[data-sort-key]').forEach(t => {
+        if (t.dataset.gliederung === undefined && t.tBodies.length) {
+            t.dataset.gliederung = '1';       // nicht zweimal binden
+            new Bereichsgliederung(t).binden();
+        }
+    });
+}
+
+alleBinden(document);
+// Reiter werden erst beim Anklicken geladen (`tests_tabs.js`). Ohne dieses
+// Nachbinden wuerden die Abschnittszeilen dort beim Sortieren MITSORTIERT —
+// genau der Fehler, gegen den diese Datei gebaut ist.
+document.addEventListener('tests:panel-geladen', e => alleBinden(e.detail.panel));

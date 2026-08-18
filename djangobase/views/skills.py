@@ -15,13 +15,15 @@ from datetime import datetime
 from pathlib import Path
 
 from django.conf import settings
-from django.shortcuts import render
+from django.http import HttpResponse
+from django.shortcuts import redirect, render
 from django.utils.html import escape
 from django.views import View
 
 from ..mixins import ZugriffMixin
 from ..skills import (EIGENE, Bericht, Umbaunetz, fixer, fixer_finden,
                        kriterien, werkzeuge)
+from ..skills.lehren_review import BEREICHE, LEHREN, Lehrenstand
 from ..skills.werkzeug import Ergebnis
 
 
@@ -34,6 +36,10 @@ class SkillsView(ZugriffMixin, View):
         slug = request.GET.get("run", "")
         if slug:
             gelaufen = self._laufen([slug], request.GET, bericht)
+        if request.GET.get("auftrag") == "1":
+            # Als Textdatei: Der Auftragstext wird kopiert, nicht gelesen.
+            return HttpResponse(Lehrenstand.auftragstext(),
+                                content_type="text/plain; charset=utf-8")
         return self._seite(request, bericht.text(), gelaufen)
 
     def post(self, request):
@@ -42,6 +48,13 @@ class SkillsView(ZugriffMixin, View):
             return self._fix(request)
         if request.POST.get("netz"):
             return self._netz(request)
+        if request.POST.get("aktion") == "lehren":
+            # Die Ankreuzliste der Review-Lehren (bis 18.08.2026 auf der
+            # eigenen Seite „Skills3"). Sie gehoert hierher: Es ist derselbe
+            # Werkzeugkasten, und drei Seiten mit ueberlappendem Inhalt sind
+            # kein Werkzeugkasten, sondern drei halbe.
+            Lehrenstand.speichern(set(request.POST.getlist("lehre")))
+            return redirect(request.path + "#lehren")
         # Die Textbox schickt ihren bisherigen Inhalt mit und bekommt ihn
         # ergaenzt zurueck - so haengt ein zweiter Lauf an, statt zu ueberschreiben.
         bericht = Bericht(request.POST.get("ausgabe", ""))
@@ -195,7 +208,27 @@ class SkillsView(ZugriffMixin, View):
                       for k in EIGENE],
             "k1617_texte": [(nr, kriterien()[nr]) for nr in (16, 17)],
             "fix": fix,      # nach einer Vorschau: {slug, bereich, n, modus} -> Anwenden-Knopf
+            # Die Lehren aus den Code-Reviews - Ankreuzliste mit Auftragstext.
+            "lehren_bereiche": self._lehren(),
+            "anzahl_lehren": len(LEHREN),
+            "anzahl_aktiv": sum(1 for an in Lehrenstand.laden().values() if an),
         })
+
+    @staticmethod
+    def _lehren():
+        u"""Die Lehren je Bereich, mit ihrem Ankreuzstand."""
+        # `BEREICHE` sind Zeichenketten, keine Objekte - der erste Wurf las
+        # `bereich.slug` und flog mit AttributeError (18.08.2026).
+        stand = Lehrenstand.laden()
+        aus = []
+        for bereich in BEREICHE:
+            eintraege = [{"lehre": l, "an": stand.get(l.slug, True)}
+                         for l in LEHREN if l.bereich == bereich]
+            if eintraege:
+                # Dictionary gewollt: geht unveraendert in die Vorlage.
+                aus.append({"name": bereich, "lehren": eintraege,
+                            "anzahl": len(eintraege)})
+        return aus
 
     def _tabelle(self, gelaufen):
         """Struktur fuer djangobase/_tabelle.html. Die Zellen enthalten die

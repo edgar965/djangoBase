@@ -70,24 +70,18 @@ class PflichtEintrag:
 
 #: Die Seiten selbst. Neue Pflichtseite? HIER eintragen - dann erscheint sie in
 #: allen drei Einbau-Wegen zugleich.
-#: „Skills" ist seit dem 17.08.2026 der EINE Werkzeugkasten. Skills2 und Skills3
-#: stehen nur noch als Übergang darunter — ihre Werkzeuge kommen aus dem Master,
-#: und sie verschwinden, sobald nichts mehr auf sie zeigt. Sie bleiben im Menü,
-#: weil eine Seite, die es noch gibt und die niemand findet, die schlechtere
-#: Zwischenstufe wäre.
+#: „Skills" ist der EINE Werkzeugkasten. Die Übergangsseiten „Skills2" und
+#: „Skills3" sind am 18.08.2026 ENTFALLEN: Skills2 zeigte dieselben 44
+#: Werkzeuge und dieselben 18 Lehren (gemessen, kein einziger Unterschied),
+#: Skills3 hatte zusätzlich die 20 Review-Lehren — die stehen jetzt hier.
+#: „grossdateien" war der einzige Werkzeug-Unterschied und steht bewusst auf
+#: der Überspringen-Liste (von „dateigroesse" abgedeckt).
 PFLICHTSEITEN = (
     PflichtEintrag(
         "Skills", "bi-tools", "skills",
         "Der Werkzeugkasten: alle Prüfungen und Fixer, Stapellauf mit Bericht "
-        "zum Mitnehmen, Sicherung und Netz"),
-    PflichtEintrag(
-        "Skills2 (Übergang)", "bi-clipboard2-check", "skills2",
-        "Alte Adresse des shortlongx-Kastens — nutzt die Werkzeuge aus Skills "
-        "und wird abgeschafft"),
-    PflichtEintrag(
-        "Skills3 (Übergang)", "bi-clock-history", "skills3",
-        "Alte Adresse des 3DTools-Kastens — nutzt die Werkzeuge aus Skills "
-        "und wird abgeschafft"),
+        "zum Mitnehmen, Sicherung und Netz, dazu die Lehren aus den "
+        "Code-Reviews als Ankreuzliste"),
 )
 
 

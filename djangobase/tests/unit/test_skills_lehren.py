@@ -15,10 +15,13 @@ ueberschreiben.
 import tempfile
 from pathlib import Path
 
-# Dieser Test gehoert zum ALTEN Werkzeugkasten. Er hiess bis zum
+# Dieser Test gehoerte zum Werkzeugkasten der Seite „Skills3". Sie ist am
+# 18.08.2026 entfallen („falls nicht, dann lösche Skills2 und Skills3") — ihre
+# Lehren-Liste steht jetzt auf der Seite „Skills", und die Werkzeuge kommen
+# ohnehin aus demselben Paket. Historie: Der Werkzeugkasten hiess bis zum
 # 17.08.2026 skills und heisst seither skills3 — der Name
 # skills gehoert jetzt dem zusammengefuehrten Master.
-from djangobase.skills3 import WERKZEUGE, werkzeug_finden, werkzeuge
+from djangobase.skills import WERKZEUGE, werkzeug_finden, werkzeuge
 from djangobase.skills.lehren_review import BEREICHE, LEHREN, Lehrenstand
 from djangobase.skills.werkzeug_alt import Ausgabe, Befund, Ergebnis, Werkzeug
 
@@ -237,7 +240,7 @@ class SkillsSeiteTest(LehrenstandIsolation, BasisTest):
 
     def url(self):
         from django.urls import reverse
-        return reverse('djangobase:skills3')
+        return reverse('djangobase:skills')
 
     def test_seite_rendert(self):
         antwort = self.klient.get(self.url())

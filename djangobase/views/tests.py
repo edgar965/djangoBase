@@ -36,6 +36,7 @@ from ..testbefehle import Testbefehle
 from ..testhistorie import Testhistorie
 from ..testkarten import Karten
 from ..testkategorien import Kategorien
+from ..testpanel import Panel
 from ..testlauf import Testlauf
 from ..testtabelle import Testtabelle
 from ..testziele import Testziele
@@ -179,77 +180,36 @@ class TestsView(ZugriffMixin, View):
         historie = Testhistorie()
         tabellen = Testtabelle(historie, aktiver_slug=slug or "",
                                tab=request.GET.get("tab", ""))
-        # EINE Karte je Kategorie; die Gliederung nach Bereich steckt in der
-        # Tabelle (Spalte „Bereich", Zeilen danach vorsortiert) — Ansage
-        # 17.08.2026: „Eine Tabelle je Kategorie, aber der Bereich ist nochmal
-        # extra markiert in der Tabelle".
         karten = Karten(tabellen)
-        for k in kategorien:
-            k["karten"] = karten.je_kategorie(
-                k.get("tests") or [], titel="%s-Tests" % k["typ"],
-                key="tests-%s" % Kategorien.schluessel(k["typ"]), tab=k["typ"])
-        # EINMAL gruppieren und dieselben Objekte weitergeben: Ein zweiter Aufruf
-        # von ``gruppen()`` baut neue Dictionaries, und die Karte haette an
-        # Objekten gehangen, die die Vorlage nie sieht.
         gruppen = kat.gruppen()
-        for g in gruppen:
-            g["karten"] = karten.eine(
-                tabellen.aus_befehlen(
-                    g["befehle"],
-                    key="test-suiten-%s" % Kategorien.schluessel(g["name"]),
-                    tab="Suiten"),
-                titel=g["name"], anzahl=len(g["befehle"]))
-        # Reiter „Alle": je Kategorie ihre TESTFAELLE, nicht ihre Suiten.
-        # Gemeldet am 17.08.2026: „die Alle Seite enthält nicht alle tests!" und
-        # „die verschieben Spalte hat keine Combo Box, ist also nutzlos" — beides
-        # dasselbe: Dort standen die Suiten (ganze Ordner), und eine Suite hat
-        # keine verschiebbare Datei. Mit den Faellen ist die Liste vollstaendig
-        # UND die Combo-Box da.
-        nach_typ = {k["typ"]: k for k in kategorien}
-        for a in kat.arten:
-            faelle = nach_typ.get(a["kurz"])
-            if faelle is None:
-                # „Nach App" ist keine Art, sondern der Rest: Eintraege, deren
-                # Ziel keine erkennbare Kategorie traegt. Dafuer gibt es keine
-                # Einzelfall-Liste — hier stehen die Suiten selbst, sonst waere
-                # die Karte leer und der Bereich unsichtbar.
-                a["karten"] = karten.eine(
-                    tabellen.aus_befehlen(a["befehle"],
-                                          key="test-alle-%s" % a["art"],
-                                          tab="Alle"),
-                    titel="%s — Suiten" % a["kurz"], anzahl=len(a["befehle"]))
-                continue
-            a["karten"] = karten.je_kategorie(
-                faelle.get("tests") or [],
-                titel="%s — Testfälle" % a["kurz"],
-                key="test-alle-%s" % a["art"], tab="Alle")
+        # NUR DAS SICHTBARE BAUEN (Ansage 18.08.2026 „der aufbau der testseiten
+        # ist langsam"): Vorher entstanden bei jedem Aufruf die Tabellen ALLER
+        # Reiter — 1.513 Zeilen und 2,92 MB HTML für einen Reiter, den man
+        # gerade ansieht. Die übrigen Reiter holt `tests_tabs.js` beim ersten
+        # Klick über `?tab=…&teil=1` nach.
+        bauer = Panel(kat, kategorien, gruppen, karten, tabellen, ui, historie)
+        aktiv = bauer.name(request.GET.get("tab", ""))
+        panel = bauer.bauen(aktiv)
+        if request.GET.get("teil") == "1":
+            # Nur das Fragment - ohne Shell, ohne Reiterleiste.
+            return render(request, "djangobase/_testpanel.html",
+                          {"panel": panel})
 
         return render(request, "djangobase/hilfe/tests.html", {
             "aktiv": "tests",
             "befehle": befehle,
             "alles": kat.alles,
             "alle_arten": kat.arten,
+            # Fuer die Reiterleiste: Wie viele Reiter „Alle" zusammenfasst.
+            "arten_anzahl": len(kat.arten),
             "suiten": kat.suiten,
-            "suiten_gruppen": gruppen,
             "kategorien": kategorien,
             "ui": ui,
-            # Die UI-Tests stehen in ``testcases.js``, nicht im Server — die
-            # Zeilen baut das JavaScript. Von hier kommen nur die KOPFZEILE
-            # (dieselben Spalten wie ueberall) und die bisherigen Laufzeiten.
-            "ui_karte": {"titel": "UI-Tests", "icon": "bi-window",
-                         "hinweis": "laufen im Browser (Iframe)",
-                         "tabelle": tabellen.tabelle([], key="tests-ui-browser",
-                                                     tab="UI",
-                                                     leer="Lade Test-Liste …")},
-            "ui_historie": {k: v for k, v in historie.daten["tests"].items()
-                            if k.startswith("ui:")},
-            # Alles, was `static/djangobase/js/tests_ui.js` braucht - im DOM und
-            # nicht als Template-Variable, damit das Skript eine eigene Datei
-            # bleiben kann (das Template war auf 420 Zeilen gewachsen).
-            "ui_config": {"runner": (ui or {}).get("runner", ""),
-                          "cases": (ui or {}).get("cases", ""),
-                          "seiten": (ui or {}).get("seiten", {}),
-                          "dauerUrl": reverse("djangobase:tests_dauer")},
+            # Der Inhalt des AKTIVEN Reiters; die übrigen sind leere Hüllen.
+            "panel": panel,
+            # Die Reiter in ihrer Reihenfolge - dieselbe Quelle, aus der auch
+            # der aktive Name geprüft wird.
+            "tab_namen": bauer.namen(),
             "ergebnis": ergebnis,
             # Ziel der Combo-Box „Verschieben" (siehe tests_verschieben.js).
             "verschieben_url": reverse("djangobase:tests_verschieben"),
@@ -258,8 +218,12 @@ class TestsView(ZugriffMixin, View):
             "strom_url": reverse("djangobase:tests_strom"),
             # Ziel der Nummern-Spalte (tests_nummer.js).
             "nummer_url": reverse("djangobase:tests_nummer"),
+            # Die vollstaendigen Auswahllisten der Combo-Boxen - EINMAL je
+            # Seite statt in jeder Zeile (siehe tests_combo.js).
+            "combo_kategorie": tabellen.optionen()["kategorie"],
+            "combo_bereich": tabellen.optionen()["bereich"],
             "aktiver_slug": slug,
-            "aktiver_tab": request.GET.get("tab", ""),
+            "aktiver_tab": aktiv,
             "aktiver_unter": request.GET.get("unter", ""),
         })
 

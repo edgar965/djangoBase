@@ -77,6 +77,10 @@ class Teststrom {
         document.addEventListener("click", e => this._klick(e));
         document.addEventListener("tests:auswahl-lauf",
                                   e => this.fahren(e.detail.ids));
+        // Ein nachgeladener Reiter bringt neue Kästchen mit; der gemerkte
+        // Satz zeigte sonst auf Elemente, die nicht mehr im DOM hängen.
+        document.addEventListener("tests:panel-geladen",
+                                  () => { this._kaesten = null; });
         return this;
     }
 
