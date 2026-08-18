@@ -32,7 +32,7 @@ import shutil
 import traceback
 from pathlib import Path
 
-from .werkzeug import Ergebnis, Werkzeug2
+from .werkzeug import Ergebnis, Werkzeug
 
 #: Verzeichnisname unter der Projektwurzel. Steht in ``werkzeug.AUSGESCHLOSSEN``,
 #: damit die Werkzeuge im NORMALEN Lauf nicht ihre eigenen Testdateien finden.
@@ -100,7 +100,7 @@ class Pruefergebnis:
                                "kein dateibasierter Fall — von Hand prüfen")}
 
 
-class AnlassfallCheck(Werkzeug2):
+class AnlassfallCheck(Werkzeug):
     slug = "anlassfall-check"
     titel = "Sehen die Werkzeuge noch, wofür sie gebaut wurden?"
     zweck = ("Schreibt jedem Werkzeug seinen eigenen Anlassfall hin und prüft, "

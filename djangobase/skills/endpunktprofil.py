@@ -5,20 +5,20 @@ import io
 import pstats
 
 from .routen import klient
-from .werkzeug_alt import Befund, Ergebnis, Werkzeug
+from .befund import Befund, Befundsatz, BefundWerkzeug
 
 
-class Endpunktprofil(Werkzeug):
+class Endpunktprofil(BefundWerkzeug):
 
     slug = 'endpunkt-profil'
-    name = 'Endpunkt-Profil'
+    titel = 'Endpunkt-Profil'
     zweck = ('Profiliert eine einzelne Route mit cProfile und zeigt beide '
              'Sichten: tottime (wo gerechnet wird) und cumulative (wer es '
              'veranlasst).')
-    wann = ('Sobald die Endpunkt-Zeiten einen Ausreisser zeigen. Beide Listen '
+    abhilfe = ('Sobald die Endpunkt-Zeiten einen Ausreisser zeigen. Beide Listen '
             'sind noetig — die eigene Zeit allein verraet nicht, warum eine '
             'Funktion 40.000-mal laeuft.')
-    beleg = ('So kamen die groessten Funde zustande: eine Doppelschleife mit '
+    befund = ('So kamen die groessten Funde zustande: eine Doppelschleife mit '
              '248.354 abs()-Aufrufen, 7.067 einzelne stat()-Aufrufe statt eines '
              'Verzeichnisscans, und 144 ms reines JSON-Kodieren fuer ein '
              'Ergebnis, das schon im Zwischenspeicher lag.')
@@ -52,7 +52,7 @@ class Endpunktprofil(Werkzeug):
             befunde.append(Befund('— %s —' % sortierung, erklaerung,
                                   gewicht=Befund.HINWEIS))
             befunde.extend(self._zeilen(profil, sortierung))
-        return Ergebnis(self.name, kopf, befunde)
+        return Befundsatz(self.titel, kopf, befunde)
 
     def _zeilen(self, profil, sortierung):
         puffer = io.StringIO()

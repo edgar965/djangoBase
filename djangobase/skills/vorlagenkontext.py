@@ -8,7 +8,7 @@ from django.conf import settings
 from django.template.base import FilterExpression, Variable
 from django.template.loader import get_template
 
-from .werkzeug_alt import Befund, Ergebnis, Werkzeug
+from .befund import Befund, Befundsatz, BefundWerkzeug
 
 #: Namen, die aus Kontextprozessoren oder der Shell kommen, nicht aus der Ansicht.
 VON_AUSSEN = {
@@ -37,7 +37,7 @@ class Vorlagensicht:
     """Alle Variablennamen einer Vorlage samt eingebundener Bausteine."""
 
     def __init__(self, name):
-        self.name = name
+        self.titel = name
         self.gelesen = set()
         self.lokal = set()
         self.eingebunden = set()
@@ -141,17 +141,17 @@ class Renderstelle:
         return '%s:%d' % (self.datei, self.zeile)
 
 
-class Vorlagenkontext(Werkzeug):
+class Vorlagenkontext(BefundWerkzeug):
 
     slug = 'vorlagen-kontext'
-    name = 'Vorlagen-Kontext'
+    titel = 'Vorlagen-Kontext'
     zweck = ('Vergleicht jeden render()-Aufruf mit seiner Vorlage: uebergebene, '
              'aber nie gelesene Schluessel (TOT), gelesene, aber nie gelieferte '
              'Namen (FEHLEND) und Vorlagen, die niemand rendert (VERWAIST).')
-    wann = ('Nach jedem groesseren Umbau und vor einem Review — findet stille '
+    abhilfe = ('Nach jedem groesseren Umbau und vor einem Review — findet stille '
             'Fehler, die kein Test bemerkt, weil Django fehlende Variablen '
             'kommentarlos als Leerstring rendert.')
-    beleg = ('Im Ursprungsprojekt: eine if-Bedingung, die seit vier Monaten auf '
+    befund = ('Im Ursprungsprojekt: eine if-Bedingung, die seit vier Monaten auf '
              'einen nie gelieferten Namen zeigte (das Datei-Feld war dadurch '
              'immer Pflicht), zwei tote Kontextschluessel samt einem COUNT(*) '
              'je Aufruf und zwei unerreichbare Vorlagen.')
@@ -191,7 +191,7 @@ class Vorlagenkontext(Werkzeug):
         befunde.extend(self._verwaiste(stellen))
         kopf = ['%d render()-Stellen, %d Vorlagen geprueft'
                 % (len(stellen), len(sicht))]
-        return Ergebnis(self.name, kopf, befunde)
+        return Befundsatz(self.titel, kopf, befunde)
 
     # ------------------------------------------------------------------ intern
 
@@ -274,7 +274,7 @@ class Vorlagenkontext(Werkzeug):
                 erreichbar.add(treffer.group(1))
         for ordner in self._vorlagenordner():
             for datei in Path(ordner).rglob('*.html'):
-                name = str(datei.relative_to(ordner)).replace('\\', '/')
+                titel = str(datei.relative_to(ordner)).replace('\\', '/')
                 if name not in erreichbar:
                     befunde.append(Befund(
                         self.kurz(datei), 'VERWAIST (%d Byte)' % datei.stat().st_size,

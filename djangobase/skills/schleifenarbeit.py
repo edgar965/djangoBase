@@ -25,10 +25,10 @@ Eine Liste hier raet, was der Autor gemeint hat, und liegt irgendwann daneben.
 import ast
 
 from .anlassfall import Anlassfall
-from .werkzeug import Ergebnis, Werkzeug2
+from .werkzeug import Ergebnis, Werkzeug
 
 
-class Schleifenarbeit(Werkzeug2):
+class Schleifenarbeit(Werkzeug):
     slug = "schleifenarbeit"
     titel = "Arbeit in Schleifen"
     zweck = ("Datei-/DB-Zugriffe innerhalb von Schleifen und Sammlungen, die per "

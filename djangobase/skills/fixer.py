@@ -132,7 +132,7 @@ class Fixer:
     def raus(cls):
         """Ordnernamen, die kein Fixer anfassen darf."""
         from .werkzeug import AUSGESCHLOSSEN
-        # Beide Schluessel, siehe Werkzeug2.ausgeschlossen(): `skills2` ist der
+        # Beide Schluessel, siehe Werkzeug.ausgeschlossen(): `skills2` ist der
         # alte Paketname und steht noch in den Einstellungen der Projekte. Ein
         # Fixer, der ihn nicht liest, SCHREIBT in Fremdcode.
         cfg = getattr(settings, "DJANGOBASE", {}) or {}
@@ -147,7 +147,7 @@ class Fixer:
         return not (set(Path(pfad).parts) & cls.raus())
 
     def wurzel(self):
-        """Die REPO-Wurzel, nicht nur der Django-Teil - wie bei ``Werkzeug2``.
+        """Die REPO-Wurzel, nicht nur der Django-Teil - wie bei ``Werkzeug``.
 
         MIT ``BASE_DIR`` LANDET DIE SICHERUNG AM FALSCHEN ORT (16.08.2026):
         ``shortlongxWeb/werkzeug/sicherung/`` statt ``werkzeug/sicherung/``. Der

@@ -36,10 +36,10 @@ from pathlib import Path
 from django.conf import settings
 
 from .anlassfall import Anlassfall
-from .werkzeug import Ergebnis, Werkzeug2
+from .werkzeug import Ergebnis, Werkzeug
 
 
-class EsModulImporte(Werkzeug2):
+class EsModulImporte(Werkzeug):
     slug = "esmodulimporte"
     titel = "ES-Module: Importe und Aufrufe"
     zweck = ("Jeder Import zeigt auf eine existierende Datei und einen dort "

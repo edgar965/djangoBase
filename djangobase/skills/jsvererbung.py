@@ -34,7 +34,7 @@ erhalten.
 import re
 
 from .anlassfall import Anlassfall
-from .werkzeug import Ergebnis, Werkzeug2
+from .werkzeug import Ergebnis, Werkzeug
 
 
 class NurCode:
@@ -89,7 +89,7 @@ class Vererbungspaar:
                 for nr, text in self.treffer]
 
 
-class JsVererbung(Werkzeug2):
+class JsVererbung(Werkzeug):
     slug = "js-vererbung"
     titel = "Basisklasse nennt ihre eigene Ableitung"
     zweck = ("Findet in ``class X extends XBasis``-Paaren jede Stelle, an der "

@@ -42,7 +42,7 @@ Bibliothek und liefert mehr Vermutung als Befund. Was hier steht, ist belegt.
 import ast
 
 from .anlassfall import Anlassfall
-from .werkzeug import Ergebnis, Werkzeug2
+from .werkzeug import Ergebnis, Werkzeug
 
 __all__ = ["Schreibrouten"]
 
@@ -87,7 +87,7 @@ GEBUNDEN = {"post", "put", "patch", "delete"}
 OHNE = ("tests", "migrations")
 
 
-class Schreibrouten(Werkzeug2):
+class Schreibrouten(Werkzeug):
     slug = "schreibrouten"
     titel = "Ansicht schreibt und beantwortet GET"
     zweck = ("Findet Ansichten, die im Rumpf löschen oder schreiben und dabei "

@@ -49,12 +49,12 @@ from .anlassfall import Anlassfall
 from .jsklammern import Klammerzaehler
 from .jsrumpf import Rumpf
 from .jsstelle import SCHLUESSELWORTE
-from .werkzeug import Ergebnis, Werkzeug2
+from .werkzeug import Ergebnis, Werkzeug
 
 __all__ = ["JsStumm"]
 
 
-class JsStumm(Werkzeug2):
+class JsStumm(Werkzeug):
     slug = "jsstumm"
     titel = "Stille Rückmeldung: Meldungen, die im Nichts landen"
     zweck = ("Findet im JavaScript, was ein Ereignis lautlos verschwinden lässt: "

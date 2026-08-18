@@ -26,10 +26,10 @@ import ast
 from collections import defaultdict
 
 from .anlassfall import Anlassfall
-from .werkzeug import Ergebnis, Werkzeug2
+from .werkzeug import Ergebnis, Werkzeug
 
 
-class Doppelrumpf(Werkzeug2):
+class Doppelrumpf(Werkzeug):
     slug = "doppelrumpf"
     titel = "Gleiche Rümpfe (Duplikate)"
     zweck = ("Funktionen und Klassen mit zeichengleichem Rumpf — über alle "

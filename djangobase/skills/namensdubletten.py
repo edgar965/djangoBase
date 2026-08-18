@@ -4,7 +4,7 @@ import ast
 import re
 from collections import defaultdict
 
-from .werkzeug_alt import Befund, Ergebnis, Werkzeug
+from .befund import Befund, Befundsatz, BefundWerkzeug
 
 #: Wortpaare, die im selben Projekt dieselbe Sache meinen — GETRENNT NACH
 #: SPRACHE.
@@ -47,19 +47,25 @@ GLEICHBEDEUTEND = [
 ]
 
 
-class Namensdubletten(Werkzeug):
+class Namensdubletten(BefundWerkzeug):
 
     slug = 'namens-dubletten'
-    name = 'Namens-Dubletten'
+
+    #: Auftrags-Kriterium (kam bis 18.08.2026 aus der
+
+    #: Tabelle ALT_KRITERIUM neben der Registrierung).
+
+    kriterium = 7
+    titel = 'Namens-Dubletten'
     zweck = ('Findet gleichnamige Klassen und Modulfunktionen an mehreren '
              'Stellen, gleichnamige Moduldateien in verschiedenen Ordnern und '
              'Paare wie get_/hole_, die dasselbe meinen. METHODEN sind '
              'ausgenommen — dass zwei Klassen ein `anzahl()` haben, ist der '
              'Sinn der Sache und keine Dublette.')
-    wann = ('Wenn ein Projekt aus mehreren Umbauten gewachsen ist. Zwei Namen '
+    abhilfe = ('Wenn ein Projekt aus mehreren Umbauten gewachsen ist. Zwei Namen '
             'fuer dieselbe Sache kosten bei jeder Suche Zeit und erzeugen '
             'stille Fehler, sobald jemand den falschen benutzt.')
-    beleg = ('Genau dieser Fall kostete im Ursprungsprojekt vier Monate: Eine '
+    befund = ('Genau dieser Fall kostete im Ursprungsprojekt vier Monate: Eine '
              'Vorlage las `unique_videos`, die Ansicht lieferte `upload_files` '
              '— Django rendert dafuer kommentarlos nichts, also fiel es keinem '
              'auf.')
@@ -120,7 +126,7 @@ class Namensdubletten(Werkzeug):
 
         kopf = ['%d Klassennamen, %d Funktionsnamen geprueft'
                 % (len(klassen), len(funktionen))]
-        return Ergebnis(self.name, kopf, befunde)
+        return Befundsatz(self.titel, kopf, befunde)
 
     def _doppelt(self, namen, art):
         befunde = []

@@ -25,10 +25,10 @@ import ast
 from collections import Counter
 
 from .anlassfall import Anlassfall
-from .werkzeug import Ergebnis, Werkzeug2
+from .werkzeug import Ergebnis, Werkzeug
 
 
-class Kapselung(Werkzeug2):
+class Kapselung(Werkzeug):
     slug = "kapselung"
     titel = "Funktionen, die eine Klasse ergeben"
     zweck = ("Dateien mit mehreren Modulfunktionen, die dasselbe Argument "

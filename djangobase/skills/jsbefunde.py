@@ -24,12 +24,12 @@ Fehlalarm, der beim Bau aufgefallen ist.
 """
 from .jsregeln import REGELN
 from .anlassfall import Anlassfall
-from .werkzeug import Ergebnis, Werkzeug2
+from .werkzeug import Ergebnis, Werkzeug
 
 __all__ = ["JsBefunde"]
 
 
-class JsBefunde(Werkzeug2):
+class JsBefunde(Werkzeug):
     slug = "jsbefunde"
     titel = "Frontend-Befunde (JS + Vorlagen)"
     zweck = ("Zaehlt zehn objektiv pruefbare Auffaelligkeiten in .js und .html "

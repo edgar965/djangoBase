@@ -28,12 +28,12 @@ import tempfile
 from pathlib import Path
 
 from .anlassfall import Anlassfall
-from .werkzeug import Ergebnis, Werkzeug2
+from .werkzeug import Ergebnis, Werkzeug
 
 __all__ = ["JsSyntax"]
 
 
-class JsSyntax(Werkzeug2):
+class JsSyntax(Werkzeug):
     slug = "jssyntax"
     titel = "ES-Module: Syntax pruefen"
     zweck = ("Kopiert jede .js-Datei als .mjs und laesst `node --check` darauf "

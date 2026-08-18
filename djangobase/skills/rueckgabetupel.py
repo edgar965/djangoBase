@@ -23,10 +23,10 @@ laufen meist direkt in eine Schleife, die sie sofort auspackt.
 import ast
 
 from .anlassfall import Anlassfall
-from .werkzeug import Ergebnis, Werkzeug2
+from .werkzeug import Ergebnis, Werkzeug
 
 
-class RueckgabeTupel(Werkzeug2):
+class RueckgabeTupel(Werkzeug):
     slug = "rueckgabetupel"
     titel = "Rückgabe-Tupel mit vielen Feldern"
     zweck = ("Funktionen, die mehr als drei Werte als Tupel zurückgeben — der "

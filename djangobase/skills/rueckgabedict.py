@@ -33,7 +33,7 @@ import re
 from collections import Counter
 
 from .anlassfall import Anlassfall
-from .werkzeug import Ergebnis, Werkzeug2
+from .werkzeug import Ergebnis, Werkzeug
 
 
 class FrontendVertrag:
@@ -99,7 +99,7 @@ class FrontendVertrag:
         return treffer / len(aussagekraeftig) >= self.SCHWELLE
 
 
-class RueckgabeDict(Werkzeug2):
+class RueckgabeDict(Werkzeug):
     slug = "rueckgabedict"
     titel = "Dictionary oder Klasse?"
     zweck = ("Rückgabe-Dictionaries mit mehr als drei festen Schlüsseln, die "

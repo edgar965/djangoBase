@@ -30,10 +30,10 @@ import re
 from collections import defaultdict
 
 from .anlassfall import Anlassfall
-from .werkzeug import Ergebnis, Werkzeug2
+from .werkzeug import Ergebnis, Werkzeug
 
 
-class Namensvarianten(Werkzeug2):
+class Namensvarianten(Werkzeug):
     slug = "namensvarianten"
     titel = "Dasselbe Ding, zwei Schreibweisen"
     zweck = ("Bezeichner, die sich nur in Groß-/Kleinschreibung oder "

@@ -35,7 +35,7 @@ import re
 from django.conf import settings
 
 from .anlassfall import Anlassfall
-from .werkzeug import Ergebnis, Werkzeug2
+from .werkzeug import Ergebnis, Werkzeug
 
 __all__ = ["Vorlagenblock"]
 
@@ -47,7 +47,7 @@ MARKE = re.compile(r"{%\s*(block|endblock)\b[^%]*%}")
 MAX_TIEFE = 8
 
 
-class Vorlagenblock(Werkzeug2):
+class Vorlagenblock(Werkzeug):
     slug = "vorlagenblock"
     titel = "Vorlagen: Block laeuft ins Leere"
     zweck = ("Findet `{% block x %}` auf oberster Ebene, den die `extends`-Kette "

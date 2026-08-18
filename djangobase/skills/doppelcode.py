@@ -4,7 +4,7 @@ import hashlib
 import re
 from collections import defaultdict
 
-from .werkzeug_alt import Befund, Ergebnis, Werkzeug
+from .befund import Befund, Befundsatz, BefundWerkzeug
 
 
 class Fundstelle:
@@ -20,17 +20,23 @@ class Fundstelle:
         return '%s:%d' % (self.datei, self.zeile)
 
 
-class Doppelcode(Werkzeug):
+class Doppelcode(BefundWerkzeug):
 
     slug = 'doppelcode'
-    name = 'Doppelter Code'
+
+    #: Auftrags-Kriterium (kam bis 18.08.2026 aus der
+
+    #: Tabelle ALT_KRITERIUM neben der Registrierung).
+
+    kriterium = 6
+    titel = 'Doppelter Code'
     zweck = ('Sucht identische Codebloecke (Vorgabe: ab 6 Zeilen) in Python-, '
              'JavaScript- und HTML-Dateien und zeigt alle Fundstellen.')
-    wann = ('Vor dem Zusammenfassen von Modulen. Doppelter Code faellt im '
+    abhilfe = ('Vor dem Zusammenfassen von Modulen. Doppelter Code faellt im '
             'Alltag nicht auf, weil die Kopien in verschiedenen Dateien liegen '
             '— und wird bei Aenderungen genau deshalb nur an einer Stelle '
             'nachgezogen.')
-    beleg = ('Im Ursprungsprojekt stand die Aufklapp- und Auswahllogik eines '
+    befund = ('Im Ursprungsprojekt stand die Aufklapp- und Auswahllogik eines '
              'Auswahlfeldes Zeile fuer Zeile in VIER Vorlagen, das Fuellen '
              'eines Modell-Feldes in fuenf. Beides jetzt je ein ES-Modul.')
     dauer = 'Sekunden bis eine Minute'
@@ -77,7 +83,7 @@ class Doppelcode(Werkzeug):
             kopf.append('angezeigt: die ersten %d — mit groesserer Blockgroesse '
                         'wird die Liste kuerzer und die Funde gewichtiger'
                         % self.ZEILEN)
-        return Ergebnis(self.name, kopf, befunde[:self.ZEILEN])
+        return Befundsatz(self.titel, kopf, befunde[:self.ZEILEN])
 
     def _sammeln(self, datei, fenster, bloecke):
         roh = datei.read_text(encoding='utf-8', errors='replace').split('\n')

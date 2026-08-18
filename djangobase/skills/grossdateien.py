@@ -3,7 +3,7 @@
 import ast
 import re
 
-from .werkzeug_alt import Befund, Ergebnis, Werkzeug
+from .befund import Befund, Befundsatz, BefundWerkzeug
 
 
 class Dateimass:
@@ -30,15 +30,15 @@ class Dateimass:
         return ', '.join(teile)
 
 
-class Grossdateien(Werkzeug):
+class Grossdateien(BefundWerkzeug):
 
     slug = 'grossdateien'
-    name = 'Grosse Dateien'
+    titel = 'Grosse Dateien'
     zweck = ('Listet Python- und JavaScript-Dateien ueber der Zeilengrenze, mit '
              'Anzahl Klassen und Funktionen und der laengsten Funktion je Datei.')
-    wann = ('Zu Beginn eines Umbaus, um die Schnittkandidaten zu finden — und '
+    abhilfe = ('Zu Beginn eines Umbaus, um die Schnittkandidaten zu finden — und '
             'danach als Nachweis, dass keine neue Monsterdatei entstanden ist.')
-    beleg = ('Ausgangslage im Ursprungsprojekt: eine Datei mit 6.495 Zeilen und '
+    befund = ('Ausgangslage im Ursprungsprojekt: eine Datei mit 6.495 Zeilen und '
              '110 Endpunkten, eine zweite mit 3.496 Zeilen — beide zerlegt.')
     dauer = 'Sekunden'
     eingabe = ('grenze', 'Ab wie vielen Zeilen melden?', '300')
@@ -72,7 +72,7 @@ class Grossdateien(Werkzeug):
         ]
         if ueber:
             kopf.append('groesste: %s mit %d Zeilen' % (ueber[0].pfad, ueber[0].zeilen))
-        return Ergebnis(self.name, kopf, befunde)
+        return Befundsatz(self.titel, kopf, befunde)
 
     def _python(self, datei):
         quelle = datei.read_text(encoding='utf-8', errors='replace')

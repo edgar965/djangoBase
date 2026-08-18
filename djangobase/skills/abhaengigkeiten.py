@@ -3,7 +3,7 @@
 import ast
 from collections import defaultdict
 
-from .werkzeug_alt import Befund, Ergebnis, Werkzeug
+from .befund import Befund, Befundsatz, BefundWerkzeug
 
 
 class Modulknoten:
@@ -12,23 +12,29 @@ class Modulknoten:
     __slots__ = ('name', 'pfad', 'nach', 'von')
 
     def __init__(self, name, pfad):
-        self.name = name
+        self.titel = name
         self.pfad = pfad
         self.nach = set()
         self.von = set()
 
 
-class Abhaengigkeiten(Werkzeug):
+class Abhaengigkeiten(BefundWerkzeug):
 
     slug = 'abhaengigkeiten'
-    name = 'Abhängigkeiten'
+
+    #: Auftrags-Kriterium (kam bis 18.08.2026 aus der
+
+    #: Tabelle ALT_KRITERIUM neben der Registrierung).
+
+    kriterium = 9
+    titel = 'Abhängigkeiten'
     zweck = ('Baut den Importgraph der Projektmodule und meldet Zyklen, '
              'Module mit besonders vielen Abhaengigkeiten (Naben) und solche, '
              'die niemand importiert (Inseln).')
-    wann = ('Wenn die Struktur unklar geworden ist — und nach jedem Schnitt '
+    abhilfe = ('Wenn die Struktur unklar geworden ist — und nach jedem Schnitt '
             'grosser Dateien. Ein Zyklus zwingt spaeter zu Importen INNERHALB '
             'von Funktionen; genau daran erkennt man ihn oft zuerst.')
-    beleg = ('Beim Zerlegen einer 6.000-Zeilen-Datei war die Frage "wer darf '
+    befund = ('Beim Zerlegen einer 6.000-Zeilen-Datei war die Frage "wer darf '
              'wen importieren" die eigentliche Arbeit: Endpunkte -> Dienste -> '
              'Kernbibliothek, nie zurueck.')
     dauer = 'Sekunden'
@@ -66,7 +72,7 @@ class Abhaengigkeiten(Werkzeug):
         kanten = sum(len(m.nach) for m in knoten.values())
         kopf = ['%d Projektmodule, %d Importbeziehungen' % (len(knoten), kanten),
                 'Zyklen: %d' % sum(1 for b in befunde if 'ZYKLUS' in b.was)]
-        return Ergebnis(self.name, kopf, befunde)
+        return Befundsatz(self.titel, kopf, befunde)
 
     # ------------------------------------------------------------------ intern
 

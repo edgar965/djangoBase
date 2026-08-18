@@ -29,10 +29,10 @@ IM WERKZEUG waere die schlechtere Loesung: Sie raet, was der Autor gemeint hat.
 import ast
 
 from .anlassfall import Anlassfall
-from .werkzeug import Ergebnis, Werkzeug2
+from .werkzeug import Ergebnis, Werkzeug
 
 
-class ModulZustand(Werkzeug2):
+class ModulZustand(Werkzeug):
     slug = "modulzustand"
     titel = "Zustand auf Modulebene"
     zweck = ("Veränderliche Sammlungen (list/dict/set) auf Modulebene, die "

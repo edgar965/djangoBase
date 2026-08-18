@@ -32,12 +32,12 @@ from django.conf import settings
 from django.test import Client, override_settings
 from django.urls import get_resolver
 
-from .werkzeug import Ergebnis, Werkzeug2
+from .werkzeug import Ergebnis, Werkzeug
 
 __all__ = ["Seitenzeiten"]
 
 
-class Seitenzeiten(Werkzeug2):
+class Seitenzeiten(Werkzeug):
     slug = "seitenzeiten"
     titel = "Seiten: Serverzeit und Groesse"
     zweck = ("Ruft jede parameterlose Seite auf und misst Antwortzeit und "

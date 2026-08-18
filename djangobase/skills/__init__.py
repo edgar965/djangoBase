@@ -7,7 +7,7 @@ Es gab drei Werkzeugkaesten nebeneinander, an verschiedenen Tagen in
 verschiedenen Sitzungen entstanden:
 
     skills   (3DTools-Durchgang)    12 Werkzeuge, Basis ``Werkzeug``
-    skills2  (shortlongx-Durchgang) 28 Werkzeuge, Basis ``Werkzeug2``
+    skills2  (shortlongx-Durchgang) 28 Werkzeuge, Basis ``Werkzeug``
     skills1  (Zusammenfuehrung)     beides ueber einen Adapter
 
 Drei Seiten mit ueberlappenden Werkzeugen sind kein Werkzeugkasten, sondern drei
@@ -17,17 +17,24 @@ sind nur noch duenne Weiterleitungen auf dieses Paket, damit vorhandene Links,
 Lesezeichen und Importe weiterlaufen - sie verschwinden, sobald niemand mehr
 darauf zeigt.
 
-ZWEI BASISKLASSEN, MIT ABSICHT
-==============================
-* ``Werkzeug2`` (``werkzeug.py``) ist die Basis fuer alles Neue: Tabelle aus
-  Spalten und Zeilen, Quelldatei-Cache mit Syntaxbaum, Suche ab der
-  REPO-Wurzel statt nur ``BASE_DIR``, abgestufte Bewertung, Bezug auf ein
-  Kriterium.
-* ``Werkzeug`` (``werkzeug_alt.py``) ist die aeltere Basis der 3DTools-Werkzeuge
-  (Befund-Objekte, Textausgabe, einstellbare Schwellen). Sie wurde NICHT
-  umgeschrieben: Elf laufende, belegte Werkzeuge fuer eine einheitliche
-  Oberklasse anzufassen waere teurer als der Adapter - und riskanter.
-  ``AltWerkzeug`` (``adapter.py``) bildet sie verlustfrei auf eine Tabelle ab.
+EINE BASIS, ZWEI BAUFORMEN (18.08.2026)
+=======================================
+``Werkzeug`` (``werkzeug.py``) ist die Basis fuer ALLE: Projektwurzel ueber das
+Git-Repo statt nur ``BASE_DIR``, EINE Ausschlussliste, Quelldatei-Cache mit
+Syntaxbaum, Bezug auf ein Kriterium, Anlassfall.
+
+Darauf gibt es zwei Bauformen, je nachdem, was ein Werkzeug zu sagen hat:
+
+* ``Werkzeug`` direkt - freie Tabelle: ``laufen()`` liefert ``Ergebnis`` mit
+  eigenen Spalten und Zeilen.
+* ``BefundWerkzeug`` (``befund.py``) - Befunde: ``pruefen()`` liefert einen
+  ``Befundsatz`` aus ``Befund``-Objekten (Ort, Was, Warum, Gewicht), die Basis
+  macht daraus dieselbe Tabelle.
+
+Bis zum 18.08.2026 waren das ZWEI Basisklassen in zwei Welten, verbunden durch
+einen Adapter (``AltWerkzeug``), mit zwei Dateisuchen und zwei
+Ausschlusslisten - die prompt auseinanderliefen. Beides ist zusammengefuehrt;
+``werkzeug_alt.py`` und ``adapter.py`` sind entfallen.
 
 Aufruf ueber Hilfe -> Skills (``djangobase/views/skills.py``) oder direkt:
 
@@ -35,11 +42,11 @@ Aufruf ueber Hilfe -> Skills (``djangobase/views/skills.py``) oder direkt:
     erg = werkzeug_finden("modulzustand").laufen()
     print(erg.zusammenfassung)
 
-Neues Werkzeug: von ``Werkzeug2`` ableiten, EINE Klasse je Datei, unten in
-``NEUE`` eintragen.
+Neues Werkzeug: von ``Werkzeug`` ableiten (oder von ``BefundWerkzeug``,
+wenn es Befunde meldet), EINE Klasse je Datei, unten in ``NEUE`` bzw.
+``BEFUNDBASIERT`` eintragen.
 """
 # --- Basis und Infrastruktur -------------------------------------------------
-from .adapter import AltWerkzeug
 from .basis import EigenesWerkzeug
 from .bericht import Bericht
 from .fixer import Aenderung, Fixer, Vorschau
@@ -47,10 +54,9 @@ from .kriterien import KRITERIEN as _KRITERIEN_BASIS
 from .kriterien import OHNE_WERKZEUG
 from .lehren import BEREICHE, LEHREN, Lehre, Lehrenstand, als_zeilen, gruppen
 from .netz import Abnahme, Umbaunetz
-from .werkzeug import Ergebnis, Quelldatei, Werkzeug2
-from .werkzeug_alt import Ausgabe, Befund
-from .werkzeug_alt import Ergebnis as ErgebnisAlt
-from .werkzeug_alt import Werkzeug
+from .befund import Befund, Befundsatz, BefundWerkzeug
+from .werkzeug import Ergebnis, Quelldatei, Werkzeug
+from .befund import BefundWerkzeug
 
 # --- Werkzeuge auf der neuen Basis (frueher skills2) -------------------------
 from .altlast import Altlast
@@ -180,11 +186,11 @@ NEUE = [
     AnlassfallCheck,
 ]
 
-#: Werkzeuge auf der alten Basis - Anzeige ueber ``AltWerkzeug``.
-#: ``Grossdateien`` faellt weg: ``Dateigroesse`` deckt es reicher ab (auch
-#: Klassen > 300, Funktionen > 60, JS-Module > 200). Die Datei bleibt liegen,
-#: damit der Vergleich nachvollziehbar ist.
-ALTE = [
+#: Die Werkzeuge der zweiten Bauform: Sie liefern BEFUNDE (Ort, Was, Warum,
+#: Gewicht) statt einer freien Tabelle und erben ueber ``BefundWerkzeug``
+#: dieselbe Basis wie alle anderen — dieselbe Projektwurzel, dieselbe
+#: Ausschlussliste. Frueher war das eine eigene Welt mit eigener Basisklasse.
+BEFUNDBASIERT = [
     FreieFunktionen,
     KlassenJeDatei,
     Abhaengigkeiten,
@@ -198,17 +204,9 @@ ALTE = [
     Vorlagenvariablen,
 ]
 
-#: Alte Kennung -> Auftrags-Kriterium. 0 = keinem zugeordnet.
-ALT_KRITERIUM = {
-    "freie-funktionen": 1,      # Funktionen kapseln (neben Kapselung)
-    "klassen-je-datei": 2,      # eine Klasse je Datei
-    "abhaengigkeiten": 9,       # klare Strukturen/Abhaengigkeiten
-    "doppelcode": 6,            # keine Duplikate (Textbloecke, auch HTML)
-    "tote-importe": 5,          # ungenutzten Code entfernen
-    "namens-dubletten": 7,      # keine abweichenden Namen
-}
-
-#: Nicht anzeigen - von einem neueren Werkzeug abgedeckt.
+#: Nicht anzeigen - von einem neueren Werkzeug abgedeckt (``dateigroesse``
+#: kann alles, was ``grossdateien`` kann, und mehr). Die Datei bleibt liegen,
+#: damit der Vergleich nachvollziehbar ist.
 UEBERSPRINGEN = {"grossdateien"}
 
 #: Die Werkzeuge zu den Kriterien 16 und 17 - die Seite bietet dafuer einen
@@ -216,12 +214,13 @@ UEBERSPRINGEN = {"grossdateien"}
 #: eigene Gruppe hier.
 EIGENE = [Protokoll, Testaufbau, Testdeckung]
 
-#: Die Klassen auf der NEUEN Basis. Bewusst NICHT ``NEUE + ALTE``: An diesem
-#: Namen haengen Zusicherungen, die nur ``Werkzeug2`` erfuellt (``kriterium``,
-#: Spalten/Zeilen, Anlassfall). Ein alter ``Werkzeug``-Nachfahre hier drin liess
-#: prompt vier Pruefungen mit AttributeError abbrechen (17.08.2026). Die alten
-#: stehen in ``ALTE`` und erscheinen ueber ``werkzeuge()`` als ``AltWerkzeug``.
-WERKZEUGE = NEUE
+#: ALLE Werkzeuge, EINE Liste (Ansage 18.08.2026: „ich brauche keine AlteBasis,
+#: merge alles"). Bis dahin standen sie in zwei Listen mit zwei Basisklassen,
+#: und ein Adapter rechnete die eine in die andere um; ihr Kriterium stand in
+#: einer Tabelle NEBEN der Registrierung. Jetzt tragen alle dieselbe Basis
+#: (``Werkzeug``), die befundbasierten ueber ``BefundWerkzeug`` — und jedes
+#: Werkzeug traegt sein Kriterium selbst.
+WERKZEUGE = NEUE + [k for k in BEFUNDBASIERT if k.slug not in UEBERSPRINGEN]
 
 #: Werkzeuge, die einen Befund BEHEBEN statt ihn nur zu melden. Getrennt von
 #: WERKZEUGE, weil sie schreiben: jeder braucht Vorschau, Sicherung und ein Netz
@@ -239,13 +238,8 @@ FIXER = [
 
 
 def werkzeuge():
-    """Je eine Instanz aller Werkzeuge - neue Basis zuerst, dann die alten."""
-    aus = [klasse() for klasse in NEUE]
-    for klasse in ALTE:
-        if klasse.slug in UEBERSPRINGEN:
-            continue
-        aus.append(AltWerkzeug(klasse(), ALT_KRITERIUM.get(klasse.slug, 0)))
-    return aus
+    """Je eine Instanz aller Werkzeuge - eine Liste, eine Basis."""
+    return [klasse() for klasse in WERKZEUGE]
 
 
 def werkzeug_finden(slug):
@@ -282,7 +276,7 @@ def kriterien():
 __all__ = [
     "WERKZEUGE", "NEUE", "ALTE", "FIXER", "werkzeuge", "werkzeug_finden",
     "fixer", "fixer_finden", "hat_fixer",
-    "Werkzeug2", "Ergebnis", "Quelldatei", "EigenesWerkzeug",
+    "Werkzeug", "Ergebnis", "Quelldatei", "EigenesWerkzeug",
     "Werkzeug", "ErgebnisAlt", "Befund", "Ausgabe", "AltWerkzeug",
     "Fixer", "Vorschau", "Aenderung", "ImportFixer",
     "Bericht", "Umbaunetz", "Abnahme",

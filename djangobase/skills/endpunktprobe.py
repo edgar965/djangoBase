@@ -6,21 +6,21 @@ from pathlib import Path
 from django.conf import settings
 
 from .routen import alle_routen, klient
-from .werkzeug_alt import Befund, Ergebnis, Werkzeug
+from .befund import Befund, Befundsatz, BefundWerkzeug
 
 
-class Endpunktprobe(Werkzeug):
+class Endpunktprobe(BefundWerkzeug):
 
     slug = 'endpunkt-probe'
-    name = 'Endpunkt-Probe'
+    titel = 'Endpunkt-Probe'
     zweck = ('Ruft jede GET-Route auf, haelt den Statuscode fest und vergleicht '
              'ihn beim naechsten Lauf. Neue, verschwundene und veraenderte '
              'Routen werden gemeldet.')
-    wann = ('VOR einem grossen Umbau einmal als Referenz aufnehmen, danach nach '
+    abhilfe = ('VOR einem grossen Umbau einmal als Referenz aufnehmen, danach nach '
             'jedem Schritt pruefen. Das ist das Sicherheitsnetz fuer alles, was '
             'keine Tests hat: Wer eine 6.000-Zeilen-Datei zerlegt, merkt einen '
             'kaputten Endpunkt sonst erst, wenn jemand die Seite oeffnet.')
-    beleg = ('Hat den Umbau von 110 Endpunkten aus einer Datei in Module '
+    befund = ('Hat den Umbau von 110 Endpunkten aus einer Datei in Module '
              'abgesichert — 195 Routen unveraendert, jede Abweichung sofort '
              'sichtbar.')
     dauer = 'mehrere Minuten — gemessen: 147 s fuer 188 Routen'
@@ -44,14 +44,14 @@ class Endpunktprobe(Werkzeug):
         if str(modus).strip().lower().startswith('ref'):
             pfad.write_text(json.dumps(aktuell, indent=2, ensure_ascii=False),
                             encoding='utf-8')
-            return Ergebnis(self.name, [
+            return Befundsatz(self.titel, [
                 'Referenz mit %d Routen geschrieben:' % len(aktuell),
                 self.kurz(pfad),
                 'Ab jetzt meldet der Modus "pruefen" jede Abweichung.',
             ])
 
         if not pfad.is_file():
-            return Ergebnis(self.name, [
+            return Befundsatz(self.titel, [
                 'Noch keine Referenz vorhanden.',
                 'Einmal mit Modus "referenz" laufen lassen — am besten JETZT, '
                 'solange die Anwendung nachweislich funktioniert.',
@@ -61,7 +61,7 @@ class Endpunktprobe(Werkzeug):
         try:
             referenz = json.loads(pfad.read_text(encoding='utf-8'))
         except (OSError, ValueError) as fehler:
-            return Ergebnis(self.name, fehler='Referenz nicht lesbar: %s' % fehler)
+            return Befundsatz(self.titel, fehler='Referenz nicht lesbar: %s' % fehler)
 
         befunde = []
         for weg, stand in sorted(aktuell.items()):
@@ -78,7 +78,7 @@ class Endpunktprobe(Werkzeug):
 
         gleich = len(set(aktuell) & set(referenz)) - sum(
             1 for b in befunde if 'GEAENDERT' in b.was)
-        return Ergebnis(self.name, [
+        return Befundsatz(self.titel, [
             '%d Routen geprueft, %d unveraendert' % (len(aktuell), gleich),
             'Referenz: ' + self.kurz(pfad),
         ], befunde)

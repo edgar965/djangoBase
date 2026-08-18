@@ -34,7 +34,7 @@ import re
 from pathlib import Path
 
 from .anlassfall import Anlassfall
-from .werkzeug import Ergebnis, Werkzeug2
+from .werkzeug import Ergebnis, Werkzeug
 
 __all__ = ["JsWaisen"]
 
@@ -197,7 +197,7 @@ class Modulinventar:
         return offen
 
 
-class JsWaisen(Werkzeug2):
+class JsWaisen(Werkzeug):
     slug = "jswaisen"
     titel = "Browser-Module: Waisen und Importe ins Leere"
     zweck = ("Laeuft von den Vorlagen aus durch alle Importe: Welche .js-Datei "

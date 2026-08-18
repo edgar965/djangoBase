@@ -55,7 +55,7 @@ import ast
 from collections import Counter
 
 from .anlassfall import Anlassfall
-from .werkzeug import Ergebnis, Werkzeug2
+from .werkzeug import Ergebnis, Werkzeug
 
 
 class Namensbestand:
@@ -149,7 +149,7 @@ class GetattrStelle:
                 "Vorgabe": self.vorgabe, "belegt": bestand.einstufung(self.feld)}
 
 
-class GetattrNamen(Werkzeug2):
+class GetattrNamen(Werkzeug):
     slug = "getattr-namen"
     titel = "getattr auf Felder, die es nicht gibt"
     zweck = ("Findet ``getattr(x, \"name\", vorgabe)``, wo der Name im Projekt "

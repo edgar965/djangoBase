@@ -26,7 +26,7 @@ Mensch. Das Werkzeug nennt die Stelle, nicht den Grund.
 import re
 
 from .anlassfall import Anlassfall
-from .werkzeug import Ergebnis, Werkzeug2
+from .werkzeug import Ergebnis, Werkzeug
 
 
 class Schnittstelle:
@@ -76,7 +76,7 @@ class Schnittstelle:
         return "unten←oben" if not self.oben_braucht_unten else "oben←unten"
 
 
-class JsSchnitt(Werkzeug2):
+class JsSchnitt(Werkzeug):
     slug = "jsschnitt"
     titel = "Wo lässt sich eine JS-Datei teilen?"
     zweck = ("Für jede JS-Datei über der Grenze: die beste Trennlinie, bei der "

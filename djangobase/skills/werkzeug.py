@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
-u"""Werkzeug2/Ergebnis - Grundgeruest der Skills2-Werkzeuge.
+u"""Werkzeug/Ergebnis - das Grundgeruest ALLER Pruefwerkzeuge.
 
 Skills2 sammelt die Pruefwerkzeuge und die Lehren aus dem grossen Review- und
 Umbaudurchgang in shortlongx (August 2026). Sie liegen hier in djangoBase, weil
 KEINE davon etwas ueber das Projekt weiss: Gesucht wird immer unter
 ``settings.BASE_DIR``, gelesen wird der Syntaxbaum.
 
-Warum ein eigenes Paket neben ``skills``: Die beiden sind zeitgleich entstanden
-(zwei Sitzungen, zwei Projekte). Getrennt zu halten war billiger, als zwei
-halbfertige Fassungen derselben Basisklasse gegeneinander zu mergen; wer sie
-spaeter zusammenlegt, hat hier eine vollstaendige, laufende Vorlage.
+Die Klasse hiess bis zum 18.08.2026 ``Werkzeug2`` - ein Name aus der Zeit, als
+es zwei Kaesten mit zwei Basisklassen gab. Beide sind zusammengefuehrt (Ansage:
+„benenne um werkzeug2 in werkzeug, merge alles"); die befundbasierte Bauform
+liegt in ``befund.py`` und erbt von hier.
 
 Ein Werkzeug ist eine Klasse mit ``slug``, ``titel``, ``zweck``, ``befund`` und
 ``laufen()``. ``laufen()`` gibt ein :class:`Ergebnis` zurueck - nie einen
@@ -20,7 +20,7 @@ from pathlib import Path
 
 from django.conf import settings
 
-__all__ = ["Werkzeug2", "Ergebnis", "Quelldatei"]
+__all__ = ["Werkzeug", "Ergebnis", "Quelldatei"]
 
 #: Verzeichnisse, die nie zum Projektcode gehoeren.
 #:
@@ -60,7 +60,7 @@ AUSGESCHLOSSEN = {".git", "__pycache__", "node_modules", "venv", "pythonVENV",
                   # Diese Namen standen bis dahin nur in
                   # ``basis.EigenesWerkzeug.ZUSATZ_RAUS`` — und die gilt fuer
                   # genau DREI Werkzeuge. Die anderen achtundzwanzig erben von
-                  # ``Werkzeug2`` und durchsuchten weiter alles.
+                  # ``Werkzeug`` und durchsuchten weiter alles.
                   #
                   # Gemessen am Projekt assistant: 40 % aller Befunde kamen aus
                   # fremdem Code. Bei ``doppelcode`` 39 von 40 gezeigten Zeilen,
@@ -139,7 +139,7 @@ class Ergebnis:
                 "zusammenfassung": self.zusammenfassung, "hinweis": self.hinweis}
 
 
-class Werkzeug2:
+class Werkzeug:
     """Basis aller Skills2-Werkzeuge."""
 
     slug = ""

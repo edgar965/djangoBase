@@ -30,7 +30,7 @@ import re
 from collections import Counter
 
 from .anlassfall import Anlassfall
-from .werkzeug import Ergebnis, Werkzeug2
+from .werkzeug import Ergebnis, Werkzeug
 
 
 class FrontendNamen:
@@ -77,7 +77,7 @@ class FrontendNamen:
         return self.namen.get(name, 0) > 0
 
 
-class Anzeigeformat(Werkzeug2):
+class Anzeigeformat(Werkzeug):
     slug = "anzeigeformat"
     titel = "Geht das Dictionary an die Oberfläche?"
     zweck = ("Für jedes Rückgabe-Dictionary: Wie viele seiner Schlüssel stehen "

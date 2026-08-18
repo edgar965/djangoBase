@@ -22,7 +22,7 @@ from django.test import override_settings
 
 from djangobase.skills import (KRITERIEN, LEHREN, OHNE_WERKZEUG, WERKZEUGE,
                                 gruppen, werkzeug_finden, werkzeuge)
-from djangobase.skills.werkzeug import Ergebnis, Werkzeug2
+from djangobase.skills.werkzeug import Ergebnis, Werkzeug
 
 from ..base import BasisTest
 

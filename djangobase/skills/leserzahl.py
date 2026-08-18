@@ -34,7 +34,7 @@ import ast
 from collections import Counter
 
 from .anlassfall import Anlassfall
-from .werkzeug import Ergebnis, Werkzeug2
+from .werkzeug import Ergebnis, Werkzeug
 
 
 class Leserzaehlung:
@@ -108,7 +108,7 @@ class Leserzaehlung:
         return ""
 
 
-class LeserzahlWerkzeug(Werkzeug2):
+class LeserzahlWerkzeug(Werkzeug):
     slug = "leserzahl"
     titel = "Rückgabe-Wörterbücher: wie viele Leser?"
     zweck = ("Zählt je Rückgabe-Dictionary, wie viele Funktionen es wirklich "

@@ -40,7 +40,7 @@ import re
 from django.urls import Resolver404, resolve
 
 from .anlassfall import Anlassfall
-from .werkzeug import Ergebnis, Werkzeug2
+from .werkzeug import Ergebnis, Werkzeug
 
 __all__ = ["Frontendadressen"]
 
@@ -71,7 +71,7 @@ WEITER = re.compile(r"\s*\+")
 FENSTER = 200
 
 
-class Frontendadressen(Werkzeug2):
+class Frontendadressen(Werkzeug):
     slug = "frontendadressen"
     titel = "Frontend: Adresse ohne Route"
     zweck = ("Vergleicht jede Adresse, die direkt in einem `fetch`/`Serverabruf` "

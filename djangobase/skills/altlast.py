@@ -28,10 +28,10 @@ import re
 from collections import Counter
 
 from .anlassfall import Anlassfall
-from .werkzeug import AUSGESCHLOSSEN, Ergebnis, Werkzeug2
+from .werkzeug import AUSGESCHLOSSEN, Ergebnis, Werkzeug
 
 
-class Altlast(Werkzeug2):
+class Altlast(Werkzeug):
     slug = "altlast"
     titel = "Alter und ungenutzter Code"
     zweck = ("Sicherungs-Ordner, nie importierte Module und Namen, die im ganzen "

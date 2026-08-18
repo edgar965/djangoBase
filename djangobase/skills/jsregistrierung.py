@@ -34,7 +34,7 @@ import re
 from django.conf import settings
 
 from .anlassfall import Anlassfall
-from .werkzeug import Ergebnis, Werkzeug2
+from .werkzeug import Ergebnis, Werkzeug
 
 __all__ = ["JsRegistrierung"]
 
@@ -43,7 +43,7 @@ __all__ = ["JsRegistrierung"]
 ALS_TEXT = re.compile(r"""['"](\w+)['"]""")
 
 
-class JsRegistrierung(Werkzeug2):
+class JsRegistrierung(Werkzeug):
     slug = "jsregistrierung"
     titel = "Funktionsregister: Anmeldung vs. Aufruf"
     zweck = ("Vergleicht `fn.name = …` mit `fn.name(…)` ueber alle .js-Dateien "

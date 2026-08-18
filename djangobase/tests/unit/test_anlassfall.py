@@ -73,16 +73,45 @@ class AnlassfallCheckTest(BasisTest):
         self.assertFalse(laut, "meldet ohne Code: %s"
                          % ", ".join(z["werkzeug"] for z in laut))
 
-    def test_die_meisten_werkzeuge_haben_einen_anlassfall(self):
-        """Ein paar Messwerkzeuge haben keinen — die Mehrheit muss einen haben.
+    #: Werkzeuge, die (noch) keinen Anlassfall haben — namentlich, nicht als
+    #: Quote. Bis zum 18.08.2026 stand hier „höchstens ein Drittel"; das ging
+    #: auf, solange die elf befundbasierten Werkzeuge über einen Adapter liefen
+    #: und der Check sie gar nicht sah. Seit alle auf EINER Basis stehen, sind
+    #: es 15 von 44 — die Quote kippte, ohne dass sich an der Sache etwas
+    #: geändert hätte.
+    #:
+    #: Eine Namensliste ist schärfer als eine Quote: Ein NEUES Werkzeug ohne
+    #: Selbsttest macht diesen Test rot, statt im Rauschen unterzugehen. Wer
+    #: einen Anlassfall nachrüstet, streicht seinen Namen hier.
+    OHNE_ANLASSFALL = {
+        # Messwerkzeuge ohne festen Anlassfall: Sie zählen und messen, statt
+        # einen bestimmten Code-Fall zu finden.
+        "seitenzeiten", "wachstum", "testaufbau", "testdeckung",
+        "endpunkt-zeiten", "endpunkt-probe", "endpunkt-profil",
+        # Befundbasierte Werkzeuge (frühere zweite Welt) — Anlassfälle stehen
+        # noch aus.
+        "freie-funktionen", "klassen-je-datei", "abhaengigkeiten",
+        "vorlagen-kontext", "tote-importe", "doppelcode", "namens-dubletten",
+        "vorlagen-variablen",
+    }
 
-        Die Grenze ist bewusst weich: Sie soll verhindern, dass das Feld
-        einschläft, nicht jeden Sonderfall verbieten."""
-        ohne = [z["werkzeug"] for z in self.ergebnis.zeilen
-                if z["urteil"] == "ohne Anlassfall"]
-        self.assertLess(
-            len(ohne), len(self.ergebnis.zeilen) / 3,
-            "zu viele Werkzeuge ohne Anlassfall: %s" % ", ".join(ohne))
+    def test_nur_bekannte_werkzeuge_ohne_anlassfall(self):
+        u"""Kein NEUES Werkzeug ohne Selbsttest.
+
+        Ein Prüfer, der nach einem Umbau seinen eigenen Fall nicht mehr sieht,
+        meldet null und sieht dabei aus wie ein sauberes Projekt. Deshalb muss
+        jedes Werkzeug seinen Anlassfall mitbringen — die Ausnahmen stehen
+        namentlich in :data:`OHNE_ANLASSFALL`.
+        """
+        ohne = {z["werkzeug"] for z in self.ergebnis.zeilen
+                if z["urteil"] == "ohne Anlassfall"}
+        neu = sorted(ohne - self.OHNE_ANLASSFALL)
+        self.assertFalse(neu, "Werkzeug ohne Anlassfall: %s" % ", ".join(neu))
+        # Gegenrichtung: Wer einen nachgerüstet hat, soll die Liste kürzen.
+        veraltet = sorted(self.OHNE_ANLASSFALL - ohne)
+        self.assertFalse(veraltet,
+                         "hat jetzt einen Anlassfall, steht aber noch in der "
+                         "Ausnahmeliste: %s" % ", ".join(veraltet))
 
     def test_raeumt_hinter_sich_auf(self):
         self.assertFalse((AnlassfallCheck().wurzel() / ORDNER).exists(),
@@ -97,9 +126,9 @@ class SabotageTest(BasisTest):
     """
 
     def test_ein_blindes_werkzeug_faellt_auf(self):
-        from djangobase.skills.werkzeug import Ergebnis, Werkzeug2
+        from djangobase.skills.werkzeug import Ergebnis, Werkzeug
 
-        class BlindesWerkzeug(Werkzeug2):
+        class BlindesWerkzeug(Werkzeug):
             slug = "blind-zum-test"
             titel = "findet nie etwas"
             anlassfall = Anlassfall({"a.py": "x = 1\n"}, mindestens=1)

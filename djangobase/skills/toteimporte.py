@@ -2,20 +2,26 @@
 
 import ast
 
-from .werkzeug_alt import Befund, Ergebnis, Werkzeug
+from .befund import Befund, Befundsatz, BefundWerkzeug
 
 
-class ToteImporte(Werkzeug):
+class ToteImporte(BefundWerkzeug):
 
     slug = 'tote-importe'
-    name = 'Tote Importe'
+
+    #: Auftrags-Kriterium (kam bis 18.08.2026 aus der
+
+    #: Tabelle ALT_KRITERIUM neben der Registrierung).
+
+    kriterium = 5
+    titel = 'Tote Importe'
     zweck = ('Findet importierte Namen, die in der Datei nirgends benutzt werden '
              '— inklusive der Faelle, die beim Herausloesen von Modulen '
              'zurueckbleiben.')
-    wann = ('Direkt nach jedem Modulschnitt. Ein toter Import kostet Ladezeit, '
+    abhilfe = ('Direkt nach jedem Modulschnitt. Ein toter Import kostet Ladezeit, '
             'haelt Abhaengigkeiten kuenstlich am Leben und verwischt, welches '
             'Modul wirklich wovon abhaengt.')
-    beleg = ('Beim Zerlegen der grossen API-Datei blieben reihenweise Importe '
+    befund = ('Beim Zerlegen der grossen API-Datei blieben reihenweise Importe '
              'stehen; zuletzt zwei in einer Datei, deren Funktion auf drei '
              'Zeilen geschrumpft war.')
     dauer = 'Sekunden'
@@ -51,7 +57,7 @@ class ToteImporte(Werkzeug):
                         '%s:%d' % (self.kurz(datei), knoten.lineno),
                         'unbenutzt: %s' % kurzname,
                         gewicht=Befund.HINWEIS))
-        return Ergebnis(self.name, ['%d Dateien geprueft' % geprueft], befunde)
+        return Befundsatz(self.titel, ['%d Dateien geprueft' % geprueft], befunde)
 
     @staticmethod
     def _benutzte_namen(baum):

@@ -26,7 +26,7 @@ import re
 from django.conf import settings
 
 from .anlassfall import Anlassfall
-from .werkzeug import Ergebnis, Werkzeug2
+from .werkzeug import Ergebnis, Werkzeug
 
 __all__ = ["JsFunktionen"]
 
@@ -36,7 +36,7 @@ MUSTER = re.compile(r"^\s*(?:export\s+)?(?:async\s+)?function\s+(\w+)"
                     r"\s*\([^)]*\)\s*\{")
 
 
-class JsFunktionen(Werkzeug2):
+class JsFunktionen(Werkzeug):
     slug = "jsfunktionen"
     titel = "Browser-Module: zu lange Funktionen"
     zweck = ("Findet Funktionen und Methoden ab einer Zeilengrenze - die "

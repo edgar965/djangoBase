@@ -3,7 +3,7 @@
 from statistics import median
 
 from .routen import alle_routen, klient
-from .werkzeug_alt import Befund, Ergebnis, Werkzeug
+from .befund import Befund, Befundsatz, BefundWerkzeug
 
 
 class Messwert:
@@ -23,16 +23,16 @@ class Messwert:
                 % (self.best_ms, self.median_ms, self.bytes, self.status))
 
 
-class Endpunktzeiten(Werkzeug):
+class Endpunktzeiten(BefundWerkzeug):
 
     slug = 'endpunkt-zeiten'
-    name = 'Endpunkt-Zeiten'
+    titel = 'Endpunkt-Zeiten'
     zweck = ('Ruft jede GET-Route mehrfach auf und listet Bestzeit, Median und '
              'Antwortgroesse — die langsamsten zuerst.')
-    wann = ('Als erster Schritt jedes Performance-Durchgangs. Erst messen, dann '
+    abhilfe = ('Als erster Schritt jedes Performance-Durchgangs. Erst messen, dann '
             'optimieren: Die teuerste Stelle liegt fast nie dort, wo man sie '
             'vermutet.')
-    beleg = ('Im Ursprungsprojekt standen so acht Endpunkte ueber 200 ms auf der '
+    befund = ('Im Ursprungsprojekt standen so acht Endpunkte ueber 200 ms auf der '
              'Liste — der langsamste mit 5.880 ms. Nach dem Durchgang war keiner '
              'mehr ueber 250 ms; die Antwort einer Einstellungsseite schrumpfte '
              'von 4,7 MB auf 28 KB.')
@@ -90,4 +90,4 @@ class Endpunktzeiten(Werkzeug):
         if len(messwerte) > self.ZEILEN:
             kopf.append('angezeigt: die %d langsamsten von %d Routen'
                         % (self.ZEILEN, len(messwerte)))
-        return Ergebnis(self.name, kopf, befunde)
+        return Befundsatz(self.titel, kopf, befunde)

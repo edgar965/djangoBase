@@ -26,7 +26,7 @@ import re
 from collections import Counter
 
 from .anlassfall import Anlassfall
-from .werkzeug import Ergebnis, Werkzeug2
+from .werkzeug import Ergebnis, Werkzeug
 
 __all__ = ["JsStilfassungen"]
 
@@ -35,7 +35,7 @@ STIL = re.compile(r'style\s*=\s*"([^"]*)"')
 DYNAMISCH = ("{{", "{%", "${", '" +', "' +")
 
 
-class JsStilfassungen(Werkzeug2):
+class JsStilfassungen(Werkzeug):
     slug = "jsstilfassungen"
     titel = "Inline-Stile: gleiche Fassungen"
     zweck = ("Gruppiert `style=\"…\"` nach Inhalt: Welche Fassung steht wie oft "

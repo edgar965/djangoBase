@@ -27,7 +27,7 @@ Regel uebernimmt, soll die Zahl dazu haben und sie nicht glauben muessen.
 """
 import timeit
 
-from .werkzeug import Ergebnis, Werkzeug2
+from .werkzeug import Ergebnis, Werkzeug
 
 
 class Bauform:
@@ -109,7 +109,7 @@ def _text_gehalten(n):
     return s
 
 
-class Wachstum(Werkzeug2):
+class Wachstum(Werkzeug):
     slug = "wachstum"
     titel = "Wächst das wirklich quadratisch?"
     zweck = ("Misst die üblichen Schleifen-Bauformen bei vervierfachter Größe. "

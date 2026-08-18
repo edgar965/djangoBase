@@ -10,7 +10,7 @@ WAS HIER NICHT MEHR STEHT (und warum)
 =====================================
 Die alten Werkzeug-Tests dieser Datei pruefen die Schnittstelle der frueheren
 Basisklasse (``name``, ``eingabe``, ``Ausgabe``). Die Werkzeuge laufen laengst
-auf ``Werkzeug2`` (``titel``, ``zweck``, ``kriterium``), und ``test_skills.py``
+auf ``Werkzeug`` (``titel``, ``zweck``, ``kriterium``), und ``test_skills.py``
 prueft sie dort. Beim Aufloesen von Skills3 habe ich die Datei zunaechst nur
 umgebogen — 38 Fehler und ein ``AssertionError: 44 != 33``, weil ein Test der
 ALTEN Welt gegen das NEUE Register lief. Genau davor warnt der Modulkopf von

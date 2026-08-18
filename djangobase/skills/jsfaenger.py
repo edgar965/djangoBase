@@ -40,12 +40,12 @@ from django.conf import settings
 from .anlassfall import Anlassfall
 from .jsaufrufkette import Aufrufkette
 from .jsstelle import Stelle
-from .werkzeug import Ergebnis, Werkzeug2
+from .werkzeug import Ergebnis, Werkzeug
 
 __all__ = ["JsFaenger"]
 
 
-class JsFaenger(Werkzeug2):
+class JsFaenger(Werkzeug):
     slug = "jsfaenger"
     titel = "Server-Abrufe ohne try-Block"
     zweck = ("Findet Aufrufe einer werfenden Abrufklasse (Vorgabe: "

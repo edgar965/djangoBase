@@ -2,21 +2,27 @@
 
 import ast
 
-from .werkzeug_alt import Befund, Ergebnis, Werkzeug
+from .befund import Befund, Befundsatz, BefundWerkzeug
 
 
-class KlassenJeDatei(Werkzeug):
+class KlassenJeDatei(BefundWerkzeug):
 
     slug = 'klassen-je-datei'
-    name = 'Klassen je Datei'
+
+    #: Auftrags-Kriterium (kam bis 18.08.2026 aus der
+
+    #: Tabelle ALT_KRITERIUM neben der Registrierung).
+
+    kriterium = 2
+    titel = 'Klassen je Datei'
     zweck = ('Listet Dateien mit mehr als einer Klasse — mit Zeilenzahl je '
              'Klasse, damit man sieht, ob es sich um eine Sammlung oder um eine '
              'Hauptklasse mit kleinen Helfern handelt.')
-    wann = ('Wenn die Regel "eine Klasse je Datei" gilt. Kleine Datentraeger '
+    abhilfe = ('Wenn die Regel "eine Klasse je Datei" gilt. Kleine Datentraeger '
             'direkt neben ihrer Hauptklasse sind dabei kein Verstoss, sondern '
             'meist genau richtig — deshalb zeigt das Werkzeug die Groessen '
             'mit an, statt nur zu zaehlen.')
-    beleg = ('Im Ursprungsprojekt lagen 110 Endpunkte und ein Dutzend Klassen '
+    befund = ('Im Ursprungsprojekt lagen 110 Endpunkte und ein Dutzend Klassen '
              'in einer Datei; nach dem Schnitt: eine Aufgabe je Modul, '
              'Datentraeger bei ihrer Klasse.')
     dauer = 'Sekunden'
@@ -63,7 +69,7 @@ class KlassenJeDatei(Werkzeug):
                 '%d Dateien mit mindestens %d Klassen — davon %d mit mehr als '
                 'EINER eigenstaendigen Klasse (die Verstoesse)'
                 % (len(befunde), grenze, verstoesse)]
-        return Ergebnis(self.name, kopf, befunde)
+        return Befundsatz(self.titel, kopf, befunde)
 
     @staticmethod
     def _klassen(datei):

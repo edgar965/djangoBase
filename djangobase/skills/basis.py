@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-u"""EigenesWerkzeug - Werkzeug2 mit den Ausschluessen, die jedes Projekt braucht.
+u"""EigenesWerkzeug - Werkzeug mit den Ausschluessen, die jedes Projekt braucht.
 
 WARUM DIESE ERGAENZUNG (belegt beim ersten Lauf, 17.08.2026)
 ============================================================
-``Werkzeug2.ausgeschlossen`` kennt venv, Migrationen und Sicherungsordner - nicht
+``Werkzeug.ausgeschlossen`` kennt venv, Migrationen und Sicherungsordner - nicht
 aber die Ablagen, die in gewachsenen Projekten danebenliegen: mitgelieferter
 Fremdcode (``vendor``), Modellgewichte (``models``), Arbeitsreste (``tmp``),
 uebersetzte Zwischenstaende (``unsloth_compiled_cache``).
@@ -15,14 +15,14 @@ die echten Befunde, statt nur danebenzuliegen.
 Ergaenzbar bleibt es je Projekt ueber ``DJANGOBASE["skills2_ignorieren"]`` - die
 Liste hier ist nur die Grundausstattung.
 """
-from .werkzeug import Werkzeug2
+from .werkzeug import Werkzeug
 
 __all__ = ["EigenesWerkzeug", "ZUSATZ_RAUS"]
 
 #: STEHT JETZT IN ``werkzeug.AUSGESCHLOSSEN`` (17.08.2026).
 #:
 #: Diese Liste galt nur fuer die drei Werkzeuge auf DIESER Basis. Die anderen
-#: achtundzwanzig erben direkt von ``Werkzeug2`` und durchsuchten weiter
+#: achtundzwanzig erben direkt von ``Werkzeug`` und durchsuchten weiter
 #: ``vendor/``, ``unsloth_compiled_cache/`` und ``diktator/`` mit — 40 % aller
 #: Befunde kamen von dort. Der Name bleibt als leere Menge erhalten, weil
 #: Projekte ihn importieren koennten; ergaenzen laesst sich weiterhin ueber
@@ -30,10 +30,10 @@ __all__ = ["EigenesWerkzeug", "ZUSATZ_RAUS"]
 ZUSATZ_RAUS = frozenset()
 
 
-class EigenesWerkzeug(Werkzeug2):
+class EigenesWerkzeug(Werkzeug):
     """Basis der Werkzeuge zu den Kriterien 16 und 17.
 
-    Sie unterscheidet sich von ``Werkzeug2`` nur noch durch ``hat_code()`` —
+    Sie unterscheidet sich von ``Werkzeug`` nur noch durch ``hat_code()`` —
     die Ausschluesse sind dort zusammengefasst, wo alle Werkzeuge sie sehen."""
 
     def hat_code(self):

@@ -39,7 +39,7 @@ import ast
 from collections import Counter
 
 from .anlassfall import Anlassfall
-from .werkzeug import Ergebnis, Werkzeug2
+from .werkzeug import Ergebnis, Werkzeug
 
 
 class Argument:
@@ -59,7 +59,7 @@ class Argument:
         return "Pipeline" if self.ist_pipeline else "Feld"
 
 
-class Klassenplan(Werkzeug2):
+class Klassenplan(Werkzeug):
     slug = "klassenplan"
     titel = "Freie Funktionen → Klasse: der Umbauplan"
     zweck = ("Für jede Datei mit gemeinsam getragenen Argumenten: welche zu "

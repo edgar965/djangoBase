@@ -3,7 +3,7 @@
 import ast
 from collections import defaultdict
 
-from .werkzeug_alt import Befund, Ergebnis, Werkzeug
+from .befund import Befund, Befundsatz, BefundWerkzeug
 
 
 class Modulsicht:
@@ -42,17 +42,23 @@ class Modulsicht:
         return gefunden
 
 
-class FreieFunktionen(Werkzeug):
+class FreieFunktionen(BefundWerkzeug):
 
     slug = 'freie-funktionen'
-    name = 'Freie Funktionen'
+
+    #: Auftrags-Kriterium (kam bis 18.08.2026 aus der
+
+    #: Tabelle ALT_KRITERIUM neben der Registrierung).
+
+    kriterium = 1
+    titel = 'Freie Funktionen'
     zweck = ('Zeigt Module mit vielen Funktionen auf Modulebene und findet '
              'Buendel gleichen Namensanfangs — die naheliegenden Kandidaten '
              'fuer eine Klasse.')
-    wann = ('Beim Umstieg auf Objektorientierung. Drei Funktionen mit demselben '
+    abhilfe = ('Beim Umstieg auf Objektorientierung. Drei Funktionen mit demselben '
             'Namensanfang und demselben ersten Argument sind fast immer eine '
             'Klasse, die noch niemand geschrieben hat.')
-    beleg = ('So entstanden im Ursprungsprojekt u. a. Skingewichte, '
+    befund = ('So entstanden im Ursprungsprojekt u. a. Skingewichte, '
              'Bvhbibliothek und Animationsauswahl — vorher lose Funktionen mit '
              'globalen Zwischenspeichern in einer 6.000-Zeilen-Datei.')
     dauer = 'Sekunden'
@@ -91,7 +97,7 @@ class FreieFunktionen(Werkzeug):
         kopf = ['%d Module, %d Funktionen auf Modulebene' % (len(sichten), gesamt),
                 '%d Module mit mindestens %d freien Funktionen'
                 % (len(befunde), grenze)]
-        return Ergebnis(self.name, kopf, befunde)
+        return Befundsatz(self.titel, kopf, befunde)
 
     def _modul(self, datei):
         try:

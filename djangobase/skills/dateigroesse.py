@@ -27,10 +27,10 @@ es. Deshalb: Methodenliste VORHER und NACHHER vergleichen (siehe die Lehre
 import ast
 
 from .anlassfall import Anlassfall
-from .werkzeug import Ergebnis, Werkzeug2
+from .werkzeug import Ergebnis, Werkzeug
 
 
-class Dateigroesse(Werkzeug2):
+class Dateigroesse(Werkzeug):
     slug = "dateigroesse"
     titel = "Zu große Dateien und Funktionen"
     zweck = ("Dateien über 300 Zeilen, Klassen über 300 und Funktionen über 60 — "
