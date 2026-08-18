@@ -37,7 +37,7 @@ class Vorlagensicht:
     """Alle Variablennamen einer Vorlage samt eingebundener Bausteine."""
 
     def __init__(self, name):
-        self.titel = name
+        self.name = name
         self.gelesen = set()
         self.lokal = set()
         self.eingebunden = set()

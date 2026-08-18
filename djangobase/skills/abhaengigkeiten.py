@@ -4,6 +4,7 @@ import ast
 from collections import defaultdict
 
 from .befund import Befund, Befundsatz, BefundWerkzeug
+from .anlassfall import Anlassfall
 
 
 class Modulknoten:
@@ -12,7 +13,7 @@ class Modulknoten:
     __slots__ = ('name', 'pfad', 'nach', 'von')
 
     def __init__(self, name, pfad):
-        self.titel = name
+        self.name = name
         self.pfad = pfad
         self.nach = set()
         self.von = set()
@@ -39,6 +40,13 @@ class Abhaengigkeiten(BefundWerkzeug):
              'Kernbibliothek, nie zurueck.')
     dauer = 'Sekunden'
     eingabe = ('nabe_ab', 'Ab wie vielen Importeuren gilt ein Modul als Nabe?', '8')
+
+    anlassfall = Anlassfall(
+        {"ring_a.py": "from ring_b import zwei\n\n\ndef eins():\n    return zwei()\n",
+         "ring_b.py": "from ring_a import eins\n\n\ndef zwei():\n    return 2\n"},
+        mindestens=1, erwartet_in="ZYKLUS",
+        warum="Zwei Module brauchen einander — der Ring faellt erst auf, wenn "
+              "man eines davon herausloesen will")
 
     def pruefen(self, nabe_ab='8', **_argumente):
         try:

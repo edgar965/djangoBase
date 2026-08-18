@@ -5,12 +5,21 @@ import re
 from collections import defaultdict
 
 from .befund import Befund, Befundsatz, BefundWerkzeug
+from .anlassfall import Anlassfall
 
 
 class Fundstelle:
     """Ein Vorkommen eines Blocks: Datei und Zeile."""
 
     __slots__ = ('datei', 'zeile')
+
+    #: Ein Block, der zweimal dasteht - das ist der ganze Fall.
+    _WIEDERHOLT = ("def preis_pruefen(betrag):\n"
+                   "    if betrag < 0:\n"
+                   "        raise ValueError('negativ')\n"
+                   "    if betrag > 1000:\n"
+                   "        raise ValueError('zu gross')\n"
+                   "    return round(betrag, 2)\n")
 
     def __init__(self, datei, zeile):
         self.datei = datei
@@ -46,6 +55,20 @@ class Doppelcode(BefundWerkzeug):
     UNINTERESSANT = re.compile(r'^\s*(#|//|/\*|\*|\}|\)|\]|$)')
     #: Hoechstens so viele Stellen anzeigen (die Kappung wird im Kopf genannt).
     ZEILEN = 200
+
+    #: Derselbe Block in zwei Dateien - das ist der ganze Fall.
+    _WIEDERHOLT = ("def preis_pruefen(betrag):\n"
+                   "    if betrag < 0:\n"
+                   "        raise ValueError('negativ')\n"
+                   "    if betrag > 1000:\n"
+                   "        raise ValueError('zu gross')\n"
+                   "    return round(betrag, 2)\n")
+
+    anlassfall = Anlassfall(
+        {"eins.py": _WIEDERHOLT, "zwei.py": _WIEDERHOLT},
+        mindestens=1, erwartet_in="eins.py",
+        warum="Derselbe Block an zwei Stellen: Wer den einen fixt, vergisst "
+              "den anderen — so entstehen zwei Wahrheiten")
 
     def pruefen(self, mindestens='6', **_argumente):
         try:

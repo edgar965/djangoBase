@@ -5,6 +5,7 @@ import re
 from collections import defaultdict
 
 from .befund import Befund, Befundsatz, BefundWerkzeug
+from .anlassfall import Anlassfall
 
 #: Wortpaare, die im selben Projekt dieselbe Sache meinen — GETRENNT NACH
 #: SPRACHE.
@@ -79,6 +80,13 @@ class Namensdubletten(BefundWerkzeug):
         'utils', 'conf', 'signals', 'setUpTestData', 'get_context_data',
         'get_queryset', 'form_valid', 'dispatch', '__str__', 'pruefen',
     }
+
+    anlassfall = Anlassfall(
+        {"laden.py": "def kunde_laden(kennung):\n    return kennung\n",
+         "dienst.py": "def kunde_laden(kennung):\n    return {'id': kennung}\n"},
+        mindestens=1, erwartet_in="kunde_laden",
+        warum="Derselbe Funktionsname in zwei Modulen — man ruft den einen auf "
+              "und meint den anderen, und im Zweifel importiert man beide")
 
     def pruefen(self, **_argumente):
         klassen = defaultdict(list)

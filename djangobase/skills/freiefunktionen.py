@@ -4,6 +4,7 @@ import ast
 from collections import defaultdict
 
 from .befund import Befund, Befundsatz, BefundWerkzeug
+from .anlassfall import Anlassfall
 
 
 class Modulsicht:
@@ -63,6 +64,13 @@ class FreieFunktionen(BefundWerkzeug):
              'globalen Zwischenspeichern in einer 6.000-Zeilen-Datei.')
     dauer = 'Sekunden'
     eingabe = ('ab', 'Ab wie vielen freien Funktionen je Datei melden?', '5')
+
+    anlassfall = Anlassfall(
+        {"helfer.py": "".join("def schritt%d(wert):\n    return wert + %d\n\n\n"
+                              % (i, i) for i in range(1, 9))},
+        mindestens=1, erwartet_in="helfer.py",
+        warum="Acht lose Funktionen auf Modulebene: Der Zusammenhang steht "
+              "nirgends, und jede traegt ihren Zustand selbst")
 
     def pruefen(self, ab='5', **_argumente):
         try:

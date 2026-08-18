@@ -84,15 +84,17 @@ class AnlassfallCheckTest(BasisTest):
     #: Selbsttest macht diesen Test rot, statt im Rauschen unterzugehen. Wer
     #: einen Anlassfall nachrüstet, streicht seinen Namen hier.
     OHNE_ANLASSFALL = {
-        # Messwerkzeuge ohne festen Anlassfall: Sie zählen und messen, statt
-        # einen bestimmten Code-Fall zu finden.
+        # Messwerkzeuge: Sie zählen und messen, statt einen bestimmten
+        # Code-Fall zu finden — für „wie viele Zeilen sind dazugekommen" gibt
+        # es keinen Fall, den man nachbauen könnte.
         "seitenzeiten", "wachstum", "testaufbau", "testdeckung",
+        # Diese drei rufen ENDPUNKTE des laufenden Servers auf. Ihr Fall ist
+        # eine Antwortzeit, keine Datei; ein Wegwerf-Verzeichnis beweist da
+        # nichts.
         "endpunkt-zeiten", "endpunkt-probe", "endpunkt-profil",
-        # Befundbasierte Werkzeuge (frühere zweite Welt) — Anlassfälle stehen
-        # noch aus.
-        "freie-funktionen", "klassen-je-datei", "abhaengigkeiten",
-        "vorlagen-kontext", "tote-importe", "doppelcode", "namens-dubletten",
-        "vorlagen-variablen",
+        # Beide hängen am Django-Template-Loader bzw. am Renderer zur Laufzeit
+        # (aufgelöste Variablen), nicht an Dateien im Verzeichnis.
+        "vorlagen-kontext", "vorlagen-variablen",
     }
 
     def test_nur_bekannte_werkzeuge_ohne_anlassfall(self):

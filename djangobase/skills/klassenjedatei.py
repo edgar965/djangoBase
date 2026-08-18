@@ -3,6 +3,7 @@
 import ast
 
 from .befund import Befund, Befundsatz, BefundWerkzeug
+from .anlassfall import Anlassfall
 
 
 class KlassenJeDatei(BefundWerkzeug):
@@ -30,6 +31,12 @@ class KlassenJeDatei(BefundWerkzeug):
 
     #: Klassen unter dieser Zeilenzahl gelten als Datentraeger/Helfer.
     KLEIN = 40
+
+    anlassfall = Anlassfall(
+        {"sammlung.py": "class Erste:\n" + "    def a(self):\n        return 1\n" * 1
+                        + "\n\nclass Zweite:\n    def b(self):\n        return 2\n"},
+        mindestens=1, hoechstens=1, erwartet_in="sammlung.py",
+        warum="Zwei Klassen in einer Datei — die Hausordnung sagt: eine je Datei")
 
     def pruefen(self, ab='2', **_argumente):
         try:

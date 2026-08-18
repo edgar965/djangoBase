@@ -3,6 +3,7 @@
 import ast
 
 from .befund import Befund, Befundsatz, BefundWerkzeug
+from .anlassfall import Anlassfall
 
 
 class ToteImporte(BefundWerkzeug):
@@ -28,6 +29,14 @@ class ToteImporte(BefundWerkzeug):
 
     #: Diese Namen stehen absichtlich da, auch ohne Verwendung.
     ERLAUBT = {'annotations'}
+
+    anlassfall = Anlassfall(
+        {"laden.py": "import json\nimport os\n\n\n"
+                     "def lesen(pfad):\n"
+                     "    return json.loads(open(pfad).read())\n"},
+        mindestens=1, hoechstens=1, erwartet_in="os",
+        warum="Ein Import, den niemand mehr braucht, ueberlebt jeden Umbau "
+              "und liest sich wie eine Abhaengigkeit, die es nicht gibt")
 
     def pruefen(self, **_argumente):
         befunde = []
