@@ -7,7 +7,11 @@ name = "djangobase"
 version = "0.0.21"
 description = "Wiederverwendbare Django-Infrastruktur: Hilfe (Versionen/Logs/Tests/Jobs), Sidebar-Layout (bis 3 Ebenen), Logging."
 requires-python = ">=3.10"
-dependencies = ["Django>=4.2"]
+# Pillow ist PFLICHT, nicht optional: `Provider.logo` und `Teilnehmer.avatar`
+# sind ImageFields, und Django bricht ohne Pillow schon bei `manage.py check`
+# ab (fields.E210) - das Projekt startet gar nicht erst. Stand bis 18.08.2026
+# nicht hier drin; ein frisches `pip install djangobase` war damit unbenutzbar.
+dependencies = ["Django>=4.2", "Pillow"]
 
 [tool.setuptools]
 include-package-data = true
