@@ -160,6 +160,28 @@ class Fixer:
             return eltern
         return basis
 
+    def gitfilter(self):
+        """Was in der ``.gitignore`` steht, ist nicht der Code des Projekts."""
+        from .gitfilter import GitFilter
+        if not hasattr(self, "_gitfilter"):
+            self._gitfilter = GitFilter(self.wurzel())
+        return self._gitfilter
+
+    def pfade(self, muster="*.py"):
+        u"""Die Dateien, die dieser Fixer ANSEHEN darf - wie ``Werkzeug.pfade``.
+
+        NUR ZUM SUCHEN, NICHT ALS SCHREIBSCHUTZ (18.08.2026): ``erlaubt()``
+        bleibt unverändert. Der Filter kennt nur Dateien, die es beim ersten
+        Aufruf schon gab — eine frisch angelegte Sicherungskopie steht nicht
+        darin. Als Schreibschutz eingesetzt, würde er dem Fixer verbieten, sein
+        eigenes Original zu sichern (``werkzeug/sicherung/`` ist in mehreren
+        Projekten ohnehin ignoriert).
+        """
+        raus = self.raus()
+        git = self.gitfilter()
+        return [p for p in sorted(self.wurzel().rglob(muster))
+                if not (set(p.parts) & raus) and git.erlaubt(p)]
+
     @property
     def sicherung(self):
         """Wohin die Originale gehen - IM Projekt, nie in System-Temp."""

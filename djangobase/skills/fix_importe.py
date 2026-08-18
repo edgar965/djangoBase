@@ -78,7 +78,7 @@ class ImportFixer(Fixer):
     # ------------------------------------------------------------------ intern
 
     def _pyquellen(self):
-        for pfad in sorted(self.wurzel().rglob("*.py")):
+        for pfad in self.pfade("*.py"):
             if pfad.name == "__init__.py":
                 continue
             if any(t in RAUS for t in pfad.parts):

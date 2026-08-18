@@ -79,11 +79,24 @@ class Testaufbau(EigenesWerkzeug):
         ``diktator/`` — ein Windows-Diktiergeraet mit eigenen Prüfskripten). Von
         denen ``tests/unit/`` zu verlangen oder sie in ``test_befehle``
         einzutragen ist Unsinn: Der Django-Testlaeufer faehrt sie nie
-        (17.08.2026)."""
+        (17.08.2026).
+
+        JEDES Segment pruefen, nicht nur das erste (18.08.2026): Die alte Zeile
+        las ``d.name.split("/")[0]``. Das trifft nur Projekte, in denen die Apps
+        direkt unter der Wurzel liegen. Wo das Django-Projekt in einem
+        Unterordner steht - bei shortlongx ``shortlongxWeb/`` neben ``brain/``,
+        ``depot/`` und ``werkzeug/`` - lautet das erste Segment
+        ``shortlongxWeb`` und steht in keiner ``INSTALLED_APPS``. Folge: KEINE
+        einzige Testdatei kam durch, und das Werkzeug meldete „keine
+        Testdateien gefunden" samt aller vier Arten als fehlend - bei 121
+        vorhandenen Testfaellen. Ein Pruefer, der nichts sieht, meldet lauter
+        Fehlendes und wirkt dabei gruendlich.
+
+        ``diktator/`` und Geschwister bleiben draussen: Dort ist KEIN Segment
+        eine installierte App."""
         from django.conf import settings
-        wurzel = d.name.split("/")[0]
         installiert = {a.split(".")[0] for a in settings.INSTALLED_APPS}
-        return wurzel in installiert
+        return any(teil in installiert for teil in d.name.split("/"))
 
     @staticmethod
     def _ist_testdatei(d):

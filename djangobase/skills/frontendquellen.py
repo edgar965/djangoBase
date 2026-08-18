@@ -84,10 +84,14 @@ class Frontendquellen:
     #: gelesen werden, nur um sie freizugeben.
     PROBE_BYTE = 64 * 1024
 
-    def __init__(self, wurzel, raus=()):
+    def __init__(self, wurzel, raus=(), gitfilter=None):
         self.wurzel = Path(wurzel)
         self.raus = set(raus)
         self._erzeugt = {}
+        #: Was in der ``.gitignore`` steht, ist nicht der Code des Projekts
+        #: (18.08.2026). Optional, damit alte Aufrufer unveraendert laufen -
+        #: ohne Filter wird geprueft wie bisher. Einzelheiten in gitfilter.py.
+        self.gitfilter = gitfilter
 
     #: Dateien, deren Konsolenausgabe ihr Zweck ist.
     AUSGABEKLASSEN = ("protokoll.js", "logger.js")
@@ -147,6 +151,11 @@ class Frontendquellen:
 
     def _ueberspringen(self, pfad):
         if any(teil in self.raus for teil in pfad.parts):
+            return True
+        # ZUERST git fragen: Der Arbeitsordner eines Testlaeufers laedt
+        # naturgemaess niemand, und fremder Code geht das Projekt nichts an.
+        # In shortlongx waren 21 von 63 „Waisen" genau das (18.08.2026).
+        if self.gitfilter is not None and not self.gitfilter.erlaubt(pfad):
             return True
         if any(teil in Frontendquellen.NICHT_IM_PFAD for teil in pfad.parts):
             return True

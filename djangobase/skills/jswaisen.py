@@ -267,8 +267,8 @@ export function start() { return hilf(); }
         return self.frontendquellen().pfade(".js")
 
     def _vorlagen(self):
-        raus = self.ausgeschlossen()
-        for pfad in sorted(self.wurzel().rglob("*.html")):
-            if any(teil in raus for teil in pfad.parts):
-                continue
-            yield pfad
+        # Ueber `pfade()`, damit die Vorlagen aus DERSELBEN Menge kommen wie die
+        # JS-Dateien aus `frontendquellen()`. Vorher lief nur die JS-Seite durch
+        # den .gitignore-Filter - eine ignorierte Vorlage konnte ein Modul
+        # „benutzt" erscheinen lassen, das in Wahrheit verwaist ist.
+        return self.pfade("*.html")

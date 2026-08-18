@@ -497,7 +497,7 @@ class FixJsErbe(Fixer):
             "sicherung", "backup", "archiv", "_web")
 
     def _kandidaten(self):
-        for pfad in sorted(self.wurzel().rglob("*.js")):
+        for pfad in self.pfade("*.js"):
             if not self.erlaubt(pfad):
                 continue
             zeilen = pfad.read_text(encoding="utf-8", errors="replace").split("\n")

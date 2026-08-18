@@ -259,7 +259,7 @@ class FixJsSchnitt(Fixer):
             "sicherung", "backup", "archiv", "_web")
 
     def _jsdateien(self):
-        for pfad in self.wurzel().rglob("*.js"):
+        for pfad in self.pfade("*.js"):
             if not self.erlaubt(pfad):
                 continue
             yield pfad
@@ -275,7 +275,7 @@ class FixJsSchnitt(Fixer):
         if self._versionierte is None:
             aus = set()
             muster = re.compile(r"([\w.-]+\.js)['\"]?\s*\}?\}?\?v=")
-            for pfad in self.wurzel().rglob("*.html"):
+            for pfad in self.pfade("*.html"):
                 if not self.erlaubt(pfad):
                     continue
                 try:

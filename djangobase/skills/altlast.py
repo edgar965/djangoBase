@@ -87,6 +87,13 @@ if __name__ == "__main__":
         wurzel = self.wurzel()
         zeilen = []
         # 1) Sicherungsordner - die stehen sonst gar nicht in der Suche.
+        #
+        # HIER ABSICHTLICH OHNE .gitignore-FILTER (18.08.2026): Ein
+        # Sicherungsordner IST meistens ignoriert - genau ihn zu finden ist der
+        # Zweck dieser Schleife. Wer hier `pfade()` einsetzt, schaltet den
+        # Befund ab, statt ihn zu schaerfen. Der Filter greift unten in
+        # `_woerter_zaehlen`, wo eine Erwaehnung in ignoriertem Code eine echte
+        # Altlast faelschlich am Leben hielte.
         for p in sorted(wurzel.rglob("*")):
             if not p.is_dir() or p.name not in self.SICHERUNGSNAMEN:
                 continue
@@ -136,12 +143,11 @@ if __name__ == "__main__":
         muster = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
         for d in dateien:
             zaehler.update(muster.findall(d.text))
-        wurzel = self.wurzel()
-        raus = self.ausgeschlossen()
         for endung in ("*.html", "*.js", "*.mjs", "*.txt", "*.cfg", "*.toml"):
-            for p in wurzel.rglob(endung):
-                if any(t in raus for t in p.parts):
-                    continue
+            # Ueber `pfade()`: Eine Erwaehnung in ignoriertem Code ist kein
+            # Beleg dafuer, dass ein Modul noch gebraucht wird - sie wuerde eine
+            # echte Altlast als lebendig ausweisen.
+            for p in self.pfade(endung):
                 try:
                     if p.stat().st_size > 2_000_000:      # Datendateien überspringen
                         continue

@@ -64,9 +64,13 @@ class Abnahme:
 
     @classmethod
     def aufnehmen(cls, wurzel):
+        from .gitfilter import GitFilter
+        # Ignorierter Code gehoert nicht zur Abnahme: Sonst gilt eine
+        # Sicherungskopie als „verschwunden", sobald jemand sie aufraeumt.
+        git = GitFilter(wurzel)
         namen, signaturen = {}, {}
         for pfad in sorted(Path(wurzel).rglob("*.py")):
-            if any(t in RAUS for t in pfad.parts):
+            if any(t in RAUS for t in pfad.parts) or not git.erlaubt(pfad):
                 continue
             try:
                 baum = ast.parse(pfad.read_text(encoding="utf-8", errors="replace"))

@@ -204,6 +204,19 @@ class Werkzeug:
         eigen += list(cfg.get("skills2_ignorieren") or [])
         return AUSGESCHLOSSEN | {str(x) for x in eigen}
 
+    def gitfilter(self):
+        u"""Was in der ``.gitignore`` steht, ist nicht der Code des Projekts.
+
+        Anlass (18.08.2026): ``jswaisen`` meldete in shortlongx 21 „verwaiste"
+        Dateien, die alle ignoriert sind - der Arbeitsordner des JS-Testlaeufers
+        und ein heruntergeladenes Chrome-Profil. Einzelheiten und der Rueckfall
+        ohne git stehen im Kopf von ``gitfilter.py``.
+        """
+        from .gitfilter import GitFilter
+        if not hasattr(self, "_gitfilter"):
+            self._gitfilter = GitFilter(self.wurzel())
+        return self._gitfilter
+
     def frontendquellen(self):
         """Die Frontend-Dateien dieses Projekts — für alle Werkzeuge dieselben.
 
@@ -213,18 +226,39 @@ class Werkzeug:
         gehören, und jede Zahl bezog sich auf eine andere Menge.
         """
         from .frontendquellen import Frontendquellen
-        return Frontendquellen(self.wurzel(), self.ausgeschlossen())
+        return Frontendquellen(self.wurzel(), self.ausgeschlossen(),
+                               gitfilter=self.gitfilter())
+
+    def pfade(self, muster="*.py", unter=None):
+        u"""Alle Dateien zu einem glob-Muster — die Menge „gehört zum Projekt".
+
+        DER EINE WEG INS DATEISYSTEM (18.08.2026)
+        =========================================
+        Der ``.gitignore``-Filter kam zuerst nur in ``dateien()`` und
+        ``frontendquellen()`` an. Ein Dutzend Werkzeuge sucht aber selbst per
+        ``rglob`` und ging daran vorbei — gemessen in shortlongx: **227 von 428
+        JS-Dateien** (53 %) stehen dort in der ``.gitignore``
+        (``werkzeug/.chrome/``, ``tests_app/js/_web/``). Wer über diese Methode
+        geht, sieht dieselbe Menge wie alle anderen.
+
+        In assistant und djangoBase ist der Unterschied 0 % — dort fängt die
+        feste Ausschlussliste schon alles ab. Genau deshalb fiel die Lücke hier
+        nie auf, und genau deshalb steht der Weg jetzt an EINER Stelle.
+
+        ``unter`` schränkt auf ein Unterverzeichnis ein (statt eines eigenen
+        ``rglob`` darauf).
+        """
+        wurzel = self.wurzel()
+        raus = self.ausgeschlossen()
+        git = self.gitfilter()
+        return [p for p in sorted(Path(unter or wurzel).rglob(muster))
+                if not any(teil in raus for teil in p.parts) and git.erlaubt(p)]
 
     def dateien(self, endung=".py"):
         """Alle Quelldateien des Projekts - ohne venv, Migrationen, Fremdcode."""
         wurzel = self.wurzel()
-        raus = self.ausgeschlossen()
-        aus = []
-        for p in sorted(wurzel.rglob("*" + endung)):
-            if any(teil in raus for teil in p.parts):
-                continue
-            aus.append(Quelldatei(p, wurzel) if endung == ".py" else p)
-        return aus
+        return [Quelldatei(p, wurzel) if endung == ".py" else p
+                for p in self.pfade("*" + endung)]
 
     def laufen(self):                       # pragma: no cover - Schnittstelle
         raise NotImplementedError

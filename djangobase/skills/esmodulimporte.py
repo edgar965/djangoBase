@@ -109,7 +109,7 @@ export function nutzen() { return vorhanden() + gibtEsNicht(); }
     def laufen(self):
         dateien = []
         for verzeichnis in self._js_verzeichnisse():
-            dateien.extend(sorted(verzeichnis.rglob("*.js")))
+            dateien.extend(self.pfade("*.js", unter=verzeichnis))
         zeilen, gelesen = [], {}
 
         def lies(p):

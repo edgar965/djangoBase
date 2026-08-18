@@ -221,7 +221,7 @@ class FixVermerk(Fixer):
         if self._frontend is None:
             aus = {}
             for muster in ("*.js", "*.mjs", "*.html"):
-                for pfad in self.wurzel().rglob(muster):
+                for pfad in self.pfade(muster):
                     if not self.erlaubt(pfad):
                         continue
                     # AUCH AM DATEINAMEN, nicht nur am Ordner (16.08.2026): Der
@@ -249,7 +249,7 @@ class FixVermerk(Fixer):
         return self._frontend
 
     def _pyquellen(self):
-        for pfad in self.wurzel().rglob("*.py"):
+        for pfad in self.pfade("*.py"):
             if not self.erlaubt(pfad):
                 continue
             yield pfad

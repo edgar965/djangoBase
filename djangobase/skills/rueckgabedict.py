@@ -70,9 +70,11 @@ class FrontendVertrag:
     #: Ab diesem Anteil aussagekräftiger Schlüssel gilt es als Anzeigeformat.
     SCHWELLE = 0.7
 
-    def __init__(self, wurzel, ausgeschlossen=()):
+    def __init__(self, wurzel, ausgeschlossen=(), gitfilter=None):
         self.wurzel = wurzel
         self.ausgeschlossen = set(ausgeschlossen)
+        #: Optional wie bei ``Frontendquellen`` - ohne Filter wie bisher.
+        self.gitfilter = gitfilter
         self._namen = None
 
     @property
@@ -82,6 +84,9 @@ class FrontendVertrag:
             for muster in self.MUSTER:
                 for pfad in self.wurzel.rglob(muster):
                     if any(t in self.ausgeschlossen for t in pfad.parts):
+                        continue
+                    if (self.gitfilter is not None
+                            and not self.gitfilter.erlaubt(pfad)):
                         continue
                     try:
                         z.update(self.WORT.findall(
@@ -143,7 +148,8 @@ def als_json(werte):
 
     def laufen(self):
         zeilen = []
-        frontend = FrontendVertrag(self.wurzel(), self.ausgeschlossen())
+        frontend = FrontendVertrag(self.wurzel(), self.ausgeschlossen(),
+                                   gitfilter=self.gitfilter())
         for d in self.dateien():
             if d.baum is None:
                 continue

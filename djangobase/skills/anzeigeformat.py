@@ -45,9 +45,11 @@ class FrontendNamen:
     WORT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
     MUSTER = ("*.js", "*.mjs", "*.html")
 
-    def __init__(self, wurzel, ausgeschlossen=()):
+    def __init__(self, wurzel, ausgeschlossen=(), gitfilter=None):
         self.wurzel = wurzel
         self.ausgeschlossen = set(ausgeschlossen)
+        #: Optional wie bei ``Frontendquellen`` - ohne Filter wie bisher.
+        self.gitfilter = gitfilter
         self._namen = None
         self._dateien = 0
 
@@ -58,6 +60,9 @@ class FrontendNamen:
             for muster in self.MUSTER:
                 for pfad in self.wurzel.rglob(muster):
                     if any(t in self.ausgeschlossen for t in pfad.parts):
+                        continue
+                    if (self.gitfilter is not None
+                            and not self.gitfilter.erlaubt(pfad)):
                         continue
                     try:
                         z.update(self.WORT.findall(
@@ -115,7 +120,8 @@ class Anzeigeformat(Werkzeug):
               "Oberfläche wörtlich liest und die deshalb bleiben müssen")
 
     def laufen(self):
-        frontend = FrontendNamen(self.wurzel(), self.ausgeschlossen())
+        frontend = FrontendNamen(self.wurzel(), self.ausgeschlossen(),
+                                 gitfilter=self.gitfilter())
         zeilen = []
         for d in self.dateien():
             if d.baum is None:
