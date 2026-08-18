@@ -193,8 +193,19 @@ neue Reihenfolge, erst dann hängt die Seite um).
     benutzen und man nicht sucht, wo die Ausgabe erscheint.
     {% endcomment %}
     <div class="ts-card ts-strom" hidden>
+        {% comment %}
+        Der Fortschrittsbalken (Ansage 18.08.2026 „ich sehe noch nicht die
+        progress bar"). Bis der Lauf sagt, wie viele Tests kommen („Found N
+        test(s)."), läuft er UNBESTIMMT — das ist die Phase, in der die
+        Testdatenbank aufgebaut wird, und die dauert am längsten. Ein Balken, der
+        dabei auf 0 % steht, sieht aus wie „hängt".
+        {% endcomment %}
         <div class="ts-strom-zeile">
             <div class="ts-strom-kopf" id="ts-strom-kopf"></div>
+            <div class="ts-strom-balken unbestimmt" id="ts-strom-balken">
+                <div class="ts-strom-fuellung" id="ts-strom-fuellung"></div>
+            </div>
+            <span class="ts-strom-zahl" id="ts-strom-zahl"></span>
             {% comment %}
             „Abbrechen" beendet den Prozessbaum serverseitig und löst die Sperre.
             Nur die Verbindung zu schließen genügt nicht: Ein Test, der hängt und

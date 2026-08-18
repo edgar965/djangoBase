@@ -63,6 +63,7 @@ class TestStromView(ZugriffMixin, View):
 
         auswahl, python = self._auswahl()
         cmd, ziele, verworfen = auswahl.befehl(ids, python)
+        ganz = not ziele and bool(cmd)     # „Alles ausführen": Lauf ohne Label
         if not cmd:
             log.warning("Live-Lauf ohne gültiges Ziel — %d Einträge verworfen",
                         verworfen)
@@ -75,7 +76,7 @@ class TestStromView(ZugriffMixin, View):
                  getattr(getattr(request, "user", None), "username", "?"),
                  " ".join(ziele[:5]) + (" …" if len(ziele) > 5 else ""))
         antwort = StreamingHttpResponse(
-            Teststrom().fahren(cmd, name),
+            Teststrom().fahren(cmd, name, ziele=ziele, alles=ganz),
             content_type="application/x-ndjson")
         # Ohne das puffern Proxies (und manche Browser) die Antwort, bis sie
         # fertig ist — genau das, was der Live-Lauf vermeiden soll.

@@ -107,6 +107,29 @@ class TestzieleTests(SimpleTestCase):
         ziele, _ = self.ziele.pruefen(["app.tests.component", "app.tests.component"])
         self.assertEqual(ziele, ["app.tests.component"])
 
+    def test_alles_ausfuehren_hat_kein_ziel(self):
+        u"""Der Sammelbefehl „alles" traegt bewusst kein Label.
+
+        Gemessen 18.08.2026: Der Knopf tat nichts. Der Slug war bekannt, sein
+        ``ziel`` leer — also blieb die Zielliste leer, und Leere galt als „keine
+        gültige Auswahl". `manage.py test` OHNE Label faehrt das ganze Projekt.
+        """
+        ziele = Testziele(befehle=[{"slug": "sammel-alles", "ziel": ""}])
+        self.assertTrue(ziele.ganzes_projekt(["sammel-alles"]))
+        cmd, gefunden, verworfen = ziele.befehl(["sammel-alles"], sys.executable)
+        self.assertIsNotNone(cmd, "Alles-Lauf muss ein Kommando ergeben")
+        self.assertEqual(gefunden, [])
+        self.assertEqual(verworfen, 0)
+        self.assertNotIn("--tag=longrunner", cmd)
+        # Kein Label im Kommando - sonst waere es eben NICHT alles.
+        self.assertEqual([x for x in cmd if "." in x and "tests" in x], [])
+        self.assertEqual(Testziele.name(gefunden, verworfen), "Alles (ganzes Projekt)")
+
+    def test_unbekanntes_bleibt_ohne_kommando(self):
+        u"""Gegenprobe: Ohne den Sonderfall darf NICHTS gefahren werden."""
+        cmd, _z, _v = Testziele().befehl(["sammel-alles"], sys.executable)
+        self.assertIsNone(cmd)
+
     def test_name_nennt_verworfene(self):
         self.assertEqual(Testziele.name(["a", "b"], 1), "Auswahl: 2 Ziele (1 verworfen)")
         self.assertEqual(Testziele.name(["a"], 0), "Auswahl: 1 Ziel")
@@ -140,6 +163,16 @@ class TeststromTests(SimpleTestCase):
         self.assertEqual((schluss["total"], schluss["passed"], schluss["failed"]),
                          (2, 1, 1))
         self.assertTrue(schluss["ok"])          # der Kunst-Prozess endet mit 0
+
+    def test_plan_meldet_die_gesamtzahl(self):
+        u"""Grundlage des Fortschrittsbalkens - der Lauf sagt sie selbst."""
+        ereignisse = self._strom(["Found 173 test(s).",
+                                  "test_x (a.b.C.test_x) ... ok"])
+        plan = [e for e in ereignisse if e["type"] == "plan"]
+        self.assertEqual([p["tests"] for p in plan], [173])
+        # Nur EINMAL, auch wenn die Zeile spaeter noch einmal auftaucht.
+        ereignisse = self._strom(["Found 5 test(s).", "Found 9 test(s)."])
+        self.assertEqual(len([e for e in ereignisse if e["type"] == "plan"]), 1)
 
     def test_sonstige_zeilen_kommen_als_log(self):
         ereignisse = self._strom(["Creating test database for alias 'default'..."])

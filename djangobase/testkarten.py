@@ -29,6 +29,16 @@ __all__ = ["Karten"]
 class Karten:
     """Baut Kartenlisten (Titel + Sammelknopf + Tabelle) fuer die Tests-Seite."""
 
+    #: Text fuer eine leere Liste. Er nennt BEIDE Gruende, denn der zweite hat
+    #: schon einmal in die Irre gefuehrt (18.08.2026): Im assistant besteht die
+    #: Kategorie „Automated" ausschliesslich aus djangoBase-Grundtests, und die
+    #: sind per Vorgabe ausgeblendet. Die Tabelle stand leer da und die Meldung
+    #: sagte „Labels pruefen" — die Labels waren in Ordnung.
+    LEER = ("Keine Tests in dieser Liste. Entweder greifen die Labels in "
+            "DJANGOBASE[\"test_discover\"] nicht — oder die gefundenen Fälle "
+            "gehören djangoBase selbst und sind ausgeblendet (Einstellungen → "
+            "djangoBase → „djangoBase-Testcases sichtbar“).")
+
     def __init__(self, tabellen, bereiche=None):
         #: :class:`~.testtabelle.Testtabelle` - die eine Tabellendefinition.
         self.tabellen = tabellen
@@ -60,8 +70,7 @@ class Karten:
                 "bereiche": gruppen,
                 "tabelle": self.tabellen.tabelle(
                     [Eintrag.aus_test(t) for t in tests], key=key, tab=tab,
-                    leer=leer or "Keine Tests gefunden — Labels in "
-                                 "DJANGOBASE[\"test_discover\"] prüfen.")}
+                    leer=leer or self.LEER)}
 
     def eine(self, tabelle, titel, anzahl, icon="bi-collection-play"):
         """Eine einzelne Karte (Suiten) - ohne Sammelknopf und ohne Bereiche."""

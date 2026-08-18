@@ -64,6 +64,21 @@ class Testziele:
         # Zwei Haken koennen dasselbe Ziel meinen (eine Suite und ein Fall daraus).
         return list(dict.fromkeys(z for z in ziele if z)), verworfen
 
+    def ganzes_projekt(self, kennungen):
+        u"""Ist ein Sammelbefehl OHNE Ziel dabei? Dann ist alles gemeint.
+
+        „Alles ausführen" traegt bewusst kein Label: ``manage.py test`` ohne Ziel
+        faehrt das ganze Projekt. Die erste Fassung hat genau daraus „Keine
+        gültige Auswahl — 0 Einträge verworfen" gemacht (gemessen 18.08.2026,
+        der Knopf tat schlicht nichts): Der Slug war bekannt, sein ``ziel`` leer,
+        also blieb die Liste leer — und Leere galt als Fehler.
+        """
+        for kennung in (kennungen or []):
+            befehl = self.nach_slug.get(str(kennung)[:self.MAXLAENGE])
+            if befehl is not None and not str(befehl.get("ziel") or "").strip():
+                return True
+        return False
+
     def befehl(self, kennungen, python, extra=()):
         u"""``(cmd, ziele, verworfen)`` - EIN ``manage.py test`` fuer alles.
 
@@ -73,6 +88,10 @@ class Testziele:
         fahren als versehentlich das ganze Projekt.
         """
         ziele, verworfen = self.pruefen(kennungen)
+        if not ziele and self.ganzes_projekt(kennungen):
+            # Ohne Label heisst: das ganze Projekt.
+            return ([str(python), "manage.py", "test", "--noinput", "-v", "2"]
+                    + [str(x) for x in extra], [], verworfen)
         if not ziele:
             return None, [], verworfen
         cmd = [str(python), "manage.py", "test"] + ziele + ["--noinput", "-v", "2"]
@@ -86,6 +105,8 @@ class Testziele:
     @staticmethod
     def name(ziele, verworfen):
         u"""Der Name, unter dem der Lauf in der Historie und im Ergebnis steht."""
+        if not ziele:
+            return "Alles (ganzes Projekt)"
         name = "Auswahl: %d Ziel%s" % (len(ziele), "" if len(ziele) == 1 else "e")
         if verworfen:
             name += " (%d verworfen)" % verworfen

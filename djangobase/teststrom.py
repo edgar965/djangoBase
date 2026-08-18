@@ -8,10 +8,18 @@ einmal. Bei 600 Tests sitzt man dann zehn Minuten vor einer Seite, die nichts
 sagt — und weiß nicht, ob es läuft oder hängt. Dieser Läufer liest die Ausgabe
 mit und gibt sie als JSON-Zeilen heraus:
 
-    {"type": "start",    "cmd": "…", "ziele": 5}
+    {"type": "start",    "cmd": "…", "name": "…"}
+    {"type": "plan",     "tests": 173}                 sobald bekannt
     {"type": "log",      "line": "…"}                  jede sonstige Zeile
     {"type": "progress", "id": "app.tests…", "status": "pass"}
     {"type": "summary",  "total": 5, "passed": 5, …, "laeufe": {…}}
+
+Das ``plan``-Ereignis ist die Grundlage des Fortschrittsbalkens: Vorher weiss
+niemand, wie viele Tests kommen — auch der Aufrufer nicht, denn ein Label wie
+``mail.tests.unit`` kann drei oder dreihundert Faelle bedeuten. ``manage.py
+test`` sagt es selbst („Found 173 test(s)."), und zwar bevor der erste laeuft.
+Bis dahin bleibt der Balken unbestimmt; das ist die Phase, in der die
+Testdatenbank aufgebaut wird, und die dauert am laengsten.
 
 Die Seite schreibt daraus ✓/✗ in die Zeilen und am Ende die Laufzeiten in die
 Spalten „letzte", „Ø" und „letzte 4 Läufe" (dieselbe Historie wie der normale
@@ -44,6 +52,7 @@ kein Cache: Sonst hätte bei mehreren Server-Arbeitern jeder seinen eigenen
 import atexit
 import json
 import logging
+import re
 import subprocess
 import sys
 import threading
@@ -69,19 +78,34 @@ class Teststrom:
 
     #: Notbremse: Nach dieser Zeit wird der Lauf abgebrochen (Sekunden).
     FRIST = 3600
+    #: „Found 173 test(s)." - die Gesamtzahl fuer den Fortschrittsbalken.
+    #: Ohne Ankerung am Zeilenanfang: Projekte stempeln ihre Ausgabe.
+    PLAN = re.compile(r"Found (\d+) test")
 
     def __init__(self, historie=None, sperre=None):
         self.mitschrift = Mitschrift(historie)
         self.sperre = sperre or Laufsperre()
 
-    def fahren(self, cmd, name="", frist=None):
-        u"""Ereignis-Generator. ``cmd`` ist die geprüfte Kommandoliste."""
+    def fahren(self, cmd, name="", frist=None, ziele=(), alles=False):
+        u"""Ereignis-Generator. ``cmd`` ist die geprüfte Kommandoliste.
+
+        ``ziele`` sind die AUFGELÖSTEN Testlabels. Sie gehen ins ``start``-
+        Ereignis, weil die Seite sie nicht kennen kann: Bei „Alles ausführen"
+        oder „Kategorie ausführen" schickt sie den Slug eines Sammelbefehls
+        („alles", „unit"), und was dahinter steckt, steht in der Konfiguration
+        des Projekts. Die Seite hakt damit die passenden Kästchen an (Ansage
+        18.08.2026).
+        """
         cmd = list(self.mitschrift.option_setzen(cmd))
         frei, grund = self.sperre.belegen(name)
         if not frei:
             yield self._satz({"type": "error", "detail": grund, "belegt": True})
             return
-        yield self._satz({"type": "start", "cmd": " ".join(cmd), "name": name})
+        # `alles`: Der Lauf hat KEIN Label (ganzes Projekt) - die Seite hakt
+        # dann jedes Kaestchen an, weil jeder Fall dabei ist.
+        yield self._satz({"type": "start", "cmd": " ".join(cmd), "name": name,
+                          "ziele": [str(z) for z in (ziele or [])],
+                          "alles": bool(alles)})
         try:
             prozess = subprocess.Popen(
                 cmd, cwd=str(settings.BASE_DIR),
@@ -101,6 +125,7 @@ class Teststrom:
         leser = Testzeilen()
         zaehler = {"pass": 0, "fail": 0, "error": 0, "skip": 0}
         gesammelt = []
+        plan = None
         start = time.time()
         ende = start + int(frist or self.FRIST)
         # Die drei Netze (siehe Modulkopf): Waechter gegen blockierende Ausgabe,
@@ -125,6 +150,11 @@ class Teststrom:
                     continue
                 zeile = zeile.rstrip()
                 gesammelt.append(zeile)
+                if plan is None:
+                    treffer = self.PLAN.search(zeile)
+                    if treffer:
+                        plan = int(treffer.group(1))
+                        yield self._satz({"type": "plan", "tests": plan})
                 ereignis = leser.lesen(zeile)
                 if ereignis:
                     zaehler[ereignis["status"]] = zaehler.get(
