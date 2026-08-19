@@ -98,6 +98,8 @@ from .endpunktprobe import Endpunktprobe
 from .endpunktprofil import Endpunktprofil
 from .endpunktzeiten import Endpunktzeiten
 from .freiefunktionen import FreieFunktionen
+from .globalerzustand import GlobalerZustand
+from .klassenkandidat import Klassenkandidat
 from .grossdateien import Grossdateien
 from .klassenjedatei import KlassenJeDatei
 from .namensdubletten import Namensdubletten
@@ -132,6 +134,10 @@ KRITERIEN_ZUSATZ = {
     17: "Testcases sauber erzeugen für alle wichtigen Funktionen und Menüs, "
         "startbar unter Hilfe → Tests (djangoBase); Untermenüs für Unit, "
         "Component, UI und Longrunner — bei großen Projekten mehrere Unterseiten",
+    18: "Freie Funktionen und globale Variablen in Klassen unterbringen: "
+        "Verhalten in Klassen bzw. Utility-Klassen mit statischen Methoden, "
+        "veränderlichen Zustand als Attribut, globale Konstanten in einer "
+        "Kontext-Klasse",
 }
 KRITERIEN = dict(_KRITERIEN_BASIS)
 KRITERIEN.update(KRITERIEN_ZUSATZ)
@@ -192,6 +198,12 @@ NEUE = [
 #: Ausschlussliste. Frueher war das eine eigene Welt mit eigener Basisklasse.
 BEFUNDBASIERT = [
     FreieFunktionen,
+    # Direkt hinter FreieFunktionen (19.08.2026, Kriterium 18): dieselbe Frage
+    # von der Zustandsseite. Freie Funktionen zeigen, wo Verhalten heimatlos
+    # ist; ``GlobalerZustand`` zeigt, wo DATEN es sind - und ``Klassenkandidat``
+    # verbindet beides zu einem konkreten Umbauvorschlag.
+    GlobalerZustand,
+    Klassenkandidat,
     KlassenJeDatei,
     Abhaengigkeiten,
     Vorlagenkontext,

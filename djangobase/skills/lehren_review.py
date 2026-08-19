@@ -222,6 +222,34 @@ LEHREN = [
           'auf der Systemplatte.',
           'Vorgeschichte: rund 100 GB Datenmuell auf C:.',
           'Vorgehen'),
+    Lehre('kein-globaler-zustand',
+          'Veränderlicher Zustand gehört in eine Klasse, nicht auf Modulebene',
+          'Eine Modulvariable, die sich nach dem Import noch ändert '
+          '(Zwischenspeicher, Zähler, Liste), wird zum Attribut der Klasse, die '
+          'sie benutzt. Gibt es diese Klasse noch nicht, ist SIE der eigentliche '
+          'Befund. Globale Konstanten kommen gebündelt in eine Kontext- oder '
+          'Konfigurationsklasse.',
+          'Modulweiter Zustand überlebt jeden Aufruf und gehört niemandem: Im '
+          'Testlauf trägt die zweite Prüfung noch, was die erste hineingeschrieben '
+          'hat, und im Server-Prozess teilen sich alle Anfragen denselben Wert. '
+          'Als Klassenvariable statt Modulvariable ist es derselbe Fehler, nur '
+          'weniger sichtbar — auch dort teilen sich alle Instanzen den Wert.',
+          'Werkzeuge: „Globale Variablen und Konstanten" findet den Zustand, '
+          '„Klassen-Kandidaten aus geteiltem Zustand" nennt die Klasse, die '
+          'daraus wird — samt der Funktionen, die zu ihren Methoden werden.',
+          'Struktur'),
+    Lehre('utility-statt-leerer-klasse',
+          'Ohne Zustand: Utility-Klasse mit statischen Methoden',
+          'Funktionsbündel, die keinen gemeinsamen Zustand anfassen, kommen in '
+          'eine Klasse mit @staticmethod — ohne __init__.',
+          'Eine Klasse, die man erst instanziieren muss, um ihre Methoden zu '
+          'rufen, ist eine Funktionssammlung mit Umweg. Sie sieht '
+          'objektorientiert aus und ist es nicht. Der Unterschied entscheidet, '
+          'welcher Umbau richtig ist: geteilter Zustand → Klasse mit Attributen, '
+          'kein Zustand → Utility-Klasse.',
+          'Beide Fälle meldet „Klassen-Kandidaten aus geteiltem Zustand" '
+          'getrennt, weil sie zu verschiedenen Umbauten führen.',
+          'Struktur'),
     Lehre('testbaum-statt-vererbung',
           'Testdaten als Beimischung, nicht als Basis-TestCase',
           'Gemeinsame Testvorbereitung in eine Mixin-Klasse OHNE TestCase '

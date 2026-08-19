@@ -62,7 +62,10 @@ class SkillsView(ZugriffMixin, View):
         # Eigener Knopf statt eines weiteren Hakens in der Tabelle - es ist die
         # Frage, die man am Ende eines Umbaus stellt, nicht zwischendurch.
         gewaehlt = (request.POST.getlist("werkzeug")
-                    or ([k.slug for k in EIGENE] if request.POST.get("k1617") else []))
+                    or ([k.slug for k in EIGENE] if request.POST.get("k1617") else [])
+                    # Kriterium 18 (19.08.2026): derselbe Gedanke wie 16/17 -
+                    # eine Frage, die man am Ende eines Umbaus stellt.
+                    or (self._k18_slugs() if request.POST.get("k18") else []))
         gelaufen = self._laufen(gewaehlt, request.POST, bericht)
         return self._seite(request, bericht.text(), gelaufen)
 
@@ -207,12 +210,32 @@ class SkillsView(ZugriffMixin, View):
             "k1617": [{"titel": k.titel, "zweck": k.zweck, "kriterium": k.kriterium}
                       for k in EIGENE],
             "k1617_texte": [(nr, kriterien()[nr]) for nr in (16, 17)],
+            # Kriterium 18: Klassen und Zustand - eigener Sammellauf.
+            "k18": [{"titel": w.titel, "zweck": w.zweck, "slug": w.slug}
+                    for w in self._k18_werkzeuge()],
+            "k18_text": kriterien().get(18, ""),
             "fix": fix,      # nach einer Vorschau: {slug, bereich, n, modus} -> Anwenden-Knopf
             # Die Lehren aus den Code-Reviews - Ankreuzliste mit Auftragstext.
             "lehren_bereiche": self._lehren(),
             "anzahl_lehren": len(LEHREN),
             "anzahl_aktiv": sum(1 for an in Lehrenstand.laden().values() if an),
         })
+
+    @staticmethod
+    def _k18_werkzeuge():
+        u"""Die Werkzeuge zu Kriterium 18 — aus der Registrierung, nicht von Hand.
+
+        WARUM ABGELEITET (19.08.2026): Der Block darueber fuehrt seine Kriterien
+        als feste Liste ``(16, 17)``. Als Kriterium 18 dazukam, erschien es
+        deshalb NIRGENDS auf der Seite — die Werkzeuge liefen, aber der Auftrag,
+        zu dem sie gehoeren, stand nicht da. Hier wird gefragt statt aufgezaehlt:
+        Ein weiteres Werkzeug mit ``kriterium = 18`` steht ohne Zutun im Block.
+        """
+        return [w for w in werkzeuge() if getattr(w, "kriterium", 0) == 18]
+
+    @classmethod
+    def _k18_slugs(cls):
+        return [w.slug for w in cls._k18_werkzeuge()]
 
     @staticmethod
     def _lehren():
