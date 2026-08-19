@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .views import api_system_stats
+from .views.ki_modelle import KiModelleView
 from .views import (AktuellDatenView, AktuellLeerenView, AktuellView,
                     BenutzerBearbeitenView, BenutzerErstellenView,
                     BenutzerInlineView, BenutzerListeView, BenutzerLoeschenView,
@@ -44,6 +45,10 @@ urlpatterns = [
     # Skills2 und Skills3 sind UEBERGANGSSEITEN auf dem Weg zur Abschaffung
     # (17.08.2026). Ihre Werkzeuge liegen im Master; sie bleiben nur, damit
     # Lesezeichen und fremde Links nicht ins Leere zeigen.
+    # Welches Modell taugt als Sparringspartner? Katalog live von
+    # OpenRouter und aus ``ollama list``, Bewertung aus eigener Messung
+    # (aus shortlongx hierher, 18.08.2026).
+    path("ki-modelle/", KiModelleView.as_view(), name="ki_modelle"),
     path("jobs/", JobsView.as_view(), name="jobs"),
     # Rollierendes Fenster mit den Ergebnissen der Claude-CLI. Geschrieben wird
     # NUR ueber `manage.py aktuell` — es gibt bewusst keinen Schreib-Endpunkt.

@@ -1,0 +1,23 @@
+{% comment %}
+Die drei Messspalten (Note, Zeit je Frage, Kernpunkte) für EINE Katalogzeile.
+
+Herausgezogen, weil sie in beiden Katalog-Tabellen stehen (kostenlos und
+bezahlt) und in der Bestenliste dieselbe Bedeutung haben - dreimal derselbe
+Block wäre dreimal dieselbe Falle beim Ändern.
+
+UNGETESTETE MODELLE BLEIBEN LEER. Der Katalog hat über 400 Zeilen, gemessen
+sind zwölf; eine Note zu schätzen wäre schlimmer als eine Lücke, weil die
+Spalte dann nicht mehr unterscheidbar wäre zwischen „gemessen" und „geraten".
+
+Aufruf:  {% templatetag openblock %} include "dashboard/_ki_messspalten.html" with m=m {% templatetag closeblock %}
+{% endcomment %}
+<td class="num" data-sort="{{ m.note|slice:':1'|default:'' }}"
+    {% if m.note_grund %}title="{{ m.note_grund }}"{% endif %}>
+  {% if m.note %}<b class="note">{{ m.note }}</b>{% else %}<span class="klein">—</span>{% endif %}
+</td>
+<td class="num" data-sort="{{ m.sek_je_frage|default:'' }}">
+  {% if m.sek_je_frage %}{{ m.sek_je_frage }} s{% else %}<span class="klein">—</span>{% endif %}
+</td>
+<td class="num" data-sort="{{ m.kern|default:'' }}">
+  {% if m.kern != None %}{{ m.kern }}/{{ m.kern_moeglich }}{% else %}<span class="klein">nicht getestet</span>{% endif %}
+</td>

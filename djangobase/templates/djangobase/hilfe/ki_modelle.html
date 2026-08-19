@@ -1,0 +1,361 @@
+{% extends "djangobase/base.html" %}
+{% load zahlen %}
+
+{% block title %}Hilfe · KI-Modelle{% endblock %}
+{% block topbar_title %}Hilfe · KI-Modelle{% endblock %}
+
+{% comment %}
+Hilfe > KI-Modelle (11.08.2026, Ansage Edgar).
+
+Drei Tabellen: oben die Bestenliste aus der EIGENEN Messung (egal ob kostenlos
+oder bezahlt), darunter die kostenlosen und die bezahlten Modelle aus dem Katalog.
+
+Zwei Quellen, bewusst getrennt:
+  djangobase/ki/modelle.py     Katalogdaten LIVE (OpenRouter-API + `ollama list`)
+  djangobase/ki/messungen.py   das Urteil aus werkzeug/sparring_vergleich.py
+
+Textfarben sind ÜBERALL explizit gesetzt - ohne das rendert eine neue Seite
+dunkel auf dunkel (bekannte Falle des Projekts).
+{% endcomment %}
+
+{% comment %}
+Tabellen-Bedienung aus djangoBase (Sortier-Pfeile + Ziehgriffe) als eigenes
+<link> statt @import: Ein @import im <style> blockiert das Rendern, bis die
+Datei da ist, und wird von manchen Cache-Einstellungen anders behandelt.
+{% endcomment %}
+{% comment %}EIN head_extra fuer beides - Stylesheet UND Seiten-CSS.
+``extra_css``/``extra_js`` sind Bloecke aus shortlongx' dashboard/base.html; in
+djangoBase (_shell.html) heissen sie head_extra bzw. body_scripts. Ein
+unbekannter Blockname wird beim Rendern STILL verworfen - beim Umzug am
+18.08.2026 waren deshalb das ganze Seiten-CSS und die Tabellen-Module weg, ohne
+dass irgendetwas einen Fehler gemeldet haette. Zwei Bloecke gleichen Namens sind
+uebrigens ein Syntaxfehler; deshalb stehen beide Teile hier zusammen.
+{% endcomment %}
+{% block head_extra %}{{ block.super }}
+<link rel="stylesheet" href="/static/djangobase/css/tabellen.css?v=14">
+<style>
+.lead { color: rgba(var(--fg-rgb),0.62); font-size: 0.95rem; line-height: 1.6; max-width: 900px; margin-bottom: 1.3rem; }
+h2.section { font-size: 1.15rem; font-weight: 700; margin: 2.2rem 0 0.7rem 0; color: var(--text-primary); scroll-margin-top: 90px; }
+h2.section .zusatz { font-weight: 400; font-size: 0.85rem; color: rgba(var(--fg-rgb),0.5); margin-left: 0.6rem; }
+.card-info { background: rgba(var(--fg-rgb),0.04); border: 1px solid rgba(var(--fg-rgb),0.07); border-radius: 14px; padding: 1.1rem 1.3rem; margin-bottom: 1.1rem; }
+.card-info p { color: rgba(var(--fg-rgb),0.82); font-size: 0.96rem; line-height: 1.65; margin-bottom: 0.55rem; }
+.card-info p:last-child { margin-bottom: 0; }
+.card-info b { color: var(--text-primary); }
+table.plain { width: 100%; border-collapse: collapse; font-size: 0.92rem; margin: 0.6rem 0 1.2rem; }
+table.plain th, table.plain td { padding: 0.55rem 0.7rem; border: 1px solid rgba(var(--fg-rgb),0.09); text-align: left; vertical-align: top; color: rgba(var(--fg-rgb),0.85); }
+table.plain th { background: rgba(var(--accent-rgb),0.08); color: var(--accent); font-weight: 600; font-size: 0.8rem; white-space: nowrap; }
+table.plain b { color: var(--text-primary); }
+table.plain td.num, table.plain th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+table.plain .klein { color: rgba(var(--fg-rgb),0.5); font-size: 0.84em; font-weight: 400; }
+table.plain tr.rang1 td { background: rgba(34,197,94,0.07); }
+.tabellenrahmen { overflow-x: auto; }
+.kennung { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 0.86em; color: var(--text-primary); }
+.gut { color: #4ade80; font-weight: 700; } .schlecht { color: #fb7185; font-weight: 700; }
+.medaille { font-weight: 700; color: var(--accent); }
+.einschraenkung { color: #fb9a5a; }
+.note { font-size: 1.15rem; color: var(--accent); }
+/* SPEZIFITAET, sonst gewinnt ``table.plain b`` (18.08.2026): Die Farbklassen
+   stehen an ``<b>``-Elementen INNERHALB der Tabellen. ``table.plain b`` hat
+   (0,1,1) und schlaegt ``.schlecht`` bzw. ``.note`` mit (0,1,0) - unabhaengig
+   von der Reihenfolge im Stylesheet. Rot und Akzentfarbe kamen deshalb nie an;
+   nur ``.gut`` fiel nicht auf, weil Gruen auch ausserhalb der Tabellen steht.
+   Der Fehler ist aelter als der Umzug nach djangoBase - er faellt erst auf,
+   seit das Seiten-CSS wieder greift. */
+table.plain b.gut { color: #4ade80; }
+table.plain b.schlecht { color: #fb7185; }
+table.plain b.note { color: var(--accent); }
+/* Spalte „Wo" auf einen Blick (Ansage Edgar, 18.08.2026): gruen = laeuft auf
+   der eigenen Karte, gelb = fremder Rechner aber kostenlos, rot = fremder
+   Rechner UND kostet. Die Farbe beantwortet damit die zwei Fragen, die vor
+   jeder Nutzung stehen: Verlaesst die Frage den Rechner, und zahle ich dafuer? */
+table.plain b.wo-lokal   { color: #4ade80; }
+table.plain b.wo-frei    { color: #facc15; }
+table.plain b.wo-bezahlt { color: #fb7185; }
+.beispiel { display: block; margin-top: 0.4rem; padding-left: 0.6rem;
+  border-left: 2px solid rgba(var(--accent-rgb),0.4); color: rgba(var(--fg-rgb),0.62);
+  font-style: italic; font-size: 0.9em; }
+.beispiel b { font-style: normal; color: rgba(var(--fg-rgb),0.8); }
+.warnbox { background: rgba(239,68,68,0.09); border: 1px solid rgba(239,68,68,0.3); border-radius: 14px; padding: 1.1rem 1.3rem; margin-bottom: 1.2rem; }
+.warnbox h2 { color: #fb7185; font-size: 1.05rem; margin: 0 0 0.5rem; }
+.warnbox p { font-size: 0.96rem; line-height: 1.65; color: rgba(var(--fg-rgb),0.85); margin-bottom: 0.4rem; }
+.warnbox b { color: #fff; }
+.befundgitter { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 0.9rem; margin-bottom: 1.2rem; }
+.befund { background: rgba(var(--fg-rgb),0.04); border: 1px solid rgba(var(--fg-rgb),0.08); border-radius: 13px; padding: 0.9rem 1.1rem; }
+.befund h3 { font-size: 0.95rem; color: var(--accent); margin: 0 0 0.4rem; }
+.befund p { font-size: 0.9rem; line-height: 1.6; color: rgba(var(--fg-rgb),0.8); margin: 0; }
+code.pfad { color: var(--accent); background: rgba(var(--fg-rgb),0.06); border-radius: 5px; padding: 0.05rem 0.34rem; font-size: 0.88em; }
+.quellzeile { color: rgba(var(--fg-rgb),0.45); font-size: 0.82rem; margin-bottom: 1.4rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<p class="lead">
+  Welches KI-Modell taugt als <b>Sparringspartner</b> für die TradeSystem-Arbeit?
+  Der Nutzen liegt nicht darin, dass ein zweites Modell bessere Handelsideen hätte —
+  sondern darin, dass es die eigenen Schlüsse nicht kennt und sie deshalb unbefangen
+  angreifen kann. Die Bestenliste unten ist <b>gemessen</b>, nicht nachgeschlagen:
+  drei Fragen aus der echten Projektarbeit, deren richtige Antwort bekannt ist.
+</p>
+
+<!-- ================================================== BESTENLISTE -->
+<h2 class="section" id="beste">Die besten Modelle
+  <span class="zusatz">gemessen am 11.08.2026, kostenlos und bezahlt gemischt</span></h2>
+
+{% comment %}
+data-sort trägt den ROHWERT, die Zelle die formatierte Anzeige. Ohne das würde
+„17,4 GB" als Text sortieren (und „100" vor „9" landen). data-key benennt die
+Spalte für die gemerkten Breiten.
+{% endcomment %}
+<div class="tabellenrahmen">
+<table class="plain sortable" data-sort-key="ki-beste">
+  <thead><tr>
+    <th data-key="rang">#</th><th data-key="modell">Modell</th><th data-key="wo">Wo</th>
+    <th class="num" data-key="note">Note</th>
+    <th class="num" data-key="param">Parameter</th>
+    <th class="num" data-key="platte">Platte<br><span class="klein">wenn selbst betrieben</span></th>
+    <th class="num" data-key="gpu">GPU-Bedarf<br><span class="klein">gemessen, 12 GB Karte</span></th>
+    <th class="num" data-key="kontext">Kontext</th>
+    <th class="num" data-key="zeit">je Frage</th>
+    <th class="num" data-key="kosten">Kosten<br><span class="klein">je Frage</span></th>
+    <th class="num" data-key="kern">Kernpunkte</th>
+    <th data-key="urteil">Urteil</th>
+  </tr></thead>
+  <tbody>
+  {% for m in beste %}
+  <tr {% if m.rang == 1 %}class="rang1"{% endif %}>
+    <td class="num" data-sort="{{ m.rang|default:99 }}">{% if m.rang %}<span class="medaille">{{ m.rang }}</span>{% else %}<span class="klein">—</span>{% endif %}</td>
+    <td><span class="kennung">{{ m.kennung }}</span></td>
+    <td>{% if m.ort == "lokal" %}<b class="wo-lokal">lokal</b>{% elif m.ct_je_frage %}<b class="wo-bezahlt">online</b>{% else %}<b class="wo-frei">online</b>{% endif %}</td>
+    <td class="num" data-sort="{{ m.note|slice:':1' }}" title="{{ m.note_grund }}"><b class="note">{{ m.note }}</b></td>
+    <td class="num" data-sort="{{ m.param_gesamt|default:'' }}">{% if m.param_gesamt %}{{ m.param_gesamt }}{% if m.param_aktiv %}<br><span class="klein">{{ m.param_aktiv }} aktiv</span>{% endif %}{% else %}<span class="klein">k.A.</span>{% endif %}</td>
+    <td class="num" data-sort="{{ m.gb|default:'' }}">{% if m.gb %}{% if m.gb_geschaetzt %}~{% endif %}{{ m.gb|de:1 }} GB{% else %}<span class="klein">—</span>{% endif %}</td>
+    <td class="num" data-sort="{{ m.vram_ram|default:'' }}">
+      {% if m.vram_gesamt %}
+        {% if m.ganz_auf_gpu %}<b class="gut">{{ m.vram_gpu|de:1 }} GB</b><br><span class="klein">passt ganz</span>
+        {% else %}<b class="schlecht">{{ m.vram_ram|de:1 }} GB</b><br><span class="klein">im RAM statt GPU</span>{% endif %}
+      {% else %}<span class="klein">—</span>{% endif %}
+    </td>
+    <td class="num" data-sort="{{ m.kontext|default:'' }}">{% if m.kontext %}{{ m.kontext|de }}{% else %}<span class="klein">—</span>{% endif %}</td>
+    <td class="num" data-sort="{{ m.sek_je_frage }}"><b>{{ m.sek_je_frage }} s</b></td>
+    <td class="num" data-sort="{{ m.ct_je_frage }}">{% if m.ct_je_frage %}{{ m.ct_je_frage }} ct{% else %}<span class="gut">0</span>{% endif %}</td>
+    <td class="num" data-sort="{{ m.kern }}">{{ m.kern }}/{{ m.kern_moeglich }}</td>
+    <td>
+      {{ m.urteil }}
+      {% if m.einschraenkung %}<br><span class="einschraenkung"><b>Aber:</b> {{ m.einschraenkung }}</span>{% endif %}
+      {% if m.beispiel %}<br><span class="beispiel"><b>Aus der Antwort auf den Prüfstein:</b> „{{ m.beispiel }}“</span>{% endif %}
+    </td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="10">Keine Messwerte vorhanden.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<div class="card-info">
+  <p><b>„je Frage"</b> ist die gemessene Gesamtzeit geteilt durch drei — die Zahl, nach
+    der man im Alltag entscheidet, ob man dieses Modell überhaupt fragt. Die Fragen waren
+    je ~350 Token lang, die Antworten 500–2.000 Zeichen.</p>
+  <p><b>„Kernpunkte"</b> zählt, wie viele der sechs versteckten Punkte vorkamen — über eine
+    <b>Stichwort-Suche</b>. Die findet Formulierungen, keine Gedanken: Ein Modell kann
+    richtig liegen und nicht gezählt werden, oder das Stichwort ohne Verständnis streuen.
+    Das <b>Urteil</b> stammt deshalb aus dem gelesenen Antworttext und weicht an mehreren
+    Stellen von der Trefferzahl ab.</p>
+  <p><b>„Kosten je Frage"</b> für die bezahlten Modelle, gerechnet mit 350 Token Frage und
+    550 Token Antwort zu den Preisen der Tabelle unten.</p>
+</div>
+
+<!-- ================================================== BEFUNDE -->
+<h2 class="section" id="befunde">Was die Messung ergeben hat</h2>
+<div class="befundgitter">
+  {% for titel, text in befunde %}
+  <div class="befund"><h3>{{ titel }}</h3><p>{{ text }}</p></div>
+  {% endfor %}
+</div>
+
+<div class="warnbox">
+  <h2>Der Prüfstein, an dem fast alle scheiterten</h2>
+  <p>Frage 1 der Messung war eine Rechnung, die real <b>das falsche Vorzeichen</b> hatte:
+    „Longs in Abwärtsphasen sperren bringt +7.861 €" — gerechnet kamen <b>−6.158 €</b> heraus.
+    Der Grund: Das System handelt höchstens 4-mal am Tag. Lässt man Trades weg,
+    <b>rücken andere nach</b> — Weglassen ist ein Tausch, keine Ersparnis.</p>
+  <p>Bei der ersten Messung (11.08.2026, acht Modelle) hat <b>genau eines</b> das
+    benannt, in 28 Sekunden:
+    <span class="kennung">nvidia/nemotron-3-ultra-550b-a55b:free</span> —
+    „Sperrst du Longs, veränderst du das Tageslimit (max 4 Trades). Evtl. rutschen
+    Short-Trades nach, die sonst vom Limit blockiert waren."
+    Im <b>zweiten Lauf mit derselben Frage kam der Gedanke nicht mehr.</b></p>
+  <p>Inzwischen sind {{ beste|length }} Modelle gemessen, und <b>ein zweites</b> hat den
+    Mechanismus gefunden — <span class="kennung">qwen/qwen3.8-max</span>, und zwar
+    <b>beim ersten Versuch</b> und schärfer formuliert: nicht nur „Trades rücken nach",
+    sondern die versteckte Annahme dahinter („alle anderen Trades bleiben gleich").
+    Der Prüfstein trennt also weiterhin — nur ist er nicht mehr unüberwindbar.</p>
+</div>
+
+<!-- ================================================== KOSTENLOS -->
+<h2 class="section" id="kostenlos">Kostenlose Modelle
+  <span class="zusatz">{{ lokal|length }} lokal · {{ frei|length }} online</span></h2>
+<p class="quellzeile">
+  <b>lokal</b> heißt: läuft auf der eigenen Grafikkarte, es verlässt nichts den Rechner —
+  dafür begrenzt der Speicher die Modellgröße.
+  <b>online</b> heißt: läuft bei OpenRouter ohne Abrechnung — dafür geht jede Frage dorthin.
+</p>
+
+<div class="tabellenrahmen">
+<table class="plain sortable" data-sort-key="ki-frei">
+  {% comment %}
+  „Wo" steht VORNE, nicht hinten (Rückfrage 11.08.2026): Die Spalte beantwortet die
+  erste Frage an diese Tabelle - läuft das Modell auf meinem Rechner oder in der
+  Cloud? Ganz rechts wurde sie übersehen.
+  {% endcomment %}
+  <thead><tr><th data-key="wo">Wo</th><th data-key="modell">Modell</th>
+      <th class="num" data-key="note">Note</th>
+      <th class="num" data-key="zeit">je Frage</th>
+      <th class="num" data-key="kern">Kernpunkte</th>
+      <th class="num" data-key="param">Parameter</th><th class="num" data-key="aktiv">aktiv</th>
+      <th class="num" data-key="platte">Platte</th><th class="num" data-key="kontext">Kontext</th></tr></thead>
+  <tbody>
+  {% for m in lokal %}
+  <tr>
+    <td data-sort="0"><b class="wo-lokal">lokal</b> <span class="klein">eigene Grafikkarte</span></td>
+    <td><span class="kennung">{{ m.kennung }}</span>{% if m.quant %} <span class="klein">{{ m.quant }}</span>{% endif %}</td>
+    {% include "djangobase/hilfe/_ki_messspalten.html" with m=m %}
+    <td class="num" data-sort="{{ m.param_gesamt|default:'' }}">{% if m.param_gesamt %}{{ m.param_gesamt }}{% else %}<span class="klein">k.A.</span>{% endif %}</td>
+    <td class="num" data-sort="{{ m.param_aktiv|default:'' }}">{% if m.param_aktiv %}{{ m.param_aktiv }}{% else %}<span class="klein">alle</span>{% endif %}</td>
+    <td class="num" data-sort="{{ m.gb|default:'' }}"><b>{{ m.gb|de:1 }} GB</b></td>
+    <td class="num" data-sort="{{ m.kontext|default:'' }}">{% if m.kontext %}{{ m.kontext|de }}{% else %}<span class="klein">—</span>{% endif %}</td>
+  </tr>
+  {% endfor %}
+  {% for m in frei %}
+  <tr>
+    <td data-sort="1"><b class="wo-frei">online</b> <span class="klein">kostenlos</span></td>
+    <td><span class="kennung">{{ m.kennung }}</span></td>
+    {% include "djangobase/hilfe/_ki_messspalten.html" with m=m %}
+    <td class="num" data-sort="{{ m.param_gesamt|default:'' }}">{% if m.param_gesamt %}{{ m.param_gesamt }}{% else %}<span class="klein">k.A.</span>{% endif %}</td>
+    <td class="num" data-sort="{{ m.param_aktiv|default:'' }}">{% if m.param_aktiv %}{{ m.param_aktiv }}{% else %}<span class="klein">alle</span>{% endif %}</td>
+    <td class="num" data-sort="{{ m.gb|default:'' }}">{% if m.gb %}~{{ m.gb|de:1 }} GB{% else %}<span class="klein">—</span>{% endif %}</td>
+    <td class="num" data-sort="{{ m.kontext }}">{{ m.kontext|de }}</td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="9">Katalog nicht erreichbar.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<!-- ================================================== BEZAHLT -->
+<h2 class="section" id="bezahlt">Bezahlte Modelle
+  <span class="zusatz">{{ bezahlt|length }} Stück · alle online · $ je 1 Mio Token, nach Preis sortiert</span></h2>
+<p class="quellzeile">
+  Die Spalte <b>Platte</b> steht auch hier: Wo eine Parameterzahl bekannt ist, sind die
+  Gewichte offen — dieses Modell ließe sich auch selbst betreiben, statt es zu mieten.
+</p>
+
+<div class="tabellenrahmen">
+<table class="plain sortable" data-sort-key="ki-bezahlt">
+  <thead><tr><th data-key="modell">Modell</th>
+      <th class="num" data-key="note">Note</th>
+      <th class="num" data-key="zeit">je Frage</th>
+      <th class="num" data-key="kern">Kernpunkte</th>
+      <th class="num" data-key="proFrage">Kosten<br><span class="klein">je Frage</span></th>
+      <th class="num" data-key="param">Parameter</th>
+      <th class="num" data-key="aktiv">aktiv</th>
+      <th class="num" data-key="platte">Platte</th><th class="num" data-key="kontext">Kontext</th>
+      <th class="num" data-key="ein">Eingabe</th><th class="num" data-key="aus">Ausgabe</th></tr></thead>
+  <tbody>
+  {% for m in bezahlt %}
+  <tr>
+    <td><span class="kennung">{{ m.kennung }}</span></td>
+    {% include "djangobase/hilfe/_ki_messspalten.html" with m=m %}
+    <td class="num" data-sort="{{ m.ct_je_frage|default:'' }}">
+      {% if m.ct_je_frage %}{{ m.ct_je_frage }} ct{% else %}<span class="klein">—</span>{% endif %}</td>
+    <td class="num" data-sort="{{ m.param_gesamt|default:'' }}">{% if m.param_gesamt %}{{ m.param_gesamt }}{% else %}<span class="klein">k.A.</span>{% endif %}</td>
+    <td class="num" data-sort="{{ m.param_aktiv|default:'' }}">{% if m.param_aktiv %}{{ m.param_aktiv }}{% else %}<span class="klein">alle</span>{% endif %}</td>
+    <td class="num" data-sort="{{ m.gb|default:'' }}">{% if m.gb %}~{{ m.gb|de:1 }} GB{% else %}<span class="klein">—</span>{% endif %}</td>
+    <td class="num" data-sort="{{ m.kontext }}">{{ m.kontext|de }}</td>
+    <td class="num" data-sort="{{ m.preis_ein }}">{{ m.preis_ein|floatformat:2 }} $</td>
+    <td class="num" data-sort="{{ m.preis_aus }}">{{ m.preis_aus|floatformat:2 }} $</td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="11">Katalog nicht erreichbar.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<!-- ================================================== HERKUNFT -->
+<h2 class="section" id="herkunft">Woher die Zahlen kommen</h2>
+<div class="card-info">
+  <p><b>Preis und Kontext</b> live aus der OpenRouter-API — das ist die
+    Rechnungsgrundlage des Anbieters. Stand dieser Seite: <b>{{ quelle }}</b>.
+    <b>Platte lokal</b> aus <code class="pfad">ollama list</code>, echter Plattenplatz.</p>
+  <p><b>Parameterzahl</b> aus dem Modellnamen gelesen (<code class="pfad">27b</code>,
+    <code class="pfad">550b-a55b</code>). Sie steht dort nur, wenn der Hersteller die
+    Gewichte veröffentlicht; bei geschlossenen Modellen (Gemini, GPT, Claude, qwen-max)
+    gibt es sie nicht — dort steht <b>k.A.</b> statt einer Schätzung.
+    <code class="pfad">550B / 55B aktiv</code> heißt: 550 Mrd. Parameter gesamt, davon
+    55 Mrd. je Token gerechnet. Fürs Tempo zählt die zweite Zahl, für die Fähigkeiten
+    eher die erste.</p>
+  <p><b>Die Spalte „Platte" bei Online-Modellen</b> ist eine <b>Wenn-dann-Angabe</b>
+    (Rückfrage 11.08.2026: „warum belegt ein Online-Modell 300 GB?"). Ein Modell in
+    der Cloud belegt auf dem eigenen Rechner <b>nichts</b> — die Zahl sagt, wie viel
+    es bräuchte, <b>wenn</b> man es selbst betreiben wollte. Genau darum steht sie da:
+    Bei nemotron sind es rund 347 GB, und damit ist beantwortet, dass dieses Modell
+    hier nie lokal laufen wird (die Grafikkarte hat 12 GB). Nur die mit
+    <b class="gut">lokal</b> gekennzeichneten Zeilen belegen wirklich Platz.</p>
+  <p>Für Online-Modelle ist der Wert <b>geschätzt</b> ({{ gb_je_mrd }} GB je Mrd.
+    Parameter in 4-Bit-Quantisierung) und deshalb mit <b>~</b> gekennzeichnet. Die
+    Formel ist nicht hergeleitet, sondern an drei echten Downloads kalibriert:
+    27B = 17 GB, 26B = 16 GB, 9B = 6,6 GB. Kleine Modelle liegen darüber — die Formel
+    unterschätzt sie. Gerechnet wird mit den <b>gesamten</b> Parametern, nicht den
+    aktiven: Bei einem MoE-Modell müssen alle Experten geladen sein, gerechnet wird
+    nur mit einem Teil.</p>
+  <p>Quelltext: <code class="pfad">djangobase/ki/modelle.py</code> (Katalog),
+    <code class="pfad">djangobase/ki/messungen.py</code> (Urteil),
+    <code class="pfad">werkzeug/sparring_vergleich.py</code> (Messung),
+    <code class="pfad">werkzeug/sparring.py</code> (ein Modell fragen).</p>
+  <p>Alle Tabellen sind <b>sortierbar</b> (Kopfzeile klicken, der Pfeil zeigt die
+    aktive Spalte) und die <b>Spaltenbreiten sind ziehbar</b> — am rechten Rand einer
+    Kopfzelle anfassen. Beides wird im Browser gemerkt; Doppelklick auf einen
+    Ziehgriff setzt die Breiten zurück.</p>
+</div>
+{% endblock %}
+
+{% comment %}body_scripts statt extra_js - siehe oben. Ohne diese Zeile
+wurden Sortierung und Spaltenbreiten nie geladen: Die Tabellen standen
+unsortierbar da, ohne dass irgendetwas einen Fehler gemeldet haette.
+{% endcomment %}
+{% block body_scripts %}
+<script type="module">
+  // Tabellen-Bedienung aus djangoBase (11.08.2026): dieselbe Sortierung und
+  // dasselbe Spalten-Ziehen wie in allen anderen Projekten.
+  import { TabellenSortierung } from '/static/djangobase/js/tabellen_sortierung.js?v=2';
+  import { TabellenBreiten } from '/static/djangobase/js/tabellen_breiten.js?v=2';
+  // STARTBREITEN je Spalte (Meldung 11.08.2026). Ohne sie friert TabellenBreiten
+  // beim ersten Ziehen die vom Browser verteilten Ist-Breiten ein - und wer eine
+  // Spalte weit aufzieht, quetscht damit alle anderen zusammen, bis die
+  // Überschriften Buchstabe für Buchstabe umbrechen. Mit Vorgaben steht die
+  // Tabelle von Anfang an, und „Zurücksetzen" (Doppelklick auf einen Ziehgriff)
+  // kommt hierhin zurück.
+  //
+  // Der Schlüssel trägt eine ZWEI: Wer vorher gezogen hat, hat verstellte
+  // Breiten im Browser gespeichert; ein neuer Schlüssel verwirft sie einmalig,
+  // statt sie für immer mitzuschleppen.
+  const BREITEN = {
+    'ki-beste': {rang: 44, modell: 250, wo: 84, note: 74, param: 92, platte: 104,
+                 gpu: 112, kontext: 92, zeit: 78, kosten: 82, kern: 104, urteil: 540},
+    'ki-frei': {wo: 170, modell: 280, note: 74, zeit: 82, kern: 104, param: 96,
+                aktiv: 80, platte: 104, kontext: 104},
+    'ki-bezahlt': {modell: 300, note: 74, zeit: 82, kern: 104, proFrage: 82,
+                   param: 96, aktiv: 80, platte: 104, kontext: 104,
+                   ein: 92, aus: 92},
+  };
+  for (const k of ['ki-beste', 'ki-frei', 'ki-bezahlt']) {
+    const t = document.querySelector('table[data-sort-key="' + k + '"]');
+    if (t) new TabellenBreiten([t], 'kiModelle2_' + k, BREITEN[k]).binden();
+  }
+  // NACH den Breiten: TabellenSortierung setzt die Pfeile links neben einen
+  // etwaigen Ziehgriff - dafür muss der Griff schon da sein.
+  TabellenSortierung.binden();
+</script>
+{% endblock %}

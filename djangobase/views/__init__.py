@@ -5,6 +5,7 @@ from .testnummer import TestNummerView
 from .teststrom import TestStromView
 from .testverschieben import TestVerschiebenView
 from .tests import TestsView
+from .ki_modelle import KiModelleView
 from .jobs import JobsView
 from .review import (ReviewView, ReviewStartView, ReviewNachfassenView,
                      ReviewStatusView)
@@ -18,6 +19,7 @@ from .benutzer import (BenutzerListeView, BenutzerErstellenView,
                        BenutzerInlineView, BenutzerLoeschenView)
 
 __all__ = [
+    "KiModelleView",
     "api_system_stats","LogsView", "LogsClearView", "VersionsView", "TestsView", "TestDauerView", "TestStromView", "TestNummerView", "TestVerschiebenView", "JobsView",
            "ReviewView", "ReviewStartView", "ReviewNachfassenView", "ReviewStatusView",
            "AktuellView", "AktuellDatenView", "AktuellLeerenView",
