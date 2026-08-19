@@ -250,12 +250,44 @@ class Klassenkandidat(BefundWerkzeug):
         u"""Buendel gleichen Namensanfangs OHNE geteilten Zustand."""
         nach_anfang = defaultdict(list)
         for fn in funktionen:
+            if self._ruft_das_framework(fn):
+                continue
             teile = fn.name.strip('_').split('_')
             if len(teile) > 1:
                 nach_anfang[teile[0]].append(fn.name)
         return [(self.kurz(datei), anfang, namen)
                 for anfang, namen in nach_anfang.items()
                 if len(namen) >= max(grenze, 3)]
+
+    @staticmethod
+    def _ruft_das_framework(fn):
+        u"""Wird diese Funktion von einem RAHMENWERK gerufen? Dann bleibt sie.
+
+        AM ECHTEN PROJEKT GEMESSEN (19.08.2026, shortlongx): Der erste Lauf
+        meldete 65 „Utility-Kandidaten" — geschaetzt zwei Drittel davon liessen
+        sich gar nicht verschieben, weil ihr Aufrufer nicht im Quelltext steht:
+
+        * ``Utility-Klasse Api: 10 Funktionen`` (``api_live_start`` …) —
+          Django-Views, gerufen ueber die URL-Zuordnung. Wandern sie in eine
+          Klasse, zeigt ``urls.py`` ins Leere und die Seite ist tot.
+        * ``Utility-Klasse Run: 16 Funktionen`` (``run_bedienelemente`` …) —
+          Pruefungen mit Dekorator; die Testsuite findet sie ueber den
+          Dekorator, nicht ueber den Namen.
+        * ``Utility-Klasse Test: 8 Funktionen`` (``test_strategy`` …) —
+          unittest sammelt ``test_*`` auf Modulebene ein.
+
+        Drei mechanische Kennzeichen, alle am Syntaxbaum ablesbar. Ein
+        Umbauvorschlag, der funktionierenden Code kaputtmacht, ist die teuerste
+        Sorte Fehlalarm — er sieht wie Fortschritt aus.
+        """
+        if fn.decorator_list:                 # @pruefung, @csrf_exempt, @task …
+            return True
+        if fn.name.startswith('test_'):       # unittest sammelt ueber den Namen
+            return True
+        argumente = fn.args.args
+        if argumente and argumente[0].arg in ('request', 'self', 'cls'):
+            return True                       # Django-View bzw. schon Methode
+        return False
 
     def _sorte(self, knoten):
         u"""Was liegt in diesem Modulnamen? ``'klasse'``, ``'kontext'`` oder None.

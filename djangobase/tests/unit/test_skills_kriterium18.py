@@ -137,6 +137,48 @@ class Kriterium18Test(BasisTest):
         self.assertTrue(any('skript' in z.lower() for z in satz.kopf),
                         'die uebersprungenen Skripte muessen im Kopf stehen')
 
+    def test_framework_funktionen_sind_keine_utility_kandidaten(self):
+        u"""Wer vom RAHMENWERK gerufen wird, kann nicht in eine Klasse wandern.
+
+        Gemessen in shortlongx: Von 65 Utility-Kandidaten waren 34 solche Faelle
+        — Django-Views (Aufrufer ist die URL-Zuordnung), Pruefungen mit
+        Dekorator und ``test_*``. Sie zu verschieben macht funktionierenden Code
+        kaputt: ``urls.py`` zeigt ins Leere, die Testsuite findet nichts mehr.
+        """
+        satz = self._lauf('klassen-kandidat', {'seite.py': (
+            'def api_liste(request):\n    return 1\n\n\n'
+            'def api_detail(request):\n    return 2\n\n\n'
+            'def api_speichern(request):\n    return 3\n\n\n'
+            'def api_loeschen(request):\n    return 4\n')})
+        self.assertFalse([b for b in satz.befunde if 'Utility' in b.was],
+                         'Django-Views duerfen kein Utility-Kandidat sein')
+
+        satz2 = self._lauf('klassen-kandidat', {'pruefungen.py': (
+            'def pruefung(*a, **k):\n    return lambda f: f\n\n\n'
+            '@pruefung("a")\ndef run_eins():\n    return 1\n\n\n'
+            '@pruefung("b")\ndef run_zwei():\n    return 2\n\n\n'
+            '@pruefung("c")\ndef run_drei():\n    return 3\n')})
+        self.assertFalse([b for b in satz2.befunde if 'Utility' in b.was],
+                         'dekorierte Funktionen duerfen kein Kandidat sein')
+
+        satz3 = self._lauf('klassen-kandidat', {'test_dinge.py': (
+            'def test_eins():\n    assert 1\n\n\n'
+            'def test_zwei():\n    assert 2\n\n\n'
+            'def test_drei():\n    assert 3\n')})
+        self.assertFalse([b for b in satz3.befunde if 'Utility' in b.was],
+                         'test_*-Funktionen sammelt unittest ueber den Namen')
+
+    def test_echtes_utility_buendel_wird_weiter_gemeldet(self):
+        u"""Die Gegenprobe: Ohne Rahmenwerk bleibt der Befund bestehen.
+
+        Sonst haette die Schaerfung oben das Werkzeug einfach stumm gemacht."""
+        satz = self._lauf('klassen-kandidat', {'texte.py': (
+            'def text_kuerzen(s):\n    return s[:10]\n\n\n'
+            'def text_saeubern(s):\n    return s.strip()\n\n\n'
+            'def text_fuellen(s):\n    return s.ljust(10)\n')})
+        self.assertTrue([b for b in satz.befunde if 'Utility' in b.was],
+                        'ein echtes Buendel muss weiterhin gemeldet werden')
+
     def test_klassenvorschlag_kollidiert_nicht_mit_bekanntem_typ(self):
         u"""``_thread`` ergaebe „Klasse Thread" - die gibt es schon.
 
