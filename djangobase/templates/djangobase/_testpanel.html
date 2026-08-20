@@ -38,6 +38,36 @@ Ein Fragment ohne Shell: Wer es per fetch holt, bekommt nur diesen Block.
 
 {% for karte in panel.karten %}{% include "djangobase/_testkarte.html" %}{% endfor %}
 
+{% if panel.aufzeichnen %}
+{% comment %}
+Reiter „Aufzeichnen" — die Aktionen im UI mitschreiben, damit daraus ein
+Testfall entstehen kann (Auftrag Edgar, 20.08.2026).
+
+Der Inhalt steht bewusst LEER hier: Zustand und Liste holt `aufzeichnung.js`
+beim Öffnen. Während einer laufenden Aufnahme ändern sich beide sekündlich —
+eine serverseitig gerenderte Liste wäre ab dem ersten Klick veraltet.
+{% endcomment %}
+<div class="ts-card">
+    <div class="ts-label">Aufzeichnung</div>
+    <p class="ts-empty" id="au-hinweis">
+        Zeichnet auf, was Sie im UI tun — Klicks, Eingaben, Seitenwechsel und
+        Server-Abrufe — und sammelt am Ende die Log-Zeilen des Zeitraums dazu.
+        Die Aufnahme läuft über Seitenwechsel hinweg weiter.
+    </p>
+    <div class="au-leiste">
+        <button type="button" id="au-schalter" class="btn btn-sm btn-outline-light"
+                disabled>Aufzeichnen</button>
+        <span id="au-lage" class="ts-empty"></span>
+    </div>
+</div>
+
+<div class="ts-card">
+    <div class="ts-label">Aufzeichnungen</div>
+    <div id="au-tabelle"></div>
+</div>
+<script type="module" src="/static/djangobase/js/aufzeichnung.js?v={{ djangobase.statik_v }}"></script>
+{% endif %}
+
 {% if panel.ui %}
 {% comment %}
 Browser-/UI-Tests: Dieselbe Karte und dieselbe Tabelle wie überall — die

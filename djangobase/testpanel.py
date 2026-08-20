@@ -56,6 +56,11 @@ class Panel:
             aus.append("UI")
         if self.kat.suiten:
             aus.append("Suiten")
+        # AUFZEICHNEN steht IMMER zur Verfuegung (Auftrag Edgar, 20.08.2026):
+        # Er haengt an keiner Testkonfiguration - was er sammelt, sind die
+        # Aktionen des Nutzers. Am Ende der Reihe, weil er kein Testlauf ist,
+        # sondern der Weg zu einem neuen Testfall.
+        aus.append("Aufzeichnen")
         return aus
 
     # --------------------------------------------------------------- Bauen
@@ -68,6 +73,12 @@ class Panel:
             return {"ui": True, "ui_karte": self._ui_karte(),
                     "ui_config": self._ui_config(),
                     "ui_historie": self._ui_historie()}
+        if name == "Aufzeichnen":
+            # Der Reiter hat keinen Server-Inhalt: Zustand und Liste holt
+            # ``aufzeichnung.js`` beim Oeffnen, weil sich beides waehrend einer
+            # laufenden Aufnahme sekuendlich aendert. Eine serverseitig
+            # gerenderte Liste waere ab dem ersten Klick veraltet.
+            return {"aufzeichnen": True}
         if name == "Suiten":
             return {"karten": [k for g in self._suiten() for k in g["karten"]]}
         for k in self.kategorien:

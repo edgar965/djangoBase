@@ -84,6 +84,16 @@ neue Reihenfolge, erst dann hängt die Seite um).
         {% endfor %}
         {% if ui %}<button type="button" class="ts-tab" data-tab="UI">UI <span class="ts-count" id="ts-ui-count">…</span></button>{% endif %}
         {% if suiten %}<button type="button" class="ts-tab" data-tab="Suiten">Suiten <span class="ts-count">{{ suiten|length }}</span></button>{% endif %}
+        {% comment %}
+        AUFZEICHNEN — immer verfügbar, weil er an keiner Testkonfiguration hängt.
+
+        Er MUSS hier stehen: Diese Leiste ist HARTCODIERT und liest `tab_namen`
+        nicht. Der Reiter war deshalb erst nur über `?tab=Aufzeichnen` in der
+        Adresszeile erreichbar — gebaut und niemand kommt hin ist dasselbe wie
+        nicht gebaut (dieselbe Lehre wie bei `_nav_tests.html`, 17.08.2026).
+        {% endcomment %}
+        <button type="button" class="ts-tab" data-tab="Aufzeichnen">
+            <i class="bi bi-record-circle"></i> Aufzeichnen</button>
     </div>
 
     {% comment %}

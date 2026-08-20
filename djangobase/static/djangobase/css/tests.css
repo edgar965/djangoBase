@@ -253,3 +253,40 @@ input.ts-nr:disabled { opacity: .6; cursor: progress; }
     flex: 0 0 auto; color: #cfe0f2; font-size: .8rem;
     font-variant-numeric: tabular-nums; min-width: 5.5rem; text-align: right;
 }
+
+/* ── Reiter „Aufzeichnen" (Auftrag Edgar, 20.08.2026) ─────────────────────
+   Farben ausdrücklich gesetzt: Die Karten sind dunkel (#142136), und ein
+   Element ohne eigene Farbe erbt die dunkle Bootstrap-Grundfarbe — es wäre
+   dunkel auf dunkel und damit unsichtbar. */
+.au-leiste { display: flex; align-items: center; gap: .8rem; flex-wrap: wrap; }
+.au-leiste .ts-empty { margin: 0; }
+#au-lage { color: #9fb6d0; font-variant-numeric: tabular-nums; }
+/* Der laufende Zustand muss auf einen Blick erkennbar sein - ein Knopf, dem
+   man nicht ansieht, dass er gerade aufzeichnet, ist der halbe Weg zu einer
+   vergessenen Aufnahme. */
+#au-schalter.btn-danger { font-weight: 600; }
+input.au-name {
+  background: rgba(255,255,255,.06);
+  color: #e9f0f8;
+  border: 1px solid #1e3a5f;
+  border-radius: 6px;
+  padding: .15rem .4rem;
+  min-width: 16rem;
+  font: inherit;
+  font-size: .9rem;
+}
+input.au-name:focus { outline: none; border-color: #4ea8f6; background: rgba(255,255,255,.1); }
+
+/* Spaltenbreiten der Aufzeichnungs-Tabelle.
+   OHNE SIE IST SIE UNLESBAR (Befund 20.08.2026): Die ziehbaren Breiten starten
+   gleichverteilt, und die ID („auf_20260820_184215") brach dabei senkrecht um -
+   ein Zeichen je Zeile - während die Zahlenspalten die halbe Seite füllten.
+   Der Nutzer kann jede Breite weiterhin ziehen; das hier ist nur der Anfang. */
+table.db-tabelle[data-sort-key="aufzeichnungen"] th:nth-child(1) { width: 15rem; }
+table.db-tabelle[data-sort-key="aufzeichnungen"] th:nth-child(2) { width: 22rem; }
+table.db-tabelle[data-sort-key="aufzeichnungen"] th:nth-child(3) { width: 10rem; }
+table.db-tabelle[data-sort-key="aufzeichnungen"] th:nth-child(4),
+table.db-tabelle[data-sort-key="aufzeichnungen"] th:nth-child(5),
+table.db-tabelle[data-sort-key="aufzeichnungen"] th:nth-child(6) { width: 7rem; }
+table.db-tabelle[data-sort-key="aufzeichnungen"] th:nth-child(7) { width: 4rem; }
+table.db-tabelle[data-sort-key="aufzeichnungen"] td code { white-space: nowrap; }

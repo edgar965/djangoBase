@@ -2,7 +2,7 @@ from django.urls import path
 
 from .views import api_system_stats
 from .views.ki_modelle import KiModelleView
-from .views import (AktuellDatenView, AktuellLeerenView, AktuellView,
+from .views import (AufzeichnungView, AktuellDatenView, AktuellLeerenView, AktuellView,
                     BenutzerBearbeitenView, BenutzerErstellenView,
                     BenutzerInlineView, BenutzerListeView, BenutzerLoeschenView,
                     BenutzerStatusView, EinstellungenTabsView, EinstellungenView,
@@ -38,6 +38,13 @@ urlpatterns = [
     # Platz eines Falls in der Tabelle („Nr."-Spalte). POST, weil es
     # `logs/testreihenfolge.json` SCHREIBT.
     path("tests/nummer/", TestNummerView.as_view(), name="tests_nummer"),
+    # TESTCASE AUFZEICHNEN (Auftrag Edgar, 20.08.2026): Ein Reiter, der die
+    # Aktionen im UI mitschreibt, damit daraus echte Tests entstehen koennen.
+    # EIN Endpunkt fuer alle sechs Vorgaenge (start/schritte/ende/name/
+    # loeschen) - sechs Pfade waeren sechs Gelegenheiten, den Zugriffsschutz
+    # zu vergessen. Der haeufigste Aufruf ist „schritte" im Sekundentakt.
+    path("tests/aufzeichnung/", AufzeichnungView.as_view(),
+         name="tests_aufzeichnung"),
     # DER Werkzeugkasten: alle Werkzeuge, alle Lehren, die Fixer und der
     # server-seitige Stapellauf mit Klartext-Bericht. Die Werkzeuge laufen im
     # Serverprozess und rufen ausschliesslich GET-Routen auf.
