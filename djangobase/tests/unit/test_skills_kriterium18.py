@@ -197,3 +197,33 @@ class Kriterium18Test(BasisTest):
         self.assertTrue(treffer, 'geteilter _thread nicht erkannt')
         self.assertNotIn('Klasse Thread:', treffer[0].was)
         self.assertIn('LaeuferThread', treffer[0].was)
+
+    def test_was_schon_im_kontext_liegt_ist_kein_kandidat(self):
+        """Die umgesetzte Abhilfe darf nicht erneut als Befund erscheinen.
+
+        BELEGTER FALL (20.08.2026, shortlongx): ``_anfrage_cache =
+        Kontext.anfrage_cache()`` ist genau das, wozu dieses Werkzeug raet - der
+        Zustand gehoert der Kontext-Klasse, der Modulname ist nur eine Kurzform
+        am Gebrauchsort. Gemeldet wurde er trotzdem, weil die rechte Seite ein
+        Aufruf ist. Wer dem Befund folgte, raeumte in die Stelle hinein auf, an
+        der schon aufgeraeumt war.
+
+        Geprueft wird beides: dass der aufgeraeumte Fall schweigt UND dass
+        echte freie Instanzen weiter gemeldet werden - sonst waere die
+        Schaerfung nur eine Blendung."""
+        import ast
+        from djangobase.skills.klassenkandidat import Klassenkandidat
+        werkzeug = Klassenkandidat()
+        faelle = (
+            ('logger = logging.getLogger(__name__)', 'kontext'),
+            ('_sitzung = Sitzung()', 'kontext'),
+            ('_x = Anderes.bauen()', 'kontext'),      # fremde Klasse bleibt Kandidat
+            ('_stand = {}', 'klasse'),
+            ('_cache = Kontext.anfrage_cache()', None),
+            ('_t = Kontext.autotrade_sitzung()', None),
+            ('_alias = Kontext', None),               # Alias ohne Aufruf
+        )
+        for quelle, erwartet in faelle:
+            knoten = ast.parse(quelle).body[0]
+            self.assertEqual(werkzeug._sorte(knoten), erwartet,
+                             'falsch eingestuft: %s' % quelle)

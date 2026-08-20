@@ -302,9 +302,34 @@ class Klassenkandidat(BefundWerkzeug):
         if isinstance(wert, (self.PRIMITIV, ast.Constant)):
             return 'klasse'
         if isinstance(wert, (ast.Call, ast.Lambda)):
+            # WER SCHON IM KONTEXT LIEGT, IST KEIN KANDIDAT (20.08.2026).
+            # ``_anfrage_cache = Kontext.anfrage_cache()`` ist die UMGESETZTE
+            # Abhilfe dieses Werkzeugs: Der Zustand gehoert der Kontext-Klasse,
+            # der Modulname ist nur eine Kurzform am Gebrauchsort. Ihn zu melden
+            # hiesse, einen bereits aufgeraeumten Fall erneut aufzuraeumen - und
+            # zwar in die Stelle hinein, an der er schon steht. Es ist dieselbe
+            # Sorte Fehlalarm wie ``logger`` vor der Trennung von 'klasse' und
+            # 'kontext': Da fehlt nichts, da IST etwas.
+            if self._aus_dem_kontext(wert):
+                return None
             return 'kontext'                  # haelt bereits ein Objekt
         # ``x = y`` / ``x = Y.z``: ein zweiter Name, kein eigener Zustand.
         return None
+
+    @classmethod
+    def _aus_dem_kontext(cls, wert):
+        u"""Kommt der Wert aus der Kontext-Klasse des Projekts?
+
+        Erkannt wird der Aufruf ``Kontext.<name>(...)`` - unabhaengig davon, wie
+        die Klasse importiert wurde, denn geprueft wird der Name links vom
+        Punkt. Ein blosser Attributzugriff ohne Aufruf ist ohnehin ein Alias und
+        faellt schon vorher durch."""
+        if not isinstance(wert, ast.Call):
+            return False
+        ziel = wert.func
+        return (isinstance(ziel, ast.Attribute)
+                and isinstance(ziel.value, ast.Name)
+                and ziel.value.id == cls.KONTEXT_NAME)
 
     @staticmethod
     def _zielnamen(knoten):
