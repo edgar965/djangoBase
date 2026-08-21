@@ -17,8 +17,7 @@
     <link rel="stylesheet" href="{% static 'djangobase/css/sidebar.css' %}">
     <link rel="stylesheet" href="{% static 'djangobase/css/themes.css' %}">
     <link rel="stylesheet" href="{% static 'djangobase/css/toasts.css' %}">
-    {# Der schwebende Aufzeichnen-Knopf liegt über jeder Seite (siehe unten). #}
-    <link rel="stylesheet" href="{% static 'djangobase/css/aufzeichner.css' %}?v={{ djangobase.statik_v }}">
+
     {% endblock %}
 
     {# Farb-Variablen aus DJANGOBASE["farben"]. #}
@@ -112,31 +111,22 @@
     <script src="{% static 'djangobase/js/sidebar.js' %}"></script>
     {% if djangobase.resizable_sidebar %}<script src="{% static 'djangobase/js/sidebar_resizer.js' %}"></script>{% endif %}
     {% comment %}
-    AUFZEICHNER AUF JEDER SEITE (Auftrag Edgar, 20.08.2026). Er schreibt die
-    Aktionen mit, aus denen unter Hilfe → Tests → Aufzeichnen ein Testfall
-    entsteht. Er MUSS global stehen: Aufgezeichnet werden Wege, und ein Weg
-    führt über Seiten — läge er nur auf der Tests-Seite, wäre die Aufnahme beim
-    ersten Menüklick vorbei.
+    AUFZEICHNUNG: NICHT MEHR HIER (Befund 21.08.2026, gemeldet aus CamTrack)
 
-    Er kostet nichts, wenn nichts läuft: eine Abfrage beim Laden, und nur bei
-    laufender Aufnahme werden Zuhörer angemeldet.
+        „Die Übernahme kam nicht an. djangoBase legt die Bedienung in seine
+         eigene Seitenleiste und lädt die Module in seiner eigenen Hülle —
+         beides benutzt CamTrack nicht. Ergebnis: Auf /kameras/, /live/kalender/
+         und jeder anderen Seite gab es weder den Bereich noch die Module."
 
-    DIE BEDIENUNG DAZU STEHT IN DER SIDEBAR (Nachtrag 21.08.2026):
-    „Ein Popup bauen, das die ganze Zeit über der Webseite ist. Darin ein Button
-    mit aufzeichnen anzeigen." Vorher stand der Schalter nur im Reiter unter
-    Hilfe → Tests — damit war das Werkzeug für seinen Zweck unbrauchbar: Wer
-    erst dorthin navigieren muss, um zu starten, kann den Weg, der ihn
-    interessiert, nie aufzeichnen.
+    CSS und Module hängt seit dem ``AufzeichnungMiddleware`` in JEDE
+    HTML-Antwort ein — unabhängig davon, ob ein Projekt diese Vorlage benutzt.
+    Sie hier ZUSÄTZLICH zu laden wäre eine zweite Stelle, die auseinanderlaufen
+    kann; die Middleware erkennt eine vorhandene Einbindung zwar und hält sich
+    dann zurück, aber eine Stelle ist besser als zwei.
+
+    Das Markup des Bereichs steht weiterhin in ``_sidebar.html`` — wo es eine
+    djangoBase-Sidebar gibt, sitzt er im Menü statt schwebend am Rand.
     {% endcomment %}
-    <script type="module" src="{% static 'djangobase/js/aufzeichner.js' %}?v={{ djangobase.statik_v }}"></script>
-    <script type="module" src="{% static 'djangobase/js/aufzeichner_leiste.js' %}?v={{ djangobase.statik_v }}"></script>
-    {% comment %}
-    Der Abspieler gehört ebenfalls auf JEDE Seite: Er fährt eine Aufzeichnung
-    nach, und die führt über Seiten. Beim ersten Seitenwechsel ist sein
-    JavaScript-Kontext weg - fortgesetzt wird aus dem localStorage, und dafür
-    muss das Modul dort geladen sein, wo es weitergeht.
-    {% endcomment %}
-    <script type="module" src="{% static 'djangobase/js/aufzeichner_abspieler.js' %}?v={{ djangobase.statik_v }}"></script>
     {% endblock %}
     {% comment %}extra_body_js: Projekt-spezifische Scripts am Body-Ende.
     Eintrag = Static-Pfad-String, oder Dict {static:"..."} oder Dict

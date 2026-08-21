@@ -187,9 +187,14 @@ class QuelltextFallenTest(SimpleTestCase):
         Aufgezeichnet werden Wege, und ein Weg führt über Seiten. Läge die
         Bedienung nur im Reiter unter Hilfe → Tests, wäre die Aufnahme beim
         ersten Menüklick vorbei - also genau dann, wenn es interessant wird."""
-        shell = SHELL.read_text(encoding="utf-8")
-        self.assertIn("aufzeichner_leiste.js", shell)
-        self.assertIn("css/aufzeichner.css", shell)
+        # Die Module hängt die Middleware ein, nicht mehr die Shell (Befund
+        # aus CamTrack: Projekte mit eigener Basis-Vorlage bekamen nichts).
+        from djangobase.aufzeichnung_middleware import AufzeichnungMiddleware
+        schnipsel = AufzeichnungMiddleware(lambda r: None).schnipsel().decode()
+        for modul in ("aufzeichner.js", "aufzeichner_leiste.js",
+                      "aufzeichner_abspieler.js", "css/aufzeichner.css"):
+            self.assertIn(modul, schnipsel,
+                          u"Die Middleware muss %r einhängen" % modul)
         sidebar = (PAKET / "templates" / "djangobase" / "_sidebar.html")             .read_text(encoding="utf-8")
         for stueck in ('id="djb-aufz"', "djb-aufz-knopf", "djb-aufz-zuknopf",
                        "djb-aufz-zaehler"):
@@ -251,8 +256,9 @@ class QuelltextFallenTest(SimpleTestCase):
         ab = (JS / "aufzeichner_abspieler.js").read_text(encoding="utf-8")
         self.assertIn("localStorage", ab)
         self.assertIn("fortsetzen", ab)
-        shell = SHELL.read_text(encoding="utf-8")
-        self.assertIn("aufzeichner_abspieler.js", shell,
+        from djangobase.aufzeichnung_middleware import AufzeichnungMiddleware
+        schnipsel = AufzeichnungMiddleware(lambda r: None).schnipsel().decode()
+        self.assertIn("aufzeichner_abspieler.js", schnipsel,
                       u"Der Abspieler muss auf jeder Seite geladen sein, sonst "
                       u"endet jeder Lauf beim ersten Seitenwechsel")
 

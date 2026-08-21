@@ -219,10 +219,40 @@ document.addEventListener('djb-aufzeichnung-geaendert', (ev) => {
   if (window.__djbAufzLeiste) window.__djbAufzLeiste.laden();
 });
 
+/** Das Markup des Bereichs — wortgleich mit ``_sidebar.html``.
+ *
+ *  WARUM ES HIER NOCHMAL STEHT (Befund 21.08.2026, gemeldet aus CamTrack):
+ *
+ *      „Die Übernahme kam nicht an. djangoBase legt die Bedienung in seine
+ *       eigene Seitenleiste … beides benutzt CamTrack nicht. Ergebnis: Auf
+ *       /kameras/, /live/kalender/ und jeder anderen Seite gab es weder den
+ *       Bereich noch die Module."
+ *
+ *  Ein Projekt mit eigener Basis-Vorlage erbt ``_sidebar.html`` nicht. Wo das
+ *  Markup fehlt, legt dieses Modul es selbst an — dann eben schwebend unten
+ *  links statt im Menü. Damit hängt die Aufzeichnung an keiner Vorlage mehr. */
+function bereichBauen() {
+  const box = document.createElement('div');
+  box.className = 'djb-aufz djb-aufz-frei';
+  box.id = 'djb-aufz';
+  box.setAttribute('data-djb-aufzeichner-ui', '1');
+  box.innerHTML =
+    '<div class="djb-aufz-kopf">'
+    + '<span class="djb-aufz-titel">Testaufzeichnung</span>'
+    + '<button type="button" class="djb-aufz-zuknopf" title="Bereich ausblenden">'
+    + '\u00d7</button></div>'
+    + '<button type="button" class="djb-aufz-knopf">'
+    + '<span class="djb-aufz-punkt"></span>'
+    + '<span class="djb-aufz-text">Aufnahme</span></button>'
+    + '<p class="djb-aufz-zaehler"></p>';
+  document.body.appendChild(box);
+  return box;
+}
+
 export async function aufzeichnerLeiste() {
   if (window.__djbAufzLeiste) return window.__djbAufzLeiste;
-  const wurzel = document.getElementById('djb-aufz');
-  if (!wurzel) return null;              // Seite ohne djangoBase-Sidebar
+  if (!document.body) return null;
+  const wurzel = document.getElementById('djb-aufz') || bereichBauen();
   const l = new AufzeichnerLeiste(wurzel);
   window.__djbAufzLeiste = l;
   await l.laden();

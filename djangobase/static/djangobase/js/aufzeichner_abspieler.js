@@ -181,7 +181,32 @@ export class Abspieler {
 
   /* ── Der Bereich in der Sidebar ────────────────────────────────────────── */
 
-  static box() { return document.getElementById('djb-absp'); }
+  /** Der Bereich — aus der Sidebar, oder selbst angelegt.
+   *
+   *  Wie beim Aufnahme-Bereich: Projekte mit eigener Basis-Vorlage erben
+   *  ``_sidebar.html`` nicht (Befund aus CamTrack, 21.08.2026). Fehlt das
+   *  Markup, entsteht es hier — schwebend unter dem Aufnahme-Bereich. */
+  static box() {
+    let b = document.getElementById('djb-absp');
+    if (b || !document.body) return b;
+    b = document.createElement('div');
+    b.className = 'djb-aufz djb-absp djb-aufz-frei djb-absp-frei';
+    b.id = 'djb-absp';
+    b.hidden = true;
+    b.setAttribute('data-djb-aufzeichner-ui', '1');
+    b.innerHTML =
+      '<div class="djb-aufz-kopf">'
+      + '<span class="djb-aufz-titel">Abspieler</span>'
+      + '<button type="button" class="djb-aufz-zuknopf" title="Bereich ausblenden">'
+      + '\u00d7</button></div>'
+      + '<select class="djb-absp-wahl"></select>'
+      + '<button type="button" class="djb-absp-knopf">'
+      + '<span class="djb-absp-pfeil">\u25b6</span>'
+      + '<span class="djb-absp-text">Abspielen</span></button>'
+      + '<p class="djb-aufz-zaehler djb-absp-lage"></p>';
+    document.body.appendChild(b);
+    return b;
+  }
 
   static bereichZeigen() {
     try { localStorage.setItem(WEG, '0'); } catch (e) { /* egal */ }

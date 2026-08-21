@@ -204,3 +204,40 @@
 .djb-absp-pfeil { font-size: 11px; line-height: 1; }
 
 .djb-absp-fehler { color: #fbbf24; }
+
+/* ── Ohne djangoBase-Sidebar: der Bereich steht frei ──────────────────────── */
+/* BEFUND (21.08.2026, gemeldet aus CamTrack): „djangoBase legt die Bedienung in
+   seine eigene Seitenleiste … beides benutzt CamTrack nicht. Ergebnis: Auf
+   /kameras/, /live/kalender/ und jeder anderen Seite gab es weder den Bereich
+   noch die Module."
+
+   Ein Projekt mit eigener Basis-Vorlage erbt `_sidebar.html` nicht. Dort legt
+   `aufzeichner_leiste.js` den Bereich selbst an und markiert ihn mit
+   `djb-aufz-frei` — dann steht er schwebend unten links.
+
+   UNTEN LINKS, NICHT RECHTS: Rechts unten sitzen in vielen Anwendungen
+   Chat-Widgets und Nach-oben-Knöpfe. Links ist verlässlicher frei, und dort
+   erwartet man die Bedienung auch, wenn ein Projekt eine eigene Seitenleiste
+   hat. */
+.djb-aufz-frei {
+  position: fixed;
+  left: 14px;
+  bottom: 14px;
+  width: 218px;
+  margin: 0;
+  /* Über allem: Chart- und Dialog-Ebenen liegen in diesen Projekten bei 9999. */
+  z-index: 2147483000;
+  background: #111827;
+  border: 1px solid #374151;
+  border-radius: 9px;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, .55);
+  color: #e5e7eb;
+  font: 13px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* Der Abspieler sitzt darüber, damit beide nebeneinander Platz haben, ohne
+   sich zu überlappen — die Höhe des Aufnahme-Bereichs ist bekannt. */
+.djb-absp-frei { bottom: 138px; }
+
+.djb-aufz-frei .djb-aufz-titel { opacity: .8; }
+.djb-aufz-frei .djb-aufz-zaehler { opacity: .8; }
