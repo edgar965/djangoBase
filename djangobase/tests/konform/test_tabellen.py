@@ -134,9 +134,30 @@ class TabellenKonformTest(SimpleTestCase):
                 u"lassen sich die Spalten nicht sortieren — auch nicht, wenn "
                 u"das Modul geladen ist."))
 
+    @staticmethod
+    def auto_bindung_aktiv():
+        u"""Bindet djangoBase die Tabellen selbst an?
+
+        ``tabellen_auto.js`` läuft über die Middleware auf jeder Seite, bindet
+        alle ``table.sortable`` an und LEITET einen Schlüssel AB, wenn keiner
+        dasteht (aus der id, sonst aus Seitenpfad und Position). Wo das aktiv
+        ist, sind ziehbare Spalten auch ohne ``data-sort-key`` im Markup da —
+        und dann wäre es Bürokratie, es trotzdem zu verlangen.
+
+        Der Befund vom 21.08.2026 (91 von 91 Tabellen ohne Schlüssel) hat genau
+        dazu geführt: 91 Vorlagen von Hand zu ergänzen hätte dieselbe Lücke beim
+        nächsten neuen Template wieder aufgemacht."""
+        from django.conf import settings as s
+        if not getattr(s, "DJANGOBASE_AUFZEICHNUNG", True):
+            return False                      # derselbe Kanal wie die Aufzeichnung
+        from djangobase.apps import AUFZEICHNUNG_MIDDLEWARE
+        return AUFZEICHNUNG_MIDDLEWARE in list(getattr(s, "MIDDLEWARE", []))
+
     def test_alle_merken_ihre_spaltenbreiten(self):
-        u"""Der Teil, der still fehlt: Ohne ``data-sort-key`` gibt es keine
-        ziehbaren Spalten und nichts wird gemerkt."""
+        u"""Ziehbare Spalten — entweder über ``data-sort-key`` im Markup oder
+        über die automatische Anbindung."""
+        if self.auto_bindung_aktiv():
+            return
         ohne = [(p, a) for p, a in self.tabellen if "data-sort-key" not in a.lower()]
         if ohne:
             self.fail(self._melden(
@@ -169,6 +190,21 @@ class TabellenKonformTest(SimpleTestCase):
 
 class TabellenModuleTest(SimpleTestCase):
     u"""Ein ``data-sort-key`` ohne gebundenes Modul bringt nichts."""
+
+    def test_automatische_anbindung_ist_vollstaendig(self):
+        u"""Wenn sich das Projekt auf ``tabellen_auto.js`` verlässt, muss das
+        Modul auch beides tun — sortieren UND Breiten merken."""
+        if not TabellenKonformTest.auto_bindung_aktiv():
+            self.skipTest("keine automatische Anbindung")
+        pfad = (Path(__file__).resolve().parents[2] / "static" / "djangobase"
+                / "js" / "tabellen_auto.js")
+        self.assertTrue(pfad.exists(), u"tabellen_auto.js fehlt")
+        text = pfad.read_text(encoding="utf-8")
+        for brocken in ("TabellenSortierung.binden", "new TabellenBreiten",
+                        "table.sortable"):
+            self.assertIn(brocken, text,
+                          u"tabellen_auto.js bindet %r nicht mehr — dann sind "
+                          u"die Tabellen still nur halb bedienbar." % brocken)
 
     def test_beide_module_werden_irgendwo_gebunden(self):
         u"""Die Attribute allein tun nichts — jemand muss die Module anbinden.

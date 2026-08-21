@@ -100,8 +100,14 @@ class AufzeichnungMiddleware:
             '<link rel="stylesheet" href="%s?v=%s">'
             % (static("djangobase/css/aufzeichner.css"), v),
         ]
+        # ``tabellen_auto.js`` bindet Sortierung und ziehbare Spaltenbreiten
+        # an ALLE passenden Tabellen der Seite (Befund 21.08.2026: 91 von 91
+        # Datentabellen in ShortLongX ohne gemerkte Breiten, weil jede Seite
+        # es einzeln hätte tun müssen). Es gehört streng genommen nicht zur
+        # Aufzeichnung - aber in denselben Kanal: Beides sind Bausteine, die
+        # überall liegen müssen und die keine Vorlage einbinden soll.
         for modul in ("aufzeichner.js", "aufzeichner_leiste.js",
-                      "aufzeichner_abspieler.js"):
+                      "aufzeichner_abspieler.js", "tabellen_auto.js"):
             teile.append('<script type="module" src="%s?v=%s"></script>'
                          % (static("djangobase/js/%s" % modul), v))
         return ("\n" + "\n".join(teile) + "\n").encode("utf-8")

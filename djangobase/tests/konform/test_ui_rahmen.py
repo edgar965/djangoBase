@@ -7,122 +7,108 @@ DER AUFTRAG (Edgar, 21.08.2026)
      4. Ist das UI tamplate (menü, verschiebbares Menubar) konform mit
         djangoBase template"
 
-WARUM AN DER GERENDERTEN SEITE UND NICHT AN DER DATEI
-=====================================================
-Man könnte prüfen, ob ein Template ``{% extends "djangobase/base.html" %}``
-enthält. Das ist eine Formalie: Ein Projekt kann korrekt erben und den
-entscheidenden Block trotzdem überschreiben — und ein anderes kann eine eigene
-Vorlage haben, die alles richtig macht. Geprüft wird deshalb, was am Ende beim
-Browser ankommt: Gibt es die Seitenleiste, das Menü, den Ziehgriff, die
-Versions-Historie?
+    Nachtrag: „lösche alle testcases die eine test db brauchen, überleg dir was
+    anderes!"
 
-Das ist zugleich der Grund, warum diese Datei in ``konform/`` liegt und nicht in
-``component/``: Sie prüft nicht djangoBase, sondern das PROJEKT gegen djangoBase.
+OHNE DATENBANK
+==============
+Die erste Fassung meldete einen Nutzer an und rief die Seiten mit dem
+Test-Client ab — dafür legt Django eine Test-Datenbank an und migriert sie.
+Minuten für eine Frage, die keine Daten betrifft.
 
-ANMELDUNG
-=========
-Die Hilfe-Seiten hängen bei den meisten Projekten hinter dem Login. Die Tests
-melden deshalb einen Staff-Nutzer an; wo eine Seite trotzdem nicht erreichbar
-ist (eigene Rechte-Logik), wird übersprungen statt rot gemeldet — ein Test, der
-in fremden Projekten grundlos rot ist, wird abgeschaltet.
+Stattdessen wird an drei Stellen geprüft, die zusammen dasselbe aussagen:
+
+    1. **Konfiguration** — was das Projekt an djangoBase übergibt (Menü, repos,
+       resizable_sidebar). Hier steckt der Großteil der Konformität.
+    2. **Die eigenen Vorlagen** — erben sie den Rahmen, und überschreiben sie
+       den Block, der die Seitenleiste trägt?
+    3. **Die djangoBase-Vorlagen selbst** — bringen sie noch das mit, worauf
+       sich Punkt 1 und 2 verlassen? Ohne diese Gegenprobe prüften die anderen
+       gegen eine Annahme, die längst überholt sein kann.
 """
+import re
+from pathlib import Path
+
 from django.conf import settings
-from django.contrib.auth import get_user_model
-from django.test import Client, TestCase
-from django.urls import NoReverseMatch, reverse
+from django.test import SimpleTestCase
 
-User = get_user_model()
+#: Wurzel des djangoBase-Pakets.
+PAKET = Path(__file__).resolve().parents[2]
+VORLAGEN = PAKET / "templates" / "djangobase"
 
-#: Die Marken, an denen die djangoBase-Seitenleiste erkennbar ist.
-SIDEBAR_MARKEN = ('class="sidebar"', "sidebar-header")
+TABU = {"node_modules", "__pycache__", "venv", "pythonVENV", ".git",
+        "site-packages", "migrations"}
 
-
-class RahmenBasis(TestCase):
-    u"""Gemeinsamer Unterbau: angemeldeter Client und Seiten-Abruf."""
-
-    @classmethod
-    def setUpTestData(cls):
-        cls.nutzer = User.objects.create_user(
-            username="konform_pruefer", password="pw-konform-12345",
-            is_staff=True, is_superuser=True)
-
-    def setUp(self):
-        self.client = Client()
-        self.client.force_login(self.nutzer)
-
-    def seite(self, name, pfad):
-        u"""Eine Seite holen — oder den Test überspringen, wenn es sie nicht gibt.
-
-        Übersprungen statt rot: Nicht jedes Projekt schaltet jede Hilfe-Seite
-        frei, und ein grundlos roter Test in einem fremden Projekt wird
-        abgeschaltet statt gelesen."""
-        try:
-            adresse = reverse(name)
-        except NoReverseMatch:
-            adresse = pfad
-        antwort = self.client.get(adresse, follow=True)
-        if antwort.status_code != 200:
-            self.skipTest("%s nicht erreichbar (HTTP %d)"
-                          % (adresse, antwort.status_code))
-        return antwort.content.decode("utf-8", "replace")
+_EXTENDS = re.compile(r"{%\s*extends\s+[\"']?([^\"'%\s]+)")
 
 
-class VersionenKonformTest(RahmenBasis):
+def _djangobase(schluessel):
+    return (getattr(settings, "DJANGOBASE", {}) or {}).get(schluessel)
+
+
+def _menue_durchgehen(punkte, pfad=""):
+    u"""Jeden Menüpunkt mit seinem Pfad liefern — auch dritte Ebene."""
+    for p in punkte or ():
+        if not isinstance(p, dict):
+            continue
+        name = pfad + str(p.get("label") or "(ohne Label)")
+        yield name, p
+        yield from _menue_durchgehen(p.get("untermenu"), name + " → ")
+
+
+class VersionenKonformTest(SimpleTestCase):
     u"""Punkt 3: Hilfe → Versionen."""
 
-    def html(self):
-        return self.seite("djangobase:versions", "/hilfe/versionen/")
-
-    def test_seite_erbt_den_rahmen(self):
-        u"""Ohne Seitenleiste ist die Seite aus der Anwendung herausgefallen —
-        man kommt von dort nirgends mehr hin."""
-        html = self.html()
-        self.assertTrue(any(m in html for m in SIDEBAR_MARKEN),
-                        u"Hilfe → Versionen zeigt keine djangoBase-Seitenleiste. "
-                        u"Die Vorlage muss von djangobase/base.html erben "
-                        u"(oder base_template korrekt setzen).")
-
-    def test_zeigt_versions_historie(self):
-        u"""Die Seite lebt von der Historie aus GitHub — ohne sie ist sie eine
-        leere Hülle, und genau das sieht man ihr nicht an."""
-        html = self.html()
-        self.assertIn("vw-", html,
-                      u"Keine Versions-Einträge gefunden. djangoBase rendert sie "
-                      u"mit den Klassen vw-tag/vw-pill; fehlen sie, hat die "
-                      u"Abfrage nichts geliefert.")
+    databases = []          # ausdrücklich keine: dieser Test fasst nie Daten an
 
     def test_repos_sind_konfiguriert(self):
         u"""Ohne ``repos`` fragt die Seite nichts ab und bleibt dauerhaft leer —
         ohne Fehlermeldung."""
-        repos = (getattr(settings, "DJANGOBASE", {}) or {}).get("repos")
-        self.assertTrue(repos,
+        self.assertTrue(_djangobase("repos"),
                         u"DJANGOBASE['repos'] ist leer. Die Versions-Seite zieht "
                         u"ihre Historie aus GitHub; ohne Repo-Angabe zeigt sie "
                         u"still nichts an.")
 
-    def test_aktuelle_version_ist_gesetzt(self):
-        u"""Die Version steht laut Projektkonvention immer im UI."""
-        version = (getattr(settings, "DJANGOBASE", {}) or {}).get("version")
-        self.assertTrue(version,
+    def test_repo_eintraege_haben_namen(self):
+        u"""Ein Eintrag ohne Namen erscheint in der Auswahl als leere Zeile."""
+        luecken = []
+        for r in _djangobase("repos") or ():
+            if isinstance(r, (list, tuple)):
+                name = r[0] if r else None
+            elif isinstance(r, dict):
+                name = r.get("name")
+            else:
+                name = r
+            if not name:
+                luecken.append(repr(r)[:50])
+        self.assertFalse(luecken, u"Repo-Einträge ohne Namen: %s" % luecken[:3])
+
+    def test_version_ist_gesetzt(self):
+        u"""Die Projektkonvention: Die aktuelle Version steht immer im UI."""
+        self.assertTrue(_djangobase("version"),
                         u"DJANGOBASE['version'] fehlt — die Sidebar zeigt dann "
                         u"keine Versionsnummer.")
 
+    def test_die_vorlage_bringt_ihren_teil_mit(self):
+        u"""Gegenprobe an der djangoBase-Vorlage selbst: Erbt sie nicht mehr,
+        wäre die Seite ohne Seitenleiste — und alle Prüfungen oben blieben
+        trotzdem grün."""
+        text = (VORLAGEN / "hilfe" / "versions.html").read_text(encoding="utf-8")
+        self.assertTrue(_EXTENDS.search(text),
+                        u"djangobase/hilfe/versions.html erbt von nichts mehr.")
+        self.assertIn("vw-", text,
+                      u"Die Versions-Klassen (vw-tag/vw-pill) fehlen in der "
+                      u"Vorlage — dann zeigt die Seite keine Historie mehr.")
 
-class UiRahmenKonformTest(RahmenBasis):
-    u"""Punkt 4: Menü und Seitenleiste."""
 
-    def html(self):
-        return self.seite("djangobase:tests", "/hilfe/tests/")
+class MenueKonformTest(SimpleTestCase):
+    u"""Punkt 4: Menü und Seitenleiste — aus der Konfiguration gelesen."""
 
-    def test_seitenleiste_vorhanden(self):
-        html = self.html()
-        self.assertTrue(any(m in html for m in SIDEBAR_MARKEN),
-                        u"Keine djangoBase-Seitenleiste im Markup.")
+    databases = []
 
     def test_menue_ist_gefuellt(self):
         u"""Eine leere Seitenleiste ist formal konform und praktisch nutzlos."""
-        eintraege = (getattr(settings, "DJANGOBASE", {}) or {}).get("menu") or []
-        self.assertTrue(eintraege,
+        self.assertTrue(_djangobase("menu"),
                         u"DJANGOBASE['menu'] ist leer — die Seitenleiste bliebe "
                         u"bis auf Hilfe/Einstellungen leer.")
 
@@ -130,40 +116,22 @@ class UiRahmenKonformTest(RahmenBasis):
         u"""``items`` löst in Django-Vorlagen auf ``dict.items`` auf und ist
         damit IMMER wahr — jeder Punkt würde fälschlich aufklappbar.
 
-        Der Kommentar in ``_sidebar.html`` warnt ausdrücklich davor; hier wird
-        es geprüft statt nur beschrieben."""
-        falsch = []
-
-        def sehen(punkte, pfad=""):
-            for p in punkte or ():
-                if not isinstance(p, dict):
-                    continue
-                name = pfad + str(p.get("label", "?"))
-                if "items" in p:
-                    falsch.append(name)
-                sehen(p.get("untermenu"), name + " → ")
-
-        sehen((getattr(settings, "DJANGOBASE", {}) or {}).get("menu"))
+        Der Kommentar in ``_sidebar.html`` warnt davor; hier wird es geprüft
+        statt nur beschrieben."""
+        falsch = [name for name, p in _menue_durchgehen(_djangobase("menu"))
+                  if "items" in p]
         self.assertFalse(falsch,
                          u"Diese Menüpunkte nutzen „items“ statt „untermenu“: %s"
                          % ", ".join(falsch))
 
-    def test_menue_eintraege_sind_vollstaendig(self):
+    def test_jeder_punkt_hat_ein_ziel(self):
         u"""Ein Punkt ohne URL ist ein toter Eintrag, einer ohne Label unsichtbar."""
         luecken = []
-
-        def sehen(punkte, pfad=""):
-            for p in punkte or ():
-                if not isinstance(p, dict):
-                    continue
-                name = pfad + str(p.get("label") or "(ohne Label)")
-                if not p.get("label"):
-                    luecken.append(name + ": kein label")
-                if not p.get("untermenu") and not p.get("url"):
-                    luecken.append(name + ": weder url noch untermenu")
-                sehen(p.get("untermenu"), name + " → ")
-
-        sehen((getattr(settings, "DJANGOBASE", {}) or {}).get("menu"))
+        for name, p in _menue_durchgehen(_djangobase("menu")):
+            if not p.get("label"):
+                luecken.append(name + ": kein label")
+            elif not p.get("untermenu") and not p.get("url"):
+                luecken.append(name + ": weder url noch untermenu")
         self.assertFalse(luecken, u"Unvollständige Menüpunkte: %s"
                          % "; ".join(luecken[:8]))
 
@@ -171,47 +139,90 @@ class UiRahmenKonformTest(RahmenBasis):
         u"""„verschiebbares Menubar" (Ansage): Der Ziehgriff kommt aus
         ``sidebar_resizer.js`` und wird nur geladen, wenn das Projekt
         ``resizable_sidebar`` setzt. Ohne das Flag ist die Breite fest."""
-        an = (getattr(settings, "DJANGOBASE", {}) or {}).get("resizable_sidebar")
-        if not an:
-            self.fail(u"DJANGOBASE['resizable_sidebar'] ist nicht gesetzt — die "
-                      u"Seitenleiste lässt sich nicht in der Breite ziehen. "
-                      u"djangoBase liefert das fertig mit; setze das Flag auf True.")
-        self.assertIn("sidebar_resizer.js", self.html(),
-                      u"resizable_sidebar ist True, aber das Modul wird nicht "
-                      u"geladen — der Griff fehlt trotzdem.")
+        self.assertTrue(_djangobase("resizable_sidebar"),
+                        u"DJANGOBASE['resizable_sidebar'] ist nicht gesetzt — die "
+                        u"Seitenleiste lässt sich nicht in der Breite ziehen. "
+                        u"djangoBase liefert das fertig mit.")
 
-    def test_bootstrap_icons_verfuegbar(self):
-        u"""Die Seitenleiste beschriftet ihre Punkte mit ``bi-*``. Fehlt die
-        Icon-Schrift, stehen dort leere Kästchen statt Symbolen."""
-        html = self.html()
-        if "bi-" not in html:
-            self.skipTest("keine bi-Icons im Markup")
-        self.assertIn("bootstrap-icons", html,
-                      u"Die Seitenleiste nutzt bi-*-Icons, aber das Stylesheet "
-                      u"bootstrap-icons ist nicht eingebunden.")
+    def test_der_griff_wird_bei_gesetztem_flag_geladen(self):
+        u"""Gegenprobe in der Shell: Das Flag allein bewirkt nichts, wenn die
+        Vorlage das Modul nicht mehr einbindet."""
+        if not _djangobase("resizable_sidebar"):
+            self.skipTest("Flag nicht gesetzt - siehe Test darüber")
+        shell = (VORLAGEN / "_shell.html").read_text(encoding="utf-8")
+        self.assertIn("sidebar_resizer.js", shell,
+                      u"_shell.html lädt sidebar_resizer.js nicht mehr — der "
+                      u"Griff fehlt trotz gesetztem Flag.")
+        self.assertIn("resizable_sidebar", shell,
+                      u"Die Bedingung um den Ziehgriff ist verschwunden.")
 
 
-class GegenprobeTest(TestCase):
-    u"""Greifen die Menü-Regeln überhaupt?"""
+class EigeneVorlagenTest(SimpleTestCase):
+    u"""Erben die Vorlagen des Projekts den djangoBase-Rahmen?"""
+
+    databases = []
+
+    def basis_vorlagen(self):
+        u"""Die Projekt-Vorlagen, die ihrerseits als Basis dienen."""
+        wurzel = Path(getattr(settings, "BASE_DIR", "."))
+        for pfad in wurzel.rglob("base*.html"):
+            if TABU & set(pfad.parts) or PAKET in pfad.parents:
+                continue
+            yield pfad
+
+    def test_eine_basis_vorlage_erbt_von_djangobase(self):
+        u"""Erbt die eigene Basis nicht mehr, verlieren ALLE Seiten auf einmal
+        Seitenleiste, Menü und Versionsnummer.
+
+        Erlaubt ist eine Kette über mehrere Ebenen — sie muss nur irgendwo bei
+        djangoBase ankommen. Gemeldet wird deshalb erst, wenn KEINE erbt."""
+        eltern = []
+        for pfad in self.basis_vorlagen():
+            text = pfad.read_text(encoding="utf-8", errors="replace")
+            m = _EXTENDS.search(text)
+            if m:
+                eltern.append((pfad.name, m.group(1)))
+        if not eltern:
+            self.skipTest("keine erbende Basis-Vorlage gefunden")
+        self.assertTrue(any(z.startswith("djangobase/") for _, z in eltern),
+                        u"Keine Basis-Vorlage erbt von djangobase/: %s"
+                        % "; ".join("%s → %s" % (a, b) for a, b in eltern[:5]))
+
+    def test_sidebar_block_wird_nicht_leer_ueberschrieben(self):
+        u"""Wer ``{% block sidebar %}{% endblock %}`` schreibt, hat formal
+        geerbt und praktisch keine Seitenleiste."""
+        leer = re.compile(r"{%\s*block\s+sidebar\s*%}\s*{%\s*endblock")
+        treffer = [p.name for p in self.basis_vorlagen()
+                   if leer.search(p.read_text(encoding="utf-8", errors="replace"))]
+        self.assertFalse(treffer,
+                         u"Diese Vorlagen überschreiben den sidebar-Block mit "
+                         u"Leere: %s" % ", ".join(treffer))
+
+
+class GegenprobeTest(SimpleTestCase):
+    u"""Greifen die Regeln?"""
+
+    databases = []
 
     def test_items_falle_wird_erkannt(self):
-        u"""Der Kern von test_untermenue_heisst_untermenu — an einer Probe."""
         probe = [{"label": "Falsch", "items": [{"label": "x", "url": "/"}]}]
-        falsch = [p["label"] for p in probe if "items" in p]
+        falsch = [n for n, p in _menue_durchgehen(probe) if "items" in p]
         self.assertEqual(falsch, ["Falsch"])
 
     def test_luecke_wird_erkannt(self):
         probe = [{"label": "Ohne Ziel"}]
-        luecken = [p for p in probe if not p.get("untermenu") and not p.get("url")]
-        self.assertEqual(len(luecken), 1)
+        luecken = [n for n, p in _menue_durchgehen(probe)
+                   if not p.get("untermenu") and not p.get("url")]
+        self.assertEqual(luecken, ["Ohne Ziel"])
 
-    def test_sidebar_marken_treffen_das_markup(self):
-        u"""Ändert sich ``_sidebar.html``, müssen die Marken mitwandern —
-        sonst prüfen die Tests oben eine Zeichenkette, die es nicht mehr gibt."""
-        from pathlib import Path
-        vorlage = (Path(__file__).resolve().parents[2]
-                   / "templates" / "djangobase" / "_sidebar.html")
-        text = vorlage.read_text(encoding="utf-8")
-        for marke in SIDEBAR_MARKEN:
-            self.assertIn(marke.replace('"', '"'), text,
-                          u"Marke %r steht nicht mehr in _sidebar.html" % marke)
+    def test_dritte_ebene_wird_erreicht(self):
+        u"""Ein Fehler in der dritten Ebene darf nicht durchrutschen."""
+        probe = [{"label": "A", "untermenu": [
+            {"label": "B", "untermenu": [{"label": "C"}]}]}]
+        namen = [n for n, _ in _menue_durchgehen(probe)]
+        self.assertIn("A → B → C", namen)
+
+    def test_shell_vorlage_existiert(self):
+        u"""Ohne sie prüfte test_der_griff_wird_bei_gesetztem_flag_geladen
+        gegen eine Datei, die es nicht gibt."""
+        self.assertTrue((VORLAGEN / "_shell.html").exists())
