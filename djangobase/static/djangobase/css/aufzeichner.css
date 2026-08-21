@@ -1,106 +1,101 @@
-/* Das Aufzeichnungs-Popup — ein Fenster, das über JEDER Seite steht.
- * ==================================================================
- * AUFTRAG (Edgar, 21.08.2026)
+/* Testaufzeichnung — der Bereich links oben im Hauptmenü.
+ * ======================================================
+ * ANSAGE (Edgar, 21.08.2026):
  *
- *     „Ein Popup bauen, das die ganze Zeit über der Webseite ist. Darin ein
- *      Button mit aufzeichnen anzeigen. Der Button ist erstmal weiss. Sobald
- *      man drauf klickt, wird er rot und die Aufzeichnung beginnt. beim
- *      erneuten Klick wird er wieder weiss, und das Fenster mit testaufzeichnen
- *      wird wieder geöffnet, der Test wird gespeichert."
+ *     „wir können die aufzeichnung auch in einem Bereich links oben im
+ *      Hauptmenü machen, mit einem X zum Beenden (X nur aktivierbar wenn die
+ *      Aufzeichnung beendet ist)."
+ *     „Im popup brauch ich NUR den Aufnahmen / beenden Button und eine
+ *      Sekundenanzeige" … „du kannst dir schritte im Testfenster behalten"
  *
- * Die erste Umsetzung war nur ein kleiner Knopf am Bildschirmrand — kein
- * Fenster. Hier steht das Fenster: Titelzeile, Rahmen, verschiebbar, und der
- * Knopf DARIN. Nach dem Beenden klappt die Liste der Aufzeichnungen im selben
- * Fenster auf, statt den Nutzer von seiner Seite wegzunavigieren.
+ * Davor war das ein schwebendes Popup. Es hat vier Fehler produziert, die alle
+ * daher kamen, dass es ein Overlay über einer arbeitenden Seite war (siehe
+ * `aufzeichner_leiste.js`). Als Bereich in der Sidebar entfällt das komplett —
+ * und mit ihm die Hälfte des Stylesheets: kein z-index, keine gemerkte
+ * Position, keine gemerkte Größe.
  *
- * KEINE TRANSITIONEN AUF ZUSTANDSFARBEN (Ursache belegt 21.08.2026): Auf
- * `/dax-handel/` blieb der Knopf weiß, obwohl sein Inline-Stil rot war —
- * während einer laufenden Transition liefert der berechnete Stil den
- * interpolierten Zwischenwert, und auf einer Seite, die ununterbrochen einen
- * Chart zeichnet, kommen die Animationsschritte nicht dran. Ein Zustand, den
- * der Nutzer sofort sehen muss, darf ohnehin nicht animiert sein.
+ * KEINE TRANSITION AUF DEN ZUSTANDSFARBEN: Ein Zustand, den der Nutzer sofort
+ * sehen muss (Aufnahme läuft oder nicht), darf nicht animiert sein. Genau das
+ * war Fehler Nummer eins.
  */
-
-/* ── Das Fenster ──────────────────────────────────────────────────────────── */
 .djb-aufz {
-  position: fixed;
-  right: 18px;
-  bottom: 18px;
-  /* Breit genug, dass die Tabelle ohne waagerechtes Scrollen bis zum
-     Loeschknopf reicht (bei 300px lag er ausserhalb). */
-  width: 410px;
-  max-width: calc(100vw - 36px);
-  /* Über allem: Die Chart-Fenster dieses Projekts liegen bei z-index 9999;
-     darunter wäre das Popup genau dort verdeckt, wo man es braucht. */
-  z-index: 2147483000;
-  font: 13px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif;
-  color: #e5e7eb;
-  background: #111827;
-  border: 1px solid #374151;
-  border-radius: 10px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, .55);
-  overflow: hidden;
+  margin: 0 10px 10px;
+  padding: 8px 9px 9px;
+  background: rgba(255, 255, 255, .04);
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 8px;
 }
 
-/* ── Titelzeile (zugleich der Griff zum Verschieben) ──────────────────────── */
+.djb-aufz[hidden] { display: none; }
+
 .djb-aufz-kopf {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  background: #1f2937;
-  border-bottom: 1px solid #374151;
-  cursor: move;
-  user-select: none;
+  gap: 4px;
+  margin-bottom: 7px;
 }
 
 .djb-aufz-titel {
   flex: 1;
+  font-size: 11px;
   font-weight: 600;
-  font-size: 12.5px;
-  letter-spacing: .02em;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  opacity: .75;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.djb-aufz-klapp {
+.djb-aufz-zuknopf {
   border: 0;
   background: transparent;
-  color: #9ca3af;
+  color: inherit;
   font: inherit;
   font-size: 15px;
   line-height: 1;
-  padding: 2px 6px;
-  border-radius: 5px;
+  padding: 0 4px;
+  border-radius: 4px;
   cursor: pointer;
+  opacity: .6;
+  flex: 0 0 auto;
 }
 
-.djb-aufz-klapp:hover { background: #374151; color: #e5e7eb; }
+.djb-aufz-zuknopf:hover:not(:disabled) {
+  opacity: 1;
+  background: rgba(220, 38, 38, .8);
+  color: #fff;
+}
 
-/* ── Körper ───────────────────────────────────────────────────────────────── */
-.djb-aufz-koerper { padding: 12px 12px 10px; }
+/* „X nur aktivierbar wenn die Aufzeichnung beendet ist" (Ansage). */
+.djb-aufz-zuknopf:disabled {
+  opacity: .25;
+  cursor: not-allowed;
+}
 
-.djb-aufz.zu .djb-aufz-koerper { display: none; }
-
-/* Der Knopf: groß genug, um das Hauptelement des Fensters zu sein. */
+/* Der Knopf: das Hauptelement des Bereichs. */
 .djb-aufz-knopf {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 9px;
+  gap: 8px;
   width: 100%;
-  padding: 10px 12px;
-  border-radius: 8px;
+  padding: 8px 10px;
+  border-radius: 7px;
   border: 1px solid rgba(0, 0, 0, .3);
   background: #ffffff;
   color: #111111;
   font: inherit;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
 }
 
+.djb-aufz-knopf:disabled { cursor: default; }
+
 .djb-aufz-punkt {
-  width: 11px;
-  height: 11px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background: #dc2626;
   border: 1px solid rgba(0, 0, 0, .3);
@@ -120,64 +115,17 @@
   .djb-aufz-knopf.laeuft .djb-aufz-punkt { animation: none; }
 }
 
-.djb-aufz-lage {
-  margin: 8px 0 0;
+/* Sekunden und Schritte — die einzige Anzeige neben dem Knopf. */
+.djb-aufz-zaehler {
+  margin: 7px 0 0;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
   font-size: 11.5px;
-  color: #9ca3af;
-  min-height: 1.2em;
+  opacity: .75;
+  min-height: 1.25em;
 }
 
-/* ── Die Liste im Fenster ─────────────────────────────────────────────────── */
-.djb-aufz-liste {
-  margin-top: 10px;
-  border-top: 1px solid #374151;
-  padding-top: 9px;
-  max-height: 240px;
-  overflow: auto;
-}
-
-.djb-aufz-liste:empty { display: none; }
-
-/* Die Tabelle kommt aus djangoBase (`db-tabelle sortable`, Breiten ziehbar).
-   Hier nur, was das enge Fenster braucht. */
-.djb-aufz-liste table { width: 100%; font-size: 11.5px; }
-.djb-aufz-liste th, .djb-aufz-liste td { padding: 3px 5px; }
-
-.djb-aufz-liste input.au-name {
-  width: 100%;
-  min-width: 90px;
-  background: #0b1220;
-  color: #e5e7eb;
-  border: 1px solid #374151;
-  border-radius: 4px;
-  padding: 2px 5px;
-  font: inherit;
-}
-
-.djb-aufz-liste input.au-name:focus {
-  outline: 0;
-  border-color: #60a5fa;
-}
-
-.djb-aufz-weg {
-  border: 1px solid #7f1d1d;
-  background: transparent;
-  color: #f87171;
-  border-radius: 4px;
-  padding: 1px 5px;
-  cursor: pointer;
-  font: inherit;
-}
-
-.djb-aufz-weg:hover { background: #7f1d1d; color: #fff; }
-
-.djb-aufz-fuss {
-  margin-top: 8px;
-  font-size: 11px;
-}
-
-.djb-aufz-fuss a { color: #60a5fa; text-decoration: none; }
-.djb-aufz-fuss a:hover { text-decoration: underline; }
+.djb-aufz-zaehler b { opacity: 1; font-weight: 600; }
 
 @media print {
   .djb-aufz { display: none; }

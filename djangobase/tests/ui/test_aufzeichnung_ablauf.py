@@ -12,7 +12,7 @@ gegen diese drei prüft diese Datei; sie sind der Grund, warum es sie gibt.
 
 1. EIN MODUL, ZWEI URLs
    ``_shell.html`` lädt ``aufzeichner.js?v=1787…``, während
-   ``aufzeichner_popup.js`` dieselbe Datei ohne Query importierte. Für den
+   ``aufzeichner_leiste.js`` dieselbe Datei ohne Query importierte. Für den
    Browser sind das zwei Module: ``aufzeichnerStarten()`` lief zweimal, es gab
    ZWEI Aufzeichner mit eigenen Puffern, und jeder Klick stand doppelt in der
    Aufnahme — neun Schritte mit identischen Zeitstempeln. Im erzeugten Testfall
@@ -145,18 +145,18 @@ class QuelltextFallenTest(SimpleTestCase):
         ``_shell.html`` lädt ``aufzeichner.js`` mit ``?v=``. Wer dieselbe Datei
         daneben OHNE Query importiert, bekommt eine zweite Modulinstanz - und
         jedes Ereignis steht doppelt in der Aufnahme."""
-        popup = (JS / "aufzeichner_popup.js").read_text(encoding="utf-8")
+        leiste = (JS / "aufzeichner_leiste.js").read_text(encoding="utf-8")
         # Beide Formen: statischer Import und dynamisches import(...).
         blank = re.findall(
             r"""import\s*\{[^}]*\}\s*from\s*['"]([^'"]*aufzeichner\.js)['"]"""
             r"""|import\s*\(\s*['"]([^'"]*aufzeichner\.js)['"]\s*\)""",
-            popup)
+            leiste)
         blank = [t for paar in blank for t in paar if t]
         self.assertEqual(blank, [],
                          u"aufzeichner.js darf nicht ohne ?v= importiert werden "
                          u"(gefunden: %r) - das Script-Tag der Shell lädt es MIT "
                          u"Query, und zwei URLs sind zwei Module" % (blank,))
-        self.assertIn("import.meta.url", popup,
+        self.assertIn("import.meta.url", leiste,
                       u"Der Import muss die Query dieses Moduls übernehmen "
                       u"(new URL(import.meta.url).search)")
 
@@ -181,21 +181,57 @@ class QuelltextFallenTest(SimpleTestCase):
                       u"Der pagehide-Handler muss den Puffer ENTNEHMEN, nicht nur "
                       u"lesen - sonst geht derselbe Inhalt zweimal raus")
 
-    def test_popup_liegt_auf_jeder_seite(self):
-        u"""Das Popup gehört in die Shell - sonst kann es keinen Weg aufzeichnen.
+    def test_bedienung_liegt_auf_jeder_seite(self):
+        u"""Der Bereich steht in der Sidebar, das Modul in der Shell.
 
-        Die erste Umsetzung war nur ein kleiner Knopf am Bildschirmrand und lag
-        obendrein nur im Reiter unter Hilfe → Tests. Verlangt war ein FENSTER
-        über jeder Seite, mit dem Knopf darin."""
+        Aufgezeichnet werden Wege, und ein Weg führt über Seiten. Läge die
+        Bedienung nur im Reiter unter Hilfe → Tests, wäre die Aufnahme beim
+        ersten Menüklick vorbei - also genau dann, wenn es interessant wird."""
         shell = SHELL.read_text(encoding="utf-8")
-        self.assertIn("aufzeichner_popup.js", shell)
+        self.assertIn("aufzeichner_leiste.js", shell)
         self.assertIn("css/aufzeichner.css", shell)
-        popup = (JS / "aufzeichner_popup.js").read_text(encoding="utf-8")
-        for stueck in ("djb-aufz-kopf", "djb-aufz-titel", "djb-aufz-knopf",
-                       "djb-aufz-liste"):
-            self.assertIn(stueck, popup,
-                          u"Dem Popup fehlt %r - Titelzeile, Knopf und Liste "
-                          u"gehören ins Fenster" % stueck)
+        sidebar = (PAKET / "templates" / "djangobase" / "_sidebar.html")             .read_text(encoding="utf-8")
+        for stueck in ('id="djb-aufz"', "djb-aufz-knopf", "djb-aufz-zuknopf",
+                       "djb-aufz-zaehler"):
+            self.assertIn(stueck, sidebar,
+                          u"Dem Sidebar-Bereich fehlt %r - Knopf, X und "
+                          u"Sekundenanzeige gehören dorthin" % stueck)
+
+    def test_x_ist_waehrend_der_aufnahme_gesperrt(self):
+        u"""„X nur aktivierbar wenn die Aufzeichnung beendet ist" (Ansage).
+
+        Geprüft an beiden Stellen: Der Knopf wird gesperrt UND der Handler
+        steigt aus. Nur das Attribut zu setzen genügt nicht - ein Klick per
+        Tastatur oder Skript käme durch und machte eine laufende Aufnahme
+        unsichtbar."""
+        leiste = (JS / "aufzeichner_leiste.js").read_text(encoding="utf-8")
+        self.assertIn("this.zuknopf.disabled = !!this.laeuft", leiste)
+        # Die METHODE, nicht ihr Aufruf im Konstruktor - deshalb mit Klammer
+        # und Rumpfbeginn geschnitten.
+        ausblenden = leiste.split("ausblenden() {", 1)[1].split(chr(10) + "  }", 1)[0]
+        self.assertIn("if (this.laeuft) return", ausblenden,
+                      u"Der Handler muss bei laufender Aufnahme aussteigen")
+
+    def test_reiterknopf_startet_keine_aufnahme(self):
+        u"""„der Button ‚Aufzeichnen' im Tab soll nur den Bereich im Menü oben
+        links einblenden, die Aufnahme aber NICHT starten" (Ansage 21.08.2026).
+
+        Vorher gab es zwei Schalter für dieselbe Sache. Wer im Reiter startete,
+        sah die Aufnahme danach nur dort mitlaufen."""
+        reiter = (JS / "aufzeichnung.js").read_text(encoding="utf-8")
+        klick = reiter.split("schalter.addEventListener('click'", 1)[1]
+        klick = klick.split("});", 1)[0]
+        for verboten in ("aktion: 'start'", "aktion: 'ende'"):
+            self.assertNotIn(verboten, klick,
+                             u"Der Reiter-Knopf darf die Aufnahme weder starten "
+                             u"noch beenden (%r gefunden)" % verboten)
+        self.assertIn("djb-aufz-weg", klick,
+                      u"Er soll den Bereich einblenden")
+
+    def test_ausgeblendet_bleibt_nicht_bei_laufender_aufnahme(self):
+        u"""Eine Aufnahme, die niemand sieht, schreibt sonst stundenlang mit."""
+        leiste = (JS / "aufzeichner_leiste.js").read_text(encoding="utf-8")
+        self.assertIn("weg === '1' && !this.laeuft", leiste)
 
     def test_liste_wird_nur_einmal_gebaut(self):
         u"""Popup und Reiter benutzen DIESELBE Listen-Klasse.
@@ -203,11 +239,10 @@ class QuelltextFallenTest(SimpleTestCase):
         Vorher baute jeder sein eigenes Tabellen-Markup. Zwei Kopien derselben
         Tabelle laufen auseinander - die eine bekommt einen neuen Knopf, die
         andere nicht."""
-        for datei in ("aufzeichner_popup.js", "aufzeichnung.js"):
-            quelle = (JS / datei).read_text(encoding="utf-8")
-            self.assertIn("AufzeichnungsListe", quelle,
-                          u"%s baut seine Tabelle selbst statt die gemeinsame "
-                          u"Klasse zu nutzen" % datei)
+        quelle = (JS / "aufzeichnung.js").read_text(encoding="utf-8")
+        self.assertIn("AufzeichnungsListe", quelle,
+                      u"Der Reiter baut seine Tabelle selbst statt die "
+                      u"gemeinsame Klasse zu nutzen")
         liste = (JS / "aufzeichner_liste.js").read_text(encoding="utf-8")
         for stueck in ("db-tabelle sortable", "TabellenSortierung.binden",
                        "new TabellenBreiten", "au-name", "au-weg"):
@@ -216,9 +251,13 @@ class QuelltextFallenTest(SimpleTestCase):
     def test_eigene_bedienung_wird_nicht_aufgezeichnet(self):
         u"""Sonst stünde in jeder Aufnahme der Klick auf „Aufzeichnen" selbst."""
         quelle = (JS / "aufzeichner.js").read_text(encoding="utf-8")
-        self.assertIn("data-djb-aufzeichner-ui", quelle)
-        popup = (JS / "aufzeichner_popup.js").read_text(encoding="utf-8")
-        self.assertIn("data-djb-aufzeichner-ui", popup)
+        self.assertIn("data-djb-aufzeichner-ui", quelle,
+                      u"Der Aufzeichner muss die eigene Bedienung ausnehmen")
+        # Die Marke sitzt am Sidebar-Markup, seit die Bedienung dort steht.
+        sidebar = (PAKET / "templates" / "djangobase" / "_sidebar.html")             .read_text(encoding="utf-8")
+        self.assertIn("data-djb-aufzeichner-ui", sidebar,
+                      u"Ohne die Marke stünde in jeder Aufnahme als erster "
+                      u"Schritt der Klick auf „Aufnahme“ selbst")
 
     def test_zustandsfarben_stehen_im_javascript(self):
         u"""Chrome berechnete den Stil nach dem Klassenwechsel nicht neu.
@@ -226,14 +265,14 @@ class QuelltextFallenTest(SimpleTestCase):
         Auf /dax-handel/ blieb der Knopf grau bzw. weiß, obwohl Klasse und
         Beschriftung stimmten; ein Klon desselben Elements bekam die richtige
         Farbe. Deshalb setzt das Modul die drei Zustandsfarben inline."""
-        popup = (JS / "aufzeichner_popup.js").read_text(encoding="utf-8")
-        ohne_leer = "".join(popup.split())
+        leiste = (JS / "aufzeichner_leiste.js").read_text(encoding="utf-8")
+        ohne_leer = "".join(leiste.split())
         self.assertIn("constBILD", ohne_leer,
                       u"Die Zustandsbilder müssen als Tabelle im Modul stehen")
         for zustand in ("bereit:", "laeuft:", "wartet:"):
             self.assertIn(zustand, ohne_leer,
                           u"Zustand %r fehlt in der Farbtabelle" % zustand)
-        self.assertIn("Object.assign(k.style", popup,
+        self.assertIn("Object.assign(k.style", leiste,
                       u"Die Farben müssen INLINE gesetzt werden - ein Klassen"
                       u"wechsel allein hat Chrome hier nicht zum Neuberechnen "
                       u"gebracht")

@@ -78,22 +78,34 @@ class Reiter {
     }
   }
 
+  /** Der Knopf BLENDET NUR EIN - er startet keine Aufnahme mehr.
+   *
+   *  ANSAGE (Edgar, 21.08.2026): „der Button ‚Aufzeichnen' im Tab soll nur den
+   *  Bereich im Menü oben links einblenden, die Aufnahme aber NICHT starten."
+   *
+   *  Das trennt sauber: Gestartet wird an EINER Stelle - im Bereich selbst, der
+   *  auf jeder Seite steht. Vorher gab es zwei Schalter für dieselbe Sache, und
+   *  wer im Reiter startete, sah die Aufnahme danach nur dort mitlaufen. */
   schalterSetzen() {
     const b = this.schalter;
     if (!b) return;
-    b.disabled = false;                       // ab jetzt kennt er die Wahrheit
-    if (this.laeuft) {
-      b.textContent = '⏹ Aufzeichnung beenden';
-      b.classList.add('btn-danger');
-      b.classList.remove('btn-outline-light');
-      this.tickerStarten();
-    } else {
-      b.textContent = '⏺ Aufzeichnen';
-      b.classList.remove('btn-danger');
-      b.classList.add('btn-outline-light');
-      this.tickerStoppen();
-      if (this.lage) this.lage.textContent = '';
-    }
+    b.disabled = false;
+    b.classList.remove('btn-danger');
+    b.classList.add('btn-outline-light');
+    const da = Reiter.bereichSichtbar();
+    b.textContent = da ? '✓ Bereich ist eingeblendet'
+                       : '⏺ Aufzeichnung einblenden';
+    b.title = da
+      ? 'Der Bereich steht links oben im Menü - dort wird die Aufnahme gestartet'
+      : 'Blendet den Bereich links oben im Menü ein (startet noch nichts)';
+    if (this.laeuft) this.tickerStarten(); else this.tickerStoppen();
+    if (!this.laeuft && this.lage) this.lage.textContent = '';
+  }
+
+  /** Steht der Bereich in der Sidebar gerade sichtbar da? */
+  static bereichSichtbar() {
+    const el = document.getElementById('djb-aufz');
+    return !!el && !el.hidden;
   }
 
   /* Während der Aufnahme sekündlich zeigen, was zusammenkommt — sonst sieht
@@ -121,16 +133,12 @@ class Reiter {
 
   binden() {
     if (this.schalter) {
-      this.schalter.addEventListener('click', async () => {
-        this.schalter.disabled = true;       // kein zweiter Klick, bis es steht
-        if (this.laeuft) {
-          await senden({ aktion: 'ende' });
-        } else {
-          await senden({ aktion: 'start', seite: location.pathname });
-        }
-        await this.laden();
-        // Das Popup zeigt denselben Zustand (siehe
-        // aufzeichner_popup.js) - ohne diese Meldung liefe es weiter.
+      this.schalter.addEventListener('click', () => {
+        // NUR EINBLENDEN (Ansage 21.08.2026) - gestartet wird im Bereich selbst.
+        try { localStorage.setItem('djb-aufz-weg', '0'); } catch (e) { /* egal */ }
+        const el = document.getElementById('djb-aufz');
+        if (el) el.hidden = false;
+        this.schalterSetzen();
         document.dispatchEvent(new CustomEvent('djb-aufzeichnung-geaendert',
                                                { detail: { von: 'reiter' } }));
       });

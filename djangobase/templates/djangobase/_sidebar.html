@@ -5,6 +5,35 @@
             <span class="sidebar-user-name"><i class="bi bi-tag"></i> Version {{ djangobase.version }}</span>
         </div>{% endif %}
     </div>
+    {% comment %}
+    TESTAUFZEICHNUNG (Ansage Edgar, 21.08.2026)
+
+        „wir können die aufzeichnung auch in einem Bereich links oben im
+         Hauptmenü machen, mit einem X zum Beenden (X nur aktivierbar wenn die
+         Aufzeichnung beendet ist)."
+
+    Davor stand hier ein schwebendes Popup über der Seite. Es hat vier Fehler
+    produziert, die alle daher kamen, dass es ein Overlay war: eingefrorene
+    Transition, nicht neu berechneter Stil, Position/Größe merken, z-index. Als
+    Bereich in der Sidebar ist es normaler Seiteninhalt - und liegt über die
+    Shell trotzdem auf jeder Seite.
+
+    Das Markup steht ABSICHTLICH hier und wird nicht per JavaScript erzeugt: Der
+    Bereich ist dann schon beim ersten Rendern da, in seinem Ruhezustand, und es
+    gibt keinen Moment, in dem eine Zustandsänderung verloren gehen kann.
+    {% endcomment %}
+    <div class="djb-aufz" id="djb-aufz" data-djb-aufzeichner-ui="1" hidden>
+        <div class="djb-aufz-kopf">
+            <span class="djb-aufz-titel"><i class="bi bi-record-circle"></i> Testaufzeichnung</span>
+            <button type="button" class="djb-aufz-zuknopf" title="Bereich ausblenden">&times;</button>
+        </div>
+        <button type="button" class="djb-aufz-knopf">
+            <span class="djb-aufz-punkt"></span>
+            <span class="djb-aufz-text">Aufnahme</span>
+        </button>
+        <p class="djb-aufz-zaehler"></p>
+    </div>
+
     <ul class="nav flex-column">
         {% comment %}WICHTIG: Untermenü-Schlüssel heißt "untermenu" (NICHT "items"),
         da it.items in Django-Templates auf die dict.items-Methode auflöst und
