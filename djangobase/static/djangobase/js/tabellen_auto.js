@@ -55,11 +55,26 @@ export function tabellenBinden(wurzel) {
     // Eine kaputte Anbindung darf die Seite nicht mitnehmen - die Tabelle
     // funktioniert ohne Sortierung weiter.
   }
+  // DOPPELTE SCHLÜSSEL AUF DERSELBEN SEITE (21.08.2026): Eine Funktion, die
+  // mehrere Tabellen baut, vergibt leicht dreimal denselben Schlüssel - dann
+  // teilen sich drei Tabellen ihre gemerkten Breiten, und wer eine zieht,
+  // verstellt die anderen. Hier wird das aufgelöst UND gemeldet: Der
+  // Sicherheitsgurt soll die Ursache nicht verdecken.
+  const vergeben = new Set();
   w.querySelectorAll('table.sortable, table[data-sort-key]').forEach((t, nr) => {
     if (t.dataset.djbGebunden === '1') return;
     t.dataset.djbGebunden = '1';
-    const k = schluessel(t, nr);
-    if (!t.dataset.sortKey) t.dataset.sortKey = k;
+    let k = schluessel(t, nr);
+    if (vergeben.has(k)) {
+      let i = 2;
+      while (vergeben.has(k + '-' + i)) i++;
+      console.warn('[djangoBase] Sortier-Schlüssel %s ist auf dieser Seite '
+                   + 'mehrfach vergeben - die Tabellen teilten sich sonst ihre '
+                   + 'Spaltenbreiten. Benutzt wird %s.', k, k + '-' + i);
+      k = k + '-' + i;
+    }
+    vergeben.add(k);
+    t.dataset.sortKey = k;
     try {
       new TabellenBreiten([t], k).binden();
     } catch (e) { /* siehe oben */ }

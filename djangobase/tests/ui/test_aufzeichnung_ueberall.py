@@ -135,10 +135,21 @@ class SelbsteintragTest(SimpleTestCase):
         self.assertIn(AUFZEICHNUNG_MIDDLEWARE, list(settings.MIDDLEWARE),
                       u"djangobase.apps.ready() muss die Middleware nachtragen")
 
-    def test_steht_am_ende(self):
+    def test_steht_hinter_allen_fremden(self):
         u"""Sie schreibt in den fertigen Antwort-Inhalt. Weiter vorn käme sie an
-        Antworten, die spätere Middleware noch ersetzt (GZip etwa)."""
+        Antworten, die spätere Middleware noch ersetzt (GZip etwa).
+
+        NICHT „ganz am Ende" (Korrektur 21.08.2026): Seit die
+        Cache-Header-Middleware dazukam, steht eine zweite djangoBase-Middleware
+        dahinter — die setzt nur Header und ersetzt nichts. Verlangt ist, dass
+        keine FREMDE Middleware nach ihr kommt; alles andere wäre eine Regel
+        über die Reihenfolge zweier eigener Bausteine, die niemandem hilft."""
         from django.conf import settings
         from djangobase.apps import AUFZEICHNUNG_MIDDLEWARE
         kette = list(settings.MIDDLEWARE)
-        self.assertEqual(kette[-1], AUFZEICHNUNG_MIDDLEWARE)
+        i = kette.index(AUFZEICHNUNG_MIDDLEWARE)
+        danach = [m for m in kette[i + 1:] if not m.startswith("djangobase.")]
+        self.assertFalse(danach,
+                         u"Nach der Aufzeichnungs-Middleware stehen fremde "
+                         u"Middlewares: %s. Sie könnten die Antwort ersetzen, "
+                         u"nachdem die Module eingehängt wurden." % danach)
