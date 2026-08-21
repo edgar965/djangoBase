@@ -77,7 +77,16 @@ class Reiter {
     if (this.tabelle) {
       this.tabelle.innerHTML = this.tabelleHtml(liste);
       TabellenSortierung.binden(this.tabelle);
-      TabellenBreiten.binden(this.tabelle);
+      // BREITEN NUR ÜBER EINE INSTANZ (Fehler gefunden 21.08.2026): Hier stand
+      // ``TabellenBreiten.binden(this.tabelle)`` - eine statische Methode, die
+      // es nicht gibt. Das Modul kennt nur ``new TabellenBreiten(tabellen, key)``
+      // mit einer Instanz-Methode gleichen Namens. Der Aufruf warf einen
+      // TypeError, und weil er in ``zeichnen`` steht, brach das Zeichnen genau
+      // dort ab: Die Tabelle hatte NIE ziehbare Spalten, und in der Konsole lag
+      // bei jedem Neuaufbau ein Fehler. Gemeldet hat es Edgar - „Die Tabelle
+      // sollte von djangoBase tabelle erben, als z.B. Spalten verschiebbar".
+      const t = this.tabelle.querySelector('table');
+      if (t) new TabellenBreiten([t], t.dataset.sortKey || 'aufzeichnungen').binden();
     }
   }
 
@@ -161,6 +170,14 @@ class Reiter {
           await senden({ aktion: 'start', seite: location.pathname });
         }
         await this.laden();
+        // Der schwebende Knopf zeigt denselben Zustand (siehe
+        // aufzeichner_knopf.js) - ohne diese Meldung liefe er weitere.
+        document.dispatchEvent(new CustomEvent('djb-aufzeichnung-geaendert',
+                                               { detail: { von: 'reiter' } }));
+      });
+      document.addEventListener('djb-aufzeichnung-geaendert', (ev) => {
+        if (ev.detail && ev.detail.von === 'reiter') return;
+        this.laden();
       });
     }
     if (!this.tabelle) return;

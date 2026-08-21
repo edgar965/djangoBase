@@ -8,13 +8,22 @@ Schreibt rotierende Dateien (django.log, error.log) ins Log-Verzeichnis —
 genau die, die die Hilfe→Logs-Seite anzeigt.
 
 Multi-Process/Multi-Thread-Sicherheit:
-    Wenn das optionale Paket ``concurrent_log_handler`` installiert ist
-    (``pip install concurrent-log-handler``), wird
-    ``ConcurrentRotatingFileHandler`` (portalocker-basiert) statt stdlib
-    ``RotatingFileHandler`` genutzt. Damit sind Projekte mit >10 Threads,
-    die parallel ins Log schreiben, sicher vor dem Windows-Rotate-
-    Cycle-Deadlock (Symptom: ~30-60 s Stalls beim Rotate). Single-Thread-
-    Projekte brauchen das Paket nicht; der stdlib-Fallback reicht.
+    ``concurrent_log_handler`` (portalocker-basiert) statt stdlib
+    ``RotatingFileHandler``. Seit dem 20.08.2026 eine feste Abhaengigkeit,
+    nicht mehr optional.
+
+    WARUM (Befund shortlongx, 20.08.2026): Nicht nur Threads teilen sich die
+    Datei - SCHON ZWEI PROZESSE reichen. Laeuft ein Werkzeug neben dem Server
+    (der Normalfall: Messskripte, Management-Commands, Testlaeufe), halten
+    beide dieselbe rotierende Datei offen, und unter Windows kann nur einer
+    umbenennen. Ein einziger Testlauf erzeugte 107 Meldungen
+
+        PermissionError: [WinError 32] … django.log -> django.log.1
+
+    Waehrend der Kollision gehen Logzeilen verloren, und die Ausgabe des
+    Werkzeugs wird mit Tracebacks zugeschuettet. Der stdlib-Fallback bleibt
+    als Notnagel stehen, falls das Paket in einer Umgebung fehlt - dann ist
+    das Verhalten wie vorher.
 """
 import os
 

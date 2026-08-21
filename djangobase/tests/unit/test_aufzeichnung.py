@@ -85,6 +85,98 @@ class AufzeichnungTest(SimpleTestCase):
         self.assertFalse(self.s.loeschen(a.id))                # zweimal geht nicht
 
 
+class VerdichtungTest(SimpleTestCase):
+    u"""Wiederkehrende Abrufe zaehlen, statt die Aufnahme zu fluten.
+
+    DER MESSWERT (21.08.2026, ShortLongX): Die Paper-Seite fragt im Sekundentakt
+    drei Endpunkte ab. **Sechs Sekunden Klicken ergaben 115 Schritte**, davon rund
+    hundert Poll-Wiederholungen - der daraus gebaute Testfall haette hundertmal
+    dasselbe geprueft und die zwei Klicks verloren, um die es ging. Nach der
+    Verdichtung: 17,6 Sekunden mit zwei Klicks ergaben **12 Schritte**.
+
+    Die Faelle unten sind genau die drei Arten, wie eine Verdichtung falsch
+    waere: zu viel (Klicks verschlucken), zu grob (ueber Abschnittsgrenzen
+    hinweg) und zu blind (einen Fehlerstatus mit einem Erfolg verschmelzen)."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.bestand = Aufzeichnungen(Path(self._tmp.name) / "auf.json")
+        self.s = Steuerung(self.bestand)
+        self.a, _ = self.s.starten(seite="/depot/ib-paper/")
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def _abruf(self, pfad="/api/ib/auto/", status=200, t=1.0):
+        return {"art": "abruf", "methode": "GET", "pfad": pfad,
+                "status": status, "t": t}
+
+    def _schritte(self):
+        return [a for a in self.bestand.alle() if a.id == self.a.id][0].schritte
+
+    def test_wiederholter_poll_wird_gezaehlt(self):
+        self.s.anhaengen(self.a.id, [self._abruf(t=i) for i in range(1, 21)])
+        schritte = self._schritte()
+        self.assertEqual(len(schritte), 1, "20 gleiche Polls muessen EIN Schritt sein")
+        self.assertEqual(schritte[0]["n"], 20)
+
+    def test_abwechselnde_endpunkte_bleiben_getrennt(self):
+        u"""Der Grund, warum die Verdichtung auf dem Server sitzt: Im Browser
+        wechseln sich die Endpunkte ab (A, B, C, A, B, C) - ein Vergleich mit dem
+        unmittelbaren Vorgaenger griffe nie."""
+        folge = []
+        for i in range(4):
+            for pfad in ("/api/a/", "/api/b/", "/api/c/"):
+                folge.append(self._abruf(pfad, t=i))
+        self.s.anhaengen(self.a.id, folge)
+        schritte = self._schritte()
+        self.assertEqual(len(schritte), 3)
+        self.assertEqual(sorted(x["n"] for x in schritte), [4, 4, 4])
+
+    def test_klick_bleibt_eigener_schritt(self):
+        u"""Klicks sind der Inhalt der Aufnahme. Wuerden sie zusammengefasst,
+        waere zweimal Druecken nicht mehr von einmal zu unterscheiden."""
+        self.s.anhaengen(self.a.id, [
+            {"art": "klick", "ziel": "#los", "text": "Los", "t": 1.0},
+            {"art": "klick", "ziel": "#los", "text": "Los", "t": 2.0},
+        ])
+        arten = [x["art"] for x in self._schritte()]
+        self.assertEqual(arten, ["klick", "klick"])
+
+    def test_abrufe_zaehlen_nur_bis_zum_naechsten_klick(self):
+        u"""Sonst verschmelzen die Abrufe einer halben Stunde zu einer Zeile und
+        die Aussage „nach DIESEM Klick kamen DIESE Abrufe" geht verloren."""
+        self.s.anhaengen(self.a.id, [
+            self._abruf(t=1), self._abruf(t=2),
+            {"art": "klick", "ziel": "#weiter", "t": 3.0},
+            self._abruf(t=4), self._abruf(t=5),
+        ])
+        schritte = self._schritte()
+        self.assertEqual([x["art"] for x in schritte], ["abruf", "klick", "abruf"])
+        self.assertEqual(schritte[0]["n"], 2)
+        self.assertEqual(schritte[2]["n"], 2)
+
+    def test_anderer_status_faellt_nicht_zusammen(self):
+        u"""Ein Poll, der ploetzlich 500 liefert, ist die interessanteste Zeile
+        der ganzen Aufnahme - sie darf nicht in der Erfolgszeile verschwinden."""
+        self.s.anhaengen(self.a.id, [
+            self._abruf(status=200, t=1), self._abruf(status=200, t=2),
+            self._abruf(status=500, t=3),
+        ])
+        schritte = self._schritte()
+        self.assertEqual(len(schritte), 2)
+        self.assertEqual([x["status"] for x in schritte], [200, 500])
+
+    def test_zaehler_des_browsers_kommt_an(self):
+        u"""Der Browser verdichtet direkt aufeinanderfolgende Wiederholungen
+        selbst. Ginge ``n`` bei der Pruefung verloren, waere die Zahl still zu
+        klein - eine Aufnahme, die weniger behauptet, als passiert ist."""
+        self.s.anhaengen(self.a.id, [dict(self._abruf(t=1), n=7, t_bis=9.0)])
+        schritte = self._schritte()
+        self.assertEqual(schritte[0]["n"], 7)
+        self.assertEqual(schritte[0]["t_bis"], 9.0)
+
+
 class TestfallTest(SimpleTestCase):
     u"""Der erzeugte Quelltext."""
 

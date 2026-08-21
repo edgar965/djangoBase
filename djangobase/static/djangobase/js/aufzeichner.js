@@ -40,6 +40,12 @@ const TAKT_MS = 3000;
 /* Felder, deren Inhalt nie gespeichert wird. */
 const GEHEIM = /pass|kennwort|secret|token|api[-_]?key/i;
 
+/* Die eigene Bedienung zeichnet sich NICHT selbst auf. Ohne das stünde in jeder
+ * Aufnahme als erster Schritt der Klick auf „Aufzeichnen" und als letzter der
+ * auf „Beenden" - zwei Schritte, die der erzeugte Testfall nachspielen würde,
+ * und die mit dem aufgezeichneten Weg nichts zu tun haben. */
+const EIGEN = '[data-djb-aufzeichner-ui]';
+
 class Aufzeichner {
   constructor(id, start) {
     this.id = id;
@@ -78,7 +84,28 @@ class Aufzeichner {
     return v.length > 120 ? v.slice(0, 120) + '…' : v;
   }
 
+  /** Ein Ereignis vormerken - Wiederholungen desselben Abrufs verdichtet.
+   *
+   *  WARUM VERDICHTET (gemessen 21.08.2026): Auf der Paper-Seite fragt die
+   *  Oberfläche im SEKUNDENTAKT nach Konto, Automatik und Chart. Sechs Sekunden
+   *  Klicken ergaben deshalb **115 Schritte**, von denen rund hundert derselbe
+   *  Poll waren. Ein daraus gebauter Testfall prüfte hundertmal dasselbe und
+   *  vergäbe den Blick auf die zwei Klicks, um die es ging.
+   *
+   *  Zusammengefasst wird nur, was DIREKT hintereinander kommt und in Methode,
+   *  Pfad und Status übereinstimmt - dann steht ``n`` dafür, wie oft. Ein
+   *  Poll, der plötzlich 500 liefert, bricht die Kette und bleibt sichtbar;
+   *  genau der wäre die interessante Zeile. Klicks und Eingaben werden NIE
+   *  zusammengefasst: Zweimal auf denselben Knopf ist etwas anderes als einmal. */
   merken(ereignis) {
+    const letzter = this.puffer[this.puffer.length - 1];
+    if (ereignis.art === 'abruf' && letzter && letzter.art === 'abruf'
+        && letzter.methode === ereignis.methode && letzter.pfad === ereignis.pfad
+        && letzter.status === ereignis.status) {
+      letzter.n = (letzter.n || 1) + 1;
+      letzter.t_bis = this._t();
+      return;
+    }
     this.puffer.push(Object.assign({ t: this._t() }, ereignis));
     if (this.puffer.length >= 40) this.senden();      // Stoßverkehr nicht stauen
   }
@@ -108,7 +135,7 @@ class Aufzeichner {
 
     document.addEventListener('click', ev => {
       const el = ev.target.closest('button, a, [role="button"], input[type="checkbox"], input[type="radio"]');
-      if (!el) return;
+      if (!el || el.closest(EIGEN)) return;
       this.merken({ art: 'klick', ziel: Aufzeichner._kennung(el),
                     text: Aufzeichner._text(el),
                     seite: location.pathname });
@@ -116,7 +143,7 @@ class Aufzeichner {
 
     document.addEventListener('change', ev => {
       const el = ev.target;
-      if (!el || !el.tagName) return;
+      if (!el || !el.tagName || el.closest(EIGEN)) return;
       const tag = el.tagName.toLowerCase();
       if (tag === 'select') {
         this.merken({ art: 'auswahl', ziel: Aufzeichner._kennung(el),
@@ -156,6 +183,24 @@ class Aufzeichner {
     });
 
     this.timer = setInterval(() => this.senden(), TAKT_MS);
+  }
+
+  /** Aufnahme beenden, ohne die Seite neu zu laden.
+   *
+   *  DIE HUELLE MUSS ZURUECK (sonst bleibt sie fuer immer liegen): Beim Start
+   *  ersetzt ``starten`` das globale ``fetch`` durch eine mitschreibende
+   *  Fassung. Wer nur den Timer abschaltet, laesst diese Huelle stehen - sie
+   *  meldet dann an eine beendete Aufnahme, und die naechste Aufnahme legt eine
+   *  ZWEITE Huelle darueber. Nach drei Laeufen liefe jeder Abruf der Seite durch
+   *  drei Schichten.
+   *
+   *  Der Rest des Puffers geht noch raus: Der letzte Klick ist meistens der
+   *  interessanteste - er ist der Grund, warum aufgezeichnet wurde. */
+  async stoppen() {
+    if (this.timer) { clearInterval(this.timer); this.timer = null; }
+    if (this._fetchEcht) { window.fetch = this._fetchEcht; this._fetchEcht = null; }
+    await this.senden();
+    if (window.__djbAufzeichner === this) window.__djbAufzeichner = null;
   }
 }
 

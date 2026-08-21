@@ -17,6 +17,8 @@
     <link rel="stylesheet" href="{% static 'djangobase/css/sidebar.css' %}">
     <link rel="stylesheet" href="{% static 'djangobase/css/themes.css' %}">
     <link rel="stylesheet" href="{% static 'djangobase/css/toasts.css' %}">
+    {# Der schwebende Aufzeichnen-Knopf liegt über jeder Seite (siehe unten). #}
+    <link rel="stylesheet" href="{% static 'djangobase/css/aufzeichner.css' %}?v={{ djangobase.statik_v }}">
     {% endblock %}
 
     {# Farb-Variablen aus DJANGOBASE["farben"]. #}
@@ -118,8 +120,16 @@
 
     Er kostet nichts, wenn nichts läuft: eine Abfrage beim Laden, und nur bei
     laufender Aufnahme werden Zuhörer angemeldet.
+
+    DER KNOPF DAZU SCHWEBT EBENFALLS AUF JEDER SEITE (Nachtrag 21.08.2026):
+    „Ein Popup bauen, das die ganze Zeit über der Webseite ist. Darin ein Button
+    mit aufzeichnen anzeigen." Vorher stand der Schalter nur im Reiter unter
+    Hilfe → Tests — damit war das Werkzeug für seinen Zweck unbrauchbar: Wer
+    erst dorthin navigieren muss, um zu starten, kann den Weg, der ihn
+    interessiert, nie aufzeichnen.
     {% endcomment %}
     <script type="module" src="{% static 'djangobase/js/aufzeichner.js' %}?v={{ djangobase.statik_v }}"></script>
+    <script type="module" src="{% static 'djangobase/js/aufzeichner_knopf.js' %}?v={{ djangobase.statik_v }}"></script>
     {% endblock %}
     {% comment %}extra_body_js: Projekt-spezifische Scripts am Body-Ende.
     Eintrag = Static-Pfad-String, oder Dict {static:"..."} oder Dict

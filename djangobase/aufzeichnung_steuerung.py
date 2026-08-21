@@ -72,10 +72,57 @@ class Steuerung:
                     frei = self.bestand.MAX_SCHRITTE - len(a.schritte)
                     if frei <= 0:
                         return 0
-                    a.schritte.extend(sauber[:frei])
+                    n = self._einfuegen(a.schritte, sauber[:frei])
                     self.bestand._schreiben(liste)
-                    return min(frei, len(sauber))
+                    return n
         return 0
+
+    #: Ereignisse, die einen neuen Abschnitt beginnen - alles danach gehoert zu
+    #: IHNEN. Ein Abruf wird nur innerhalb desselben Abschnitts zusammengefasst.
+    MARKEN = ("klick", "eingabe", "auswahl", "seite")
+
+    @classmethod
+    def _einfuegen(cls, vorhandene, neue):
+        u"""Neue Ereignisse anhaengen - wiederkehrende Abrufe dabei ZAEHLEN.
+
+        WARUM (gemessen 21.08.2026, ShortLongX): Die Paper-Seite fragt im
+        Sekundentakt drei Endpunkte ab. Sechs Sekunden Klicken ergaben **115
+        Schritte**, davon rund hundert Poll-Wiederholungen - ein daraus gebauter
+        Testfall pruefte hundertmal dasselbe und verlor die zwei Klicks, um die
+        es ging.
+
+        Die Verdichtung gehoert HIERHER und nicht in den Browser: Dort wechseln
+        sich die Endpunkte ab (A, B, C, A, B, C), ein Vergleich mit dem
+        unmittelbaren Vorgaenger griffe nie, und der Puffer geht ohnehin alle
+        drei Sekunden raus. Serverseitig liegt die ganze Liste vor.
+
+        ABSCHNITTSWEISE (das ist der Punkt): Gezaehlt wird nur bis zum letzten
+        Klick/Seitenwechsel. Damit bleibt die Aussage erhalten, die ein Testfall
+        braucht - „nach DIESEM Klick kamen DIESE Abrufe" -, statt alle Abrufe
+        einer halben Stunde in einer Zeile zu verschmelzen.
+
+        Ein Abruf mit anderem Status faellt NICHT zusammen: Ein Poll, der
+        ploetzlich 500 liefert, ist die interessanteste Zeile der Aufnahme."""
+        neu_gezaehlt = 0
+        for s in neue:
+            treffer = None
+            if s.get("art") == "abruf":
+                for alt in reversed(vorhandene):
+                    if alt.get("art") in cls.MARKEN:
+                        break                       # Abschnittsgrenze erreicht
+                    if (alt.get("art") == "abruf"
+                            and alt.get("methode") == s.get("methode")
+                            and alt.get("pfad") == s.get("pfad")
+                            and alt.get("status") == s.get("status")):
+                        treffer = alt
+                        break
+            if treffer is not None:
+                treffer["n"] = int(treffer.get("n") or 1) + int(s.get("n") or 1)
+                treffer["t_bis"] = s.get("t_bis", s.get("t"))
+                continue
+            vorhandene.append(s)
+            neu_gezaehlt += 1
+        return neu_gezaehlt
 
     @classmethod
     def _pruefen(cls, s):
@@ -104,6 +151,17 @@ class Steuerung:
                 aus["status"] = int(s["status"])
             except (TypeError, ValueError):
                 pass
+        # ``n``/``t_bis`` tragen die Verdichtung des Browsers. Ohne sie hier
+        # durchzulassen, kaeme jede zusammengefasste Wiederholung als EIN
+        # Ereignis an - die Zahl waere still falsch.
+        for feld, grenze in (("n", 100000), ("t_bis", None)):
+            if s.get(feld) is None:
+                continue
+            try:
+                wert = int(s[feld]) if grenze else round(float(s[feld]), 2)
+            except (TypeError, ValueError):
+                continue
+            aus[feld] = min(wert, grenze) if grenze else wert
         return aus
 
     # ----------------------------------------------------------------- Ende

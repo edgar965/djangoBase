@@ -11,7 +11,14 @@ requires-python = ">=3.10"
 # sind ImageFields, und Django bricht ohne Pillow schon bei `manage.py check`
 # ab (fields.E210) - das Projekt startet gar nicht erst. Stand bis 18.08.2026
 # nicht hier drin; ein frisches `pip install djangobase` war damit unbenutzbar.
-dependencies = ["Django>=4.2", "Pillow"]
+# concurrent-log-handler ist KEINE Kür (Befund 20.08.2026, shortlongx):
+# Sobald ein Werkzeug oder ein Management-Command NEBEN dem Server läuft,
+# halten zwei Prozesse dieselbe rotierende Logdatei offen — und unter Windows
+# kann nur einer sie umbenennen. Ein Testlauf erzeugte so 107 Meldungen
+#     PermissionError: [WinError 32] … django.log -> django.log.1
+# und verlor dabei Logzeilen. Genau das ist der Normalfall, nicht die Ausnahme:
+# Fast jedes Konsumenten-Projekt fährt Skripte neben dem laufenden Server.
+dependencies = ["Django>=4.2", "Pillow", "concurrent-log-handler>=0.9.20"]
 
 [tool.setuptools]
 include-package-data = true
