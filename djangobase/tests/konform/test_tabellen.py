@@ -33,6 +33,17 @@ Gemeldet wird deshalb nur, was nach Datentabelle aussieht:
     * trägt KEINE Klasse aus ``DOKU_KLASSEN``
     * steht nicht in einer Datei, die das Projekt ausdrücklich ausnimmt
 
+DIE REICHWEITE — UND WAS AUSSERHALB LIEGT
+========================================
+Geprüft werden **Vorlagen**. Tabellen, die JavaScript im Browser baut, stehen in
+keiner Vorlage und kommen hier nicht vor: ``/dax-handel/`` und
+``/handelssysteme/best-technik/`` liefern null Treffer, obwohl dort Tabellen
+stehen. Für die sorgt ``tabellen_auto.js`` (über die Middleware auf jeder
+Seite), das jede ``table.sortable`` anbindet und ihren Schlüssel ableitet.
+
+Beides zusammen deckt ab: Was im Markup steht, trägt seinen Schlüssel selbst;
+was im Browser entsteht, bekommt einen abgeleiteten.
+
 AUSNAHMEN
 =========
 ``DJANGOBASE_KONFORM_TABELLEN_AUS`` nimmt Dateien (Teilstrings des Pfads) aus.
@@ -154,10 +165,16 @@ class TabellenKonformTest(SimpleTestCase):
         return AUFZEICHNUNG_MIDDLEWARE in list(getattr(s, "MIDDLEWARE", []))
 
     def test_alle_merken_ihre_spaltenbreiten(self):
-        u"""Ziehbare Spalten — entweder über ``data-sort-key`` im Markup oder
-        über die automatische Anbindung."""
-        if self.auto_bindung_aktiv():
-            return
+        u"""``data-sort-key`` im Markup — auch wenn die Auto-Bindung läuft.
+
+        ``tabellen_auto.js`` leitet einen Schlüssel ab, wenn keiner dasteht, und
+        rettet damit jedes neue Template. Als ERSATZ taugt das trotzdem nicht:
+        Der abgeleitete Schlüssel hängt an der Position der Tabelle in der Seite
+        (``auto-dax-handel--0``). Wer eine Tabelle verschiebt oder eine davor
+        einfügt, verliert die gezogenen Breiten — lautlos.
+
+        Ein Schlüssel im Markup überlebt das. Die Auto-Bindung bleibt der
+        Sicherheitsgurt, nicht die Lösung."""
         ohne = [(p, a) for p, a in self.tabellen if "data-sort-key" not in a.lower()]
         if ohne:
             self.fail(self._melden(
