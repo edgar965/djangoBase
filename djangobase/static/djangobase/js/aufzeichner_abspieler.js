@@ -28,19 +28,19 @@
  *   klick     -> Element über den aufgezeichneten Selektor suchen und klicken
  *   eingabe   -> Wert setzen und `input`+`change` auslösen
  *   auswahl   -> dasselbe für `<select>`
- *   abruf     -> NICHT nachgefahren. Ein GET wäre harmlos, aber ein POST würde
- *                die Wirkung von damals ein zweites Mal auslösen. Abrufe sind
- *                Prüfpunkte, keine Aktionen; sie entstehen ohnehin von selbst,
- *                wenn die Klicks sie auslösen.
+ *   abruf     -> GEPRÜFT, nicht nachgefahren. Ein POST würde seine Wirkung ein
+ *                zweites Mal auslösen. Verglichen wird, was die nachgefahrenen
+ *                Klicks von selbst auslösen (siehe `beobachten`).
  *
  * MEHRDEUTIGE SELEKTOREN
  * ----------------------
  * Der Aufzeichner nimmt die stabilste Kennung, die er findet — bei einem Knopf
  * ohne id/name ist das `button.dax-tab`, und davon gibt es auf einer Seite
- * mehrere. Deshalb wird bei mehreren Treffern der mit dem aufgezeichneten TEXT
- * genommen. Findet sich keiner, wird der Schritt übersprungen und gezählt: Ein
- * Abspieler, der auf gut Glück irgendeinen Knopf drückt, ist gefährlicher als
- * einer, der zugibt, dass er etwas nicht gefunden hat.
+ * mehrere. Er macht sie deshalb selbst eindeutig (Anker mit ID davor, sonst
+ * die laufende Nummer als `nr`); hier gewinnt diese Nummer. Bleibt nur der
+ * Text und ist auch der mehrdeutig, wird NICHT geraten, sondern der Schritt als
+ * Fehlschlag gezählt: Ein falscher Klick geht als grün durch, ein gemeldeter
+ * Fehlschlag nicht.
  */
 const PFAD = '/hilfe/tests/aufzeichnung/';
 const LAUF = 'djb-aufz-lauf';       // {id, i, fehler, name} — überlebt Navigation
@@ -75,11 +75,79 @@ const esc = (t) => String(t == null ? '' : t)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;');
 
+/* ── Was WIRKLICH abgerufen wurde ──────────────────────────────────────────
+ *
+ * PUNKT 2 (Edgar, 21.08.2026): „Der Abspieler prueft nichts."
+ *
+ * Bis hierher fuhr er Klicks nach und meldete hoechstens „nicht gefunden". Die
+ * aufgezeichneten Abrufe - Pfad und Status - lagen ungenutzt daneben, obwohl
+ * genau sie die Zusicherung tragen, die aus einer Aufnahme wirklich folgt:
+ * „Nach DIESEM Klick kam /api/ib/trade-chart/ mit 200."
+ *
+ * Deshalb legt sich der Abspieler dieselbe Huelle um `window.fetch` wie der
+ * Aufzeichner und fuehrt Buch. Bei jedem `abruf`-Schritt wird verglichen; was
+ * fehlt oder mit anderem Status kam, zaehlt als abweichend und steht am Ende
+ * in der Bilanz.
+ *
+ * WARUM NICHT NACHFAHREN: Ein aufgezeichnetes POST wuerde seine Wirkung ein
+ * zweites Mal ausloesen - eine Order, ein geloeschtes System. Geprueft wird,
+ * was die nachgefahrenen KLICKS von selbst ausloesen. */
+const GESEHEN = [];
+let _fetchEcht = null;
+
+function beobachten() {
+  if (_fetchEcht) return;
+  _fetchEcht = window.fetch.bind(window);
+  window.fetch = async function (...args) {
+    const antwort = await _fetchEcht(...args);
+    try {
+      const url = new URL(typeof args[0] === 'string' ? args[0] : args[0].url,
+                          location.origin);
+      if (url.pathname !== PFAD) {          // den eigenen Kanal nicht mitzaehlen
+        GESEHEN.push({
+          methode: ((args[1] && args[1].method) || 'GET').toUpperCase(),
+          pfad: url.pathname,
+          status: antwort.status,
+        });
+        if (GESEHEN.length > 400) GESEHEN.splice(0, GESEHEN.length - 400);
+      }
+    } catch (e) { /* eine unlesbare URL ist kein Grund, den Abruf zu stoeren */ }
+    return antwort;
+  };
+}
+
+/** Kam dieser Abruf - und mit welchem Ergebnis?
+ *
+ *  Gesucht wird ueber die GANZE Seite hinweg, nicht nur seit dem letzten
+ *  Klick: Ein Abruf, den das Laden der Seite ausloest, steht in der Aufnahme
+ *  vor dem ersten Klick, kommt beim Abspielen aber waehrend der Navigation.
+ *  Ein Treffer wird verbraucht (`weg`), damit zwei gleiche Erwartungen nicht
+ *  von einem einzigen Abruf erfuellt werden. */
+function abrufPruefen(s) {
+  // EIN POLL IST KEINE STÜCKZAHL (Fehlalarm gemessen 21.08.2026): Steht in der
+  // Aufnahme ``n > 1``, war das ein wiederkehrender Abruf im Sekundentakt -
+  // fünfmal Chart, neunmal Automatik. Der Abspieler läuft schneller durch und
+  // sieht davon weniger; die erste Fassung meldete deshalb „kam nicht", obwohl
+  // der Pfad sehr wohl geantwortet hatte. Bei einem Poll zählt: kam er
+  // überhaupt, und mit welchem Status. Nur ein EINZELNER Abruf wird verbraucht,
+  // damit zwei getrennte Erwartungen nicht von einem Treffer erfüllt werden.
+  const poll = (s.n || 1) > 1;
+  const passt = g => g.pfad === s.pfad && g.methode === (s.methode || 'GET');
+  const i = GESEHEN.findIndex(g => passt(g) && (poll || !g.weg));
+  if (i < 0) return { fehlt: true };
+  if (!poll) GESEHEN[i].weg = true;
+  const ist = GESEHEN[i].status;
+  return (s.status == null || ist === s.status)
+    ? { ok: true }
+    : { status: ist, erwartet: s.status };
+}
+
 export class Abspieler {
   /** Einen Lauf beginnen — von der Liste oder aus dem Bereich. */
   static async starten(id, name) {
-    schreib({ id, i: 0, fehler: 0, name: name || id });
+    schreib({ id, i: 0, fehler: 0, abweichungen: [], name: name || id });
     Abspieler.bereichZeigen();
+    beobachten();
     await Abspieler.weiter();
   }
 
@@ -92,7 +160,10 @@ export class Abspieler {
   static async fortsetzen() {
     Abspieler.binden();
     Abspieler.zeichnen();
-    if (lies()) await Abspieler.weiter();
+    // Die Huelle MUSS vor dem ersten Schritt stehen, sonst entgehen ihr die
+    // Abrufe, die das Laden dieser Seite ausloest - und genau die stehen in
+    // der Aufnahme direkt hinter dem `seite`-Schritt.
+    if (lies()) { beobachten(); await Abspieler.weiter(); }
   }
 
   /** Den nächsten Schritt ausführen — und den danach, bis eine Navigation kommt. */
@@ -129,7 +200,24 @@ export class Abspieler {
 
   /** Einen einzelnen Schritt ausführen. -> false, wenn navigiert wurde. */
   static async schritt(s, lauf) {
-    if (s.art === 'abruf') return true;        // Prüfpunkt, keine Aktion
+    if (s.art === 'abruf') {
+      // Erst kurz Luft lassen: Der Klick davor hat den Abruf gerade erst
+      // angestossen, und `fetch` braucht seine Zeit.
+      await schlafen(400);
+      const urteil = abrufPruefen(s);
+      if (!urteil.ok) {
+        const stand = lies();
+        if (stand) {
+          const abw = (stand.abweichungen || []).concat([{
+            pfad: s.pfad,
+            was: urteil.fehlt ? 'kam nicht'
+                              : urteil.status + ' statt ' + urteil.erwartet,
+          }]);
+          schreib({ ...stand, abweichungen: abw.slice(0, 40) });
+        }
+      }
+      return true;
+    }
 
     if (s.art === 'seite') {
       const ziel = s.seite || '/';
@@ -171,8 +259,18 @@ export class Abspieler {
       treffer = treffer.filter(el => !el.closest('[data-djb-aufzeichner-ui]'));
       if (treffer.length === 1) return treffer[0];
       if (treffer.length > 1) {
+        // DIE NUMMER GEWINNT (21.08.2026): Der Aufzeichner legt sie nur an,
+        // wenn sein Selektor mehrdeutig blieb - dann zeigt sie auf genau ein
+        // Element. Vorher entschied allein der Text, und bei zwei Knöpfen mit
+        // gleicher Beschriftung wurde der erste geklickt: Der Schritt galt als
+        // ausgeführt, geprüft wurde etwas anderes.
+        if (typeof s.nr === 'number' && treffer[s.nr]) return treffer[s.nr];
         const text = (s.text || '').trim();
-        return treffer.find(el => (el.textContent || '').trim() === text) || treffer[0];
+        const passend = treffer.filter(el => (el.textContent || '').trim() === text);
+        if (passend.length === 1) return passend[0];
+        // Weder Nummer noch eindeutiger Text: NICHT raten. Ein falscher Klick
+        // ist schlimmer als ein gemeldeter Fehlschlag.
+        return null;
       }
       await schlafen(200);
     }
@@ -273,8 +371,16 @@ export class Abspieler {
 
     if (stand && stand.fertig) {
       const f = stand.fertig.fehler || 0;
-      lage.innerHTML = 'fertig · <b>' + stand.gesamt + '</b> Schritte'
-        + (f ? ' · <span class="djb-absp-fehler">' + f + ' nicht gefunden</span>' : '');
+      const abw = (stand.fertig.abweichungen || []).length;
+      const gut = !f && !abw;
+      lage.innerHTML = (gut ? '✓ ' : '') + 'fertig · <b>' + stand.gesamt
+        + '</b> Schritte'
+        + (f ? ' · <span class="djb-absp-fehler">' + f + ' nicht gefunden</span>' : '')
+        + (abw ? ' · <span class="djb-absp-fehler" title="'
+                 + esc((stand.fertig.abweichungen || [])
+                       .map(a => a.pfad + ': ' + a.was).join('\n'))
+                 + '">' + abw + ' Abruf' + (abw === 1 ? '' : 'e')
+                 + ' abweichend</span>' : '');
     } else if (stand && stand.lauf) {
       const s = stand.schritt || {};
       lage.innerHTML = '<b>' + (stand.lauf.i + 1) + '/' + stand.gesamt + '</b> · '

@@ -180,6 +180,14 @@ class Steuerung:
         # ``n``/``t_bis`` tragen die Verdichtung des Browsers. Ohne sie hier
         # durchzulassen, kaeme jede zusammengefasste Wiederholung als EIN
         # Ereignis an - die Zahl waere still falsch.
+        # ``nr`` = der wievielte Treffer des Selektors (nur bei mehrdeutigen
+        # Kennungen gesetzt, siehe Aufzeichner._eindeutig). Ohne dieses Feld
+        # käme der Abspieler auf ein anderes Element als aufgezeichnet.
+        if s.get("nr") is not None:
+            try:
+                aus["nr"] = max(0, min(int(s["nr"]), 9999))
+            except (TypeError, ValueError):
+                pass
         for feld, grenze in (("n", 100000), ("t_bis", None)):
             if s.get(feld) is None:
                 continue

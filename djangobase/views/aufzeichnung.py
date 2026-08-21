@@ -30,6 +30,7 @@ from django.views import View
 from ..aufzeichnung import Aufzeichnungen
 from ..aufzeichnung_logs import LogFenster
 from ..aufzeichnung_steuerung import Steuerung
+from ..aufzeichnung_testfall import Testfall
 from ..mixins import ZugriffMixin
 
 log = logging.getLogger("djangobase.tests")
@@ -107,6 +108,26 @@ class AufzeichnungView(ZugriffMixin, View):
             return JsonResponse({"ok": False, "fehler": "nicht gefunden oder leerer Name"},
                                 status=404)
         return JsonResponse({"ok": True, "eintrag": a.kurz()})
+
+    def _testfall(self, d):
+        u"""Aus einer Aufzeichnung eine Testdatei schreiben (Ansage 21.08.2026).
+
+        Bis dahin ging das nur über ``manage.py testfall_aus_aufzeichnung``.
+        Die Antwort nennt Pfad und Zahl der geprüften Abrufe - der Knopf soll
+        nicht verschleiern, dass hier Quelltext im Projekt entsteht."""
+        from ..aufzeichnung_ablage import TestfallAblage
+        a = Aufzeichnungen().holen(str(d.get("id") or ""))
+        if a is None:
+            return JsonResponse({"ok": False, "fehler": "nicht gefunden"},
+                                status=404)
+        if not a.schritte:
+            return JsonResponse({"ok": False,
+                                 "fehler": "Diese Aufzeichnung hat keine Schritte"},
+                                status=400)
+        pfad, meldung = TestfallAblage().ablegen(Testfall(a))
+        if pfad is None:
+            return JsonResponse({"ok": False, "fehler": meldung}, status=400)
+        return JsonResponse({"ok": True, "meldung": meldung, "pfad": str(pfad)})
 
     def _loeschen(self, d):
         if not Steuerung().loeschen(str(d.get("id") or "")):

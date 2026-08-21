@@ -70,7 +70,56 @@ class Aufzeichner {
     if (el.dataset && el.dataset.test) return '[data-test="' + el.dataset.test + '"]';
     if (el.name) return el.tagName.toLowerCase() + '[name="' + el.name + '"]';
     const klasse = (el.className || '').toString().trim().split(/\s+/)[0];
-    return el.tagName.toLowerCase() + (klasse ? '.' + klasse : '');
+    const einfach = el.tagName.toLowerCase() + (klasse ? '.' + klasse : '');
+    return Aufzeichner._eindeutig(el, einfach);
+  }
+
+  /** Aus einem mehrdeutigen Selektor einen eindeutigen machen.
+   *
+   *  DAS PROBLEM (21.08.2026): `button.dax-tab` gibt es auf der Dax-Seite
+   *  viermal. Der Abspieler löste das über den sichtbaren TEXT auf - und nahm
+   *  bei gleichem Text den ersten Treffer. Dann klickt er den falschen Knopf,
+   *  ohne dass jemand es merkt: Der Schritt gilt als ausgeführt, der Testfall
+   *  als grün, und geprüft wurde etwas anderes.
+   *
+   *  Zwei Stufen, in dieser Reihenfolge:
+   *
+   *  1. **Anker mit ID davor.** Findet sich ein Vorfahr mit ``id``, wird er
+   *     vorangestellt (`#panel button.dax-tab`). Das überlebt einen Umbau
+   *     besser als eine Positionsangabe - ein neuer Knopf DAVOR verschiebt
+   *     keinen Index.
+   *  2. **Position als letzte Rettung.** Bleibt es mehrdeutig, kommt die
+   *     laufende Nummer unter den Treffern dazu (``nr``). Sie ist zerbrechlich,
+   *     aber ehrlich: Sie zeigt auf genau ein Element.
+   *
+   *  Ist der einfache Selektor schon eindeutig, bleibt er unverändert - jede
+   *  Zusatzangabe wäre eine weitere Stelle, die beim nächsten Umbau bricht. */
+  static _eindeutig(el, einfach) {
+    try {
+      if (document.querySelectorAll(einfach).length <= 1) return einfach;
+    } catch (e) {
+      return einfach;                    // unbrauchbarer Selektor - nicht schlimmer machen
+    }
+    for (let v = el.parentElement; v; v = v.parentElement) {
+      if (!v.id) continue;
+      const mitAnker = '#' + v.id + ' ' + einfach;
+      try {
+        if (document.querySelectorAll(mitAnker).length === 1) return mitAnker;
+      } catch (e) { /* weiter oben suchen */ }
+      break;                             // der nächste Anker reicht oder keiner
+    }
+    return einfach;                      // Position trägt ``_nr`` bei (s. merken)
+  }
+
+  /** Der wievielte Treffer des Selektors ist dieses Element? (-1 = unbekannt) */
+  static _nr(el, ziel) {
+    if (!ziel) return -1;
+    try {
+      const alle = [...document.querySelectorAll(ziel)];
+      return alle.length > 1 ? alle.indexOf(el) : -1;
+    } catch (e) {
+      return -1;
+    }
   }
 
   static _text(el) {
@@ -136,21 +185,24 @@ class Aufzeichner {
     document.addEventListener('click', ev => {
       const el = ev.target.closest('button, a, [role="button"], input[type="checkbox"], input[type="radio"]');
       if (!el || el.closest(EIGEN)) return;
-      this.merken({ art: 'klick', ziel: Aufzeichner._kennung(el),
-                    text: Aufzeichner._text(el),
-                    seite: location.pathname });
+      const ziel = Aufzeichner._kennung(el);
+      const nr = Aufzeichner._nr(el, ziel);
+      this.merken({ art: 'klick', ziel, text: Aufzeichner._text(el),
+                    seite: location.pathname,
+                    ...(nr >= 0 ? { nr } : {}) });
     }, true);
 
     document.addEventListener('change', ev => {
       const el = ev.target;
       if (!el || !el.tagName || el.closest(EIGEN)) return;
       const tag = el.tagName.toLowerCase();
+      const ziel = Aufzeichner._kennung(el);
+      const nr = Aufzeichner._nr(el, ziel);
+      const zusatz = nr >= 0 ? { nr } : {};
       if (tag === 'select') {
-        this.merken({ art: 'auswahl', ziel: Aufzeichner._kennung(el),
-                      wert: Aufzeichner._wert(el) });
+        this.merken({ art: 'auswahl', ziel, wert: Aufzeichner._wert(el), ...zusatz });
       } else if (tag === 'input' || tag === 'textarea') {
-        this.merken({ art: 'eingabe', ziel: Aufzeichner._kennung(el),
-                      wert: Aufzeichner._wert(el) });
+        this.merken({ art: 'eingabe', ziel, wert: Aufzeichner._wert(el), ...zusatz });
       }
     }, true);
 

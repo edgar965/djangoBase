@@ -111,11 +111,13 @@ export class AufzeichnungsListe {
       case 'logs':
         return `<td class="num">${e.n_logs}</td>`;
       default:
-        // Play und Löschen in EINER Spalte - die Tabelle steht im Reiter neben
-        // sechs anderen, und jede weitere Spalte kostet dort Breite.
+        // Play, Test-Speichern und Löschen in EINER Spalte - die Tabelle steht
+        // im Reiter neben sechs anderen, jede weitere Spalte kostet Breite.
         return `<td class="au-tun"><button type="button" class="au-play"`
              + ` data-id="${esc(e.id)}" data-name="${esc(e.name)}"`
              + ` title="Aufzeichnung im UI nachfahren">▶</button>`
+             + `<button type="button" class="au-test" data-id="${esc(e.id)}"`
+             + ` title="Als Testfall in die Suite schreiben">⤓</button>`
              + `<button type="button" class="djb-aufz-weg au-weg"`
              + ` data-id="${esc(e.id)}" title="Aufzeichnung löschen">✕</button></td>`;
     }
@@ -173,6 +175,31 @@ export class AufzeichnungsListe {
           return;
         }
         await Abspieler.starten(play.dataset.id, play.dataset.name);
+        return;
+      }
+      const test = ev.target.closest('button.au-test');
+      if (test) {
+        // Hier entsteht QUELLTEXT im Projekt. Der Knopf sagt danach, WO die
+        // Datei liegt und wie viele Abrufe sie prüft - er soll nicht
+        // verschleiern, dass etwas Bleibendes geschrieben wurde.
+        test.disabled = true;
+        const antwort = await this.senden({ aktion: 'testfall', id: test.dataset.id });
+        test.disabled = false;
+        const zeile = test.closest('tr');
+        const melden = (txt, gut) => {
+          let p = zeile.nextElementSibling;
+          if (!p || !p.classList.contains('au-meldung')) {
+            p = document.createElement('tr');
+            p.className = 'au-meldung';
+            p.innerHTML = '<td colspan="9"></td>';
+            zeile.after(p);
+          }
+          const zelle = p.querySelector('td');
+          zelle.textContent = txt;
+          zelle.className = gut ? 'au-gut' : 'au-schlecht';
+        };
+        if (antwort && antwort.ok) melden(antwort.meldung + ' → ' + antwort.pfad, true);
+        else melden((antwort && antwort.fehler) || 'Fehlgeschlagen', false);
         return;
       }
       const weg = ev.target.closest('button.au-weg');

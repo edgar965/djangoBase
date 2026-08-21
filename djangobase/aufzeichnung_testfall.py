@@ -48,10 +48,32 @@ class Testfall:
     def __init__(self, aufzeichnung):
         self.a = aufzeichnung
 
+    #: Umlaute und ß in ihre ASCII-Entsprechung - siehe ``_ascii``.
+    UMSCHRIFT = {"ä": "ae", "ö": "oe", "ü": "ue", "ß": "ss",
+                 "Ä": "Ae", "Ö": "Oe", "Ü": "Ue"}
+
     # ------------------------------------------------------------------ Namen
+    @classmethod
+    def _ascii(cls, text):
+        u"""Deutsche Sonderzeichen umschreiben, den Rest verwerfen.
+
+        WARUM (21.08.2026): Der erste per Knopf erzeugte Testfall hieß
+        ``test_chart_blättern_auf_ib_paper.py``. Python 3 erlaubt das zwar, aber
+        ein Modulname mit Umlaut ist quer durch die Werkzeugkette eine Wette:
+        ``manage.py test <gepunkteter.pfad>`` auf einer Konsole mit cp1252,
+        Git auf einem anderen Betriebssystem, jede Suche nach dem Dateinamen.
+        Die Projektregel sagt es kurz: UI-Texte mit echten Umlauten, Dateinamen
+        ASCII.
+
+        Umgeschrieben statt weggeworfen: Aus „Blättern" wird ``blaettern`` und
+        nicht ``bl_ttern`` - der Name soll lesbar bleiben."""
+        for zeichen, ersatz in cls.UMSCHRIFT.items():
+            text = text.replace(zeichen, ersatz)
+        return text.encode("ascii", "ignore").decode("ascii")
+
     def klassenname(self):
         u"""Aus dem Namen der Aufzeichnung einen gueltigen Klassennamen."""
-        roh = re.sub(r"[^\w\s]", " ", self.a.name or "Aufzeichnung")
+        roh = re.sub(r"[^\w\s]", " ", self._ascii(self.a.name or "Aufzeichnung"))
         teile = [w.capitalize() for w in roh.split() if w]
         name = "".join(teile) or "Aufzeichnung"
         if name[0].isdigit():
@@ -59,7 +81,8 @@ class Testfall:
         return name if name.startswith("Test") else name + "Test"
 
     def dateiname(self):
-        roh = re.sub(r"[^\w]+", "_", (self.a.name or self.a.id)).strip("_").lower()
+        roh = self._ascii((self.a.name or self.a.id))
+        roh = re.sub(r"[^\w]+", "_", roh).strip("_").lower()
         return "test_%s.py" % (roh or "aufzeichnung")
 
     # ---------------------------------------------------------------- Bausteine

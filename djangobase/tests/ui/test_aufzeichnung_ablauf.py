@@ -247,8 +247,19 @@ class QuelltextFallenTest(SimpleTestCase):
         Abrufe sind Prüfpunkte, keine Aktionen; sie entstehen von selbst, wenn
         die nachgefahrenen Klicks sie auslösen."""
         ab = (JS / "aufzeichner_abspieler.js").read_text(encoding="utf-8")
-        self.assertIn("if (s.art === 'abruf') return true", ab,
-                      u"Der Abspieler muss Abrufe überspringen")
+        # Seit dem 21.08.2026 werden Abrufe GEPRÜFT statt übersprungen
+        # (aufzeichner_abspieler: abrufPruefen). Nachgefahren werden sie
+        # weiterhin nicht - hier stand vorher die Prüfung auf das blosse
+        # Überspringen, und die passt nicht mehr.
+        rumpf = ab.split("static async schritt(s, lauf)", 1)[1]
+        rumpf = rumpf.split("if (s.art === 'seite')", 1)[0]
+        self.assertIn("abrufPruefen", rumpf,
+                      u"Abrufe müssen geprüft werden - sie tragen die "
+                      u"Zusicherung der Aufnahme")
+        for verboten in ("fetch(s.pfad", "location.href = s.pfad"):
+            self.assertNotIn(verboten, rumpf,
+                             u"Ein aufgezeichnetes POST darf nicht nachgefahren "
+                             u"werden (%r gefunden)" % verboten)
 
     def test_abspieler_ueberlebt_seitenwechsel(self):
         u"""Beim ersten `seite`-Schritt ist der eigene Kontext weg - der
