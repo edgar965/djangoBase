@@ -12,14 +12,14 @@ WARUM DAS ZUSAMMENHÄNGT
 Die Testaufzeichnung schneidet am Ende die Server-Log-Zeilen ihres Zeitraums
 mit (``LogFenster``) — sie sind die halbe Zusicherung des erzeugten Testfalls:
 Was damals keine Ausnahme warf, darf auch jetzt keine werfen. ``LogFenster``
-liest dafür **eine Datei** an einem **erwarteten Ort** in einem **erwarteten
-Format**:
+liest dafür **eine benannte Datei** in einem **erwarteten Format**:
 
-    <Projekt>/logs/django.log      (oder eine Ebene über BASE_DIR)
+    <Projekt>/logs/django.log      (dblog-Standard, oder eine Ebene über BASE_DIR)
+    DJANGOBASE["aufzeichnung_log"] = [...]   (wer sein LOGGING selbst schreibt)
     2026-08-20 16:30:45 [INFO] name: text
 
-Weicht ein Projekt davon ab — anderer Dateiname, anderes Verzeichnis, anderer
-Formatierer, nur Konsolen-Logging —, dann funktioniert die Aufzeichnung
+Weicht ein Projekt davon ab — anderer Formatierer, nur Konsolen-Logging, oder
+eine Datei, die niemand benannt hat —, dann funktioniert die Aufzeichnung
 trotzdem, aber **still ohne Log-Zeilen**. Der erzeugte Testfall prüft dann nur
 noch Abrufe, und niemand merkt, dass die Hälfte fehlt. Genau diese Sorte
 stiller Lücke soll hier auffallen.
@@ -45,7 +45,8 @@ from django.test import SimpleTestCase, override_settings
 from djangobase.aufzeichnung_logs import LogFenster
 from djangobase.logging import handler_class
 
-#: Die Dateien, die djangoBase anlegt und auf die sich alles verlässt.
+#: Die Dateien, die ``dblog.config`` anlegt — die Vorgabe, wenn ein Projekt
+#: nichts anderes benennt. Siehe ``_hauptlogs``.
 PFLICHT = ("django.log", "error.log")
 
 
@@ -59,6 +60,38 @@ def _handler_dateien():
     return aus
 
 
+def _hauptlog():
+    u"""Die Datei, aus der die Aufzeichnung mitschneidet — als Dateiname.
+
+    ZWEI ZULÄSSIGE ABLAGEN (Korrektur 21.08.2026): ``dblog.config`` legt
+    ``logs/django.log`` an, und wer das nimmt, muss nichts angeben. Ein Projekt
+    mit eigenem LOGGING benennt seine Hauptdatei über
+    ``DJANGOBASE['aufzeichnung_log']`` — dann liest ``LogFenster`` genau die.
+
+    Die erste Fassung dieser Prüfung kannte nur den ersten Weg und meldete den
+    ``assistant`` mit vier Fehlschlägen, obwohl dessen sieben Logdateien
+    rotieren, mehrprozessfest sind und im djangoBase-Format schreiben — sie
+    heißen nur anders. Ohne die zweite Ablage hätte hier ein gewachsenes,
+    dokumentiertes Logging-Schema umgebaut werden müssen, um eine Prüfung
+    zufriedenzustellen."""
+    return _hauptlogs()[0]
+
+
+def _hauptlogs():
+    u"""Alle Dateinamen, die die Aufzeichnung mitschneidet."""
+    benannt = (getattr(settings, "DJANGOBASE", {}) or {}).get("aufzeichnung_log")
+    if not benannt:
+        return ["django.log"]
+    roh = [benannt] if isinstance(benannt, (str, Path)) else list(benannt)
+    return [Path(str(e)).name for e in roh] or ["django.log"]
+
+
+def _fehlerlogs():
+    u"""Alle Datei-Handler, die NUR Fehler aufnehmen (Tab „Exceptions")."""
+    return {name: (hname, h) for name, (hname, h) in _handler_dateien().items()
+            if str(h.get("level", "")).upper() == "ERROR"}
+
+
 class LoggingKonformTest(SimpleTestCase):
     u"""Das Pflicht-Gerüst: zwei Dateien, ein Ort, ein Format."""
 
@@ -70,35 +103,48 @@ class LoggingKonformTest(SimpleTestCase):
                         u"fertig: LOGGING = dblog.config(<pfad>/logs)")
 
     def test_beide_pflichtdateien_vorhanden(self):
+        u"""Eine Datei für alles, eine für die Fehler — unter welchem Namen
+        auch immer (siehe ``_hauptlog``)."""
         dateien = _handler_dateien()
-        for name in PFLICHT:
-            self.assertIn(name, dateien,
-                          u"Es fehlt ein Datei-Handler für %r. djangoBase legt "
-                          u"django.log (alles) und error.log (nur Fehler) an; "
-                          u"Hilfe → Logs zeigt genau diese beiden Tabs." % name)
+        fehlend = [n for n in _hauptlogs() if n not in dateien]
+        self.assertFalse(fehlend,
+                         u"Es fehlt ein Datei-Handler für %s — genau diese "
+                         u"Dateien schneidet die Aufzeichnung mit. Entweder "
+                         u"LOGGING = dblog.config(<pfad>/logs) nehmen (legt "
+                         u"django.log an) oder die eigenen Dateien über "
+                         u"DJANGOBASE['aufzeichnung_log'] benennen."
+                         % ", ".join(fehlend))
+        self.assertTrue(_fehlerlogs(),
+                        u"Kein einziger Datei-Handler mit level=ERROR. Der Tab "
+                        u"„Exceptions“ in Hilfe → Logs bliebe dauerhaft leer — "
+                        u"und das liest sich wie „keine Fehler“.")
 
     def test_beide_liegen_im_selben_logs_verzeichnis(self):
-        u"""``LogFenster`` sucht neben ``BASE_DIR`` — verteilte Log-Dateien
-        findet es nicht."""
+        u"""Haupt- und Fehlerdatei gehören in EIN Verzeichnis, und es muss da
+        sein: Hilfe → Logs zeigt beide nebeneinander, und ein Handler auf einen
+        Ordner, den es nicht gibt, wirft beim ersten Schreiben."""
         dateien = _handler_dateien()
-        ordner = {Path(str(h["filename"])).parent
-                  for name, (_, h) in dateien.items() if name in PFLICHT}
+        haupt = _hauptlog()
+        if haupt not in dateien:
+            self.skipTest("keine Hauptdatei - siehe test_beide_pflichtdateien")
+        ordner = {Path(str(dateien[haupt][1]["filename"])).parent}
+        ordner |= {Path(str(h["filename"])).parent
+                   for _, (_, h) in _fehlerlogs().items()}
         self.assertEqual(len(ordner), 1,
-                         u"django.log und error.log müssen im selben Ordner "
-                         u"liegen, gefunden: %s" % sorted(str(o) for o in ordner))
-        ordner = ordner.pop()
-        self.assertEqual(ordner.name, "logs",
-                         u"Der Ordner muss „logs“ heißen (gefunden: %s) — "
-                         u"LogFenster sucht <BASE_DIR>/logs und eine Ebene "
-                         u"darüber." % ordner)
+                         u"Haupt- und Fehler-Log müssen im selben Ordner liegen, "
+                         u"gefunden: %s" % sorted(str(o) for o in ordner))
+        eins = ordner.pop()
+        self.assertTrue(eins.is_dir(),
+                        u"Das Log-Verzeichnis %s gibt es nicht." % eins)
 
     def test_rotierend_und_mehrprozessfest(self):
         u"""Zwei Prozesse (Server plus ein Werkzeug) reichen, damit der
         Windows-Rollover scheitert: Ein Testlauf erzeugte 107
         PermissionError-Meldungen und verlor Logzeilen."""
         erwartet = handler_class()
+        pflicht = set(_hauptlogs()) | set(_fehlerlogs())
         for name, (hname, h) in _handler_dateien().items():
-            if name not in PFLICHT:
+            if name not in pflicht:
                 continue
             with self.subTest(datei=name):
                 self.assertEqual(h.get("class"), erwartet,
@@ -113,13 +159,13 @@ class LoggingKonformTest(SimpleTestCase):
     def test_error_log_nimmt_nur_fehler(self):
         u"""Sonst ist der Tab „Exceptions" in Hilfe → Logs eine Kopie des
         anderen und taugt nicht zum Nachsehen."""
-        dateien = _handler_dateien()
-        if "error.log" not in dateien:
-            self.skipTest("error.log fehlt - siehe test_beide_pflichtdateien")
-        _, h = dateien["error.log"]
-        self.assertEqual(str(h.get("level", "")).upper(), "ERROR",
-                         u"error.log muss level=ERROR haben (hat: %r)"
-                         % h.get("level"))
+        fehler = _fehlerlogs()
+        if not fehler:
+            self.skipTest("kein Fehler-Log - siehe test_beide_pflichtdateien")
+        self.assertNotIn(_hauptlog(), fehler,
+                         u"Die Hauptdatei %r hat selbst level=ERROR — dann "
+                         u"fehlt der Aufzeichnung alles unterhalb davon."
+                         % _hauptlog())
 
 
 class LogFormatTest(SimpleTestCase):
@@ -132,15 +178,49 @@ class LogFormatTest(SimpleTestCase):
         still leer ausgehen. Deshalb wird hier eine echte Zeile durch den
         Formatierer geschickt und gegen den Leser gehalten, statt Zeichenketten
         zu vergleichen."""
-        formatter = (settings.LOGGING or {}).get("formatters", {}).get("voll")
+        formatierer = (settings.LOGGING or {}).get("formatters", {})
+        dateien = _handler_dateien()
+        # NICHT stur „voll" (Korrektur 21.08.2026): Geprüft gehört der
+        # Formatierer, den die MITGESCHNITTENE Datei benutzt. Heißt er anders,
+        # war die alte Fassung rot, obwohl das Format stimmte.
+        name = "voll"
+        if _hauptlog() in dateien:
+            name = dateien[_hauptlog()][1].get("formatter") or "voll"
+        formatter = formatierer.get(name)
         self.assertIsNotNone(formatter,
-                             u"Der Formatierer „voll“ fehlt — djangoBase legt "
-                             u"ihn in dblog.config an")
-        f = logging.Formatter(fmt=formatter.get("format"),
-                              datefmt=formatter.get("datefmt"),
-                              style=formatter.get("style", "%"))
+                             u"Der Formatierer %r ist nicht definiert — die "
+                             u"Hauptdatei verweist auf ihn." % name)
         satz = logging.LogRecord("mein.modul", logging.INFO, "x", 1,
                                  "Testzeile", None, None)
+        # Felder, die im Betrieb ein FILTER anhängt (``%(req_str)s`` und
+        # Verwandte), gibt es an einem frisch gebauten Satz nicht — ohne sie
+        # wirft der Formatierer, und die Prüfung meldete einen Formatfehler, wo
+        # keiner ist. Sie werden leer gesetzt, weil sie für den Zeilenanfang,
+        # um den es hier geht, keine Rolle spielen.
+        for feld in set(re.findall(r"%\((\w+)\)", formatter.get("format") or "")):
+            if not hasattr(satz, feld):
+                setattr(satz, feld, "")
+        # Ein Projekt darf eine eigene Formatierer-Klasse mitbringen („()“); die
+        # wird gebaut wie im Betrieb, sonst prüft der Test etwas anderes als das,
+        # was in der Datei landet.
+        bauplan = dict(formatter)
+        klasse = bauplan.pop("()", None)
+        if klasse:
+            from django.utils.module_loading import import_string
+            klasse = import_string(klasse) if isinstance(klasse, str) else klasse
+            try:
+                f = klasse(**bauplan)
+            except TypeError:
+                # Wie logging.config es macht: Der Schlüssel heißt in der
+                # Konfiguration „format", der Parameter aber „fmt". Ohne diesen
+                # zweiten Versuch scheiterte die Prüfung an ihrem eigenen
+                # Aufbau statt am Format des Projekts.
+                bauplan["fmt"] = bauplan.pop("format", None)
+                f = klasse(**bauplan)
+        else:
+            f = logging.Formatter(fmt=bauplan.get("format"),
+                                  datefmt=bauplan.get("datefmt"),
+                                  style=bauplan.get("style", "%"))
         zeile = f.format(satz)
         self.assertRegex(zeile, LogFenster.KOPF,
                          u"Die erzeugte Zeile %r passt nicht zu "
@@ -165,31 +245,40 @@ class AufzeichnungFindetDasLogTest(SimpleTestCase):
     selbst — dieselbe Klasse, die beim Beenden einer Aufnahme läuft."""
 
     def test_logfenster_findet_die_datei(self):
-        pfad = LogFenster().pfad
-        self.assertTrue(pfad.exists(),
-                        u"LogFenster sucht %s und findet dort nichts. Die "
-                        u"Aufzeichnung würde jede Aufnahme ohne Log-Zeilen "
-                        u"speichern — ohne Fehlermeldung." % pfad)
+        fehlend = [str(p) for p in LogFenster().pfade if not p.exists()]
+        self.assertFalse(fehlend,
+                         u"LogFenster sucht %s und findet dort nichts. Die "
+                         u"Aufzeichnung würde jede Aufnahme ohne diese "
+                         u"Log-Zeilen speichern — ohne Fehlermeldung."
+                         % ", ".join(fehlend))
 
     def test_logfenster_liest_echte_zeilen(self):
-        u"""Eine vorhandene, aber unlesbare Datei wäre derselbe stille Ausfall."""
-        pfad = LogFenster().pfad
-        if not pfad.exists() or pfad.stat().st_size == 0:
+        u"""Eine vorhandene, aber unlesbare Datei wäre derselbe stille Ausfall.
+
+        Geprüft wird JEDE angegebene Datei: Ist eine davon in einem anderen
+        Format, fehlt genau ihr Teil des Ablaufs — und nichts sagt es."""
+        gelesen = 0
+        for pfad in LogFenster().pfade:
+            if not pfad.exists() or pfad.stat().st_size == 0:
+                continue
+            gelesen += 1
+            roh = pfad.read_text(encoding="utf-8",
+                                 errors="replace").splitlines()[-200:]
+            passend = [z for z in roh if LogFenster.KOPF.match(z)]
+            self.assertTrue(passend,
+                            u"Keine der letzten %d Zeilen in %s passt zum "
+                            u"erwarteten Format. Beispiel: %r"
+                            % (len(roh), pfad.name, roh[-1] if roh else ""))
+        if not gelesen:
             self.skipTest("noch keine Log-Datei geschrieben")
-        roh = pfad.read_text(encoding="utf-8", errors="replace").splitlines()[-200:]
-        passend = [z for z in roh if LogFenster.KOPF.match(z)]
-        self.assertTrue(passend,
-                        u"Keine der letzten %d Zeilen in %s passt zum erwarteten "
-                        u"Format. Beispiel: %r"
-                        % (len(roh), pfad.name, roh[-1] if roh else ""))
 
     def test_die_datei_liegt_wo_das_projekt_sie_schreibt(self):
         u"""Sucht der Leser woanders als der Schreiber, ist beides für sich
         richtig und zusammen kaputt — die teuerste Sorte Fehler."""
         dateien = _handler_dateien()
-        if "django.log" not in dateien:
-            self.skipTest("kein django.log-Handler")
-        geschrieben = Path(str(dateien["django.log"][1]["filename"])).resolve()
+        if _hauptlog() not in dateien:
+            self.skipTest("kein Handler für %s" % _hauptlog())
+        geschrieben = Path(str(dateien[_hauptlog()][1]["filename"])).resolve()
         gelesen = LogFenster().pfad.resolve()
         self.assertEqual(gelesen, geschrieben,
                          u"Geschrieben wird nach %s, gelesen aus %s."

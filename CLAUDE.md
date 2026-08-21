@@ -232,10 +232,56 @@ Lädt ein ES-Modul der Seite in Node — spiegelt die Importkette und biegt
 absolute `/static/…`-Pfade um (die Node sonst als `A:\static\…` sucht) sowie
 `?v=`-Anhänge. Ein Import ins Leere wirft, statt still zu überspringen.
 
+### Konformitätsprüfungen: `djangobase.tests.konform` (21.08.2026)
+
+Neun Testdateien, die im KONSUMENTEN laufen (`manage.py test
+djangobase.tests.konform`) und fragen: erbt dieses Projekt djangoBase wirklich?
+Alle ohne Datenbank (`SimpleTestCase`, `databases = []`) — geprüft werden
+Einstellungen, Vorlagen und Quelltext, nicht Daten.
+
+**Was sie durchsuchen dürfen, entscheidet `tests/konform/quellen.py`** — eine
+Stelle für alle Prüfer. Draußen bleiben: `TABU`-Ordner (Umgebungen, Caches),
+das djangoBase-Paket selbst, `MEDIA_ROOT` und alles aus dem neuen Schlüssel
+`DJANGOBASE_KONFORM_AUS` (Pfad-Teilstrings). Gelaufen wird mit `os.walk` und
+Ast-Abschnitt VOR dem Abstieg; das Ergebnis liegt im Zwischenspeicher.
+
+Der erste Lauf im `assistant` meldete **199 Verstöße, davon 6 echt**: 111 aus
+dem Chrome-Profil eines Verkaufs-Werkzeugs, 56 Vorlagen aus demselben Ordner,
+23 JS-Dateien aus der Virensuche-Quarantäne (Dateien, welche die App
+UNTERSUCHT). Laufzeit 81 s, weil `rglob` durch 84.442 archivierte Mails lief —
+je Suchmuster und je Testmethode erneut. Nach dem Umbau: 102 Tests, **1,0 s**.
+
+Vier Prüfer waren zudem selbst falsch geeicht (alle mit Gegenprobe repariert):
+
+| Fehlalarm | Ursache | Jetzt |
+|---|---|---|
+| „Seitenleiste leer" | nur `menu` gefragt | `sidebar_template` zählt genauso |
+| „Modul nirgends gebunden" | unter `BASE_DIR` gesucht | `tabellen_auto.js` zählt |
+| Kontrastfehler in Prosa | `pre|code` im ganzen Dokument | nur `<style>`-Blöcke |
+| Logging nicht konform | nur `logs/django.log` bekannt | siehe `aufzeichnung_log` |
+
+Umgekehrt hatte `test_statik` einen **blinden Fleck**: Es sah nur Adressen, die
+selbst auf `.js` enden — `src="{% static 'app/x.js' %}?v=3"` bricht am inneren
+Anführungszeichen ab. Damit war die häufigste Django-Schreibweise unsichtbar.
+
 ### Neue DJANGOBASE-Schlüssel
 
 `skills2_register` (Vorgabe `["fn"]`), `skills2_abrufklassen`
 (`["Serverabruf"]`), `skills2_funktionsgrenze` (90), `skills2_ignorieren`.
+
+`aufzeichnung_log` — Datei oder **Liste von Dateien**, aus denen die
+Testaufzeichnung ihre Log-Zeilen schneidet (relativ zu `BASE_DIR` oder absolut).
+Ohne den Schlüssel bleibt es beim dblog-Standard `logs/django.log`. Mehrere
+Dateien mischt `LogFenster` nach Zeitstempel, wie der Reiter „Alle Quellen".
+Der `assistant` braucht das: Er führt sieben Logdateien flach neben `manage.py`,
+nach Bereichen getrennt, im djangoBase-Format — ohne den Schlüssel bekäme jede
+Aufnahme still NULL Log-Zeilen.
+
+Als **Settings-Konstanten** (nicht im `DJANGOBASE`-Dict, weil sie nur Tests
+betreffen): `DJANGOBASE_KONFORM_AUS` (Datenordner, die keine Prüfung ansieht)
+und `DJANGOBASE_KONFORM_TABELLEN_AUS` (einzelne Dateien, die bewusst kein
+Tabellen-Raster bekommen — Druckansichten, feste Gliederungen, Tabellen mit
+eigener serverseitiger Sortierung).
 
 ## Vor Änderungen (Breaking-Check)
 - Shell-Templates (`base.html`, `base_app.html`, `_shell.html`, `_sidebar.html`,

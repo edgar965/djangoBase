@@ -32,18 +32,38 @@ Schriften ebenfalls nicht — sie ändern sich nicht mit dem Code. Geprüft wird
 was Verhalten trägt: ``.js`` und ``.css`` aus dem eigenen Projekt.
 """
 import re
-from pathlib import Path
 
-from django.conf import settings
 from django.test import SimpleTestCase
 
-TABU = {"node_modules", "__pycache__", "venv", "pythonVENV", ".git",
-        "site-packages", "migrations"}
+from djangobase.tests.konform.quellen import TABU, dateien, text_von  # noqa: F401
 
 #: <script src=…> / <link href=…> auf eigene Statik.
-_EINBINDUNG = re.compile(
-    r"""<(?:script|link)\b[^>]*?(?:src|href)\s*=\s*["']([^"']+)["']""",
+#:
+#: Das Anführungszeichen wird zurückverwiesen (``(?P=q)``) statt „alles außer
+#: Anführungszeichen“ zu nehmen. Grund (21.08.2026): In
+#: ``src="{% static 'app/x.js' %}?v=3"`` steht ein einfaches Anführungszeichen
+#: MITTEN im doppelt gequoteten Wert. Die erste Fassung brach dort ab, fand
+#: „{% static “ und verwarf es als „keine .js-Datei“ — im ``assistant`` waren
+#: damit sämtliche Einbindungen unsichtbar, und der Prüfer meldete brav null
+#: Verstöße.
+_EINBINDUNG_RE = re.compile(
+    r"""<(?:script|link)\b[^>]*?(?:src|href)\s*=\s*(?P<q>["'])(?P<adr>[^\n]*?)(?P=q)""",
     re.IGNORECASE)
+
+
+class _Einbindung(object):
+    u"""``findall``/``search`` wie ein Muster — liefert aber nur die Adresse."""
+
+    @staticmethod
+    def findall(text):
+        return [m.group("adr") for m in _EINBINDUNG_RE.finditer(text)]
+
+    @staticmethod
+    def search(text):
+        return _EINBINDUNG_RE.search(text)
+
+
+_EINBINDUNG = _Einbindung()
 
 #: Importe innerhalb von JS-Modulen.
 _IMPORT = re.compile(
@@ -51,22 +71,36 @@ _IMPORT = re.compile(
 
 
 def _dateien(muster):
-    wurzel = Path(getattr(settings, "BASE_DIR", "."))
-    eigen = Path(__file__).resolve().parents[2]
-    for pfad in wurzel.rglob(muster):
-        if TABU & set(pfad.parts):
-            continue
-        if eigen in pfad.parents:
-            continue                       # djangoBase prüft sich nicht selbst
-        yield pfad
+    u"""Alle Projektdateien eines Musters (``"*.html"``) — ohne Fremdordner.
+
+    Die Auswahl trifft ``quellen.dateien``: Was dort ausgenommen ist (Umgebungen,
+    Medien, ``DJANGOBASE_KONFORM_AUS``), sieht KEINE Konformitätsprüfung."""
+    return dateien(muster.split(".")[-1])
+
+
+#: ``{% static 'app/x.js' %}`` — in Django-Vorlagen die übliche Schreibweise.
+_STATIC_TAG = re.compile(r"""{%\s*static\s+["']([^"']+)["']""")
+
+
+def _datei_der_adresse(adresse):
+    u"""Die Datei, auf die eine Einbindung zeigt.
+
+    BLINDER FLECK, GESCHLOSSEN AM 21.08.2026: Die erste Fassung sah nur
+    Adressen, die selbst auf ``.js``/``.css`` enden. In Django-Vorlagen steht
+    dort aber fast immer ``{% static 'app/x.js' %}`` — und die endet auf ``%}``.
+    Die Prüfung war für den Normalfall damit blind; grün war sie nur, weil in
+    einem Datenordner altmodische Einbindungen lagen."""
+    m = _STATIC_TAG.search(adresse)
+    if m:
+        return m.group(1)
+    return adresse.split("?")[0].split("#")[0]
 
 
 def _eigene_statik(adresse):
     u"""Zeigt die Adresse auf eine eigene .js/.css-Datei?"""
     if adresse.startswith(("http://", "https://", "//", "data:")):
         return False
-    ohne_query = adresse.split("?")[0].split("#")[0]
-    return ohne_query.endswith((".js", ".css"))
+    return _datei_der_adresse(adresse).endswith((".js", ".css"))
 
 
 class CacheBustingTest(SimpleTestCase):
@@ -213,6 +247,13 @@ class GegenprobeTest(SimpleTestCase):
         self.assertFalse(_eigene_statik("https://cdn.example/bootstrap.min.css"))
         self.assertFalse(_eigene_statik("/static/app/logo.png"))
         self.assertTrue(_eigene_statik("/static/app/x.js"))
+
+    def test_static_tag_wird_erkannt(self):
+        u"""Der Normalfall in Django-Vorlagen. Ohne ihn prüfte die Regel nur
+        die Ausnahme (siehe ``_datei_der_adresse``)."""
+        self.assertTrue(_eigene_statik("{% static 'app/x.js' %}"))
+        self.assertTrue(_eigene_statik("{% static \"app/x.css\" %}?v=3"))
+        self.assertFalse(_eigene_statik("{% static 'app/logo.png' %}"))
 
     def test_import_wird_gefunden(self):
         for zeile in ("import { X } from '/static/app/x.js';",

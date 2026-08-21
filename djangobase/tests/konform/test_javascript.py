@@ -35,13 +35,10 @@ haben: ``document.forms[0]`` und ``querySelector('form')`` innerhalb eines
 Submit-Handlers.
 """
 import re
-from pathlib import Path
 
-from django.conf import settings
 from django.test import SimpleTestCase
 
-TABU = {"node_modules", "__pycache__", "venv", "pythonVENV", ".git",
-        "site-packages", "migrations"}
+from djangobase.tests.konform.quellen import TABU, dateien, text_von  # noqa: F401
 
 #: ``querySelector('form')`` / ``querySelector("form[action]")`` — aber NICHT
 #: ``querySelectorAll``, nicht ``closest``, und nicht ``form#id``/``form.klasse``:
@@ -56,27 +53,19 @@ _FORMS_INDEX = re.compile(r"""\bdocument\.forms\s*\[\s*\d+\s*\]""")
 
 
 def _quellen():
-    u"""Alle JS-Dateien und Vorlagen des Projekts (ohne djangoBase selbst)."""
-    wurzel = Path(getattr(settings, "BASE_DIR", "."))
-    eigen = Path(__file__).resolve().parents[2]
-    for muster in ("*.js", "*.html"):
-        for pfad in wurzel.rglob(muster):
-            if TABU & set(pfad.parts):
-                continue
-            if eigen in pfad.parents:
-                continue
-            yield pfad
+    u"""Alle JS-Dateien und Vorlagen des Projekts (ohne djangoBase selbst).
+
+    Welche Ordner draußen bleiben, entscheidet ``quellen.dateien`` — samt der
+    Projekt-Ausnahmen aus ``DJANGOBASE_KONFORM_AUS``."""
+    return dateien(".js", ".html")
 
 
 def _treffer(muster):
     u"""[(datei, zeilennummer, zeile)] für ein Suchmuster."""
     aus = []
     for pfad in _quellen():
-        try:
-            text = pfad.read_text(encoding="utf-8", errors="replace")
-        except OSError:
-            continue
-        if not muster.search(text):
+        text = text_von(pfad)
+        if text is None or not muster.search(text):
             continue
         for nr, zeile in enumerate(text.splitlines(), 1):
             if muster.search(zeile) and not zeile.strip().startswith(("//", "*", "#")):

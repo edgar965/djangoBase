@@ -36,28 +36,51 @@ from pathlib import Path
 from django.conf import settings
 from django.test import SimpleTestCase
 
-TABU = {"node_modules", "__pycache__", "venv", "pythonVENV", ".git",
-        "site-packages", "migrations"}
+from djangobase.tests.konform.quellen import TABU, dateien, text_von, wurzel  # noqa: F401
 
-#: Vorlagen, die legitim ein eigenes ``<html>`` haben: E-Mails, PDF-Vorlagen,
+#: DATEINAMEN, die legitim ein eigenes ``<html>`` haben: E-Mails, PDF-Vorlagen,
 #: Fehlerseiten (die Sidebar braucht einen Kontext, den es dort nicht gibt).
+#:
+#: ``login``/``logout`` kam am 21.08.2026 dazu: Die Anmeldeseite läuft VOR der
+#: Anmeldung. Eine Seitenleiste mit Menü, Konto und Versionsnummer hätte dort
+#: nichts anzuzeigen — genau wie auf einer Fehlerseite.
 EIGEN_ERLAUBT = ("mail", "email", "pdf", "druck", "print", "400.html",
-                 "403.html", "404.html", "500.html", "base")
+                 "403.html", "404.html", "500.html", "base",
+                 "login", "logout")
+
+#: ORDNER, in denen dasselbe gilt. Getrennt von den Dateinamen, weil ein
+#: Teilstring wie „mail“ sonst im PFAD jedes Projekts mit einer Mail-App steht
+#: und die ganze App von der Prüfung ausnähme.
+EIGEN_ERLAUBT_ORDNER = ("/registration/", "/allauth/", "/account/")
 
 _EXTENDS = re.compile(r"{%\s*extends\s+[\"']?([^\"'%\s]+)")
 _HTML_TAG = re.compile(r"<html\b", re.IGNORECASE)
-_PRE_STIL = re.compile(r"\b(pre|code)\b[^{}]*\{([^}]*)\}", re.IGNORECASE)
+
+#: Eine CSS-Regel, deren Selektor ``pre`` oder ``code`` nennt.
+#:
+#: FEHLALARM VOM 21.08.2026: Die erste Fassung suchte ``\b(pre|code)\b[^{}]*\{``
+#: im ganzen Dokument. In ``chat_personal.html`` stand in einem JS-Kommentar
+#: „Code wie in chat.html, hier dupliziert …“ — und dahinter ``function
+#: showContextWarning(data) {``. Gemeldet wurde ein Kontrastfehler in einer
+#: Datei ohne jeden ``<pre>``-Stil. Deshalb jetzt zweistufig: erst der
+#: ``<style>``-Block, dann eine Regel, deren Selektor in EINER Zeile steht.
+_STILBLOCK = re.compile(r"<style\b[^>]*>(.*?)</style>", re.IGNORECASE | re.DOTALL)
+_PRE_STIL = re.compile(
+    r"(?:\A|[};\n])[ \t]*([^{}\n;]*(?<![\w-])(?:pre|code)(?![\w-])[^{}\n;]*)"
+    r"\{([^}]*)\}", re.IGNORECASE)
 
 
 def _vorlagen():
-    wurzel = Path(getattr(settings, "BASE_DIR", "."))
-    eigen = Path(__file__).resolve().parents[2]
-    for pfad in wurzel.rglob("*.html"):
-        if TABU & set(pfad.parts):
-            continue
-        if eigen in pfad.parents:
-            continue
-        yield pfad
+    return dateien(".html")
+
+
+def _stil_regeln(text):
+    u"""[(selektor, block)] aller ``pre``/``code``-Regeln in ``<style>``."""
+    aus = []
+    for stil in _STILBLOCK.findall(text):
+        for treffer in _PRE_STIL.finditer(stil):
+            aus.append((treffer.group(1).strip(), treffer.group(2)))
+    return aus
 
 
 def _teilvorlage(pfad):
@@ -73,12 +96,13 @@ class ErbenTest(SimpleTestCase):
         for pfad in _vorlagen():
             if _teilvorlage(pfad):
                 continue
-            name = pfad.name.lower()
-            if any(w in name for w in EIGEN_ERLAUBT):
+            if any(w in pfad.name.lower() for w in EIGEN_ERLAUBT):
                 continue
-            try:
-                text = pfad.read_text(encoding="utf-8", errors="replace")
-            except OSError:
+            weg = str(pfad).replace("\\", "/").lower()
+            if any(w in weg for w in EIGEN_ERLAUBT_ORDNER):
+                continue
+            text = text_von(pfad)
+            if text is None:
                 continue
             if _HTML_TAG.search(text) and not _EXTENDS.search(text):
                 eigene.append(pfad)
@@ -174,19 +198,18 @@ class KontrastTest(SimpleTestCase):
         ``color``, steht auf dunklem Grund dunkel auf dunkel."""
         ohne = []
         for pfad in _vorlagen():
-            try:
-                text = pfad.read_text(encoding="utf-8", errors="replace")
-            except OSError:
+            text = text_von(pfad)
+            if text is None:
                 continue
-            for treffer in _PRE_STIL.finditer(text):
-                block = treffer.group(2)
+            for selektor, block in _stil_regeln(text):
                 # Nur Regeln, die überhaupt Farben anfassen - reine
                 # Abstandsregeln brauchen keine Schriftfarbe.
                 if "background" not in block.lower():
                     continue
                 if "color:" in block.lower().replace("background-color:", ""):
                     continue
-                ohne.append((pfad.name, treffer.group(0)[:60].replace("\n", " ")))
+                ohne.append((pfad.name, "%s { %s"
+                             % (selektor, " ".join(block.split())[:50])))
         if ohne:
             self.fail(
                 u"%d Codeblock-Stile setzen einen Hintergrund, aber keine "
@@ -210,11 +233,32 @@ class GegenprobeTest(SimpleTestCase):
         self.assertFalse(_teilvorlage(Path("kurse.html")))
 
     def test_farbloser_pre_stil_wird_erkannt(self):
-        treffer = list(_PRE_STIL.finditer("pre { background: #111; padding: 6px; }"))
-        self.assertTrue(treffer)
-        self.assertNotIn("color:", treffer[0].group(2).replace("background-color:", ""))
+        regeln = _stil_regeln("<style>pre { background: #111; padding: 6px; }</style>")
+        self.assertEqual(len(regeln), 1)
+        self.assertNotIn("color:", regeln[0][1].replace("background-color:", ""))
 
     def test_pre_mit_farbe_ist_still(self):
-        treffer = list(_PRE_STIL.finditer("pre { background:#111; color:#eee; }"))
-        self.assertTrue(treffer)
-        self.assertIn("color:", treffer[0].group(2).replace("background-color:", ""))
+        regeln = _stil_regeln("<style>pre { background:#111; color:#eee; }</style>")
+        self.assertEqual(len(regeln), 1)
+        self.assertIn("color:", regeln[0][1].replace("background-color:", ""))
+
+    def test_prosa_wird_nicht_als_stil_gelesen(self):
+        u"""Der Fehlalarm vom 21.08.2026: ein Kommentar mit dem Wort „Code“,
+        gefolgt von einem beliebigen Block. Ohne diese Gegenprobe schleicht er
+        sich beim nächsten Umbau des Musters wieder ein."""
+        quelle = ('<script>\n'
+                  '/* Code wie in chat.html, hier dupliziert weil beide\n'
+                  ' * Templates sich kein Skript teilen. */\n'
+                  'function zeigen(daten) { var banner = "background"; }\n'
+                  '</script>')
+        self.assertEqual(_stil_regeln(quelle), [])
+
+    def test_regel_ausserhalb_von_style_zaehlt_nicht(self):
+        u"""Ein ``pre { … }`` im Fließtext einer Hilfeseite ist Doku, kein Stil."""
+        self.assertEqual(_stil_regeln("<p>Beispiel: pre { background: #111; }</p>"), [])
+
+    def test_mehrzeiliger_stil_wird_gefunden(self):
+        u"""Die übliche Schreibweise — sonst prüfte das Muster nur Einzeiler."""
+        quelle = ("<style>\n  pre {\n    background: #0d1626;\n"
+                  "    border: 1px solid #333;\n  }\n</style>")
+        self.assertEqual(len(_stil_regeln(quelle)), 1)

@@ -50,18 +50,51 @@ class LogFenster:
     STILL = ("django.server", "djangobase.traffic")
 
     def __init__(self, pfad=None):
-        self.pfad = Path(pfad) if pfad else self._vorgabe()
+        self.pfade = ([Path(pfad)] if isinstance(pfad, (str, Path))
+                      else [Path(p) for p in pfad] if pfad
+                      else self._vorgabe())
+
+    @property
+    def pfad(self):
+        u"""Die erste Datei - fuer Aufrufer, die nur eine erwarten."""
+        return self.pfade[0]
 
     @staticmethod
     def _vorgabe():
+        u"""Die Dateien, aus denen mitgeschnitten wird.
+
+        DREI PROJEKTE, DREI ABLAGEN (21.08.2026): Wer ``dblog.config`` nimmt,
+        hat ``<Projekt>/logs/django.log``. Wer sein LOGGING selbst schreibt,
+        hat es woanders - der ``assistant`` etwa fuehrt sieben Dateien flach
+        neben ``manage.py`` (``mail_action.log``, ``chat.log``, ``indexer.log``
+        ...), im djangoBase-Format, nur unter anderen Namen und nach Bereichen
+        getrennt. Fuer den bleibt die Aufzeichnung sonst dauerhaft OHNE
+        Log-Zeilen, ohne dass es jemand sieht - und der erzeugte Testfall prueft
+        danach nur noch Abrufe.
+
+        Deshalb darf das Projekt seine Dateien benennen - eine oder mehrere::
+
+            DJANGOBASE["aufzeichnung_log"] = "mail_action.log"
+            DJANGOBASE["aufzeichnung_log"] = ["mail_action.log", "chat.log"]
+
+        Mehrere werden nach Zeitstempel gemischt, wie der Reiter „Alle Quellen"
+        unter Hilfe -> Logs. Ohne den Schluessel bleibt es beim dblog-Standard."""
         basis = Path(getattr(settings, "BASE_DIR", "."))
+        benannt = (getattr(settings, "DJANGOBASE", {}) or {}).get("aufzeichnung_log")
+        if benannt:
+            roh = [benannt] if isinstance(benannt, (str, Path)) else list(benannt)
+            aus = []
+            for eintrag in roh:
+                p = Path(str(eintrag))
+                aus.append(p if p.is_absolute() else basis / p)
+            return aus or [basis / "logs" / "django.log"]
         # Wie dblog.config es anlegt: <Projekt>/logs/django.log. Der Ordner liegt
         # bei manchen Projekten eine Ebene ueber BASE_DIR (Repo-Wurzel).
         for kandidat in (basis / "logs" / "django.log",
                          basis.parent / "logs" / "django.log"):
             if kandidat.exists():
-                return kandidat
-        return basis / "logs" / "django.log"
+                return [kandidat]
+        return [basis / "logs" / "django.log"]
 
     # ------------------------------------------------------------------ Lesen
     def zeilen(self, von_iso, bis_iso=""):
@@ -73,33 +106,38 @@ class LogFenster:
         if von is None:
             return []
         bis = self._zeit(bis_iso) or datetime.now()
-        try:
-            roh = self._schwanz()
-        except OSError:
-            log.warning("Log-Datei fuer die Aufzeichnung nicht lesbar: %s", self.pfad)
-            return []
         aus = []
-        for zeile in roh:
-            m = self.KOPF.match(zeile)
-            if not m:
-                continue
-            stempel, stufe, name, text = m.groups()
+        for datei in self.pfade:
             try:
-                t = datetime.strptime(stempel, "%Y-%m-%d %H:%M:%S")
-            except ValueError:
+                roh = self._schwanz(datei)
+            except OSError:
+                log.warning("Log-Datei fuer die Aufzeichnung nicht lesbar: %s", datei)
                 continue
-            if t < von or t > bis:
-                continue
-            if name.strip() in self.STILL:
-                continue
-            aus.append({"zeit": stempel, "stufe": stufe, "logger": name.strip(),
-                        "text": text[:400]})
+            for zeile in roh:
+                m = self.KOPF.match(zeile)
+                if not m:
+                    continue
+                stempel, stufe, name, text = m.groups()
+                try:
+                    t = datetime.strptime(stempel, "%Y-%m-%d %H:%M:%S")
+                except ValueError:
+                    continue
+                if t < von or t > bis:
+                    continue
+                if name.strip() in self.STILL:
+                    continue
+                aus.append({"zeit": stempel, "stufe": stufe,
+                            "logger": name.strip(), "text": text[:400]})
+        # Aus mehreren Dateien kommt die Reihenfolge sonst dateiweise - der
+        # Testfall soll aber den ABLAUF zeigen, nicht die Ablage.
+        aus.sort(key=lambda z: z["zeit"])
         return aus[-self.MAX_ZEILEN:]
 
-    def _schwanz(self):
-        u"""Die letzten ``RUECKBLICK_B`` Bytes als Zeilen."""
-        groesse = self.pfad.stat().st_size
-        with open(self.pfad, "rb") as f:
+    def _schwanz(self, datei=None):
+        u"""Die letzten ``RUECKBLICK_B`` Bytes einer Datei als Zeilen."""
+        datei = Path(datei) if datei else self.pfad
+        groesse = datei.stat().st_size
+        with open(datei, "rb") as f:
             if groesse > self.RUECKBLICK_B:
                 f.seek(groesse - self.RUECKBLICK_B)
                 f.readline()                     # angebrochene Zeile verwerfen

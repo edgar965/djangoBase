@@ -32,12 +32,11 @@ from pathlib import Path
 from django.conf import settings
 from django.test import SimpleTestCase
 
+from djangobase.tests.konform.quellen import TABU, dateien  # noqa: F401
+
 #: Wurzel des djangoBase-Pakets.
 PAKET = Path(__file__).resolve().parents[2]
 VORLAGEN = PAKET / "templates" / "djangobase"
-
-TABU = {"node_modules", "__pycache__", "venv", "pythonVENV", ".git",
-        "site-packages", "migrations"}
 
 _EXTENDS = re.compile(r"{%\s*extends\s+[\"']?([^\"'%\s]+)")
 
@@ -107,10 +106,35 @@ class MenueKonformTest(SimpleTestCase):
     databases = []
 
     def test_menue_ist_gefuellt(self):
-        u"""Eine leere Seitenleiste ist formal konform und praktisch nutzlos."""
-        self.assertTrue(_djangobase("menu"),
-                        u"DJANGOBASE['menu'] ist leer — die Seitenleiste bliebe "
-                        u"bis auf Hilfe/Einstellungen leer.")
+        u"""Eine leere Seitenleiste ist formal konform und praktisch nutzlos.
+
+        ZWEI WEGE, EIN ERGEBNIS (Korrektur 21.08.2026): djangoBase baut die
+        Seitenleiste entweder aus ``menu`` — oder das Projekt bringt eine
+        eigene Vorlage mit (``sidebar_template``, im Rezept ausdrücklich
+        vorgesehen: „Eigene Sidebar behalten"). Der assistant tut das seit
+        jeher; die erste Fassung dieser Prüfung meldete ihn trotzdem als
+        „Seitenleiste leer", obwohl dort LLM-Status, Mail-Konten und
+        Chat-Sitzungen stehen. Ein Prüfer, der die dokumentierte Alternative
+        anmeckert, wird abgeschaltet statt gelesen."""
+        eigene = _djangobase("sidebar_template")
+        self.assertTrue(_djangobase("menu") or eigene,
+                        u"Weder DJANGOBASE['menu'] noch ['sidebar_template'] "
+                        u"gesetzt — die Seitenleiste bliebe bis auf "
+                        u"Hilfe/Einstellungen leer.")
+
+    def test_eigene_seitenleiste_gibt_es_wirklich(self):
+        u"""Eine Vorlage, die nicht auffindbar ist, wirft erst beim Aufruf —
+        also womöglich erst beim Nutzer."""
+        eigene = _djangobase("sidebar_template")
+        if not eigene:
+            self.skipTest("keine eigene Seitenleiste konfiguriert")
+        from django.template import TemplateDoesNotExist
+        from django.template.loader import get_template
+        try:
+            get_template(eigene)
+        except TemplateDoesNotExist:
+            self.fail(u"DJANGOBASE['sidebar_template'] = %r ist nicht "
+                      u"auffindbar." % eigene)
 
     def test_untermenue_heisst_untermenu(self):
         u"""``items`` löst in Django-Vorlagen auf ``dict.items`` auf und ist
@@ -164,9 +188,8 @@ class EigeneVorlagenTest(SimpleTestCase):
 
     def basis_vorlagen(self):
         u"""Die Projekt-Vorlagen, die ihrerseits als Basis dienen."""
-        wurzel = Path(getattr(settings, "BASE_DIR", "."))
-        for pfad in wurzel.rglob("base*.html"):
-            if TABU & set(pfad.parts) or PAKET in pfad.parents:
+        for pfad in dateien(".html"):
+            if not pfad.name.startswith("base") or PAKET in pfad.parents:
                 continue
             yield pfad
 

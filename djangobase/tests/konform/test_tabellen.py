@@ -56,30 +56,34 @@ from pathlib import Path
 from django.conf import settings
 from django.test import SimpleTestCase
 
+from djangobase.tests.konform.quellen import TABU, dateien, text_von  # noqa: F401
+
 #: Klassen, die eine Tabelle als Doku ausweisen (kein Datenraster).
 DOKU_KLASSEN = ("plain", "doku", "legende", "info")
-
-#: Verzeichnisse, die nie durchsucht werden.
-TABU = {"node_modules", "__pycache__", "venv", "pythonVENV", ".git",
-        "site-packages", "migrations"}
 
 _TABELLE = re.compile(r"<table\b([^>]*)>", re.IGNORECASE)
 _KLASSEN = re.compile(r'class\s*=\s*"([^"]*)"', re.IGNORECASE)
 
+#: Kommentare — Django (``{% comment %}``, ``{# … #}``) und HTML (``<!-- … -->``).
+#:
+#: FEHLALARM VOM 21.08.2026: ``_mail_list_rows.html`` beginnt mit dem Kommentar
+#: „Keine <table>/<thead>/<colgroup>-Wrapper damit nur EINE Tabelle existiert" —
+#: also mit der ERKLÄRUNG, warum die Datei keine Tabelle hat. Gemeldet wurde
+#: genau diese Erklärung als Tabelle ohne Sortierung. Dieselbe Falle wie in
+#: ``test_tabellen_js`` (dort ``risiko.js``).
+_KOMMENTAR = re.compile(
+    r"{%\s*comment\s*%}.*?{%\s*endcomment\s*%}|{#.*?#}|<!--.*?-->",
+    re.IGNORECASE | re.DOTALL)
+
+
+def ohne_kommentare(text):
+    u"""Kommentare durch Leerzeilen ersetzen (Zeilennummern bleiben erhalten)."""
+    return _KOMMENTAR.sub(lambda m: "\n" * m.group(0).count("\n"), text)
+
 
 def _templates():
     u"""Alle HTML-Vorlagen des Projekts (ohne djangoBase selbst)."""
-    wurzel = Path(getattr(settings, "BASE_DIR", "."))
-    eigen = Path(__file__).resolve().parents[2]        # …/djangobase
-    for pfad in wurzel.rglob("*.html"):
-        if TABU & set(pfad.parts):
-            continue
-        try:
-            if eigen in pfad.parents:
-                continue                                # djangoBase prüft sich nicht selbst
-        except Exception:                               # noqa: BLE001
-            pass
-        yield pfad
+    return dateien(".html")
 
 
 def _ausgenommen(pfad):
@@ -95,10 +99,10 @@ def datentabellen():
     for pfad in _templates():
         if _ausgenommen(pfad):
             continue
-        try:
-            text = pfad.read_text(encoding="utf-8", errors="replace")
-        except OSError:
+        roh = text_von(pfad)
+        if roh is None:
             continue
+        text = ohne_kommentare(roh)
         if "<thead" not in text.lower():
             continue                                    # ohne Kopfzeile kein Raster
         for treffer in _TABELLE.finditer(text):
@@ -227,23 +231,27 @@ class TabellenModuleTest(SimpleTestCase):
         u"""Die Attribute allein tun nichts — jemand muss die Module anbinden.
 
         Geprüft wird nur, DASS es im Projekt geschieht (einmal je Seite reicht),
-        nicht wo: Manche Projekte binden im Basis-Template, andere je Seite."""
-        wurzel = Path(getattr(settings, "BASE_DIR", "."))
+        nicht wo: Manche Projekte binden im Basis-Template, andere je Seite.
+
+        FEHLALARM VOM 21.08.2026 (assistant): Gesucht wurde unter ``BASE_DIR``.
+        Wer die Anbindung ``tabellen_auto.js`` überlässt — dem von djangoBase
+        empfohlenen Weg —, hat dort NICHTS stehen: Das Modul liegt im
+        djangoBase-Paket, also außerhalb des Projekts. Gemeldet wurde damit
+        ausgerechnet die saubere Lösung. Deshalb steht die Prüfung jetzt hinter
+        der Frage, ob die Auto-Bindung überhaupt fehlt."""
+        if TabellenKonformTest.auto_bindung_aktiv():
+            self.skipTest("tabellen_auto.js bindet - siehe Test darüber")
         gefunden = {"TabellenSortierung": False, "TabellenBreiten": False}
-        for muster in ("*.html", "*.js"):
-            for pfad in wurzel.rglob(muster):
-                if TABU & set(pfad.parts):
-                    continue
-                try:
-                    text = pfad.read_text(encoding="utf-8", errors="replace")
-                except OSError:
-                    continue
-                if "TabellenSortierung.binden" in text:
-                    gefunden["TabellenSortierung"] = True
-                if "new TabellenBreiten" in text:
-                    gefunden["TabellenBreiten"] = True
-                if all(gefunden.values()):
-                    return
+        for pfad in dateien(".html", ".js"):
+            text = text_von(pfad)
+            if text is None:
+                continue
+            if "TabellenSortierung.binden" in text:
+                gefunden["TabellenSortierung"] = True
+            if "new TabellenBreiten" in text:
+                gefunden["TabellenBreiten"] = True
+            if all(gefunden.values()):
+                return
         fehlend = [k for k, v in gefunden.items() if not v]
         self.assertFalse(fehlend,
                          u"Nirgends im Projekt gebunden: %s. Die Tabellen-"
@@ -269,3 +277,20 @@ class GegenprobeTest(SimpleTestCase):
     def test_muster_findet_eine_tabelle(self):
         self.assertTrue(_TABELLE.search('<table class="db-tabelle sortable">'))
         self.assertTrue(_TABELLE.search("<table\n  data-sort-key='x'>"))
+
+    def test_kommentare_werden_uebersprungen(self):
+        u"""Sonst meldet der Pruefer die Erklaerung, warum eine Datei KEINE
+        Tabelle hat - am 21.08.2026 genau so passiert."""
+        quelle = ('{% comment %}Keine <table>/<thead> hier, damit nur EINE '
+                  'Tabelle existiert.{% endcomment %}\n'
+                  '<table class="daten sortable" data-sort-key="x">'
+                  '<thead></thead></table>\n'
+                  '<!-- auch <table> im HTML-Kommentar -->\n')
+        sauber = ohne_kommentare(quelle)
+        self.assertEqual(sauber.count("<table"), 1, sauber)
+
+    def test_kurzer_kommentar_frisst_nicht_die_datei(self):
+        u"""``{# ... #}`` ist einzeilig - ein gieriges Muster loeschte sonst
+        alles zwischen dem ersten und dem letzten Vorkommen."""
+        quelle = '{# eins #}\n<table><thead></thead></table>\n{# zwei #}'
+        self.assertIn("<table", ohne_kommentare(quelle))

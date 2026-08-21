@@ -40,11 +40,10 @@ from pathlib import Path
 from django.conf import settings
 from django.test import SimpleTestCase
 
+from djangobase.tests.konform.quellen import TABU, dateien, text_von  # noqa: F401
+
 PAKET = Path(__file__).resolve().parents[2]
 JS_DJANGOBASE = PAKET / "static" / "djangobase" / "js"
-
-TABU = {"node_modules", "__pycache__", "venv", "pythonVENV", ".git",
-        "site-packages", "migrations"}
 
 #: Werkzeuge, die naturgemäß Tabellen-Markup enthalten.
 WERKZEUG = ("tabelle_bauen.js", "tabellen_auto.js", "tabellen_sortierung.js",
@@ -71,10 +70,7 @@ def ohne_kommentare(text):
 
 def _module():
     u"""JS-Dateien des Projekts, ohne djangoBase und ohne Spiegelungen."""
-    wurzel = Path(getattr(settings, "BASE_DIR", "."))
-    for pfad in wurzel.rglob("*.js"):
-        if TABU & set(pfad.parts):
-            continue
+    for pfad in dateien(".js"):
         if JS_DJANGOBASE in pfad.parents or pfad.name in WERKZEUG:
             continue
         # Testspiegel (tests_app/js/_web/) sind Kopien - sie zweimal zu melden
@@ -97,10 +93,10 @@ def bauende_module():
     for pfad in _module():
         if _ausgenommen(pfad):
             continue
-        try:
-            text = ohne_kommentare(pfad.read_text(encoding="utf-8", errors="replace"))
-        except OSError:
+        roh = text_von(pfad)
+        if roh is None:
             continue
+        text = ohne_kommentare(roh)
         # KEINE ``<thead>``-BEDINGUNG MEHR (Korrektur 21.08.2026): Sie hat
         # ``risiko.js`` übersehen. Dort steht das ``<table>``, die Kopfzeile baut
         # ``risiko_tabellen.js`` — zwei Dateien, eine Tabelle. Neun echte
