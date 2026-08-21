@@ -172,14 +172,39 @@ class Aufzeichner {
       return antwort;
     };
 
-    // Beim Verlassen den Rest mitnehmen. `sendBeacon`, weil ein normales fetch
-    // beim Entladen abgebrochen wird - genau der Puffer mit dem letzten Klick.
+    // Beim Verlassen den Rest mitnehmen - mit `keepalive`, NICHT mit
+    // `sendBeacon` (Fehler gemessen 21.08.2026).
+    //
+    // `sendBeacon` kann keine Header setzen, also auch kein X-CSRFToken. Der
+    // Endpunkt ist bewusst nicht csrf_exempt (er schreibt eine Datei ins
+    // Projekt) und hat jeden Beacon mit **403** abgewiesen - im Serverlog
+    // sichtbar als einzelne 403-Zeile am Ende jeder Aufnahme. Folge: Bei jedem
+    // Seitenwechsel gingen bis zu drei Sekunden verloren, und zwar genau die um
+    // den Klick herum, der die Navigation ausgeloest hat. In der Gegenprobe
+    // fehlte der Startpunkt `/dax-handel/` komplett.
+    //
+    // `fetch(..., {keepalive: true})` ueberlebt das Entladen genauso, darf aber
+    // Header tragen. Grenze sind 64 KB - ein Puffer mit hoechstens 40 Schritten
+    // liegt weit darunter.
     window.addEventListener('pagehide', () => {
+      // ERST ENTNEHMEN, DANN SENDEN (Fehler gefunden 21.08.2026): Hier stand
+      // ``schritte: this.puffer`` ohne Leeren. Der Beacon ging raus, der Puffer
+      // blieb voll - und wenn danach noch ein Timer-Tick kam (oder die Seite
+      // doch nicht entladen wurde), schickte ``senden`` denselben Inhalt ein
+      // zweites Mal. In einer Aufnahme über zwei Seiten standen daraufhin sieben
+      // Schritte doppelt, mit identischen Zeitstempeln: derselbe Klick, zweimal
+      // - im erzeugten Testfall wäre er zweimal nachgefahren worden.
+      if (this.timer) { clearInterval(this.timer); this.timer = null; }
       if (!this.puffer.length) return;
-      const daten = JSON.stringify({ aktion: 'schritte', id: this.id,
-                                     schritte: this.puffer });
-      try { navigator.sendBeacon(PFAD, new Blob([daten], { type: 'application/json' })); }
-      catch (e) { /* dann eben nicht - der Weg ist trotzdem aufgezeichnet */ }
+      const schritte = this.puffer.splice(0, this.puffer.length);
+      try {
+        this._roh(PFAD, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+          body: JSON.stringify({ aktion: 'schritte', id: this.id, schritte }),
+          keepalive: true,
+        });
+      } catch (e) { /* dann eben nicht - der Weg ist trotzdem aufgezeichnet */ }
     });
 
     this.timer = setInterval(() => this.senden(), TAKT_MS);

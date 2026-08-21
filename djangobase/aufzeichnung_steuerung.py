@@ -81,6 +81,12 @@ class Steuerung:
     #: IHNEN. Ein Abruf wird nur innerhalb desselben Abschnitts zusammengefasst.
     MARKEN = ("klick", "eingabe", "auswahl", "seite")
 
+    @staticmethod
+    def _signatur(schritt):
+        u"""Was eine Marke eindeutig macht: Zeitpunkt und Ziel."""
+        return (schritt.get("t"), schritt.get("art"),
+                schritt.get("ziel") or schritt.get("seite") or "")
+
     @classmethod
     def _einfuegen(cls, vorhandene, neue):
         u"""Neue Ereignisse anhaengen - wiederkehrende Abrufe dabei ZAEHLEN.
@@ -103,8 +109,28 @@ class Steuerung:
 
         Ein Abruf mit anderem Status faellt NICHT zusammen: Ein Poll, der
         ploetzlich 500 liefert, ist die interessanteste Zeile der Aufnahme."""
+        # WIEDERHOLTE MARKEN ABWEISEN (21.08.2026): Der Browser entnimmt seinen
+        # Puffer beim Senden, ein Doppelversand sollte also nicht vorkommen -
+        # aber garantieren muss es die Stelle, die SCHREIBT. Ein
+        # ``keepalive``-Request darf vom Browser wiederholt werden, und ein
+        # zweiter Tab derselben Sitzung schickt denselben Weg noch einmal.
+        # Passiert das, stuende jeder Klick zweimal in der Aufnahme, und der
+        # erzeugte Testfall fuehre ihn zweimal nach.
+        #
+        # Erkennbar sind Wiederholungen an der SIGNATUR einer Marke: Sekunde
+        # seit Beginn plus Ziel. Zwei ECHTE Klicks auf dasselbe Ziel in
+        # derselben Zehntelsekunde faenden hier zusammen - ein Doppelklick, der
+        # als einer gilt. Das ist der guenstigere Fehler: eine verdoppelte
+        # Aufnahme ist unbrauchbar, ein verschluckter Doppelklick eine Nuance.
+        vorhanden = {cls._signatur(a) for a in vorhandene
+                     if a.get("art") in cls.MARKEN}
         neu_gezaehlt = 0
         for s in neue:
+            if s.get("art") in cls.MARKEN:
+                sig = cls._signatur(s)
+                if sig in vorhanden:
+                    continue
+                vorhanden.add(sig)
             treffer = None
             if s.get("art") == "abruf":
                 for alt in reversed(vorhandene):

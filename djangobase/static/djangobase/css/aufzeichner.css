@@ -34,15 +34,41 @@
   font: inherit;
   font-weight: 600;
   cursor: pointer;
-  opacity: .72;
+  opacity: .85;
   box-shadow: 0 2px 10px rgba(0, 0, 0, .35);
-  transition: opacity .15s, background-color .15s, color .15s;
+  /* KEINE FARB-TRANSITION (Ursache gefunden 21.08.2026)
+     -----------------------------------------------------
+     Hier stand `transition: opacity .15s, background-color .15s, color .15s`.
+     Auf `/dax-handel/` blieb der Knopf danach weiss, obwohl der Inline-Stil
+     `background: rgb(220,38,38)` trug und `k.style.backgroundColor` ihn
+     zurueckgab - `getComputedStyle` lieferte weiter Weiss.
+
+     Waehrend einer laufenden Transition liefert der berechnete Stil den
+     INTERPOLIERTEN Zwischenwert. Auf einer Seite, die ununterbrochen einen
+     Chart neu zeichnet, kommen die Animationsschritte nicht dran, die
+     Transition steht - und mit ihr die Farbe beim Startwert. Ein frisch
+     eingefuegter Klon desselben Elements war jedes Mal sofort richtig, weil
+     bei ihm keine Transition lief.
+
+     Ein Zustandswechsel, den der Nutzer sofort sehen muss (Aufnahme laeuft
+     oder nicht), darf ohnehin nicht animiert sein. */
 }
 
-.djb-aufz-knopf:hover:not(:disabled) { opacity: 1; }
+.djb-aufz-knopf:hover:not(.wartet) { opacity: 1; }
 
-.djb-aufz-knopf:disabled {
-  /* Der kurze Moment, bevor der Server geantwortet hat - siehe Modulkopf. */
+/* WARTEZUSTAND ÜBER EINE KLASSE, NICHT ÜBER `:disabled` (Fehler 21.08.2026)
+   ---------------------------------------------------------------------
+   Hier stand `.djb-aufz-knopf:disabled`. Auf `/dax-handel/` blieb der Knopf
+   danach DAUERHAFT grau, obwohl das Attribut längst entfernt war:
+   `matches(':disabled')` lieferte false, `getComputedStyle` weiter #9ca3af.
+   Nachgewiesen mit einem Klon desselben Elements - der war weiss, das Original
+   blieb grau, auch nach erneutem Setzen und Entfernen des Attributs. Chrome
+   hatte den Stil auf dieser Seite nicht neu berechnet.
+
+   Fuer den Nutzer sah das aus, als sei der Knopf tot ("das popup ist nicht
+   drin"). Ein Klassenwechsel invalidiert zuverlaessig; `disabled` bleibt fuer
+   das VERHALTEN gesetzt, nur nicht mehr fuer das Aussehen. */
+.djb-aufz-knopf.wartet {
   background: #9ca3af;
   color: #f3f4f6;
   cursor: default;

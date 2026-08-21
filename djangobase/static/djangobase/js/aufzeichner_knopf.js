@@ -27,7 +27,20 @@
  * anbietet, würde bei laufender Aufnahme eine zweite starten wollen und
  * scheitern - er verspräche etwas anderes, als er tut.
  */
-import { aufzeichnerStarten } from '/static/djangobase/js/aufzeichner.js';
+/* MIT DERSELBEN ?v=-QUERY IMPORTIEREN (Fehler gemessen 21.08.2026)
+ * ---------------------------------------------------------------
+ * Hier stand ein statischer Import OHNE Query, waehrend `_shell.html` dieselbe
+ * Datei als `aufzeichner.js?v=1787...` laedt. Fuer den Browser sind das ZWEI
+ * Module: `aufzeichner.js` wurde zweimal ausgewertet, also lief
+ * `aufzeichnerStarten()` zweimal, und es gab ZWEI Aufzeichner mit eigenen
+ * Puffern. Beide schrieben dieselben Klicks und Abrufe mit - in der Aufnahme
+ * standen neun Schritte doppelt, mit identischen Zeitstempeln.
+ *
+ * `import.meta.url` traegt die Query DIESES Moduls (das Script-Tag setzt sie).
+ * Damit zeigt der dynamische Import auf exakt dieselbe URL wie das Tag: eine
+ * Instanz - und das Cache-Busting bleibt erhalten. */
+const { aufzeichnerStarten } = await import(
+  '/static/djangobase/js/aufzeichner.js' + new URL(import.meta.url).search);
 
 const PFAD = '/hilfe/tests/aufzeichnung/';
 const ZIEL = '/hilfe/tests/?tab=Aufzeichnen';
@@ -53,10 +66,26 @@ class AufzeichnerKnopf {
     this.laeuft = null;          // {id, start} oder null
     this.beschaeftigt = false;
     this.uhr = null;
+    this.box = null;
     this.knopf = null;
   }
 
-  /** Das schwebende Fenster anlegen - einmal je Seite. */
+  /** Das schwebende Fenster anlegen - einmal je Seite.
+   *
+   *  NOCH NICHT EINGEHÄNGT (Fehler 21.08.2026): Die erste Fassung hängte den
+   *  Knopf sofort ein - gesperrt und grau - und entsperrte ihn, sobald der
+   *  Server geantwortet hatte. Auf ``/dax-handel/`` blieb er danach DAUERHAFT
+   *  grau: ``disabled`` war false, die Klasse entfernt, die einzige passende
+   *  CSS-Regel sagte weiß, und ``getComputedStyle`` lieferte trotzdem #9ca3af.
+   *  Nachgewiesen mit einem Klon desselben Elements - der Klon war weiß, das
+   *  Original blieb grau. Chrome hatte den Stil nach dem Entsperren nicht neu
+   *  berechnet.
+   *
+   *  Für den Nutzer sah das aus, als sei der Knopf gar nicht da („das popup ist
+   *  nicht drin"). Statt gegen die Invalidierung anzukämpfen, entfällt der
+   *  Übergang: Das Element kommt fertig ins DOM, mit dem Zustand, den es
+   *  behalten soll. Sichtbar wird es dadurch einen Wimpernschlag später - dafür
+   *  nie falsch. */
   bauen() {
     if (document.querySelector('[data-djb-aufzeichner-ui]')) return;
     const box = document.createElement('div');
@@ -65,12 +94,17 @@ class AufzeichnerKnopf {
     // geklickt wird, gehört zur Bedienung und nicht in die Aufnahme.
     box.setAttribute('data-djb-aufzeichner-ui', '1');
     box.innerHTML =
-      '<button type="button" class="djb-aufz-knopf" disabled>'
+      '<button type="button" class="djb-aufz-knopf">'
       + '<span class="djb-aufz-punkt"></span>'
       + '<span class="djb-aufz-text">Aufzeichnen</span></button>';
-    document.body.appendChild(box);
+    this.box = box;
     this.knopf = box.querySelector('button');
     this.knopf.addEventListener('click', () => this.umschalten());
+  }
+
+  /** Jetzt sichtbar machen - der Zustand steht fest. */
+  einhaengen() {
+    if (this.box && !this.box.isConnected) document.body.appendChild(this.box);
   }
 
   /** Beim Laden einmal fragen, was Sache ist. */
@@ -83,13 +117,49 @@ class AufzeichnerKnopf {
       this.laeuft = null;                 // ohne Server kein Knopf-Versprechen
     }
     this.zeichnen();
+    this.einhaengen();
   }
+
+  /** Die drei Zustandsbilder - als INLINE-Stil, nicht ueber CSS-Klassen.
+   *
+   *  WARUM SO HÄSSLICH (belegt 21.08.2026): Auf ``/dax-handel/`` rechnet Chrome
+   *  den Stil dieses Elements nach einem Klassen- oder Attributwechsel nicht neu.
+   *  Zweimal nachgewiesen: (1) nach dem Entsperren blieb der Knopf grau, obwohl
+   *  ``matches(':disabled')`` false war und die einzige passende Regel weiß
+   *  sagte; (2) nach ``classList.add('laeuft')`` blieb er weiß, obwohl Klasse
+   *  und Beschriftung („Aufnahme 0:04") standen. Ein Klon desselben Elements
+   *  bekam jedes Mal die richtige Farbe - das Original nie.
+   *
+   *  Ein Inline-Stil geht direkt in die Berechnung und kann von keiner
+   *  ausgefallenen Invalidierung verschluckt werden. Die Klassen bleiben für
+   *  Hover und den blinkenden Punkt gesetzt, und die CSS-Regeln bleiben als
+   *  Grundlage stehen - fiele dieses Modul aus, sähe der Knopf trotzdem richtig
+   *  aus. */
+  static BILD = {
+    bereit: { background: '#ffffff', color: '#111111',
+              borderColor: 'rgba(0,0,0,.25)', opacity: '.85' },
+    laeuft: { background: '#dc2626', color: '#ffffff',
+              borderColor: '#7f1d1d', opacity: '1' },
+    wartet: { background: '#9ca3af', color: '#f3f4f6',
+              borderColor: 'rgba(0,0,0,.25)', opacity: '.6' },
+  };
 
   zeichnen() {
     if (!this.knopf) return;
     const k = this.knopf;
     k.disabled = this.beschaeftigt;
+    k.classList.toggle('wartet', this.beschaeftigt);
     k.classList.toggle('laeuft', !!this.laeuft);
+    const bild = AufzeichnerKnopf.BILD[
+      this.beschaeftigt ? 'wartet' : (this.laeuft ? 'laeuft' : 'bereit')];
+    Object.assign(k.style, bild);
+    const punkt = k.querySelector('.djb-aufz-punkt');
+    // Der Punkt ist ein KIND - dieselbe Invalidierung trifft ihn genauso.
+    if (punkt) {
+      punkt.style.background = this.laeuft ? '#ffffff' : '#dc2626';
+      punkt.style.borderColor = this.laeuft ? 'rgba(255,255,255,.8)'
+                                            : 'rgba(0,0,0,.3)';
+    }
     k.title = this.laeuft
       ? 'Aufzeichnung läuft - klicken zum Beenden und Speichern'
       : 'Aktionen und Logs mitschreiben, um daraus einen Testfall zu bauen';
