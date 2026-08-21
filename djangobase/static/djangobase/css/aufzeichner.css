@@ -1,99 +1,113 @@
-/* Der schwebende Aufzeichnen-Knopf (Auftrag Edgar, 21.08.2026).
- * ============================================================
- * „Ein Popup bauen, das die ganze Zeit über der Webseite ist … Der Button ist
- *  erstmal weiss. Sobald man drauf klickt, wird er rot."
+/* Das Aufzeichnungs-Popup — ein Fenster, das über JEDER Seite steht.
+ * ==================================================================
+ * AUFTRAG (Edgar, 21.08.2026)
  *
- * UNTEN RECHTS UND KLEIN: Er liegt über JEDER Seite, also auch über Tabellen
- * und Charts. Ein großes Feld würde dort dauerhaft Inhalt verdecken; deshalb
- * nur so groß wie sein Text, und im Ruhezustand leicht durchscheinend. Beim
- * Zeigen wird er voll deckend - dann will jemand hin.
+ *     „Ein Popup bauen, das die ganze Zeit über der Webseite ist. Darin ein
+ *      Button mit aufzeichnen anzeigen. Der Button ist erstmal weiss. Sobald
+ *      man drauf klickt, wird er rot und die Aufzeichnung beginnt. beim
+ *      erneuten Klick wird er wieder weiss, und das Fenster mit testaufzeichnen
+ *      wird wieder geöffnet, der Test wird gespeichert."
  *
- * WÄHREND DER AUFNAHME KEINE ZURÜCKHALTUNG: Rot, voll deckend, mit
- * mitlaufender Dauer. Eine vergessene Aufnahme schreibt sonst stundenlang mit,
- * und der erzeugte Testfall ist unbrauchbar.
+ * Die erste Umsetzung war nur ein kleiner Knopf am Bildschirmrand — kein
+ * Fenster. Hier steht das Fenster: Titelzeile, Rahmen, verschiebbar, und der
+ * Knopf DARIN. Nach dem Beenden klappt die Liste der Aufzeichnungen im selben
+ * Fenster auf, statt den Nutzer von seiner Seite wegzunavigieren.
+ *
+ * KEINE TRANSITIONEN AUF ZUSTANDSFARBEN (Ursache belegt 21.08.2026): Auf
+ * `/dax-handel/` blieb der Knopf weiß, obwohl sein Inline-Stil rot war —
+ * während einer laufenden Transition liefert der berechnete Stil den
+ * interpolierten Zwischenwert, und auf einer Seite, die ununterbrochen einen
+ * Chart zeichnet, kommen die Animationsschritte nicht dran. Ein Zustand, den
+ * der Nutzer sofort sehen muss, darf ohnehin nicht animiert sein.
  */
+
+/* ── Das Fenster ──────────────────────────────────────────────────────────── */
 .djb-aufz {
   position: fixed;
-  right: 14px;
-  bottom: 14px;
-  /* Über allem: Die Charts dieses Projekts legen Fenster mit z-index bis 9999
-     an; darunter wäre der Knopf genau dort verdeckt, wo man ihn braucht. */
+  right: 18px;
+  bottom: 18px;
+  /* Breit genug, dass die Tabelle ohne waagerechtes Scrollen bis zum
+     Loeschknopf reicht (bei 300px lag er ausserhalb). */
+  width: 410px;
+  max-width: calc(100vw - 36px);
+  /* Über allem: Die Chart-Fenster dieses Projekts liegen bei z-index 9999;
+     darunter wäre das Popup genau dort verdeckt, wo man es braucht. */
   z-index: 2147483000;
-  font: 12px/1.2 system-ui, -apple-system, "Segoe UI", sans-serif;
+  font: 13px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #e5e7eb;
+  background: #111827;
+  border: 1px solid #374151;
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, .55);
+  overflow: hidden;
 }
 
-.djb-aufz-knopf {
-  display: inline-flex;
+/* ── Titelzeile (zugleich der Griff zum Verschieben) ──────────────────────── */
+.djb-aufz-kopf {
+  display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 7px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(0, 0, 0, .25);
+  gap: 8px;
+  padding: 8px 10px;
+  background: #1f2937;
+  border-bottom: 1px solid #374151;
+  cursor: move;
+  user-select: none;
+}
+
+.djb-aufz-titel {
+  flex: 1;
+  font-weight: 600;
+  font-size: 12.5px;
+  letter-spacing: .02em;
+}
+
+.djb-aufz-klapp {
+  border: 0;
+  background: transparent;
+  color: #9ca3af;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.djb-aufz-klapp:hover { background: #374151; color: #e5e7eb; }
+
+/* ── Körper ───────────────────────────────────────────────────────────────── */
+.djb-aufz-koerper { padding: 12px 12px 10px; }
+
+.djb-aufz.zu .djb-aufz-koerper { display: none; }
+
+/* Der Knopf: groß genug, um das Hauptelement des Fensters zu sein. */
+.djb-aufz-knopf {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, .3);
   background: #ffffff;
   color: #111111;
   font: inherit;
   font-weight: 600;
+  font-size: 14px;
   cursor: pointer;
-  opacity: .85;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, .35);
-  /* KEINE FARB-TRANSITION (Ursache gefunden 21.08.2026)
-     -----------------------------------------------------
-     Hier stand `transition: opacity .15s, background-color .15s, color .15s`.
-     Auf `/dax-handel/` blieb der Knopf danach weiss, obwohl der Inline-Stil
-     `background: rgb(220,38,38)` trug und `k.style.backgroundColor` ihn
-     zurueckgab - `getComputedStyle` lieferte weiter Weiss.
-
-     Waehrend einer laufenden Transition liefert der berechnete Stil den
-     INTERPOLIERTEN Zwischenwert. Auf einer Seite, die ununterbrochen einen
-     Chart neu zeichnet, kommen die Animationsschritte nicht dran, die
-     Transition steht - und mit ihr die Farbe beim Startwert. Ein frisch
-     eingefuegter Klon desselben Elements war jedes Mal sofort richtig, weil
-     bei ihm keine Transition lief.
-
-     Ein Zustandswechsel, den der Nutzer sofort sehen muss (Aufnahme laeuft
-     oder nicht), darf ohnehin nicht animiert sein. */
-}
-
-.djb-aufz-knopf:hover:not(.wartet) { opacity: 1; }
-
-/* WARTEZUSTAND ÜBER EINE KLASSE, NICHT ÜBER `:disabled` (Fehler 21.08.2026)
-   ---------------------------------------------------------------------
-   Hier stand `.djb-aufz-knopf:disabled`. Auf `/dax-handel/` blieb der Knopf
-   danach DAUERHAFT grau, obwohl das Attribut längst entfernt war:
-   `matches(':disabled')` lieferte false, `getComputedStyle` weiter #9ca3af.
-   Nachgewiesen mit einem Klon desselben Elements - der war weiss, das Original
-   blieb grau, auch nach erneutem Setzen und Entfernen des Attributs. Chrome
-   hatte den Stil auf dieser Seite nicht neu berechnet.
-
-   Fuer den Nutzer sah das aus, als sei der Knopf tot ("das popup ist nicht
-   drin"). Ein Klassenwechsel invalidiert zuverlaessig; `disabled` bleibt fuer
-   das VERHALTEN gesetzt, nur nicht mehr fuer das Aussehen. */
-.djb-aufz-knopf.wartet {
-  background: #9ca3af;
-  color: #f3f4f6;
-  cursor: default;
-  opacity: .6;
 }
 
 .djb-aufz-punkt {
-  width: 10px;
-  height: 10px;
+  width: 11px;
+  height: 11px;
   border-radius: 50%;
   background: #dc2626;
   border: 1px solid rgba(0, 0, 0, .3);
   flex: 0 0 auto;
 }
 
-.djb-aufz-knopf.laeuft {
-  background: #dc2626;
-  color: #ffffff;
-  border-color: #7f1d1d;
-  opacity: 1;
-}
-
 .djb-aufz-knopf.laeuft .djb-aufz-punkt {
-  background: #ffffff;
-  border-color: rgba(255, 255, 255, .8);
   animation: djb-aufz-blinken 1.4s ease-in-out infinite;
 }
 
@@ -102,11 +116,68 @@
   50%      { opacity: .25; }
 }
 
-/* Wer Bewegung abgestellt hat, bekommt keine - der Punkt bleibt trotzdem rot
-   und der Knopf trotzdem eindeutig. */
 @media (prefers-reduced-motion: reduce) {
   .djb-aufz-knopf.laeuft .djb-aufz-punkt { animation: none; }
 }
+
+.djb-aufz-lage {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  color: #9ca3af;
+  min-height: 1.2em;
+}
+
+/* ── Die Liste im Fenster ─────────────────────────────────────────────────── */
+.djb-aufz-liste {
+  margin-top: 10px;
+  border-top: 1px solid #374151;
+  padding-top: 9px;
+  max-height: 240px;
+  overflow: auto;
+}
+
+.djb-aufz-liste:empty { display: none; }
+
+/* Die Tabelle kommt aus djangoBase (`db-tabelle sortable`, Breiten ziehbar).
+   Hier nur, was das enge Fenster braucht. */
+.djb-aufz-liste table { width: 100%; font-size: 11.5px; }
+.djb-aufz-liste th, .djb-aufz-liste td { padding: 3px 5px; }
+
+.djb-aufz-liste input.au-name {
+  width: 100%;
+  min-width: 90px;
+  background: #0b1220;
+  color: #e5e7eb;
+  border: 1px solid #374151;
+  border-radius: 4px;
+  padding: 2px 5px;
+  font: inherit;
+}
+
+.djb-aufz-liste input.au-name:focus {
+  outline: 0;
+  border-color: #60a5fa;
+}
+
+.djb-aufz-weg {
+  border: 1px solid #7f1d1d;
+  background: transparent;
+  color: #f87171;
+  border-radius: 4px;
+  padding: 1px 5px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.djb-aufz-weg:hover { background: #7f1d1d; color: #fff; }
+
+.djb-aufz-fuss {
+  margin-top: 8px;
+  font-size: 11px;
+}
+
+.djb-aufz-fuss a { color: #60a5fa; text-decoration: none; }
+.djb-aufz-fuss a:hover { text-decoration: underline; }
 
 @media print {
   .djb-aufz { display: none; }

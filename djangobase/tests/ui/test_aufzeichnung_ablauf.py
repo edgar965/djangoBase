@@ -12,7 +12,7 @@ gegen diese drei prüft diese Datei; sie sind der Grund, warum es sie gibt.
 
 1. EIN MODUL, ZWEI URLs
    ``_shell.html`` lädt ``aufzeichner.js?v=1787…``, während
-   ``aufzeichner_knopf.js`` dieselbe Datei ohne Query importierte. Für den
+   ``aufzeichner_popup.js`` dieselbe Datei ohne Query importierte. Für den
    Browser sind das zwei Module: ``aufzeichnerStarten()`` lief zweimal, es gab
    ZWEI Aufzeichner mit eigenen Puffern, und jeder Klick stand doppelt in der
    Aufnahme — neun Schritte mit identischen Zeitstempeln. Im erzeugten Testfall
@@ -145,14 +145,18 @@ class QuelltextFallenTest(SimpleTestCase):
         ``_shell.html`` lädt ``aufzeichner.js`` mit ``?v=``. Wer dieselbe Datei
         daneben OHNE Query importiert, bekommt eine zweite Modulinstanz - und
         jedes Ereignis steht doppelt in der Aufnahme."""
-        knopf = (JS / "aufzeichner_knopf.js").read_text(encoding="utf-8")
-        blank = re.findall(r"""import\s*\{[^}]*\}\s*from\s*['"]([^'"]*aufzeichner\.js)['"]""",
-                           knopf)
+        popup = (JS / "aufzeichner_popup.js").read_text(encoding="utf-8")
+        # Beide Formen: statischer Import und dynamisches import(...).
+        blank = re.findall(
+            r"""import\s*\{[^}]*\}\s*from\s*['"]([^'"]*aufzeichner\.js)['"]"""
+            r"""|import\s*\(\s*['"]([^'"]*aufzeichner\.js)['"]\s*\)""",
+            popup)
+        blank = [t for paar in blank for t in paar if t]
         self.assertEqual(blank, [],
                          u"aufzeichner.js darf nicht ohne ?v= importiert werden "
                          u"(gefunden: %r) - das Script-Tag der Shell lädt es MIT "
                          u"Query, und zwei URLs sind zwei Module" % (blank,))
-        self.assertIn("import.meta.url", knopf,
+        self.assertIn("import.meta.url", popup,
                       u"Der Import muss die Query dieses Moduls übernehmen "
                       u"(new URL(import.meta.url).search)")
 
@@ -177,18 +181,44 @@ class QuelltextFallenTest(SimpleTestCase):
                       u"Der pagehide-Handler muss den Puffer ENTNEHMEN, nicht nur "
                       u"lesen - sonst geht derselbe Inhalt zweimal raus")
 
-    def test_knopf_und_stil_liegen_auf_jeder_seite(self):
-        u"""Der Knopf gehört in die Shell - sonst kann er keinen Weg aufzeichnen."""
+    def test_popup_liegt_auf_jeder_seite(self):
+        u"""Das Popup gehört in die Shell - sonst kann es keinen Weg aufzeichnen.
+
+        Die erste Umsetzung war nur ein kleiner Knopf am Bildschirmrand und lag
+        obendrein nur im Reiter unter Hilfe → Tests. Verlangt war ein FENSTER
+        über jeder Seite, mit dem Knopf darin."""
         shell = SHELL.read_text(encoding="utf-8")
-        self.assertIn("aufzeichner_knopf.js", shell)
+        self.assertIn("aufzeichner_popup.js", shell)
         self.assertIn("css/aufzeichner.css", shell)
+        popup = (JS / "aufzeichner_popup.js").read_text(encoding="utf-8")
+        for stueck in ("djb-aufz-kopf", "djb-aufz-titel", "djb-aufz-knopf",
+                       "djb-aufz-liste"):
+            self.assertIn(stueck, popup,
+                          u"Dem Popup fehlt %r - Titelzeile, Knopf und Liste "
+                          u"gehören ins Fenster" % stueck)
+
+    def test_liste_wird_nur_einmal_gebaut(self):
+        u"""Popup und Reiter benutzen DIESELBE Listen-Klasse.
+
+        Vorher baute jeder sein eigenes Tabellen-Markup. Zwei Kopien derselben
+        Tabelle laufen auseinander - die eine bekommt einen neuen Knopf, die
+        andere nicht."""
+        for datei in ("aufzeichner_popup.js", "aufzeichnung.js"):
+            quelle = (JS / datei).read_text(encoding="utf-8")
+            self.assertIn("AufzeichnungsListe", quelle,
+                          u"%s baut seine Tabelle selbst statt die gemeinsame "
+                          u"Klasse zu nutzen" % datei)
+        liste = (JS / "aufzeichner_liste.js").read_text(encoding="utf-8")
+        for stueck in ("db-tabelle sortable", "TabellenSortierung.binden",
+                       "new TabellenBreiten", "au-name", "au-weg"):
+            self.assertIn(stueck, liste)
 
     def test_eigene_bedienung_wird_nicht_aufgezeichnet(self):
         u"""Sonst stünde in jeder Aufnahme der Klick auf „Aufzeichnen" selbst."""
         quelle = (JS / "aufzeichner.js").read_text(encoding="utf-8")
         self.assertIn("data-djb-aufzeichner-ui", quelle)
-        knopf = (JS / "aufzeichner_knopf.js").read_text(encoding="utf-8")
-        self.assertIn("data-djb-aufzeichner-ui", knopf)
+        popup = (JS / "aufzeichner_popup.js").read_text(encoding="utf-8")
+        self.assertIn("data-djb-aufzeichner-ui", popup)
 
     def test_zustandsfarben_stehen_im_javascript(self):
         u"""Chrome berechnete den Stil nach dem Klassenwechsel nicht neu.
@@ -196,14 +226,14 @@ class QuelltextFallenTest(SimpleTestCase):
         Auf /dax-handel/ blieb der Knopf grau bzw. weiß, obwohl Klasse und
         Beschriftung stimmten; ein Klon desselben Elements bekam die richtige
         Farbe. Deshalb setzt das Modul die drei Zustandsfarben inline."""
-        knopf = (JS / "aufzeichner_knopf.js").read_text(encoding="utf-8")
-        ohne_leer = "".join(knopf.split())
-        self.assertIn("staticBILD", ohne_leer,
+        popup = (JS / "aufzeichner_popup.js").read_text(encoding="utf-8")
+        ohne_leer = "".join(popup.split())
+        self.assertIn("constBILD", ohne_leer,
                       u"Die Zustandsbilder müssen als Tabelle im Modul stehen")
         for zustand in ("bereit:", "laeuft:", "wartet:"):
             self.assertIn(zustand, ohne_leer,
                           u"Zustand %r fehlt in der Farbtabelle" % zustand)
-        self.assertIn("Object.assign(k.style", knopf,
+        self.assertIn("Object.assign(k.style", popup,
                       u"Die Farben müssen INLINE gesetzt werden - ein Klassen"
                       u"wechsel allein hat Chrome hier nicht zum Neuberechnen "
                       u"gebracht")

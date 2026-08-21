@@ -22,8 +22,7 @@
  * Klassen und Attribute (`db-tabelle sortable`, `data-sort-key`) und die beiden
  * JS-Module direkt — genau der Weg, den der Kopf jener Vorlage dafür nennt.
  */
-import { TabellenSortierung } from '/static/djangobase/js/tabellen_sortierung.js';
-import { TabellenBreiten } from '/static/djangobase/js/tabellen_breiten.js';
+import { AufzeichnungsListe } from '/static/djangobase/js/aufzeichner_liste.js';
 
 const PFAD = '/hilfe/tests/aufzeichnung/';
 
@@ -38,19 +37,11 @@ const senden = (daten) => fetch(PFAD, {
   body: JSON.stringify(daten),
 }).then(r => r.json());
 
-const esc = (s) => String(s == null ? '' : s)
-  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-  .replace(/"/g, '&quot;');
-
-/** Sekunden lesbar: 47 s, 2:05 min. */
+/** Sekunden lesbar: 47 s, 2:05 min. — Das Tabellen-Markup liegt seit dem
+ *  21.08.2026 in ``aufzeichner_liste.js``; hier bleibt nur, was die Statuszeile
+ *  über der Tabelle braucht. */
 const dauer = (s) => (s < 60) ? Math.round(s) + ' s'
   : Math.floor(s / 60) + ':' + String(Math.round(s % 60)).padStart(2, '0') + ' min';
-
-const zeit = (iso) => {
-  const d = new Date(iso);
-  return isNaN(d) ? '—' : d.toLocaleString('de-DE',
-    { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-};
 
 class Reiter {
   constructor() {
@@ -75,18 +66,15 @@ class Reiter {
   zeichnen(liste) {
     this.schalterSetzen();
     if (this.tabelle) {
-      this.tabelle.innerHTML = this.tabelleHtml(liste);
-      TabellenSortierung.binden(this.tabelle);
-      // BREITEN NUR ÜBER EINE INSTANZ (Fehler gefunden 21.08.2026): Hier stand
-      // ``TabellenBreiten.binden(this.tabelle)`` - eine statische Methode, die
-      // es nicht gibt. Das Modul kennt nur ``new TabellenBreiten(tabellen, key)``
-      // mit einer Instanz-Methode gleichen Namens. Der Aufruf warf einen
-      // TypeError, und weil er in ``zeichnen`` steht, brach das Zeichnen genau
-      // dort ab: Die Tabelle hatte NIE ziehbare Spalten, und in der Konsole lag
-      // bei jedem Neuaufbau ein Fehler. Gemeldet hat es Edgar - „Die Tabelle
-      // sollte von djangoBase tabelle erben, als z.B. Spalten verschiebbar".
-      const t = this.tabelle.querySelector('table');
-      if (t) new TabellenBreiten([t], t.dataset.sortKey || 'aufzeichnungen').binden();
+      // DIESELBE KLASSE WIE IM POPUP (21.08.2026): Vorher baute dieser Reiter
+      // sein eigenes Tabellen-Markup, das Popup ein zweites. Zwei Kopien
+      // derselben Tabelle laufen auseinander - die eine bekommt einen neuen
+      // Knopf, die andere nicht.
+      if (!this._liste) {
+        this._liste = new AufzeichnungsListe(this.tabelle, senden,
+                                             () => this.laden(), 'aufzeichnungen');
+      }
+      this._liste.zeichnen(liste);
     }
   }
 
@@ -130,35 +118,6 @@ class Reiter {
     if (this.ticker) { clearInterval(this.ticker); this.ticker = null; }
   }
 
-  tabelleHtml(liste) {
-    if (!liste.length) {
-      return '<p class="ts-empty">Noch keine Aufzeichnung. Der Knopf oben startet eine.</p>';
-    }
-    const kopf = [
-      ['ID', 'id', false], ['Name', 'name', false], ['Start', 'start', false],
-      ['Dauer', 'dauer', true], ['Schritte', 'schritte', true],
-      ['Logs', 'logs', true], ['', 'aktion', false],
-    ].map(([label, key, num]) =>
-      `<th${num ? ' class="num"' : ''} data-key="${key}"${key === 'aktion' ? ' data-sort-aus="1"' : ''}>${label}</th>`
-    ).join('');
-
-    const zeilen = liste.map(e => `<tr data-id="${esc(e.id)}">
-      <td><code>${esc(e.id)}</code></td>
-      <td><input class="au-name" value="${esc(e.name)}" data-id="${esc(e.id)}"
-                 title="Name ändern – wird beim Verlassen des Feldes gespeichert"></td>
-      <td data-sort="${esc(e.start)}">${esc(zeit(e.start))}${e.laeuft ? ' <b class="pos">läuft</b>' : ''}</td>
-      <td class="num" data-sort="${e.dauer_s}">${esc(dauer(e.dauer_s))}</td>
-      <td class="num">${e.n_schritte}</td>
-      <td class="num">${e.n_logs}</td>
-      <td><button type="button" class="btn btn-sm btn-outline-danger au-weg"
-                  data-id="${esc(e.id)}" title="Aufzeichnung löschen">🗑</button></td>
-    </tr>`).join('');
-
-    return `<div class="db-tabelle-rahmen">
-      <table class="db-tabelle sortable" data-sort-key="aufzeichnungen">
-        <thead><tr>${kopf}</tr></thead><tbody>${zeilen}</tbody>
-      </table></div>`;
-  }
 
   binden() {
     if (this.schalter) {
@@ -170,8 +129,8 @@ class Reiter {
           await senden({ aktion: 'start', seite: location.pathname });
         }
         await this.laden();
-        // Der schwebende Knopf zeigt denselben Zustand (siehe
-        // aufzeichner_knopf.js) - ohne diese Meldung liefe er weitere.
+        // Das Popup zeigt denselben Zustand (siehe
+        // aufzeichner_popup.js) - ohne diese Meldung liefe es weiter.
         document.dispatchEvent(new CustomEvent('djb-aufzeichnung-geaendert',
                                                { detail: { von: 'reiter' } }));
       });
@@ -180,20 +139,7 @@ class Reiter {
         this.laden();
       });
     }
-    if (!this.tabelle) return;
-    // Delegation: Die Zeilen entstehen neu, sobald sich etwas ändert.
-    this.tabelle.addEventListener('click', async ev => {
-      const weg = ev.target.closest('button.au-weg');
-      if (!weg) return;
-      await senden({ aktion: 'loeschen', id: weg.dataset.id });
-      await this.laden();
-    });
-    this.tabelle.addEventListener('change', async ev => {
-      const feld = ev.target.closest('input.au-name');
-      if (!feld) return;
-      await senden({ aktion: 'name', id: feld.dataset.id, name: feld.value });
-      await this.laden();
-    });
+    // Umbenennen und Löschen bindet die Listen-Klasse selbst.
   }
 }
 

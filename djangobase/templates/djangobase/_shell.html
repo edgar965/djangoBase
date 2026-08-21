@@ -121,7 +121,7 @@
     Er kostet nichts, wenn nichts läuft: eine Abfrage beim Laden, und nur bei
     laufender Aufnahme werden Zuhörer angemeldet.
 
-    DER KNOPF DAZU SCHWEBT EBENFALLS AUF JEDER SEITE (Nachtrag 21.08.2026):
+    DAS POPUP DAZU STEHT EBENFALLS AUF JEDER SEITE (Nachtrag 21.08.2026):
     „Ein Popup bauen, das die ganze Zeit über der Webseite ist. Darin ein Button
     mit aufzeichnen anzeigen." Vorher stand der Schalter nur im Reiter unter
     Hilfe → Tests — damit war das Werkzeug für seinen Zweck unbrauchbar: Wer
@@ -129,7 +129,7 @@
     interessiert, nie aufzeichnen.
     {% endcomment %}
     <script type="module" src="{% static 'djangobase/js/aufzeichner.js' %}?v={{ djangobase.statik_v }}"></script>
-    <script type="module" src="{% static 'djangobase/js/aufzeichner_knopf.js' %}?v={{ djangobase.statik_v }}"></script>
+    <script type="module" src="{% static 'djangobase/js/aufzeichner_popup.js' %}?v={{ djangobase.statik_v }}"></script>
     {% endblock %}
     {% comment %}extra_body_js: Projekt-spezifische Scripts am Body-Ende.
     Eintrag = Static-Pfad-String, oder Dict {static:"..."} oder Dict
