@@ -63,6 +63,13 @@ export function tabellenBinden(wurzel) {
   const vergeben = new Set();
   w.querySelectorAll('table.sortable, table[data-sort-key]').forEach((t, nr) => {
     if (t.dataset.djbGebunden === '1') return;
+    // ERST WENN EINE KOPFZEILE DA IST (Fehler gemessen 21.08.2026): Auf
+    // ``/risiko/`` steht das leere ``<table>`` schon im Markup, die Zeilen
+    // kommen erst nach einem Abruf je Anlage. Der Beobachter fand die leere
+    // Tabelle, ``TabellenBreiten`` stieg mangels ``tHead`` sofort wieder aus -
+    // und weil sie da bereits als gebunden galt, bekam sie nie eine zweite
+    // Chance. Neun Tabellen mit Schluessel und ohne einen einzigen Ziehgriff.
+    if (!t.tHead) return;
     t.dataset.djbGebunden = '1';
     let k = schluessel(t, nr);
     if (vergeben.has(k)) {

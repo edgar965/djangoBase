@@ -57,6 +57,18 @@ _TABELLE = re.compile(r"<table\b([^>]*)>", re.IGNORECASE)
 _KLASSEN = re.compile(r"""class\s*=\s*\\?["']([^"'\\]*)""", re.IGNORECASE)
 
 
+#: Block- und Zeilenkommentare - ohne sie meldet der Prüfer seine eigene
+#: Dokumentation. Genau das passierte am 21.08.2026: Ein Kommentar in
+#: ``risiko.js``, der den Befund ERKLÄRTE („`<thead>` in derselben Datei wie das
+#: `<table>`"), wurde als Tabelle ohne Sortierung gemeldet.
+_KOMMENTAR = re.compile(r"/\*.*?\*/|(?<![:\w])//[^\n]*", re.DOTALL)
+
+
+def ohne_kommentare(text):
+    u"""Kommentare durch Leerzeilen ersetzen (Zeilennummern bleiben erhalten)."""
+    return _KOMMENTAR.sub(lambda m: "\n" * m.group(0).count("\n"), text)
+
+
 def _module():
     u"""JS-Dateien des Projekts, ohne djangoBase und ohne Spiegelungen."""
     wurzel = Path(getattr(settings, "BASE_DIR", "."))
@@ -86,11 +98,19 @@ def bauende_module():
         if _ausgenommen(pfad):
             continue
         try:
-            text = pfad.read_text(encoding="utf-8", errors="replace")
+            text = ohne_kommentare(pfad.read_text(encoding="utf-8", errors="replace"))
         except OSError:
             continue
-        if "<thead" not in text.lower():
-            continue                       # ohne Kopfzeile kein Datenraster
+        # KEINE ``<thead>``-BEDINGUNG MEHR (Korrektur 21.08.2026): Sie hat
+        # ``risiko.js`` übersehen. Dort steht das ``<table>``, die Kopfzeile baut
+        # ``risiko_tabellen.js`` — zwei Dateien, eine Tabelle. Neun echte
+        # Datentabellen (eine je Asset) blieben deshalb ohne Sortierung und
+        # ohne gemerkte Breiten, und der Prüfer meldete nichts.
+        #
+        # Dafür braucht es jetzt Ausnahmen: Module, die Erklärtabellen in
+        # Hilfe-Popups bauen (``param_info.js``), tragen dieselben Klassen wie
+        # Datenraster. Sie stehen in DJANGOBASE_KONFORM_TABELLEN_AUS — eine
+        # Entscheidung, die man sieht, statt einer Regel, die niemand einhält.
         for treffer in _TABELLE.finditer(text):
             attribute = treffer.group(1)
             klassen = " ".join(_KLASSEN.findall(attribute)).lower().split()
@@ -194,6 +214,23 @@ class GegenprobeTest(SimpleTestCase):
         gemeldet — ein Fehlalarm auf korrekten Code."""
         self.assertIn("stats", _KLASSEN.findall('<table class=\\"stats\\">'))
         self.assertIn("stats", _KLASSEN.findall('<table class="stats">'))
+
+    def test_kommentare_werden_uebersprungen(self):
+        u"""Sonst meldet der Prüfer seine eigene Dokumentation — am 21.08.2026
+        genau so passiert."""
+        quelle = ('/* erklärt das <table> hier */\n'
+                  'const h = `<table class="data sortable" data-sort-key="x">`;\n'
+                  '// auch <table> im Zeilenkommentar\n')
+        sauber = ohne_kommentare(quelle)
+        self.assertEqual(sauber.count("<table"), 1,
+                         u"Genau EIN echtes <table> sollte übrig bleiben: %r"
+                         % sauber)
+
+    def test_urls_bleiben_heil(self):
+        u"""``//`` steht auch in ``https://…`` — ein zu gieriges Muster fräße
+        den halben Import."""
+        quelle = "import x from 'https://cdn.example/a.js';"
+        self.assertIn("cdn.example", ohne_kommentare(quelle))
 
     def test_werkzeuge_bleiben_draussen(self):
         u"""Sonst meldete der Prüfer den Bauer selbst."""
