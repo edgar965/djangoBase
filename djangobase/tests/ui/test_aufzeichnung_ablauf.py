@@ -228,6 +228,78 @@ class QuelltextFallenTest(SimpleTestCase):
         self.assertIn("djb-aufz-weg", klick,
                       u"Er soll den Bereich einblenden")
 
+    def test_beenden_fuehrt_zur_liste(self):
+        u"""„bei Klick auf Beenden soll der Tab wechseln zu /hilfe/tests/, im
+        Tab Aufzeichnen, damit ich den Testcase sehe" (Ansage 21.08.2026)."""
+        leiste = (JS / "aufzeichner_leiste.js").read_text(encoding="utf-8")
+        self.assertIn("/hilfe/tests/?tab=Aufzeichnen", leiste)
+        self.assertIn("location.href = ZIEL", leiste)
+
+    def test_abspieler_faehrt_keine_abrufe_nach(self):
+        u"""Ein aufgezeichnetes POST hat damals eine Wirkung ausgelöst - beim
+        Abspielen würde es sie erneut auslösen.
+
+        Abrufe sind Prüfpunkte, keine Aktionen; sie entstehen von selbst, wenn
+        die nachgefahrenen Klicks sie auslösen."""
+        ab = (JS / "aufzeichner_abspieler.js").read_text(encoding="utf-8")
+        self.assertIn("if (s.art === 'abruf') return true", ab,
+                      u"Der Abspieler muss Abrufe überspringen")
+
+    def test_abspieler_ueberlebt_seitenwechsel(self):
+        u"""Beim ersten `seite`-Schritt ist der eigene Kontext weg - der
+        Fortschritt muss in den localStorage und beim Laden fortgesetzt werden."""
+        ab = (JS / "aufzeichner_abspieler.js").read_text(encoding="utf-8")
+        self.assertIn("localStorage", ab)
+        self.assertIn("fortsetzen", ab)
+        shell = SHELL.read_text(encoding="utf-8")
+        self.assertIn("aufzeichner_abspieler.js", shell,
+                      u"Der Abspieler muss auf jeder Seite geladen sein, sonst "
+                      u"endet jeder Lauf beim ersten Seitenwechsel")
+
+    def test_abspieler_bereich_steht_in_der_sidebar(self):
+        u"""„der abspieler kann auch auf der Hauptseite sein (unter dem
+        Aufnahme), du kannst einen Button ‚Abspieler anzeigen' genau so bauen
+        auf der Test Seite, wie den anderen" (Ansage 21.08.2026)."""
+        sidebar = (PAKET / "templates" / "djangobase" / "_sidebar.html")             .read_text(encoding="utf-8")
+        for stueck in ('id="djb-absp"', "djb-absp-wahl", "djb-absp-knopf"):
+            self.assertIn(stueck, sidebar,
+                          u"Dem Abspieler-Bereich fehlt %r" % stueck)
+        # Er steht UNTER dem Aufnahme-Bereich, nicht darüber.
+        self.assertLess(sidebar.index('id="djb-aufz"'), sidebar.index('id="djb-absp"'))
+
+        panel = (PAKET / "templates" / "djangobase" / "_testpanel.html")             .read_text(encoding="utf-8")
+        self.assertIn('id="au-abspieler"', panel,
+                      u"Der Knopf „Abspieler anzeigen“ fehlt im Reiter")
+
+    def test_abspielknopf_startet_nichts(self):
+        u"""Wie der andere Knopf: einblenden, nicht starten."""
+        reiter = (JS / "aufzeichnung.js").read_text(encoding="utf-8")
+        klick = reiter.split("abspielKnopf.addEventListener('click'", 1)[1]
+        klick = klick.split("});", 1)[0]
+        self.assertIn("djb-absp-weg", klick)
+        self.assertNotIn("Abspieler.starten", klick)
+
+    def test_x_des_abspielers_ist_waehrend_des_laufs_gesperrt(self):
+        ab = (JS / "aufzeichner_abspieler.js").read_text(encoding="utf-8")
+        self.assertIn("x.disabled = !!lauf", ab)
+
+    def test_abspieler_trifft_nicht_die_eigene_bedienung(self):
+        u"""Sonst klickt ein Lauf am Ende auf seinen eigenen Abbrechen-Knopf."""
+        ab = (JS / "aufzeichner_abspieler.js").read_text(encoding="utf-8")
+        self.assertIn("data-djb-aufzeichner-ui", ab)
+
+    def test_abspieler_wird_nur_unter_einer_url_geladen(self):
+        u"""Dieselbe Falle wie beim Aufzeichner: zwei URLs = zwei Modulinstanzen."""
+        liste = (JS / "aufzeichner_liste.js").read_text(encoding="utf-8")
+        blank = re.findall(
+            r"""import\s*\{[^}]*\}\s*from\s*['"]([^'"]*abspieler\.js)['"]"""
+            r"""|import\s*\(\s*['"]([^'"]*abspieler\.js)['"]\s*\)""",
+            liste)
+        blank = [t for paar in blank for t in paar if t]
+        self.assertEqual(blank, [],
+                         u"Der Abspieler darf nicht ohne ?v= importiert werden "
+                         u"(gefunden: %r)" % (blank,))
+
     def test_ausgeblendet_bleibt_nicht_bei_laufender_aufnahme(self):
         u"""Eine Aufnahme, die niemand sieht, schreibt sonst stundenlang mit."""
         leiste = (JS / "aufzeichner_leiste.js").read_text(encoding="utf-8")

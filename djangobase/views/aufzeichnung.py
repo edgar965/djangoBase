@@ -41,7 +41,25 @@ class AufzeichnungView(ZugriffMixin, View):
     u"""Zustand lesen und die Aufzeichnung steuern."""
 
     def get(self, request):
+        u"""Zustand und Liste - mit ``?id=`` die SCHRITTE einer Aufzeichnung.
+
+        Die Schritte kommen nur auf ausdrückliche Anfrage: In der Liste stehen
+        Dutzende Aufnahmen, und eine einzelne trägt bis zu tausend Ereignisse.
+        Alles mitzuliefern würde die Reiter-Seite bei jedem Takt aufblähen -
+        sie fragt im Sekundentakt.
+
+        Gebraucht wird das vom Abspieler (Ansage Edgar, 21.08.2026: ein
+        Play-Knopf je Testcase, der die Aktionen im UI nachfährt)."""
         bestand = Aufzeichnungen()
+        kennung = (request.GET.get("id") or "").strip()
+        if kennung:
+            treffer = [a for a in bestand.alle() if a.id == kennung]
+            if not treffer:
+                return JsonResponse({"ok": False, "fehler": "nicht gefunden"},
+                                    status=404)
+            a = treffer[0]
+            return JsonResponse({"ok": True, "eintrag": a.kurz(),
+                                 "schritte": a.schritte})
         laeuft = bestand.laufende()
         return JsonResponse({
             "ok": True,

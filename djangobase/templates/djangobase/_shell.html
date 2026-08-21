@@ -130,6 +130,13 @@
     {% endcomment %}
     <script type="module" src="{% static 'djangobase/js/aufzeichner.js' %}?v={{ djangobase.statik_v }}"></script>
     <script type="module" src="{% static 'djangobase/js/aufzeichner_leiste.js' %}?v={{ djangobase.statik_v }}"></script>
+    {% comment %}
+    Der Abspieler gehört ebenfalls auf JEDE Seite: Er fährt eine Aufzeichnung
+    nach, und die führt über Seiten. Beim ersten Seitenwechsel ist sein
+    JavaScript-Kontext weg - fortgesetzt wird aus dem localStorage, und dafür
+    muss das Modul dort geladen sein, wo es weitergeht.
+    {% endcomment %}
+    <script type="module" src="{% static 'djangobase/js/aufzeichner_abspieler.js' %}?v={{ djangobase.statik_v }}"></script>
     {% endblock %}
     {% comment %}extra_body_js: Projekt-spezifische Scripts am Body-Ende.
     Eintrag = Static-Pfad-String, oder Dict {static:"..."} oder Dict

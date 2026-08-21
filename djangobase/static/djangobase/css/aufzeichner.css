@@ -130,3 +130,77 @@
 @media print {
   .djb-aufz { display: none; }
 }
+
+/* ── Play und Löschen in der Liste ────────────────────────────────────────── */
+/* ANSAGE (Edgar, 21.08.2026): „Kannst du in der Liste bei jedeM Testcase auch
+   einen Play Button einblenden, der die Aktionen ausführt, also das UI
+   steuert?" — beide Knöpfe teilen sich eine Spalte. */
+.au-tun {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.au-play {
+  border: 1px solid #166534;
+  background: transparent;
+  color: #4ade80;
+  border-radius: 4px;
+  padding: 1px 6px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.au-play:hover { background: #166534; color: #fff; }
+
+/* Der erste Klick fragt nach — Abspielen drückt echte Knöpfe. */
+.au-play-frage {
+  border-color: #92400e;
+  color: #fbbf24;
+  font-size: .85em;
+}
+
+.au-play-frage:hover { background: #92400e; color: #fff; }
+
+/* ── Der Abspieler-Bereich (unter dem Aufnahme-Bereich) ─────────────── */
+/* ANSAGE (Edgar, 21.08.2026): „der abspieler kann auch auf der Hauptseite sein
+   (unter dem Aufnahme)". Er erbt `.djb-aufz` — gleicher Rahmen, gleicher Kopf,
+   gleiches X. Eine fixe Leiste am oberen Rand gab es davor; sie ist entfallen,
+   weil der Bereich hier ohnehin auf jeder Seite steht und nichts verdeckt. */
+.djb-absp { margin-top: -4px; }
+
+.djb-absp-wahl {
+  width: 100%;
+  margin-bottom: 7px;
+  padding: 5px 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, .18);
+  background: rgba(0, 0, 0, .25);
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+}
+
+.djb-absp-wahl:disabled { opacity: .5; }
+
+.djb-absp-knopf {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 7px;
+  border: 1px solid rgba(0, 0, 0, .3);
+  background: #ffffff;
+  color: #111111;
+  font: inherit;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.djb-absp-pfeil { font-size: 11px; line-height: 1; }
+
+.djb-absp-fehler { color: #fbbf24; }

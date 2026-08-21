@@ -33,6 +33,7 @@
  */
 const PFAD = '/hilfe/tests/aufzeichnung/';
 const WEG = 'djb-aufz-weg';        // Bereich ausgeblendet ja/nein
+const ZIEL = '/hilfe/tests/?tab=Aufzeichnen';   // wohin es nach dem Beenden geht
 
 /* Wie oft die Schrittzahl beim Server nachgefragt wird. Die Sekunden laufen
  * lokal weiter; nur die SCHRITTE kennt der Server. */
@@ -194,6 +195,12 @@ class AufzeichnerLeiste {
         }
         document.dispatchEvent(new CustomEvent('djb-aufzeichnung-geaendert',
                                                { detail: { von: 'leiste' } }));
+        // ZUR LISTE (Ansage 21.08.2026): „bei Klick auf Beenden soll der Tab
+        // wechseln zu /hilfe/tests/, im Tab Aufzeichnen, damit ich den
+        // Testcase sehe." Der kurze Aufschub lässt die Meldung „gespeichert ·
+        // N Schritte" noch sichtbar werden - sonst wäre sie zwischen Klick und
+        // Navigation nie zu lesen.
+        setTimeout(() => { location.href = ZIEL; }, 600);
         return;
       }
     } catch (e) {

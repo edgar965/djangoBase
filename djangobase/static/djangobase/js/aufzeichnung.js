@@ -47,6 +47,7 @@ class Reiter {
   constructor() {
     this.schalter = document.getElementById('au-schalter');
     this.lage = document.getElementById('au-lage');
+    this.abspielKnopf = document.getElementById('au-abspieler');
     this.tabelle = document.getElementById('au-tabelle');
     this.laeuft = null;
     this.ticker = null;
@@ -108,6 +109,17 @@ class Reiter {
     return !!el && !el.hidden;
   }
 
+  abspielSetzen() {
+    const b = this.abspielKnopf;
+    if (!b) return;
+    const el = document.getElementById('djb-absp');
+    const da = !!el && !el.hidden;
+    b.textContent = da ? '✓ Abspieler ist eingeblendet' : 'Abspieler anzeigen';
+    b.title = da
+      ? 'Der Abspieler steht links im Menü unter der Aufnahme'
+      : 'Blendet den Abspieler links im Menü ein (startet nichts)';
+  }
+
   /* Während der Aufnahme sekündlich zeigen, was zusammenkommt — sonst sieht
    * man dem Knopf nicht an, ob überhaupt etwas ankommt. */
   tickerStarten() {
@@ -142,6 +154,17 @@ class Reiter {
         document.dispatchEvent(new CustomEvent('djb-aufzeichnung-geaendert',
                                                { detail: { von: 'reiter' } }));
       });
+      if (this.abspielKnopf) {
+        // GENAUSO GEBAUT WIE DER ANDERE (Ansage 21.08.2026): Er blendet den
+        // Abspieler-Bereich in der Sidebar ein und startet nichts.
+        this.abspielKnopf.addEventListener('click', () => {
+          try { localStorage.setItem('djb-absp-weg', '0'); } catch (e) { /* egal */ }
+          const el = document.getElementById('djb-absp');
+          if (el) el.hidden = false;
+          this.abspielSetzen();
+        });
+        this.abspielSetzen();
+      }
       document.addEventListener('djb-aufzeichnung-geaendert', (ev) => {
         if (ev.detail && ev.detail.von === 'reiter') return;
         this.laden();

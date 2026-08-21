@@ -24,6 +24,12 @@
  */
 import { TabellenSortierung } from '/static/djangobase/js/tabellen_sortierung.js';
 import { TabellenBreiten } from '/static/djangobase/js/tabellen_breiten.js';
+/* MIT DERSELBEN ?v=-QUERY (Fehler vom Vormittag, 21.08.2026): `_shell.html`
+ * lädt den Abspieler als `...abspieler.js?v=1787...`. Ein Import ohne Query
+ * wäre für den Browser ein ZWEITES Modul - mit eigenem Zustand. Beim
+ * Aufzeichner hat genau das jeden Klick doppelt aufgezeichnet. */
+const { Abspieler } = await import(
+  '/static/djangobase/js/aufzeichner_abspieler.js' + new URL(import.meta.url).search);
 
 const esc = (s) => String(s == null ? '' : s)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -105,7 +111,12 @@ export class AufzeichnungsListe {
       case 'logs':
         return `<td class="num">${e.n_logs}</td>`;
       default:
-        return `<td><button type="button" class="djb-aufz-weg au-weg"`
+        // Play und Löschen in EINER Spalte - die Tabelle steht im Reiter neben
+        // sechs anderen, und jede weitere Spalte kostet dort Breite.
+        return `<td class="au-tun"><button type="button" class="au-play"`
+             + ` data-id="${esc(e.id)}" data-name="${esc(e.name)}"`
+             + ` title="Aufzeichnung im UI nachfahren">▶</button>`
+             + `<button type="button" class="djb-aufz-weg au-weg"`
              + ` data-id="${esc(e.id)}" title="Aufzeichnung löschen">✕</button></td>`;
     }
   }
@@ -143,6 +154,27 @@ export class AufzeichnungsListe {
     if (this.gebunden) return;
     this.gebunden = true;
     this.wurzel.addEventListener('click', async ev => {
+      const play = ev.target.closest('button.au-play');
+      if (play) {
+        // ZWEI KLICKS MIT ABSICHT: Abspielen drückt echte Knöpfe in der echten
+        // Anwendung. In diesem Projekt hängen daran Order-Endpunkte. Der erste
+        // Klick fragt in der Zeile nach, der zweite fährt los - kein Dialog,
+        // aber auch kein Versehen.
+        if (play.dataset.sicher !== '1') {
+          play.dataset.sicher = '1';
+          play.textContent = 'Sicher?';
+          play.classList.add('au-play-frage');
+          setTimeout(() => {
+            if (!play.isConnected) return;
+            play.dataset.sicher = '0';
+            play.textContent = '▶';
+            play.classList.remove('au-play-frage');
+          }, 4000);
+          return;
+        }
+        await Abspieler.starten(play.dataset.id, play.dataset.name);
+        return;
+      }
       const weg = ev.target.closest('button.au-weg');
       if (!weg) return;
       await this.senden({ aktion: 'loeschen', id: weg.dataset.id });

@@ -34,6 +34,30 @@
         <p class="djb-aufz-zaehler"></p>
     </div>
 
+    {% comment %}
+    ABSPIELER (Ansage Edgar, 21.08.2026)
+
+        „der abspieler kann auch auf der Hauptseite sein (unter dem Aufnahme),
+         du kannst einen Button ‚Abspieler anzeigen' genau so bauen auf der
+         Test Seite, wie den anderen"
+
+    Derselbe Bau wie der Aufnahme-Bereich darüber: Auswahl, ein Knopf, eine
+    Zeile Fortschritt, ein X. Während ein Lauf läuft, ist das X gesperrt - sonst
+    führe er unsichtbar weiter durch die Anwendung.
+    {% endcomment %}
+    <div class="djb-aufz djb-absp" id="djb-absp" data-djb-aufzeichner-ui="1" hidden>
+        <div class="djb-aufz-kopf">
+            <span class="djb-aufz-titel"><i class="bi bi-play-circle"></i> Abspieler</span>
+            <button type="button" class="djb-aufz-zuknopf" title="Bereich ausblenden">&times;</button>
+        </div>
+        <select class="djb-absp-wahl" title="Welche Aufzeichnung nachfahren?"></select>
+        <button type="button" class="djb-absp-knopf">
+            <span class="djb-absp-pfeil">&#9654;</span>
+            <span class="djb-absp-text">Abspielen</span>
+        </button>
+        <p class="djb-aufz-zaehler djb-absp-lage"></p>
+    </div>
+
     <ul class="nav flex-column">
         {% comment %}WICHTIG: Untermenü-Schlüssel heißt "untermenu" (NICHT "items"),
         da it.items in Django-Templates auf die dict.items-Methode auflöst und
