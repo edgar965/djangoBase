@@ -55,9 +55,16 @@ class ImportFixer(Fixer):
             except (OSError, SyntaxError, ValueError):
                 continue
             weg = self._tote_zeilen(baum, self._benutzt(baum))
+            zeilen = quelle.splitlines(keepends=True)
+            # `# noqa` ist die ausdrueckliche Ansage des Autors: unbenutzt,
+            # aber gewollt (Weiterleitung, Seiteneffekt, Abwaertskompatibilitaet).
+            # Wer sie uebergeht, entfernt Zeilen, die jemand bewusst
+            # stehengelassen hat - am 22.08.2026 im assistant passiert
+            # (`from .dav_schalter import suppress_dav_push  # noqa: F401`).
+            weg = {n for n in weg
+                   if 'noqa' not in zeilen[n - 1].lower()}
             if not weg:
                 continue
-            zeilen = quelle.splitlines(keepends=True)
             neu = "".join(z for i, z in enumerate(zeilen, 1) if i not in weg)
             aenderungen.append(Aenderung(
                 pfad, "%d tote Importe entfernen" % len(weg), neu))

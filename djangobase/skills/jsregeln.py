@@ -183,14 +183,35 @@ class FetchOhneOkPruefung(Regel):
             if self.nicht.search(zeile) or not self.muster.search(zeile):
                 continue
             ende = Klammerzaehler.anweisungsende(zeilen, nummer - 1, "fetch(")
-            bis = (ende if ende is not None else nummer - 1) + 1 + self.FENSTER
-            umfeld = "\n".join(zeilen[nummer - 1:bis])
+            umfeld = "\n".join(zeilen[nummer - 1:self._fensterende(zeilen, ende, nummer)])
             if ".ok" in umfeld or ".status" in umfeld:
                 continue
             if any(roh in umfeld for roh in FetchOhneOkPruefung.ROHDATEN):
                 continue
             gefunden.append(Fund(self.art, datei, nummer, zeile, self.warum))
         return gefunden
+
+    def _fensterende(self, zeilen, ende, nummer):
+        u"""Bis wohin nach dem ``fetch`` noch nach ``.ok`` gesucht wird.
+
+        FENSTER zaehlt CODE-Zeilen, nicht rohe. Grund (assistant, 22.08.2026):
+        Fuenf von zwoelf Befunden waren Fehlalarme - die Pruefung stand da, nur
+        hinter einem Kommentarblock, der begruendet, warum der Fehler still
+        bleiben darf::
+
+            const r = await fetch('/mail/api/sidebar-counts/', {...});
+            // stumm gewollt: Das ist ein Taktgeber, ...   <- fuenf Zeilen
+            // ... Seitenaufruf auf, weil die dann serverseitig gerendert werden.
+            if (!r.ok) return;                             <- ausserhalb des Fensters
+
+        Wer seine Entscheidung begruendet, wird sonst dafuer gemeldet."""
+        i = (ende if ende is not None else nummer - 1) + 1
+        rest = self.FENSTER
+        while i < len(zeilen) and rest > 0:
+            if not self.nicht.search(zeilen[i]) and zeilen[i].strip():
+                rest -= 1
+            i += 1
+        return i
 
 
 class MagischeZahl(Regel):

@@ -44,8 +44,16 @@ from django.conf import settings
 __all__ = ["TABU", "dateien", "wurzel", "ausnahmen"]
 
 #: Ordner, in denen nie Projektcode steht.
+#:
+#: ``sicherung``/``backup`` kam am 22.08.2026 dazu, und zwar nach einem Befund
+#: gegen djangoBase selbst: Die Fixer legen vor jeder Änderung eine Kopie unter
+#: ``werkzeug/sicherung/…/<datei>`` ab. Die Prüfungen sahen die Kopien als
+#: eigene Dateien — und meldeten prompt „Sortier-Schlüssel mehrfach vergeben",
+#: weil Original und Sicherung denselben tragen. Ein Werkzeug, das die Spuren
+#: seines eigenen Netzes anmeckert, ist eine Fehlalarm-Maschine.
 TABU = {"node_modules", "__pycache__", "venv", ".venv", "pythonVENV", ".git",
-        "site-packages", "migrations", ".mypy_cache", ".pytest_cache", ".tox"}
+        "site-packages", "migrations", ".mypy_cache", ".pytest_cache", ".tox",
+        "sicherung", "backup"}
 
 #: Wurzel des djangoBase-Pakets — Konsumenten-Regeln gelten nicht für es selbst.
 PAKET = Path(__file__).resolve().parents[2]

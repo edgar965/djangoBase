@@ -47,6 +47,14 @@ class Dateigroesse(Werkzeug):
     GRENZE_KLASSE = 300
     GRENZE_FUNKTION = 60
 
+    #: JS-Module hatten bis zum 22.08.2026 eine eigene, strengere Grenze
+    #: (200). Die Projektregel kennt aber nur EINE Zahl fuer eine Datei —
+    #: „ca. 200-300 Zeilen, was darueber hinauswaechst, wird aufgeteilt" —
+    #: und sie unterscheidet nicht nach Sprache. Zwei Zahlen fuer dieselbe
+    #: Regel hiessen: ein 250-Zeilen-Modul ist als .py in Ordnung und als
+    #: .js ein Befund. Jetzt gilt fuer beide GRENZE_DATEI (Ansage Edgar).
+    GRENZE_JS = GRENZE_DATEI
+
     #: Eine Funktion mit 70 Zeilen (Grenze 60). Der Rumpf wird erzeugt statt
     #: ausgeschrieben - eine Grenze prueft man mit Zaehlen, nicht mit Tippen.
     anlassfall = Anlassfall(
@@ -90,9 +98,10 @@ class Dateigroesse(Werkzeug):
             if p.stat().st_size == 0:
                 continue
             n = p.read_text(encoding="utf-8", errors="replace").count("\n") + 1
-            if n > 200:
+            if n > self.GRENZE_JS:
                 zeilen.append({"datei": kurz, "zeile": 1, "art": "JS-Modul",
-                               "name": p.name, "groesse": n, "grenze": 200})
+                               "name": p.name, "groesse": n,
+                               "grenze": self.GRENZE_JS})
         return Ergebnis(
             ["datei", "zeile", "art", "name", "groesse", "grenze"], zeilen,
             "%d Stellen über der Faustregel" % len(zeilen),
