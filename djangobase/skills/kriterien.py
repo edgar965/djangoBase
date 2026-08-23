@@ -40,11 +40,6 @@ KRITERIEN = {
 
 #: Kriterien ohne Knopf - mit dem Weg, der stattdessen getragen hat.
 OHNE_WERKZEUG = [
-    (4, "Objektorientierung",
-     "Ein Werkzeug kann Dateigröße messen, nicht Entwurf. Was getragen hat: "
-     "Beim Aufteilen zuerst die ZUSTÄNDIGKEITEN aufschreiben (bei einer "
-     "478-Zeilen-Datei kamen vier heraus) und erst danach schneiden. Die "
-     "Werkzeuge zu Kriterium 1, 2 und 9 zeigen, wo sich das lohnt."),
     (8, "Keine doppelten ES-Module",
      "Zwei Module mit gleichem Zweck erkennt kein Fingerabdruck — sie sind "
      "selten zeichengleich. Praktikabel: Die Import-Prüfung (Kriterium 3) "

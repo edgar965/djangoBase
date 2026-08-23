@@ -1,0 +1,276 @@
+# -*- coding: utf-8 -*-
+u"""Objektwurzeln — wie viele Klassen entstehen ausserhalb jeder Klasse?
+
+DER MASSSTAB (Edgar, 23.08.2026)
+================================
+    „ein gutes Objektmodell fängt mit einer Klasse an, und verzweigt immer
+     weiter über Instanzen"
+
+    „überprüfe doch die globalen Klassen, davon müsste es ganz wenige geben,
+     im Idealfall nur eine"
+
+Das ist ein messbarer Satz, und er misst etwas anderes als alle anderen
+Werkzeuge hier. Sie fragen nach EINER Stelle — zu lang, zu doppelt, zu
+still. Dieses fragt nach der FORM DES GANZEN.
+
+Ein Objektmodell ist ein Baum. Oben steht eine Wurzel — die Anwendung, der
+Dienst —, und alles andere haengt als Instanz an ihr: der Dienst haelt seine
+Kameras, die Kamera ihren Leser, der Leser seinen Zaehler. Wer eine Kamera
+sucht, geht den Weg. Wer den Dienst anhaelt, haelt alles an.
+
+Wird eine Klasse dagegen auf MODULEBENE erzeugt, haengt sie an keinem Ast.
+Sie entsteht beim Import, gehoert niemandem, lebt bis zum Prozessende und
+ist von ueberall erreichbar. Jede solche Stelle ist eine zweite Wurzel — und
+je mehr Wurzeln, desto weniger Baum.
+
+NACHGEMESSEN AN CAMTRACK (23.08.2026)
+=====================================
+    Klassen im Projekt                556
+    auf Modulebene erzeugt             37 verschiedene, an 71 Stellen
+    davon eigene Projektklassen        29
+
+Neunundzwanzig Wurzeln statt einer. Darunter ``LaufzeitRegister``, an
+demselben Tag von mir gebaut — das Muster ist so bequem, dass es beim
+Schreiben nicht auffaellt.
+
+WAS DAS PRAKTISCH KOSTET
+========================
+Genau an diesem Tag zweimal bezahlt:
+
+* Ein ``SilentFailureWatch`` fuer elf Kameras. Weil er niemandem gehoerte,
+  setzte jede funktionierende Kamera den Zaehler der blind gewordenen
+  zurueck. Vier Kameras liefen zehn Stunden blind.
+* Zwei Zwischenspeicher auf Modulebene hielten Zustand ueber einen
+  Dienst-Neustart hinweg, und der naechste Durchlauf rechnete mit Zahlen,
+  die niemand mehr schrieb.
+
+Haetten beide an ihrer Kamera gehangen, gaebe es beide Fehler nicht.
+
+WAS NICHT GEZAEHLT WIRD
+=======================
+* **Fremde Klassen.** ``Lock``, ``Path``, ``Semaphore`` — Wertobjekte und
+  Sperren der Standardbibliothek sind keine Aeste eines Objektmodells.
+  Gezaehlt wird nur, was das Projekt selbst definiert.
+* **Was das Rahmenwerk verlangt.** Django braucht ``register = Library()``
+  auf Modulebene, sonst findet es die Vorlagen-Filter nicht. Wer das meldet,
+  meldet eine Vorschrift.
+* **Dateien, deren Modulebene die Datenstruktur IST** — ``settings.py``,
+  ``urls.py``, ``apps.py``.
+"""
+
+import ast
+import os
+
+from .anlassfall import Anlassfall
+from .befund import Befund, Befundsatz, BefundWerkzeug
+
+
+class Wurzel:
+    u"""Eine Klasse, die ausserhalb jeder Klasse erzeugt wird."""
+
+    __slots__ = ('name', 'stellen', 'besitzer')
+
+    def __init__(self, name, stellen, besitzer):
+        self.name = name
+        #: ``[(pfad, zeile)]`` — wo sie auf Modulebene entsteht.
+        self.stellen = stellen
+        #: Klassen, die dieselbe Klasse als ``self.x`` halten. Gibt es
+        #: welche, ist der Ast schon da und die Wurzel daneben ueberfluessig.
+        self.besitzer = besitzer
+
+    @property
+    def gewicht(self):
+        # Steht sie ANDERSWO schon als Instanz-Attribut, ist der Fall klar:
+        # Der Platz im Baum existiert, die globale Instanz ist der Umweg.
+        if self.besitzer:
+            return Befund.WARNUNG
+        return Befund.HINWEIS
+
+
+class Objektwurzeln(BefundWerkzeug):
+
+    slug = 'objektwurzeln'
+    kriterium = 4
+    titel = 'Wurzeln des Objektmodells'
+    zweck = ('Zaehlt die Klassen, die auf Modulebene erzeugt werden. Ein '
+             'Objektmodell hat idealerweise EINE Wurzel; alles andere haengt '
+             'als Instanz daran.')
+    abhilfe = ('Die Instanz dorthin verschieben, wo sie gebraucht wird — als '
+               'Attribut der Klasse, die sie benutzt. Wird sie an mehreren '
+               'Stellen gebraucht, gehoert sie der gemeinsamen Oberklasse '
+               'bzw. dem Dienst, der beide haelt.')
+    befund = ('CamTrack: 29 eigene Klassen entstehen auf Modulebene statt '
+              'einer. Eine davon war eine Stillstands-Wache fuer elf '
+              'Kameras — jede laufende Kamera setzte den Zaehler der blinden '
+              'zurueck, vier liefen zehn Stunden blind.')
+    dauer = 'Sekunden'
+    eingabe = ('ab', 'Ab wie vielen Wurzeln melden? (0 = jede)', '1')
+
+    #: Klassen der Standardbibliothek und gaengiger Pakete. Ein ``Lock`` ist
+    #: kein Ast eines Objektmodells, sondern ein Wertobjekt.
+    FREMD = frozenset({
+        'Lock', 'RLock', 'Semaphore', 'Event', 'Condition', 'Barrier',
+        'Path', 'PurePath', 'Queue', 'LifoQueue', 'PriorityQueue',
+        'Decimal', 'Fraction', 'Counter', 'OrderedDict', 'ChainMap',
+        'ThreadPoolExecutor', 'ProcessPoolExecutor', 'Logger', 'Template',
+    })
+
+    #: Was das Rahmenwerk auf Modulebene VERLANGT. Wer das meldet, meldet
+    #: eine Vorschrift.
+    RAHMENWERK = frozenset({'Library', 'Router', 'DefaultRouter', 'Signal',
+                            'AdminSite', 'App', 'Blueprint'})
+
+    #: Dateien, deren Modulebene die Datenstruktur IST.
+    DATEIEN_AUS = ('settings.py', 'conf.py', 'urls.py', 'apps.py', 'wsgi.py',
+                   'asgi.py', 'manage.py', 'routing.py', 'admin.py')
+
+    #: Verzeichnisse, in denen Modulebene normal ist.
+    ORDNER_AUS = ('tests', 'test', 'migrations')
+
+    anlassfall = Anlassfall(
+        {"wache.py": (
+            "class Wache:\n"
+            "    def __init__(self):\n"
+            "        self.blind = 0\n\n\n"
+            "WACHE = Wache()\n"),
+         "zaehler.py": (
+            "class Zaehler:\n"
+            "    def __init__(self):\n"
+            "        self.stand = 0\n\n\n"
+            "ZAEHLER = Zaehler()\n"),
+         "kamera.py": (
+            "from wache import Wache\n\n\n"
+            "class Kamera:\n"
+            "    def __init__(self):\n"
+            "        self.wache = Wache()\n")},
+        mindestens=1, erwartet_in="Wache",
+        warum="Eine Stillstands-Wache fuer elf Kameras (CamTrack, "
+              "09.05.2026): Weil sie niemandem gehoerte, setzte jede "
+              "laufende Kamera den Zaehler der blinden zurueck. `Kamera` "
+              "haelt daneben schon eine eigene — der Platz im Baum ist da. "
+              "ZWEI Wurzeln, denn EINE ist per Vorgabe kein Fehler: Der "
+              "erste Wurf hatte nur eine und war damit blind, was der "
+              "`anlassfall-check` sofort meldete")
+
+    # ---------------------------------------------------------------- Ablauf
+    def pruefen(self, ab='1', **_argumente):
+        try:
+            grenze = max(0, int(str(ab).strip() or 1))
+        except ValueError:
+            grenze = 1
+
+        eigene, stellen, besitz = set(), {}, {}
+        dateien = 0
+        for pfad in self.projektdateien('.py'):
+            if self._ueberspringen(pfad):
+                continue
+            baum = self._lesen(pfad)
+            if baum is None:
+                continue
+            dateien += 1
+            self._klassen(baum, eigene)
+            self._modulebene(baum, self.kurz(pfad), stellen)
+            self._besitz(baum, besitz)
+
+        wurzeln = [Wurzel(name, orte, sorted(besitz.get(name, ())))
+                   for name, orte in stellen.items() if name in eigene]
+        wurzeln.sort(key=lambda w: (w.gewicht != Befund.WARNUNG,
+                                    -len(w.stellen), w.name))
+
+        kopf = [
+            '%d Dateien, %d Klassen im Projekt' % (dateien, len(eigene)),
+            '%d eigene Klassen entstehen auf Modulebene, an %d Stellen'
+            % (len(wurzeln), sum(len(w.stellen) for w in wurzeln)),
+            'Idealwert: 1 Wurzel — alles andere haengt als Instanz daran',
+        ]
+        if len(wurzeln) <= grenze:
+            kopf.append('unter der gesetzten Grenze (%d)' % grenze)
+            return Befundsatz(self.titel, kopf, [])
+        return Befundsatz(self.titel, kopf,
+                          [self._befund(w) for w in wurzeln])
+
+    # --------------------------------------------------------------- Ausgabe
+    @staticmethod
+    def _befund(w):
+        ort = '%s:%d' % w.stellen[0]
+        mehr = (' (+%d weitere)' % (len(w.stellen) - 1)
+                if len(w.stellen) > 1 else '')
+        was = '%s wird auf Modulebene erzeugt%s' % (w.name, mehr)
+        if w.besitzer:
+            warum = ('%s haelt dieselbe Klasse schon als Instanz-Attribut — '
+                     'der Platz im Baum ist da, die globale Instanz ist der '
+                     'Umweg.' % ', '.join(w.besitzer[:3]))
+        else:
+            warum = ('Sie gehoert niemandem: entsteht beim Import, lebt bis '
+                     'zum Prozessende, ist von ueberall erreichbar. Wer sie '
+                     'benutzt, sollte sie halten.')
+        return Befund(ort, was, warum, w.gewicht)
+
+    # ------------------------------------------------------------------ Baum
+    @staticmethod
+    def _lesen(pfad):
+        try:
+            return ast.parse(pfad.read_text(encoding='utf-8', errors='replace'))
+        except (SyntaxError, OSError):
+            return None
+
+    def _ueberspringen(self, pfad) -> bool:
+        if pfad.name in self.DATEIEN_AUS:
+            return True
+        if pfad.name.startswith('test_'):
+            return True
+        return any(teil in self.ORDNER_AUS for teil in pfad.parts)
+
+    @staticmethod
+    def _klassen(baum, hinein: set) -> None:
+        for knoten in ast.walk(baum):
+            if isinstance(knoten, ast.ClassDef):
+                hinein.add(knoten.name)
+
+    def _modulebene(self, baum, kurz: str, hinein: dict) -> None:
+        u"""``X = Klasse(...)`` GANZ AUSSEN — nicht in Funktion oder Klasse."""
+        for knoten in baum.body:              # NUR Modulebene
+            if not isinstance(knoten, (ast.Assign, ast.AnnAssign)):
+                continue
+            name = self._gerufene_klasse(getattr(knoten, 'value', None))
+            if name:
+                hinein.setdefault(name, []).append((kurz, knoten.lineno))
+
+    def _besitz(self, baum, hinein: dict) -> None:
+        u"""``self.x = Klasse(...)`` — wer haelt wen?"""
+        for knoten in ast.walk(baum):
+            if not isinstance(knoten, ast.ClassDef):
+                continue
+            for teil in ast.walk(knoten):
+                if not isinstance(teil, ast.Assign):
+                    continue
+                name = self._gerufene_klasse(teil.value)
+                if not name:
+                    continue
+                for ziel in teil.targets:
+                    if (isinstance(ziel, ast.Attribute)
+                            and isinstance(ziel.value, ast.Name)
+                            and ziel.value.id == 'self'):
+                        hinein.setdefault(name, set()).add(knoten.name)
+
+    def _gerufene_klasse(self, wert) -> str:
+        u"""Der Name der erzeugten Klasse — oder ``''``.
+
+        Erkannt an der Grossschreibung. Das ist eine Uebereinkunft, keine
+        Regel der Sprache — aber sie gilt in jedem Python-Projekt, und die
+        Alternative (jeden Namen aufloesen) faende bei Importen ueber
+        mehrere Ebenen ohnehin nicht mehr.
+        """
+        if not isinstance(wert, ast.Call):
+            return ''
+        ruf = wert.func
+        name = (ruf.id if isinstance(ruf, ast.Name)
+                else getattr(ruf, 'attr', ''))
+        if not name or not name[:1].isupper():
+            return ''
+        if name in self.FREMD or name in self.RAHMENWERK:
+            return ''
+        return name
+
+
+__all__ = ['Objektwurzeln', 'Wurzel']

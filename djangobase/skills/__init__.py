@@ -99,6 +99,7 @@ from .endpunktprofil import Endpunktprofil
 from .endpunktzeiten import Endpunktzeiten
 from .freiefunktionen import FreieFunktionen
 from .globalerzustand import GlobalerZustand
+from .objektwurzeln import Objektwurzeln
 from .sammelzustand import Sammelzustand
 from .klassenkandidat import Klassenkandidat
 from .grossdateien import Grossdateien
@@ -210,6 +211,11 @@ BEFUNDBASIERT = [
     # jeder Pruefung sauber aus und laesst trotzdem vier Kameras zehn Stunden
     # blind laufen.
     Sammelzustand,
+    # Und die Frage nach der FORM DES GANZEN (23.08.2026): Wie viele Klassen
+    # entstehen ueberhaupt ausserhalb jeder Klasse? „Ein gutes Objektmodell
+    # faengt mit einer Klasse an und verzweigt immer weiter ueber Instanzen"
+    # — gemessen an CamTrack: 29 Wurzeln statt einer.
+    Objektwurzeln,
     Klassenkandidat,
     KlassenJeDatei,
     Abhaengigkeiten,
