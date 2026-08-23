@@ -196,6 +196,19 @@ class Teststrom:
                 "skipped": zaehler.get("skip", 0),
                 "rc": prozess.returncode,
                 "ok": prozess.returncode == 0,
+                # EIN UEBERSPRUNGENER TEST IST NIE GRUEN (23.08.2026)
+                # =================================================
+                #     „ein übersprungener Test soll nie grün melden!!!
+                #      immer gelb"
+                #
+                # `returncode == 0` gilt auch dann, wenn kein einziger Test
+                # gelaufen ist. An dem Abend meldeten 18 Vollbild-Pruefungen
+                # „OK", von denen 11 uebersprungen waren — der Fehler, den
+                # sie haetten finden sollen, war da.
+                "zustand": ("rot" if prozess.returncode != 0
+                            else "gelb" if (zaehler.get("skip", 0)
+                                            or not gefahren)
+                            else "gruen"),
                 "dauer": round(dauer, 3), "laeufe": laeufe}
 
     @staticmethod

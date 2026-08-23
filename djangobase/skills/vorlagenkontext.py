@@ -63,6 +63,15 @@ NICHT_ABSTEIGEN = {
 }
 
 
+#: Knoten, unterhalb derer ein Name wahlfrei ist. `{% if %}` deckt auch
+#: `{% elif %}`/`{% else %}` ab — Django baut daraus EINEN `IfNode`.
+BEDINGTE_KNOTEN = frozenset({'IfNode', 'IfChangedNode', 'IfEqualNode'})
+
+#: Filter, die einen Ersatzwert liefern. Wer sie schreibt, hat das
+#: Fehlen des Namens eingeplant.
+ERSATZFILTER = frozenset({'default', 'default_if_none'})
+
+
 def _ist_name(text):
     """Zahlen und Zeichenketten aussortieren: `{{ 1 }}` ist keine Variable."""
     return bool(re.match(r'^[A-Za-z_]\w*$', text or ''))
@@ -74,6 +83,9 @@ class Vorlagensicht:
     def __init__(self, name):
         self.name = name
         self.gelesen = set()
+        #: Was ausserhalb jedes `{% if %}` gelesen wird. Alles andere ist
+        #: absichtlich wahlfrei — siehe `feste_namen`.
+        self.fest = set()
         self.lokal = set()
         self.eingebunden = set()
         self._sammeln(get_template(name).template)
@@ -95,7 +107,7 @@ class Vorlagensicht:
             self.lokal.add(treffer.group(1))
         self._wert(vorlage.nodelist)
 
-    def _wert(self, wert, gesehen=None, tiefe=0):
+    def _wert(self, wert, gesehen=None, tiefe=0, bedingt=False):
         """Alles absuchen, was Variablen enthalten koennte.
 
         Bewusst generisch statt nach Knotentypen: Die BEDINGUNGEN von
@@ -110,28 +122,74 @@ class Vorlagensicht:
         if id(wert) in gesehen:
             return
         gesehen.add(id(wert))
+        # Ab hier steht alles in einem `{% if %}`: sowohl die Bedingung
+        # selbst als auch der Rumpf. Beides ist ein Name, dessen Fehlen die
+        # Vorlage einkalkuliert.
+        bedingt = bedingt or wert.__class__.__name__ in BEDINGTE_KNOTEN
         if isinstance(wert, FilterExpression):
+            # `{{ x|default:'—' }}` sagt ausdruecklich: der Name darf fehlen.
+            # Das ist die Django-Art, einen Kontext-Eintrag wahlfrei zu
+            # machen — ohne diese Regel meldet die Pruefung `main_probe` in
+            # `cameras/form.html` als fehlend, obwohl direkt daneben steht,
+            # was bei Abwesenheit erscheinen soll.
+            if any(f.__name__ in ERSATZFILTER for f, _a in wert.filters):
+                bedingt = True
             if isinstance(wert.var, Variable):
-                self.gelesen.add(str(wert.var).split('.')[0].split('|')[0])
+                self._merken(str(wert.var).split('.')[0].split('|')[0], bedingt)
             else:
-                self._wert(wert.var, gesehen, tiefe + 1)
+                self._wert(wert.var, gesehen, tiefe + 1, bedingt)
             for _filter, argumente in wert.filters:
                 for _, argument in argumente:
-                    self._wert(argument, gesehen, tiefe + 1)
+                    self._wert(argument, gesehen, tiefe + 1, bedingt)
         elif isinstance(wert, Variable):
-            self.gelesen.add(str(wert).split('.')[0])
+            self._merken(str(wert).split('.')[0], bedingt)
         elif isinstance(wert, (str, bytes, int, float, bool, type(None))):
             return
         elif isinstance(wert, dict):
             for eintrag in wert.values():
-                self._wert(eintrag, gesehen, tiefe + 1)
+                self._wert(eintrag, gesehen, tiefe + 1, bedingt)
         elif isinstance(wert, (list, tuple, set, frozenset)):
             for eintrag in wert:
-                self._wert(eintrag, gesehen, tiefe + 1)
+                self._wert(eintrag, gesehen, tiefe + 1, bedingt)
         elif hasattr(wert, '__dict__'):
             for name, eintrag in vars(wert).items():
                 if name not in NICHT_ABSTEIGEN:
-                    self._wert(eintrag, gesehen, tiefe + 1)
+                    self._wert(eintrag, gesehen, tiefe + 1, bedingt)
+
+    def _merken(self, name, bedingt):
+        self.gelesen.add(name)
+        if not bedingt:
+            self.fest.add(name)
+
+    def feste_namen(self, tiefe=0):
+        u"""Nur was ausserhalb jedes `{% if %}` gelesen wird.
+
+        DIE SIEBEN FEHLALARME (CamTrack, 23.08.2026)
+        ============================================
+        Nach dem Aufraeumen der toten Namen blieben sieben FEHLEND-Befunde
+        stehen — und **alle sieben waren falsch**::
+
+            {% if is_edit %}...{{ camera.name }}...{% endif %}
+            {% if is_live %}<video src="{{ live_media_url }}">{% endif %}
+            {% if tab.key == zb_aktiv or forloop.first and not zb_aktiv %}
+
+        Die Vorlage rechnet in allen drei Faellen damit, dass der Name
+        fehlt: `is_edit` ist auf dem Anlegen-Weg falsch, `is_live` auf dem
+        Abspiel-Weg, und `zb_aktiv` wird per `not zb_aktiv` selbst
+        abgefragt.
+
+        Ein Pruefer, der zu hundert Prozent falsch meldet, wird abgestellt.
+        Gemeldet wird deshalb nur noch, was die Vorlage UNBEDINGT liest.
+        """
+        alle = set(self.fest)
+        if tiefe > 4:
+            return alle
+        for name in self.eingebunden:
+            try:
+                alle |= Vorlagensicht(name).feste_namen(tiefe + 1)
+            except Exception:  # noqa: BLE001
+                pass
+        return alle
 
     def namen(self, tiefe=0):
         """Gelesene Namen inklusive der eingebundenen Vorlagen."""
@@ -218,7 +276,8 @@ class Vorlagenkontext(BefundWerkzeug):
                     'wird uebergeben, aber von keiner beteiligten Vorlage gelesen',
                     Befund.WARNUNG))
             if stelle.vollstaendig:
-                fehlend = sorted(n for n in gelesen - stelle.schluessel
+                fehlend = sorted(n for n in ansicht.feste_namen()
+                                 - stelle.schluessel
                                  - ansicht.alle_lokal() - VON_AUSSEN - einbinde
                                  - _prozessor_namen()
                                  if _ist_name(n))
@@ -278,7 +337,7 @@ class Vorlagenkontext(BefundWerkzeug):
         Kontextvariablen aus.
         """
         namen = set()
-        for ordner in self._vorlagenordner():
+        for ordner in self._alle_vorlagenordner():
             for datei in Path(ordner).rglob('*.html'):
                 quelle = datei.read_text(encoding='utf-8', errors='replace')
                 for treffer in re.finditer(r'{%\s*(?:include|with)\s[^%]*?%}', quelle):
@@ -298,11 +357,32 @@ class Vorlagenkontext(BefundWerkzeug):
                     ordner.append(str(verzeichnis))
         return ordner
 
+    def _alle_vorlagenordner(self):
+        return self._vorlagenordner() + self._app_vorlagenordner()
+
+    @staticmethod
+    def _app_vorlagenordner():
+        u"""Auch `<app>/templates/` — sonst sieht die Pruefung nichts.
+
+        CamTrack traegt in `DIRS` nichts ein und legt alle 57 Vorlagen
+        unter `app/templates/` ab. Alle drei Stellen, die hier nach
+        Vorlagen suchen, liefen deshalb ueber eine leere Liste: die Suche
+        nach verwaisten Vorlagen meldete nie etwas, und die Namen aus
+        `{% include … with … %}` blieben unbekannt.
+        """
+        from django.template.utils import get_app_template_dirs
+        # Ohne den Filter kommen die Vorlagen der Fremd-Pakete mit:
+        # `allauth` allein steuerte 60 „verwaiste" Vorlagen bei, die
+        # seine eigenen Ansichten sehr wohl rendern.
+        return [str(o) for o in get_app_template_dirs('templates')
+                if 'site-packages' not in str(o)]
+
     def _verwaiste(self, stellen):
         """Vorlagen, die niemand rendert und niemand einbindet."""
         befunde = []
         erreichbar = {s.vorlage for s in stellen}
-        for ordner in self._vorlagenordner():
+        namen = set()
+        for ordner in self._alle_vorlagenordner():
             for datei in Path(ordner).rglob('*.html'):
                 quelle = datei.read_text(encoding='utf-8', errors='replace')
                 for treffer in re.finditer(
@@ -312,10 +392,23 @@ class Vorlagenkontext(BefundWerkzeug):
             quelle = datei.read_text(encoding='utf-8', errors='replace')
             for treffer in re.finditer(r'["\']([\w/_.-]+\.html)["\']', quelle):
                 erreichbar.add(treffer.group(1))
-        for ordner in self._vorlagenordner():
+            # AUCH DER BLOSSE NAME (23.08.2026): Vorlagennamen werden oft
+            # zusammengesetzt. In CamTrack steht
+            # `HelpPage('help_workflow', 'workflow', …)`, und die Ansicht
+            # baut daraus `app/help/workflow.html` — die vollstaendige
+            # Zeichenkette gibt es im Quelltext nirgends. Ohne diese Zeile
+            # meldete die Pruefung sieben Seiten als verwaist, die taeglich
+            # aufgerufen werden.
+            for treffer in re.finditer(r"""['"](\w[\w.-]*)['"]""", quelle):
+                namen.add(treffer.group(1))
+        for ordner in self._alle_vorlagenordner():
             for datei in Path(ordner).rglob('*.html'):
                 titel = str(datei.relative_to(ordner)).replace('\\', '/')
-                if name not in erreichbar:
+                if not str(datei).startswith(str(self.wurzel())):
+                    continue
+                if titel in erreichbar or Path(titel).stem in namen:
+                    continue
+                if True:
                     befunde.append(Befund(
                         self.kurz(datei), 'VERWAIST (%d Byte)' % datei.stat().st_size,
                         'kein render(), kein include, kein extends verweist darauf',

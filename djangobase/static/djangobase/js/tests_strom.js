@@ -235,10 +235,15 @@ class Teststrom {
         if (ev.failed) teile.push(ev.failed + " fehlgeschlagen");
         if (ev.errors) teile.push(ev.errors + " Fehler");
         if (ev.skipped) teile.push(ev.skipped + " übersprungen");
-        this._melden((ev.ok ? "Bestanden" : "Fehlgeschlagen") + " · "
-                     + (ev.name || "") + " · " + teile.join(" · ")
-                     + " · " + Teststrom.dauer(ev.dauer),
-                     ev.ok ? "gut" : "fehler");
+        // Gelb ist ein eigener Zustand: „Bestanden" waere die Unwahrheit,
+        // wenn ein Teil des Laufs gar nicht stattgefunden hat.
+        const zustand = ev.zustand
+            || (ev.ok ? (ev.skipped ? "gelb" : "gruen") : "rot");
+        const wort = { gruen: "Bestanden", gelb: "Unvollständig",
+                       rot: "Fehlgeschlagen" }[zustand];
+        const art = { gruen: "gut", gelb: "teilweise", rot: "fehler" }[zustand];
+        this._melden(wort + " · " + (ev.name || "") + " · " + teile.join(" · ")
+                     + " · " + Teststrom.dauer(ev.dauer), art);
         this._schreiben("\n=== " + teile.join(" · ") + " ===");
     }
 

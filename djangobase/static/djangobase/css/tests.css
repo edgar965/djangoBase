@@ -193,6 +193,9 @@ select.ts-ber:disabled { opacity: .6; cursor: progress; }
 .ts-strom-kopf.laeuft { color: #a9e6ff; }
 .ts-strom-kopf.gut    { color: #8ef0ae; border-left: 3px solid #2b8a4f; }
 .ts-strom-kopf.fehler { color: #ffb3b3; border-left: 3px solid #a33; }
+/* Uebersprungen: weder bestanden noch gescheitert — der Lauf hat an
+   dieser Stelle nichts geprueft. */
+.ts-strom-kopf.teilweise { color: #ffd479; border-left: 3px solid #b8860b; }
 #ts-strom-ausgabe { max-height: 380px; overflow-y: auto; margin: 0; }
 /* Während ein Lauf läuft, sind die Startknöpfe gesperrt: Zwei Testprozesse
    bauen dieselbe Testdatenbank zweimal auf und scheitern aneinander. */
