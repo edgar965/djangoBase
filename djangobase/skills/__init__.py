@@ -99,6 +99,7 @@ from .endpunktprofil import Endpunktprofil
 from .endpunktzeiten import Endpunktzeiten
 from .freiefunktionen import FreieFunktionen
 from .globalerzustand import GlobalerZustand
+from .sammelzustand import Sammelzustand
 from .klassenkandidat import Klassenkandidat
 from .grossdateien import Grossdateien
 from .klassenjedatei import KlassenJeDatei
@@ -203,6 +204,12 @@ BEFUNDBASIERT = [
     # ist; ``GlobalerZustand`` zeigt, wo DATEN es sind - und ``Klassenkandidat``
     # verbindet beides zu einem konkreten Umbauvorschlag.
     GlobalerZustand,
+    # Direkt dahinter (23.08.2026): dieselbe Frage eine Ebene weiter. Bei
+    # ``GlobalerZustand`` steht der Zustand ausserhalb jeder Klasse; hier steht
+    # er IN einer — nur in der falschen. Eine Wache fuer elf Kameras sieht in
+    # jeder Pruefung sauber aus und laesst trotzdem vier Kameras zehn Stunden
+    # blind laufen.
+    Sammelzustand,
     Klassenkandidat,
     KlassenJeDatei,
     Abhaengigkeiten,
