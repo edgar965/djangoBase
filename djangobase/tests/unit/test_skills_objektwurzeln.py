@@ -129,8 +129,10 @@ class ObjektwurzelnTest(BasisTest):
         satz = self._lauf({
             'a.py': 'class A:\n    pass\n\n\nEINS = A()\n',
             'b.py': 'class B:\n    pass\n\n\nZWEI = B()\n'}, ab='0')
-        self.assertTrue(any('2 eigene Klassen' in z for z in satz.kopf),
-                        satz.kopf)
+        # Seit der Baumsicht (23.08.2026) heisst die Zeile
+        # „Wurzeln (auf Modulebene erzeugt): N (X %)".
+        self.assertTrue(any(z.startswith('Wurzeln') and ': 2 ' in z
+                            for z in satz.kopf), satz.kopf)
 
     # ------------------------------------------------- erfindet ihn NICHT
     def test_ein_baum_mit_einer_wurzel_ist_sauber(self):

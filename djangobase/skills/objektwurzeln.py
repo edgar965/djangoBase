@@ -87,6 +87,64 @@ class Wurzel:
         return Befund.HINWEIS
 
 
+class Baumsicht:
+    u"""Wie die Klassen eines Projekts zueinander stehen.
+
+    Die vier Toepfe sind erschoepfend: Jede Klasse liegt in genau einem.
+
+    NACHGEMESSEN AN CAMTRACK (23.08.2026) — und der Nutzer hatte recht mit
+    seinem Zweifel ("Kann ich nicht glauben, hast du eine Basisklasse, und
+    alle andere geht wie ein Baum davon ab??")::
+
+        Klassen im Projekt                 556   100 %
+          haengen als self.x an einer       74    13 %   <- der Baum
+          entstehen auf Modulebene          29     5 %   <- Wurzeln
+          nur oertlich in Funktionen        252    45 %
+          NIRGENDS erzeugt                 202    36 %
+
+    Die erste Fassung dieses Werkzeugs zaehlte nur die Wurzeln und schloss
+    daraus, alles andere haenge an einem Baum. Das war eine Annahme, keine
+    Messung — tatsaechlich haengen dreizehn Prozent. Es gibt nicht EINEN
+    Baum, sondern fuenf mittelgrosse (PersonDetector 14 Klassen,
+    LiveOrchestrator 11, StrictPersonDetector 10) und daneben 454 Klassen,
+    die an keinem haengen.
+    """
+
+    __slots__ = ('alle', 'im_baum', 'wurzeln', 'nur_lokal', 'nie', 'haelt')
+
+    def __init__(self, alle, im_baum, wurzeln, nie, haelt):
+        self.alle = alle
+        #: Wird von einer anderen Klasse als ``self.x`` gehalten.
+        self.im_baum = im_baum
+        #: Entsteht auf Modulebene.
+        self.wurzeln = wurzeln
+        #: Wird nirgends erzeugt (Basisklassen und Models sind schon raus).
+        self.nie = nie
+        #: Alles Uebrige: nur oertlich in einer Funktion erzeugt.
+        self.nur_lokal = alle - im_baum - wurzeln - nie
+        #: ``{Klasse: Zahl der gehaltenen}`` — die dicken Aeste.
+        self.haelt = haelt
+
+    def anteil(self, menge) -> float:
+        return 100.0 * len(menge) / len(self.alle) if self.alle else 0.0
+
+    def zeilen(self) -> list:
+        return [
+            '%d Klassen im Projekt' % len(self.alle),
+            'im Baum (haengen als self.x an einer anderen): %d (%.0f %%)'
+            % (len(self.im_baum), self.anteil(self.im_baum)),
+            'Wurzeln (auf Modulebene erzeugt): %d (%.0f %%)'
+            % (len(self.wurzeln), self.anteil(self.wurzeln)),
+            'nur oertlich in Funktionen erzeugt: %d (%.0f %%)'
+            % (len(self.nur_lokal), self.anteil(self.nur_lokal)),
+            'nirgends erzeugt: %d (%.0f %%)'
+            % (len(self.nie), self.anteil(self.nie)),
+            'groesste Aeste: %s' % (', '.join(
+                '%s (%d)' % (n, z) for n, z in
+                sorted(self.haelt.items(), key=lambda p: -p[1])[:5]) or "—"),
+        ]
+
+
 class Objektwurzeln(BefundWerkzeug):
 
     slug = 'objektwurzeln'
@@ -160,7 +218,7 @@ class Objektwurzeln(BefundWerkzeug):
             grenze = 1
 
         eigene, stellen, besitz = set(), {}, {}
-        dateien = 0
+        erzeugt, basen, geerbt, dateien = set(), set(), {}, 0
         for pfad in self.projektdateien('.py'):
             if self._ueberspringen(pfad):
                 continue
@@ -168,26 +226,71 @@ class Objektwurzeln(BefundWerkzeug):
             if baum is None:
                 continue
             dateien += 1
-            self._klassen(baum, eigene)
+            self._klassen(baum, eigene, basen, geerbt)
             self._modulebene(baum, self.kurz(pfad), stellen)
             self._besitz(baum, besitz)
+            self._erzeugt(baum, erzeugt)
+            self._fabriken(baum, erzeugt)
 
+        sicht = self._baumsicht(eigene, besitz, stellen, erzeugt,
+                                basen, geerbt)
         wurzeln = [Wurzel(name, orte, sorted(besitz.get(name, ())))
                    for name, orte in stellen.items() if name in eigene]
         wurzeln.sort(key=lambda w: (w.gewicht != Befund.WARNUNG,
                                     -len(w.stellen), w.name))
 
-        kopf = [
-            '%d Dateien, %d Klassen im Projekt' % (dateien, len(eigene)),
-            '%d eigene Klassen entstehen auf Modulebene, an %d Stellen'
-            % (len(wurzeln), sum(len(w.stellen) for w in wurzeln)),
-            'Idealwert: 1 Wurzel — alles andere haengt als Instanz daran',
-        ]
-        if len(wurzeln) <= grenze:
-            kopf.append('unter der gesetzten Grenze (%d)' % grenze)
-            return Befundsatz(self.titel, kopf, [])
-        return Befundsatz(self.titel, kopf,
-                          [self._befund(w) for w in wurzeln])
+        kopf = ['%d Dateien' % dateien] + sicht.zeilen()
+        kopf.append('Idealwert: EINE Wurzel, alles andere haengt daran')
+
+        befunde = []
+        if len(wurzeln) > grenze:
+            befunde += [self._befund(w) for w in wurzeln]
+        befunde += [self._tot(name) for name in sorted(sicht.nie)]
+        return Befundsatz(self.titel, kopf, befunde)
+
+    def _baumsicht(self, eigene, besitz, stellen, erzeugt, basen, geerbt):
+        u"""Die vier Toepfe — und wer beim "nirgends erzeugt" nicht zaehlt."""
+        haelt = {}
+        for kind, eltern in besitz.items():
+            if kind not in eigene:
+                continue
+            for e in eltern:
+                haelt[e] = haelt.get(e, 0) + 1
+        im_baum = {n for n in eigene if besitz.get(n)}
+        wurzeln = {n for n in eigene if n in stellen}
+        nie = {n for n in eigene
+               if n not in erzeugt
+               and not self._darf_ruhen(n, basen, geerbt)}
+        return Baumsicht(eigene, im_baum, wurzeln, nie, haelt)
+
+    #: Erbt eine Klasse hiervon, erzeugt sie das Rahmenwerk — nicht der
+    #: Quelltext. Ohne diese Liste meldet das Werkzeug halb Django als
+    #: toten Bestand.
+    RAHMEN_BASEN = frozenset({
+        'Model', 'Form', 'ModelForm', 'Serializer', 'ModelSerializer',
+        'BaseCommand', 'View', 'TemplateView', 'ListView', 'DetailView',
+        'Migration', 'AppConfig', 'ModelAdmin', 'Manager', 'QuerySet',
+        'Exception', 'BaseException', 'ValueError', 'RuntimeError',
+        'Enum', 'IntEnum', 'StrEnum', 'Protocol', 'ABC', 'NamedTuple',
+        'AsyncWebsocketConsumer', 'WebsocketConsumer', 'Thread',
+    })
+
+    def _darf_ruhen(self, name, basen, geerbt) -> bool:
+        u"""Wird diese Klasse zu Recht nirgends mit ``X()`` erzeugt?
+
+        Vier Faelle, alle legitim:
+
+        * **Basisklasse.** Jemand erbt von ihr; erzeugt wird die
+          Unterklasse.
+        * **Datenbank-Model.** Der ORM erzeugt sie, nicht der Quelltext.
+        * **Ansicht, Formular, Befehl.** Das Rahmenwerk erzeugt sie ueber
+          die URL-Tabelle bzw. ``manage.py``.
+        * **``Meta``** — eine Beschreibung, kein Objekt.
+        """
+        if name in basen or name == 'Meta':
+            return True
+        return any(elter in self.RAHMEN_BASEN
+                   for elter in geerbt.get(name, ()))
 
     # --------------------------------------------------------------- Ausgabe
     @staticmethod
@@ -222,10 +325,59 @@ class Objektwurzeln(BefundWerkzeug):
         return any(teil in self.ORDNER_AUS for teil in pfad.parts)
 
     @staticmethod
-    def _klassen(baum, hinein: set) -> None:
+    def _klassen(baum, hinein: set, basen: set, geerbt: dict) -> None:
+        u"""Klassen sammeln — samt ihrer Oberklassen.
+
+        Die Oberklassen braucht es zweimal: Wer Oberklasse IST, wird zu
+        Recht nie selbst erzeugt; und wer von einem Rahmenwerk-Typ erbt,
+        wird vom Rahmenwerk erzeugt.
+        """
         for knoten in ast.walk(baum):
-            if isinstance(knoten, ast.ClassDef):
-                hinein.add(knoten.name)
+            if not isinstance(knoten, ast.ClassDef):
+                continue
+            hinein.add(knoten.name)
+            for elter in knoten.bases:
+                name = (elter.id if isinstance(elter, ast.Name)
+                        else getattr(elter, 'attr', ''))
+                if not name:
+                    continue
+                basen.add(name)
+                geerbt.setdefault(knoten.name, set()).add(name)
+
+    @staticmethod
+    def _fabriken(baum, hinein: set) -> None:
+        """``cls(...)`` in einer Klassenmethode erzeugt DIESE Klasse.
+
+        Ohne das meldet das Werkzeug jede Klasse mit einer Fabrik-Methode
+        als toten Bestand. Nachgemessen am 23.08.2026: `AusschnittNachzieher`
+        stand unter den ersten zehn — er wird ueber
+        ``get_instance()`` -> ``cls()`` erzeugt, an genau einer Stelle, und
+        laeuft im Dienst.
+        """
+        for knoten in ast.walk(baum):
+            if not isinstance(knoten, ast.ClassDef):
+                continue
+            for teil in ast.walk(knoten):
+                if (isinstance(teil, ast.Call)
+                        and isinstance(teil.func, ast.Name)
+                        and teil.func.id == 'cls'):
+                    hinein.add(knoten.name)
+                    break
+
+    def _erzeugt(self, baum, hinein: set) -> None:
+        u"""Jede Stelle, an der ueberhaupt ``Klasse(...)`` steht."""
+        for knoten in ast.walk(baum):
+            name = self._gerufene_klasse(knoten)
+            if name:
+                hinein.add(name)
+
+    @staticmethod
+    def _tot(name: str) -> Befund:
+        return Befund(
+            name, '%s wird nirgends erzeugt' % name,
+            'Keine Oberklasse, kein Model, keine Ansicht — und niemand '
+            'ruft `%s(...)`. Entweder toter Bestand oder ein Ast, den '
+            'jemand abgeschnitten hat.' % name, Befund.HINWEIS)
 
     def _modulebene(self, baum, kurz: str, hinein: dict) -> None:
         u"""``X = Klasse(...)`` GANZ AUSSEN — nicht in Funktion oder Klasse."""
