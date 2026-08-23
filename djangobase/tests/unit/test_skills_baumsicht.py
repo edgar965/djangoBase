@@ -159,7 +159,10 @@ class BaumsichtTest(BasisTest):
         satz = self._lauf({'a.py': 'class Vergessen:\n    pass\n'}, ab='0')
         tot = [b for b in satz.befunde if 'Vergessen' in b.was]
         self.assertTrue(tot)
-        self.assertIn('toter Bestand', tot[0].warum)
+        # Seit der Korrektur vom 23.08.2026 (Utility-Klassen galten als tot)
+        # nennt der Befund beide Formen, in denen der Name vorkommen koennte.
+        self.assertIn('Vor dem Loeschen', tot[0].warum)
+        self.assertIn('Vergessen.etwas', tot[0].warum)
 
 
 class DieAnteileStimmen(BasisTest):

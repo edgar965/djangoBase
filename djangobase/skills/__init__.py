@@ -100,6 +100,7 @@ from .endpunktzeiten import Endpunktzeiten
 from .freiefunktionen import FreieFunktionen
 from .globalerzustand import GlobalerZustand
 from .objektwurzeln import Objektwurzeln
+from .seitenwurzeln import Seitenwurzeln
 from .sammelzustand import Sammelzustand
 from .klassenkandidat import Klassenkandidat
 from .grossdateien import Grossdateien
@@ -216,6 +217,10 @@ BEFUNDBASIERT = [
     # faengt mit einer Klasse an und verzweigt immer weiter ueber Instanzen"
     # — gemessen an CamTrack: 29 Wurzeln statt einer.
     Objektwurzeln,
+    # Dieselbe Frage ans Frontend: Wie viele Objekte erzeugt eine
+    # Vorlage selbst? `live_view.html` sind es neun, dazu zwei
+    # `setTimeout`, mit denen die Reihenfolge geraten wird.
+    Seitenwurzeln,
     Klassenkandidat,
     KlassenJeDatei,
     Abhaengigkeiten,

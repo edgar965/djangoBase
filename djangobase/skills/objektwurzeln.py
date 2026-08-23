@@ -182,6 +182,19 @@ class Objektwurzeln(BefundWerkzeug):
     DATEIEN_AUS = ('settings.py', 'conf.py', 'urls.py', 'apps.py', 'wsgi.py',
                    'asgi.py', 'manage.py', 'routing.py', 'admin.py')
 
+    #: Was eine Klasse haelt, das einen Aufruf UEBERLEBEN muss. Wer so
+    #: etwas haelt und trotzdem in jeder Funktion frisch entsteht, wirft
+    #: es bei jedem Aufruf weg — oder legt es doppelt an.
+    RESSOURCEN = frozenset({
+        'Thread', 'Process', 'Popen', 'Lock', 'RLock', 'Semaphore',
+        'Event', 'Condition', 'Queue', 'ThreadPoolExecutor',
+        'ProcessPoolExecutor', 'Session', 'Connection', 'SharedMemory',
+    })
+
+    #: Ab so vielen verschiedenen Stellen gilt „wird ueberall erzeugt".
+    #: Drei ist die Grenze, ab der es kein Zufall mehr ist.
+    VIELE_STELLEN = 3
+
     #: Verzeichnisse, in denen Modulebene normal ist.
     ORDNER_AUS = ('tests', 'test', 'migrations')
 
@@ -219,18 +232,26 @@ class Objektwurzeln(BefundWerkzeug):
 
         eigene, stellen, besitz = set(), {}, {}
         erzeugt, basen, geerbt, dateien = set(), set(), {}, 0
+        ressourcen, orte = {}, {}
         for pfad in self.projektdateien('.py'):
-            if self._ueberspringen(pfad):
-                continue
             baum = self._lesen(pfad)
             if baum is None:
+                continue
+            # VERWENDUNGEN ueberall suchen, DEFINITIONEN nur im
+            # gefilterten Baum. Der erste Wurf sparte `urls.py`,
+            # `settings.py` und die Tests auch beim SUCHEN aus — eine
+            # Ansicht, die nur in `urls.py` steht, sah damit tot aus.
+            self._erzeugt(baum, erzeugt)
+            self._fabriken(baum, erzeugt)
+            self._benutzt(baum, erzeugt)
+            if self._ueberspringen(pfad):
                 continue
             dateien += 1
             self._klassen(baum, eigene, basen, geerbt)
             self._modulebene(baum, self.kurz(pfad), stellen)
             self._besitz(baum, besitz)
-            self._erzeugt(baum, erzeugt)
-            self._fabriken(baum, erzeugt)
+            self._ressourcen(baum, ressourcen)
+            self._erzeugungsorte(baum, self.kurz(pfad), orte)
 
         sicht = self._baumsicht(eigene, besitz, stellen, erzeugt,
                                 basen, geerbt)
@@ -246,6 +267,8 @@ class Objektwurzeln(BefundWerkzeug):
         if len(wurzeln) > grenze:
             befunde += [self._befund(w) for w in wurzeln]
         befunde += [self._tot(name) for name in sorted(sicht.nie)]
+        befunde += self._fluechtig_mit_ressource(sicht, ressourcen, orte,
+                                                 besitz)
         return Befundsatz(self.titel, kopf, befunde)
 
     def _baumsicht(self, eigene, besitz, stellen, erzeugt, basen, geerbt):
@@ -364,6 +387,84 @@ class Objektwurzeln(BefundWerkzeug):
                     hinein.add(knoten.name)
                     break
 
+    @classmethod
+    def _ressourcen(cls, baum, hinein: dict) -> None:
+        u"""Was haelt eine Klasse, das einen Aufruf ueberleben muss?
+
+        Ein ``Thread``, ein ``Popen``, eine ``Lock``, ein Zwischenspeicher.
+        Solche Dinge haben nur einen Sinn, wenn sie bleiben — wer sie in
+        jeder Funktion neu anlegt, hat sie beim naechsten Aufruf nicht mehr.
+        """
+        for knoten in ast.walk(baum):
+            if not isinstance(knoten, ast.ClassDef):
+                continue
+            for teil in ast.walk(knoten):
+                if isinstance(teil, ast.Call):
+                    ruf = teil.func
+                    name = (ruf.id if isinstance(ruf, ast.Name)
+                            else getattr(ruf, 'attr', ''))
+                    if name in cls.RESSOURCEN:
+                        hinein.setdefault(knoten.name, set()).add(name)
+                elif isinstance(teil, ast.Assign):
+                    if not isinstance(teil.value, (ast.Dict, ast.List)):
+                        continue
+                    for ziel in teil.targets:
+                        if (isinstance(ziel, ast.Attribute)
+                                and isinstance(ziel.value, ast.Name)
+                                and ziel.value.id == 'self'):
+                            hinein.setdefault(knoten.name,
+                                              set()).add('Speicher')
+
+    @classmethod
+    def _erzeugungsorte(cls, baum, kurz: str, hinein: dict) -> None:
+        u"""In welchen Funktionen entsteht eine Klasse?"""
+        for knoten in ast.walk(baum):
+            if not isinstance(knoten, (ast.FunctionDef,
+                                       ast.AsyncFunctionDef)):
+                continue
+            for teil in ast.walk(knoten):
+                if not isinstance(teil, ast.Call):
+                    continue
+                ruf = teil.func
+                name = (ruf.id if isinstance(ruf, ast.Name)
+                        else getattr(ruf, 'attr', ''))
+                if cls._wie_eine_klasse(name):
+                    hinein.setdefault(name, set()).add(
+                        '%s:%s' % (kurz, knoten.name))
+
+    @staticmethod
+    def _benutzt(baum, hinein: set) -> None:
+        u"""Jeder Zugriff auf einen Klassennamen zaehlt als Verwendung.
+
+        DER FEHLER, DEN DER NUTZER GEFUNDEN HAT (23.08.2026)
+        ====================================================
+        Auf die Meldung „23 % der Klassen werden nirgends erzeugt" fragte
+        er: „sicher?" — Stichprobe von achtzehn: **null davon waren tot**.
+        Die groesste Gruppe waren Utility-Klassen mit statischen Methoden::
+
+            JpegProbe.resolution(head)
+            RtspUrlBuilder.build(self)
+            OnvifDiscovery.brand_from_manufacturer(hersteller)
+
+        Genau die Bauform, die Kriterium 18 ausdruecklich EMPFIEHLT
+        („ggf. in Utility-Klassen, statische Funktionen"). Das Werkzeug
+        meldete guten Entwurf als toten Bestand — die teuerste Sorte
+        Fehlalarm, weil sie zum Loeschen verleitet.
+
+        Gezaehlt wird deshalb JEDE Erwaehnung des Namens: als Attribut
+        (``Klasse.methode``), als Wert (an eine Funktion uebergeben), als
+        Oberklasse. Nur wer nirgends vorkommt, gilt noch als tot.
+        """
+        for knoten in ast.walk(baum):
+            if isinstance(knoten, ast.Attribute):
+                traeger = knoten.value
+                if (isinstance(traeger, ast.Name)
+                        and Objektwurzeln._wie_eine_klasse(traeger.id)):
+                    hinein.add(traeger.id)
+            elif isinstance(knoten, ast.Name):
+                if Objektwurzeln._wie_eine_klasse(knoten.id):
+                    hinein.add(knoten.id)
+
     def _erzeugt(self, baum, hinein: set) -> None:
         u"""Jede Stelle, an der ueberhaupt ``Klasse(...)`` steht."""
         for knoten in ast.walk(baum):
@@ -371,13 +472,55 @@ class Objektwurzeln(BefundWerkzeug):
             if name:
                 hinein.add(name)
 
+    def _fluechtig_mit_ressource(self, sicht, ressourcen, orte, besitz):
+        u"""Klassen, die etwas Bleibendes halten und trotzdem ueberall
+        frisch entstehen.
+
+        DIE FRAGE DAHINTER (Edgar, 23.08.2026)
+        ======================================
+        Nachdem die „nirgends erzeugt"-Zahl von 127 auf 3 gefallen war,
+        blieb die eigentliche: **80 % der Klassen entstehen nur oertlich
+        in einer Funktion.** Das ist nicht per se falsch — ein Wertobjekt
+        soll entstehen und vergehen.
+
+        Falsch wird es, wenn die Klasse etwas haelt, das den Aufruf
+        UEBERLEBEN muss: einen Faden, einen Prozess, eine Sperre, einen
+        Zwischenspeicher. Wer so etwas in zwanzig verschiedenen Funktionen
+        neu anlegt, hat zwanzig Sperren, die nichts sperren, oder wirft
+        den Zwischenspeicher bei jedem Aufruf weg.
+
+        Nachgemessen an CamTrack: 139 Klassen halten so etwas, 99 entstehen
+        an drei oder mehr Stellen — **18 beides**. Darunter
+        ``FrameProducer`` (20 Stellen, haelt Event/Popen/Thread) und
+        ``LiveDetectorWorker`` (21 Stellen, haelt Event/Lock/Thread).
+        """
+        raus = []
+        for name in sorted(sicht.alle):
+            haelt = ressourcen.get(name)
+            stellen = orte.get(name, ())
+            if not haelt or len(stellen) < self.VIELE_STELLEN:
+                continue
+            gehalten = besitz.get(name)
+            raus.append(Befund(
+                name, '%s haelt %s, entsteht aber an %d Stellen neu'
+                % (name, ', '.join(sorted(haelt)[:3]), len(stellen)),
+                ('%s haelt sie schon als Instanz — dort gehoert sie hin.'
+                 % ', '.join(sorted(gehalten)[:2]) if gehalten else
+                 'Was sie haelt, muss den Aufruf ueberleben. Wer es in jeder'
+                 ' Funktion neu anlegt, hat es beim naechsten Aufruf nicht'
+                 ' mehr — oder doppelt.'),
+                Befund.WARNUNG if gehalten else Befund.HINWEIS))
+        return raus
+
     @staticmethod
     def _tot(name: str) -> Befund:
         return Befund(
             name, '%s wird nirgends erzeugt' % name,
-            'Keine Oberklasse, kein Model, keine Ansicht — und niemand '
-            'ruft `%s(...)`. Entweder toter Bestand oder ein Ast, den '
-            'jemand abgeschnitten hat.' % name, Befund.HINWEIS)
+            'Keine Oberklasse, kein Model, keine Ansicht — und ihr Name '
+            'kommt im ganzen Projekt nirgends vor: weder `%s(...)` noch '
+            '`%s.etwas`. Vor dem Loeschen trotzdem von Hand '
+            'nachsehen — Namen koennen als Zeichenkette stehen.'
+            % (name, name), Befund.HINWEIS)
 
     def _modulebene(self, baum, kurz: str, hinein: dict) -> None:
         u"""``X = Klasse(...)`` GANZ AUSSEN — nicht in Funktion oder Klasse."""
@@ -405,6 +548,22 @@ class Objektwurzeln(BefundWerkzeug):
                             and ziel.value.id == 'self'):
                         hinein.setdefault(name, set()).add(knoten.name)
 
+    @staticmethod
+    def _wie_eine_klasse(name: str) -> bool:
+        """Sieht der Name nach einer Klasse aus?
+
+        FUEHRENDE UNTERSTRICHE ABSTREIFEN (23.08.2026)
+        ==============================================
+        Der erste Wurf prueste ``name[:1].isupper()``. Damit galt
+        ``_UnionFind`` nicht als Klasse — der Unterstrich ist nun einmal
+        nicht gross. Alle privaten Helferklassen landeten dadurch unter
+        „nirgends erzeugt", obwohl sie zwei Zeilen weiter benutzt werden:
+        ``_UnionFind``, ``_Kamera``, ``_LogServiceProxy``, ``_SperrenKarte``
+        — acht von elf verbliebenen Meldungen.
+        """
+        blank = (name or '').lstrip('_')
+        return bool(blank) and blank[:1].isupper()
+
     def _gerufene_klasse(self, wert) -> str:
         u"""Der Name der erzeugten Klasse — oder ``''``.
 
@@ -418,7 +577,7 @@ class Objektwurzeln(BefundWerkzeug):
         ruf = wert.func
         name = (ruf.id if isinstance(ruf, ast.Name)
                 else getattr(ruf, 'attr', ''))
-        if not name or not name[:1].isupper():
+        if not self._wie_eine_klasse(name):
             return ''
         if name in self.FREMD or name in self.RAHMENWERK:
             return ''
