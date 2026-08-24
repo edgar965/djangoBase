@@ -1,7 +1,8 @@
 """FreieFunktionen — Funktionen auf Modulebene, die in eine Klasse gehoeren."""
 
 import ast
-from collections import defaultdict
+import re
+from collections import Counter, defaultdict
 
 from .befund import Befund, Befundsatz, BefundWerkzeug
 from .anlassfall import Anlassfall
@@ -79,8 +80,10 @@ class FreieFunktionen(BefundWerkzeug):
             grenze = 5
 
         sichten, befunde = [], []
+        rufer, ansichten = {}, set()
         for datei in self.projektdateien('.py'):
-            sicht = self._modul(datei)
+            self._ansichten_sammeln(datei, ansichten)
+            sicht = self._modul(datei, rufer)
             if sicht is not None:
                 sichten.append(sicht)
 
@@ -91,8 +94,12 @@ class FreieFunktionen(BefundWerkzeug):
             hinweis = ''
             if gruppen:
                 schluessel, eintraege = gruppen[0]
-                hinweis = ('Buendel "%s": %s'
-                           % (schluessel, ', '.join(n for n, _z, _l in eintraege[:6])))
+                platz = self._wo_hin(eintraege, rufer, ansichten,
+                                     sicht.klassen)
+                hinweis = ('%d Funktionen als Klasse `%s`: %s. %s'
+                           % (len(eintraege), self._klassenname(schluessel),
+                              ', '.join(n for n, _z, _l in eintraege[:6]),
+                              platz))
             befunde.append(Befund(
                 sicht.pfad,
                 '%d freie Funktionen, %d Klassen' % (len(sicht.funktionen),
@@ -107,11 +114,101 @@ class FreieFunktionen(BefundWerkzeug):
                 % (len(befunde), grenze)]
         return Befundsatz(self.titel, kopf, befunde)
 
-    def _modul(self, datei):
+    #: Klassen, an die nichts gehaengt wird. Ein Test RUFT den Code, er
+    #: BESITZT ihn nicht — der erste Lauf schlug `ComputeAcceptThresholdTests`
+    #: als Halter fuer drei Schwellen-Funktionen vor.
+    KEIN_HALTER = ('Test', 'Tests', 'TestCase', 'Mixin')
+
+    def _rufer_sammeln(self, baum, hinein, datei=None):
+        u"""Welche KLASSE ruft welche Funktion beim Namen?
+
+        Damit laesst sich die zweite Haelfte der Frage beantworten: nicht
+        nur „diese drei gehoeren in eine Klasse", sondern auch „und diese
+        Klasse gehoert dorthin".
+        """
+        if datei is not None and ('test' in datei.name.lower()
+                                 or 'tests' in datei.parts):
+            return
+        for knoten in ast.walk(baum):
+            if not isinstance(knoten, ast.ClassDef):
+                continue
+            if knoten.name.endswith(self.KEIN_HALTER):
+                continue
+            for teil in ast.walk(knoten):
+                if isinstance(teil, ast.Call) and isinstance(teil.func, ast.Name):
+                    hinein.setdefault(teil.func.id, Counter())[knoten.name] += 1
+
+    @staticmethod
+    def _klassenname(schluessel):
+        u"""Aus dem Buendel-Schluessel ein Klassenname.
+
+        `person` -> `PersonVerwaltung`, `marzahn` -> `MarzahnVerwaltung`.
+        Ein Vorschlag, kein Befehl: Wer die Klasse schreibt, findet meist
+        einen besseren Namen. Aber ein Vorschlag ist leichter zu
+        widersprechen als ein leeres Feld.
+        """
+        return schluessel.strip('_').replace('_', ' ').title().replace(' ', '')             + 'Verwaltung'
+
+    def _ansichten_sammeln(self, datei, hinein):
+        u"""Namen, die in einer `urls.py` als Ansicht eingetragen sind.
+
+        Sie werden vom URL-Router gerufen, nicht von einer Klasse. „Niemand
+        ruft sie" waere deshalb die falsche Auskunft — richtig ist: Django
+        hat dafuer die klassenbasierte Ansicht, und djangoBase benutzt sie
+        durchgehend (`SkillsView(ZugriffMixin, View)`).
+        """
+        if datei.name != 'urls.py':
+            return
+        try:
+            text = datei.read_text(encoding='utf-8', errors='replace')
+        except OSError:
+            return
+        for treffer in re.finditer(r'views\.(\w+)|path\([^,]+,\s*(\w+)', text):
+            name = treffer.group(1) or treffer.group(2)
+            if name:
+                hinein.add(name)
+
+    def _wo_hin(self, eintraege, rufer, ansichten, eigene_klassen):
+        u"""In welchen Baum gehoert die neue Klasse?
+
+        DIE ZWEITE HAELFTE DER FRAGE (Edgar, 24.08.2026)
+        ================================================
+            „die sollen als Klassen zusammengefasst werden, und dann
+             moeglichst in dem Baum der sie braucht"
+
+        Das Werkzeug meldete bisher nur „diese fuenf gehoeren in eine
+        Klasse". Wo diese Klasse dann haengt, blieb offen — und genau daran
+        scheitert der Umbau: Eine neue Klasse ohne Platz im Baum ist wieder
+        eine Wurzel, und davon gab es schon zu viele.
+
+        Gezaehlt wird, welche vorhandene Klasse diese Funktionen am
+        haeufigsten ruft. Wer sie braucht, soll sie halten.
+        """
+        gesamt = Counter()
+        for name, _z, _l in eintraege:
+            gesamt.update(rufer.get(name) or {})
+        if gesamt:
+            klasse, zahl = gesamt.most_common(1)[0]
+            return ('Haengt an `%s` — die ruft sie %dx, wer sie braucht soll '
+                    'sie halten.' % (klasse, zahl))
+        treffer = sum(1 for n, _z, _l in eintraege if n in ansichten)
+        if treffer:
+            return ('%d davon sind Django-Ansichten: gehoeren in eine '
+                    'klassenbasierte Ansicht (`View`), nicht in eine eigene '
+                    'Klasse daneben.' % treffer)
+        if eigene_klassen:
+            return ('Im selben Modul steht schon eine Klasse — dort '
+                    'anhaengen statt eine zweite Wurzel aufzumachen.')
+        return ('Niemand ruft sie aus einer Klasse: eine neue Wurzel, '
+                'sparsam einsetzen.')
+
+    def _modul(self, datei, rufer=None):
         try:
             baum = ast.parse(datei.read_text(encoding='utf-8', errors='replace'))
         except (SyntaxError, OSError):
             return None
+        if rufer is not None:
+            self._rufer_sammeln(baum, rufer, datei)
         funktionen, klassen = [], 0
         for knoten in baum.body:          # nur Modulebene, nicht ast.walk
             if isinstance(knoten, ast.ClassDef):
