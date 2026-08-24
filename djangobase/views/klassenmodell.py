@@ -65,6 +65,26 @@ class Modellspeicher:
         cls._modelle.clear()
 
 
+class Quellenspeicher:
+    u"""Die waehlbaren Quellen — einmal gezaehlt, dann gemerkt.
+
+    Die Zaehlung liest jede ``.py`` des Projekts. Sie lief bei JEDEM
+    Seitenaufruf, auch beim blossen Aufschlagen der Seite.
+    """
+
+    _liste = None
+
+    @classmethod
+    def holen(cls, neu=False):
+        if neu or cls._liste is None:
+            cls._liste = hauptaeste(settings.BASE_DIR)
+        return cls._liste
+
+    @classmethod
+    def leeren(cls):
+        cls._liste = None
+
+
 class Bestandsspeicher:
     u"""Dasselbe fuer den Modulebenen-Bestand: einmal lesen, oft ansehen."""
 
@@ -122,6 +142,8 @@ class KlassenmodellView(ZugriffMixin, View):
                 kennzahlen=bestand.kennzahlen(),
                 bereich=request.POST.get('bereich', ''),
                 alter=int(alter) if alter is not None else None, **zusatz)
+        if neu:
+            Quellenspeicher.leeren()
         modell, alter = Modellspeicher.holen(wurzel, neu=neu)
         start = (request.POST.get('start') or '').strip() or None
         try:
@@ -194,9 +216,11 @@ class KlassenmodellView(ZugriffMixin, View):
             'reiter': 'baum',
             'reiter_liste': [{'key': k, 'label': l, 'icon': i}
                              for k, l, i in self.REITER],
-            # Je ein Bereich pro Hauptast — ein kleinerer Ausschnitt
-            # bedeutet einen schnelleren Durchgang und ein lesbares Bild.
-            'bereiche': hauptaeste(settings.BASE_DIR),
+            # Je eine Quelle pro Hauptast. GEMERKT, nicht bei jedem
+            # Seitenaufruf gerechnet: Die Zaehlung liest jede `.py` des
+            # Projekts — das gehoert nicht in den Weg von jemandem, der nur
+            # die Seite aufschlaegt.
+            'bereiche': Quellenspeicher.holen(),
         }
         daten.update(zusatz)
         return render(request, self.vorlage, daten)

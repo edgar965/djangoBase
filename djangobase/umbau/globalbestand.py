@@ -221,25 +221,57 @@ class Globalbestand:
 
 
 def hauptaeste(wurzel):
-    u"""Die Hauptaeste eines Projekts — je ein Bereich zur Auswahl.
+    u"""Die Hauptaeste eines Projekts — je eine Quelle zur Auswahl.
 
         „mach evtl. mehrere Bereiche, je einen pro Hauptast des Projektes"
 
-    Das sind die obersten Verzeichnisse, die Python enthalten. Ein Bereich
-    macht den Durchgang schneller und das Bild kleiner.
+    Das sind die obersten Verzeichnisse, die Python enthalten.
+
+    GEZAEHLT WERDEN KLASSEN, NICHT DATEIEN (24.08.2026)
+    ==================================================
+    Vorher stand im Auswahlfeld die Zahl der `.py`-Dateien. Das las sich wie
+    die Zahl der Klassen und war es nicht: `tools (14)` und `config (6)`
+    sahen nach Inhalt aus und enthalten **null** Klassen. Wer sie waehlte,
+    bekam ein leeres Bild ohne Erklaerung.
     """
+    import ast as _ast
+
+    # DIESELBE AUSSCHLUSSLISTE WIE DAS KLASSENMODELL (24.08.2026)
+    # ==========================================================
+    # `AUS` hier schliesst `tests` aus, `Klassenmodell.AUS` nicht. Das
+    # Auswahlfeld sagte damit „app 615", das Ergebnis darunter „1004" —
+    # zwei Zaehlweisen fuer dieselbe Sache, und keine Erklaerung dazu.
+    from .klassenmodell import AUS as MODELL_AUS
+
     basis = Path(wurzel)
     raus = []
     for eintrag in sorted(basis.iterdir()):
         if not eintrag.is_dir() or eintrag.name.startswith('.'):
             continue
-        if eintrag.name in AUS or eintrag.name in ('media', 'logs', 'db'):
+        if (eintrag.name in MODELL_AUS
+                or eintrag.name in ('media', 'logs', 'db')):
             continue
-        zahl = sum(1 for p in eintrag.rglob('*.py')
-                   if not any(t in p.parts for t in AUS))
-        if zahl:
-            raus.append({'name': eintrag.name, 'dateien': zahl})
-    raus.sort(key=lambda e: -e['dateien'])
+        # VERSCHIEDENE NAMEN, NICHT DEFINITIONEN (24.08.2026)
+        # ===================================================
+        # `Klassenmodell` haelt seine Klassen in einem Woerterbuch nach
+        # NAMEN — gleichnamige gewinnen einmal. In CamTrack heissen 82
+        # Klassen doppelt: Das Auswahlfeld sagte „1086", das Ergebnis
+        # darunter „1004". Wer zwei Zahlen fuer dieselbe Sache sieht,
+        # glaubt keiner von beiden.
+        namen = set()
+        for datei in eintrag.rglob('*.py'):
+            if any(t in datei.parts for t in MODELL_AUS):
+                continue
+            try:
+                baum = _ast.parse(datei.read_text(encoding='utf-8',
+                                                  errors='replace'))
+            except (SyntaxError, OSError, ValueError):
+                continue
+            namen.update(k.name for k in _ast.walk(baum)
+                         if isinstance(k, _ast.ClassDef))
+        if namen:
+            raus.append({'name': eintrag.name, 'klassen': len(namen)})
+    raus.sort(key=lambda e: -e['klassen'])
     return raus
 
 

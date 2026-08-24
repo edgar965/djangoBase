@@ -128,22 +128,101 @@ class WelcheSeiteWelchesSkript(BasisTest):
 
 class DieHauptaeste(BasisTest):
 
-    def test_verzeichnisse_mit_python_werden_gefunden(self):
+    def test_verzeichnisse_mit_klassen_werden_gefunden(self):
+        u"""Mit KLASSEN, nicht mit Python (geaendert 24.08.2026).
+
+        Vorher genuegte eine `.py`-Datei. `tools` und `config` standen
+        damit zur Wahl, enthalten aber null Klassen — wer sie waehlte,
+        bekam ein leeres Bild ohne Erklaerung.
+        """
         ordner = Path(tempfile.mkdtemp(prefix='ha_'))
         (ordner / 'app').mkdir()
-        (ordner / 'app' / 'x.py').write_text('# x\n', encoding='utf-8')
-        (ordner / 'doku').mkdir()
-        (ordner / 'doku' / 'lies.md').write_text('# nichts\n', encoding='utf-8')
+        (ordner / 'app' / 'x.py').write_text('class Da:\n    pass\n',
+                                             encoding='utf-8')
+        (ordner / 'ohne').mkdir()
+        (ordner / 'ohne' / 'y.py').write_text('def tu():\n    pass\n',
+                                              encoding='utf-8')
         namen = [e['name'] for e in hauptaeste(ordner)]
         self.assertEqual(namen, ['app'])
 
-    def test_die_zahl_der_dateien_steht_dabei(self):
+    def test_die_zahl_der_klassen_steht_dabei(self):
+        u"""Die Zahl im Auswahlfeld sind KLASSEN, nicht Dateien.
+
+        Vorher stand dort die Dateizahl (`werkzeug (233)`) und las sich
+        wie eine Klassenzahl. Das Ergebnis darunter nannte eine andere.
+        """
         ordner = Path(tempfile.mkdtemp(prefix='ha_'))
         (ordner / 'app').mkdir()
         for i in range(3):
-            (ordner / 'app' / ('x%d.py' % i)).write_text('# x\n',
-                                                         encoding='utf-8')
-        self.assertEqual(hauptaeste(ordner)[0]['dateien'], 3)
+            (ordner / 'app' / ('x%d.py' % i)).write_text(
+                'class K%d:\n    pass\n' % i, encoding='utf-8')
+        self.assertEqual(hauptaeste(ordner)[0]['klassen'], 3)
 
     def test_ohne_unterordner_ist_die_liste_leer(self):
         self.assertEqual(hauptaeste(tempfile.mkdtemp(prefix='ha_')), [])
+
+
+class DieZahlenSagenDasselbe(BasisTest):
+    u"""Auswahlfeld und Ergebnis müssen übereinstimmen.
+
+    DIE BESCHWERDE (Edgar, 24.08.2026)
+    ==================================
+        „ich verstehe deine Navigation nicht. was soll der ‚Bereich‘?? ich
+         möchte eine klare Navigation haben wo ich alle Unterteilungen habe
+         die die Summe 1004 ergibt"
+
+    Es waren drei verschiedene Zahlen für dieselbe Sache im Umlauf:
+
+        Auswahlfeld      233   `.py`-DATEIEN, gelesen wie Klassen
+        Auswahlfeld      615   Klassen ohne `tests/`
+        Auswahlfeld     1086   Klassen-DEFINITIONEN
+        Ergebnis        1004   verschiedene Klassen-NAMEN
+
+    `tools (14)` und `config (6)` sahen nach Inhalt aus und enthielten null
+    Klassen. Wer zwei Zahlen für dieselbe Sache sieht, glaubt keiner von
+    beiden.
+    """
+
+    def _projekt(self):
+        import tempfile
+        from pathlib import Path
+        ordner = Path(tempfile.mkdtemp(prefix='hz_'))
+        (ordner / 'echt').mkdir()
+        (ordner / 'echt' / 'a.py').write_text(
+            'class Eins:\n    pass\n\n\nclass Zwei:\n    pass\n',
+            encoding='utf-8')
+        (ordner / 'echt' / 'tests').mkdir()
+        (ordner / 'echt' / 'tests' / 'test_x.py').write_text(
+            'class DreiTest:\n    pass\n', encoding='utf-8')
+        # Gleicher Name zweimal — zaehlt einmal, wie im Klassenmodell.
+        (ordner / 'echt' / 'b.py').write_text(
+            'class Eins:\n    pass\n', encoding='utf-8')
+        (ordner / 'leer').mkdir()
+        (ordner / 'leer' / 'nur_funktionen.py').write_text(
+            'def tu():\n    pass\n', encoding='utf-8')
+        return ordner
+
+    def test_die_quelle_nennt_dieselbe_zahl_wie_das_modell(self):
+        from djangobase.umbau.klassenmodell import Klassenmodell
+        ordner = self._projekt()
+        quellen = {q['name']: q['klassen'] for q in hauptaeste(ordner)}
+        echt = len(Klassenmodell(ordner / 'echt').lesen().klassen)
+        self.assertEqual(quellen['echt'], echt,
+                         'Auswahlfeld und Ergebnis nennen verschiedene '
+                         'Zahlen — dann glaubt man keiner von beiden.')
+
+    def test_gleichnamige_klassen_zaehlen_einmal(self):
+        u"""In CamTrack heissen 82 Klassen doppelt: 1086 gegen 1004."""
+        quellen = {q['name']: q['klassen'] for q in hauptaeste(self._projekt())}
+        self.assertEqual(quellen['echt'], 3, 'Eins, Zwei, DreiTest')
+
+    def test_tests_zaehlen_mit(self):
+        u"""Das Klassenmodell schliesst `tests/` nicht aus — die Quelle
+        darf es dann auch nicht."""
+        quellen = {q['name']: q['klassen'] for q in hauptaeste(self._projekt())}
+        self.assertEqual(quellen['echt'], 3)
+
+    def test_ein_verzeichnis_ohne_klassen_steht_nicht_zur_wahl(self):
+        u"""`tools (14)` sah nach Inhalt aus und hatte null Klassen."""
+        namen = [q['name'] for q in hauptaeste(self._projekt())]
+        self.assertNotIn('leer', namen)

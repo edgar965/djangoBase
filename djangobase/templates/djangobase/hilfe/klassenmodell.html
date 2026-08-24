@@ -156,13 +156,23 @@ zieht.
     {% else %}
     <input type="hidden" id="km-start" name="start" value="{{ gewaehlt|default:'' }}">
     {% endif %}
+    {% comment %}
+    „Bereich" hiess an zwei Stellen etwas Verschiedenes (24.08.2026,
+    gemeldet: „ich verstehe deine Navigation nicht. was soll der Bereich??").
+    Oben war es der EINGELESENE Teil des Projekts, unten die Gruppierung der
+    Klassen. Oben heisst es jetzt QUELLE, unten VERZEICHNIS.
+
+    Die Zahl dahinter sind Klassen, nicht Dateien: `tools (14)` und
+    `config (6)` lasen sich wie Inhalt und enthielten null Klassen — sie
+    stehen jetzt gar nicht mehr in der Liste.
+    {% endcomment %}
     <div class="km-feld">
-        <label for="km-bereich">Bereich</label>
+        <label for="km-bereich">Quelle — was eingelesen wird</label>
         <select id="km-bereich" name="bereich">
             <option value="">ganzes Projekt</option>
             {% for b in bereiche %}
             <option value="{{ b.name }}"{% if bereich == b.name %} selected{% endif %}>
-                {{ b.name }} ({{ b.dateien }})</option>
+                {{ b.name }} — {{ b.klassen }} Klassen</option>
             {% endfor %}
         </select>
     </div>
@@ -216,7 +226,13 @@ zieht.
     eine Null.
     {% endcomment %}
     {% if reiter == 'baum' %}
-    <span>Klassen im Bereich: <b>{{ kennzahlen.klassen }}</b></span>
+    {% comment %}
+    Die Quelle steht dabei. Vorher konnte im Feld `werkzeug` stehen und
+    darunter die Zahl von `app` — das Feld zeigt die naechste Auswahl, die
+    Zeile das letzte Ergebnis, und nichts sagte das.
+    {% endcomment %}
+    <span><b>{{ bereich|default:"ganzes Projekt" }}</b>:
+        <b>{{ kennzahlen.klassen }}</b> Klassen</span>
     <span>davon gehalten: <b>{{ kennzahlen.im_baum }}</b></span>
     <span>Oberklassen: <b>{{ kennzahlen.oberklassen }}</b></span>
     <span>Beziehungen: <b>{{ kennzahlen.beziehungen }}</b></span>
@@ -349,8 +365,10 @@ Tastendruck erst recht nicht.
 <div class="km-alle">
     <div class="km-alle-kopf">
         <b>Alle {{ klassen_gesamt }} Klassen</b>
-        <span class="km-js">in {{ bereiche_klassen|length }} Bereichen —
-            Klick zeichnet die Nachbarschaft</span>
+        <span class="km-js">auf {{ bereiche_klassen|length }}
+            Verzeichnis{{ bereiche_klassen|length|pluralize:"se" }}
+            verteilt — die Zahlen darunter ergeben zusammen
+            {{ klassen_gesamt }}. Klick zeichnet die Nachbarschaft.</span>
         <input type="search" id="km-suche" placeholder="Klasse suchen…"
                autocomplete="off">
         <span class="km-js" data-km-treffer></span>
