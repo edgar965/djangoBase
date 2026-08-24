@@ -281,17 +281,14 @@ zieht.
 {% endif %}
 
 {% if reiter == 'funktionen' %}
-<div class="km-rahmen">
-    <table class="km-liste">
-        <tr><th>Funktion</th><th>Stellen</th><th>Datei</th></tr>
-        {% for e in bestand.funktionen %}
-        <tr><td><b>{{ e.name }}</b></td><td class="km-js">{{ e.zusatz }}</td>
-            <td><code>{{ e.datei }}:{{ e.zeile }}</code></td></tr>
-        {% empty %}
-        <tr><td colspan="3">Keine Funktion auf Modulebene — so soll es sein.</td></tr>
-        {% endfor %}
-    </table>
+{% if netz_zahlen %}
+<div class="km-zahlen">
+    <span>Aufrufe im Projekt: <b>{{ netz_zahlen.kanten }}</b></span>
+    <span>Funktionen, die NIEMAND ruft:
+        <b class="km-warn">{{ netz_zahlen.ungenutzte_funktionen }}</b></span>
 </div>
+{% endif %}
+{% include "djangobase/_km_gliederung.html" with km_was="Funktionen" %}
 
 {% elif reiter == 'klassen' %}
 {% comment %}
@@ -317,17 +314,7 @@ Ausnahme, Test), von dem, was frei steht, weil es niemand eingehaengt hat.
     {% endfor %}
 </div>
 
-<div class="km-rahmen">
-    <table class="km-liste">
-        <tr><th>Klasse</th><th>erbt von</th><th>Datei</th></tr>
-        {% for e in bestand.klassen %}
-        <tr><td><b>{{ e.name }}</b></td><td class="km-js">{{ e.zusatz|default:'—' }}</td>
-            <td><code>{{ e.datei }}:{{ e.zeile }}</code></td></tr>
-        {% empty %}
-        <tr><td colspan="3">Keine Klasse in diesem Bereich.</td></tr>
-        {% endfor %}
-    </table>
-</div>
+{% include "djangobase/_km_gliederung.html" with km_was="Klassen" %}
 
 {% elif reiter == 'variablen' %}
 <div class="km-rahmen">
@@ -386,45 +373,7 @@ Jeder Knopf setzt die Startklasse und zeichnet neu. Das Suchfeld filtert im
 Browser: Bei tausend Knoepfen ist Blaettern kein Weg, und ein Abruf je
 Tastendruck erst recht nicht.
 {% endcomment %}
-<div class="km-alle">
-    <div class="km-alle-kopf">
-        <b>Alle {{ klassen_gesamt }} Klassen</b>
-        <span class="km-js">in {{ rollen|length }} Rollen auf
-            {{ bereiche_klassen|length }}
-            Verzeichnis{{ bereiche_klassen|length|pluralize:"se" }}
-            verteilt — die Zahlen darunter ergeben zusammen
-            {{ klassen_gesamt }}. Klick zeichnet die Nachbarschaft.</span>
-        <input type="search" id="km-suche" placeholder="Klasse suchen…"
-               autocomplete="off">
-        <span class="km-js" data-km-treffer></span>
-    </div>
-    {% comment %}
-    Zwei Ebenen (24.08.2026, auf Ansage: „mach die Unterteilung im unteren
-    Bereich noch nach tests (darunter unit tests, usw), Services, Views").
-
-    Die flache Liste nach Verzeichnis hatte 55 Eintraege nach Groesse
-    sortiert — `tests/unit` (306) neben `views/settings_views` (54) neben
-    `live/service` (25). Das ist eine Aufzaehlung, keine Gliederung: Man
-    sah nicht, dass fast die Haelfte des Projekts Tests sind.
-    {% endcomment %}
-    {% for r in rollen %}
-    <details class="km-rolle" {% if forloop.first %}open{% endif %}>
-        <summary><b>{{ r.name }}</b>
-            <span class="km-rolle-zahl">{{ r.zahl }}</span></summary>
-        {% for b in r.gruppen %}
-        <details class="km-bereich">
-            <summary>{{ b.name }} <span class="km-js">{{ b.zahl }}</span></summary>
-            <div class="km-namen">
-                {% for n in b.namen %}
-                <button type="button" class="km-ast km-klasse" data-km-ast="{{ n }}"
-                        {% if gewaehlt == n %}data-km-gewaehlt="1"{% endif %}>{{ n }}</button>
-                {% endfor %}
-            </div>
-        </details>
-        {% endfor %}
-    </details>
-    {% endfor %}
-</div>
+{% include "djangobase/_km_gliederung.html" with km_was="Klassen" %}
 {% elif not leer %}
 <p class="km-hinweis">
     Noch nichts gerechnet — auf <b>Übersicht erstellen</b> drücken.
@@ -452,9 +401,19 @@ Tastendruck erst recht nicht.
             form.submit();
         });
     });
+    // EIN KLICK, EINE BEDEUTUNG (24.08.2026): Vorher zeichnete ein Knopf
+    // im Klassenmodell neu und tat in den Listen-Reitern gar nichts. Jetzt
+    // öffnet er überall den Steckbrief; das Neuzeichnen steht als eigener
+    // Knopf darin — es ergibt nur im Bild-Reiter einen Sinn.
     document.querySelectorAll('[data-km-ast]').forEach((btn) => {
-        btn.addEventListener('click', () => {
-            start.value = btn.dataset.kmAst;
+        btn.addEventListener('click', (ev) => {
+            const name = btn.dataset.kmAst;
+            if (steckbriefe[name]) {
+                ev.stopPropagation();
+                zeigen(name, ev.clientX, ev.clientY);
+                return;
+            }
+            start.value = name;
             form.submit();
         });
     });
@@ -475,6 +434,24 @@ Tastendruck erst recht nicht.
         return `<span class="km-zu" data-km-zu="${name}">${name}</span>`;
     }
 
+    // Zwei Formen, ein Fenster: Klassen bringen Besitz mit (`haelt`,
+    // `basen`), Funktionen Aufrufe (`nutzt`). Wer beides in zwei Fenster
+    // trennt, hat zwei Stellen zu pflegen und der Nutzer zwei Sorten
+    // Aussehen für dieselbe Frage.
+    function zeile(etikett, inhalt) {
+        return inhalt ? `<dt>${etikett}</dt><dd>${inhalt}</dd>` : '';
+    }
+
+    function nutzer(s) {
+        const g = s.genutzt_von || [];
+        if (!g.length) return '<i>niemand</i>';
+        // Klassen: {von, feld, viel}. Funktionen: schlichter Name.
+        return g.map((x) => (typeof x === 'string'
+            ? zuKlasse(x)
+            : `${zuKlasse(x.von)}<span class="km-js">.${x.feld}`
+              + `${x.viel === '1' ? '' : ' (' + x.viel + ')'}</span>`)).join(', ');
+    }
+
     function fensterBauen(s) {
         const el = document.createElement('div');
         el.className = 'km-popup';
@@ -484,24 +461,25 @@ Tastendruck erst recht nicht.
             <h4>${s.name}</h4>
             <div class="km-js">${s.datei}:${s.zeile}</div>
             <dl>
-              <dt>genutzt von</dt><dd>${liste(s.genutzt_von,
-                  (g) => `${zuKlasse(g.von)}<span class="km-js">.${g.feld}`
-                       + `${g.viel === '1' ? '' : ' (' + g.viel + ')'}</span>`)}</dd>
-              <dt>hält</dt><dd>${liste(s.haelt,
-                  (h) => `<span class="km-js">${h.feld} =</span> ${zuKlasse(h.klasse)}`
-                       + `${h.viel === '1' ? '' : ' <span class="km-js">('
-                       + h.viel + ')</span>'}`)}</dd>
-              <dt>erbt von</dt><dd>${liste(s.basen, zuKlasse)
-                  }${s.fremde_basen.length
-                      ? ' <span class="km-js">' + s.fremde_basen.join(', ')
-                        + ' (fremd)</span>' : ''}</dd>
-              <dt>beerbt von</dt><dd>${liste(s.beerbt_von, zuKlasse)}</dd>
-              <dt>Felder</dt><dd>${s.felder.length
-                  ? s.felder.join('<br>') : '<i>—</i>'}</dd>
-              <dt>Methoden</dt><dd>${s.methoden.length
-                  ? s.methoden.join(', ') : '<i>—</i>'}
-                  <span class="km-js">(${s.methodenzahl} gesamt)</span></dd>
-            </dl>`;
+              <dt>genutzt von</dt><dd>${nutzer(s)}</dd>
+              ${zeile('nutzt', (s.nutzt || []).map(zuKlasse).join(', '))}
+              ${zeile('hält', (s.haelt || []).map((h) =>
+                  `<span class="km-js">${h.feld} =</span> ${zuKlasse(h.klasse)}`
+                  + (h.viel === '1' ? ''
+                     : ` <span class="km-js">(${h.viel})</span>`)).join(', '))}
+              ${zeile('erbt von', (s.basen || []).map(zuKlasse).join(', ')
+                  + ((s.fremde_basen || []).length
+                     ? ' <span class="km-js">' + s.fremde_basen.join(', ')
+                       + ' (fremd)</span>' : ''))}
+              ${zeile('beerbt von', (s.beerbt_von || []).map(zuKlasse).join(', '))}
+              ${zeile('Felder', (s.felder || []).join('<br>'))}
+              ${zeile('Methoden', (s.methoden || []).length
+                  ? s.methoden.join(', ')
+                    + ` <span class="km-js">(${s.methodenzahl} gesamt)</span>`
+                  : '')}
+            </dl>
+            <button type="button" class="km-ast" data-km-zeichnen="${s.name}"
+                    style="margin-top:0.6rem">Im Bild zeigen</button>`;
         return el;
     }
 
@@ -521,6 +499,15 @@ Tastendruck erst recht nicht.
         offen.style.top = Math.min(y + 12, innerHeight - b.height - 12) + 'px';
         offen.querySelector('[data-km-schliessen]')
             .addEventListener('click', schliessen);
+        offen.querySelector('[data-km-zeichnen]')
+            ?.addEventListener('click', () => {
+                start.value = offen.querySelector('[data-km-zeichnen]')
+                    .dataset.kmZeichnen;
+                // Im Listen-Reiter zeichnet das Bild nicht — dorthin
+                // wechseln, sonst passiert scheinbar nichts.
+                feld.value = 'baum';
+                form.submit();
+            });
         offen.querySelectorAll('[data-km-zu]').forEach((a) => {
             a.addEventListener('click', () => {
                 // Ein Verweis auf eine Klasse, die gerade nicht gezeichnet

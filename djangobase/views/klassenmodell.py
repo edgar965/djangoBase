@@ -21,6 +21,8 @@ from django.conf import settings
 from django.views import View
 
 from ..mixins import ZugriffMixin
+from ..umbau.aufrufnetz import Aufrufnetz
+from ..umbau.gliederung import nach_rolle as gliedern
 from ..umbau.globalbestand import Globalbestand, hauptaeste
 from ..umbau.klassenbild import Klassenbild
 from ..umbau.klassenmodell import Klassenmodell
@@ -85,6 +87,30 @@ class Quellenspeicher:
         cls._liste = None
 
 
+class Netzspeicher:
+    u"""Das Aufrufnetz — einmal gelesen, dann gemerkt.
+
+    Es liest jede ``.py`` zweimal (Definitionen, dann Aufrufe); das gehoert
+    nicht in jeden Reiterwechsel.
+    """
+
+    _netze = {}
+
+    @classmethod
+    def holen(cls, wurzel, neu=False):
+        schluessel = str(wurzel)
+        if not neu and schluessel in cls._netze:
+            netz, wann = cls._netze[schluessel]
+            return netz, time.time() - wann
+        netz = Aufrufnetz(wurzel).lesen()
+        cls._netze[schluessel] = (netz, time.time())
+        return netz, None
+
+    @classmethod
+    def leeren(cls):
+        cls._netze.clear()
+
+
 class Bestandsspeicher:
     u"""Dasselbe fuer den Modulebenen-Bestand: einmal lesen, oft ansehen."""
 
@@ -131,12 +157,26 @@ class KlassenmodellView(ZugriffMixin, View):
         if reiter != 'baum':
             bestand, alter = Bestandsspeicher.holen(wurzel, neu=neu)
             zusatz = {}
-            if reiter == 'klassen':
-                # Die Einteilung braucht das Klassenmodell (wer haelt wen),
-                # nicht den Modulebenen-Bestand.
-                modell, _a = Modellspeicher.holen(wurzel, neu=neu)
-                zusatz['kategorien'] = modell.kategorien()
-                zusatz['klassen_gesamt'] = len(modell.klassen)
+            if reiter in ('klassen', 'funktionen'):
+                # DIESELBE GLIEDERUNG UND DIESELBEN STECKBRIEFE WIE IM BILD
+                # (24.08.2026, auf Ansage: „mache alle Klassen in allen Tabs
+                # und alle Funktionen aus allen Tabs auch als Gliederung mit
+                # Knoepfen, so dass man sieht, wer sie nutzt").
+                netz, _n = Netzspeicher.holen(wurzel, neu=neu)
+                if reiter == 'klassen':
+                    modell, _a = Modellspeicher.holen(wurzel, neu=neu)
+                    zusatz['kategorien'] = modell.kategorien()
+                    zusatz['klassen_gesamt'] = len(modell.klassen)
+                    eintraege = bestand.klassen
+                else:
+                    eintraege = bestand.funktionen
+                zusatz['rollen'] = gliedern((e.name, e.datei)
+                                            for e in eintraege)
+                zusatz['gesamt'] = len(eintraege)
+                # Nur die gezeigten — alle 1737 waeren ein Megabyte JSON.
+                zusatz['steckbriefe_json'] = netz.steckbriefe(
+                    e.name for e in eintraege)
+                zusatz['netz_zahlen'] = netz.kennzahlen()
             return self._seite(
                 request, reiter=reiter, bestand=bestand,
                 kennzahlen=bestand.kennzahlen(),
@@ -144,6 +184,7 @@ class KlassenmodellView(ZugriffMixin, View):
                 alter=int(alter) if alter is not None else None, **zusatz)
         if neu:
             Quellenspeicher.leeren()
+            Netzspeicher.leeren()
         modell, alter = Modellspeicher.holen(wurzel, neu=neu)
         start = (request.POST.get('start') or '').strip() or None
         try:

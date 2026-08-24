@@ -428,81 +428,19 @@ class Klassenmodell:
                 for n, v in sorted(bereiche.items(),
                                    key=lambda p: (-len(p[1]), p[0]))]
 
-    #: Rolle im Projekt, am Pfad erkannt. Die erste passende gewinnt.
-    #: Ein Django-Projekt hat immer dieselben Rollen; die Namen der
-    #: Verzeichnisse sind Konvention, kein Zufall.
-    ROLLEN = (
-        ('Tests', ('tests', 'test')),
-        ('Ansichten', ('views', 'view')),
-        ('Dienste', ('services', 'service')),
-        ('Datenmodell', ('models', 'migrations', 'model')),
-        ('Befehle', ('management', 'commands')),
-        ('Schnittstelle', ('api', 'api_v1')),
-        ('Erkennung', ('detection', 'analysis', 'recognition',
-                       'face_backends')),
-        ('Aufnahme', ('live', 'recording', 'integrations')),
-        ('Oberflaeche', ('forms', 'templatetags', 'widgets')),
-    )
-
     def nach_rolle(self):
         u"""Zwei Ebenen: Rolle im Projekt, darunter das Verzeichnis.
 
-        DIE ANSAGE (Edgar, 24.08.2026)
-        ==============================
-            „mach die Unterteilung im unteren Bereich noch nach tests
-             (darunter unit tests, usw), Services, Views"
-
-        Die flache Liste nach Verzeichnis hatte 55 Eintraege, sortiert nach
-        Groesse — `tests/unit` (306) stand neben `views/settings_views`
-        (54) neben `live/service` (25). Das ist eine Aufzaehlung, keine
-        Gliederung: Man sieht nicht, dass fast die Haelfte des Projekts
-        Tests sind.
-
-        Gemessen an CamTrack/app::
-
-            Tests          465    Erkennung       67
-            Ansichten      201    Aufnahme        61
-            Dienste        104    Uebrige        106
-
-        Die Rolle steht am Pfad, nicht am Namen: `views/` sind Ansichten,
-        egal wie die Klassen darin heissen.
+        Die Einteilung selbst liegt in `umbau/gliederung.py` — die
+        Funktionen brauchen dieselbe (24.08.2026: „mache alle Klassen in
+        allen Tabs und alle Funktionen aus allen Tabs auch als Gliederung
+        mit Knoepfen"). Zwei Kopien liefen beim naechsten Zusatz
+        auseinander: `views/` staende dann in der einen Liste unter
+        „Ansichten" und in der anderen unter „Uebrige".
         """
-        je_rolle = {}
-        for name in sorted(self.klassen):
-            k = self.klassen[name]
-            teile = k.datei.replace('\\', '/').split('/')
-            rolle = self._rolle(teile)
-            # Liegt die Datei direkt im eingelesenen Ordner, ist ihr
-            # eigener Name die Gruppe — `models.py`, `admin.py`. Vorher
-            # hiess das „(Wurzel)": ein Sammelbegriff, der nichts sagt
-            # (24.08.2026: „Entferne den Eintrag Wurzel bei den
-            # Kategorien, den verstehe ich nicht").
-            unter = ('/'.join(teile[:2]) if len(teile) > 2 else teile[0])
-            je_rolle.setdefault(rolle, {}).setdefault(unter, []).append(name)
-
-        raus = []
-        for rolle, gruppen in je_rolle.items():
-            eintraege = [{'name': g, 'namen': v, 'zahl': len(v)}
-                         for g, v in sorted(gruppen.items(),
-                                            key=lambda p: (-len(p[1]), p[0]))]
-            raus.append({'name': rolle,
-                         'zahl': sum(e['zahl'] for e in eintraege),
-                         'gruppen': eintraege})
-        raus.sort(key=lambda r: (-r['zahl'], r['name']))
-        return raus
-
-    @classmethod
-    def _rolle(cls, teile):
-        gesenkt = [t.lower() for t in teile]
-        for etikett, marken in cls.ROLLEN:
-            if any(t in marken for t in gesenkt):
-                return etikett
-            # Auch `test_x.py` und `models.py` — die Rolle kann an der
-            # DATEI haengen, nicht nur am Verzeichnis.
-            if any(t.split('.')[0] in marken or t.startswith('test_')
-                   and 'Tests' == etikett for t in gesenkt[-1:]):
-                return etikett
-        return 'Uebrige'
+        from .gliederung import nach_rolle as gliedern
+        return gliedern((name, self.klassen[name].datei)
+                        for name in sorted(self.klassen))
 
     def steckbrief(self, name):
         u"""Alles zu EINER Klasse — fuer Hover und Popup.

@@ -1,0 +1,36 @@
+{% comment %}
+Die Gliederung mit Knöpfen — von Klassenmodell, Globale Klassen und
+Globale Funktionen benutzt (24.08.2026, auf Ansage: „mache alle Klassen in
+allen Tabs und alle Funktionen aus allen Tabs auch als Gliederung mit
+Knöpfen, so dass man sieht, wer sie nutzt").
+
+Drei Kopien desselben Markups wären drei Stellen, an denen ein neuer Knopf
+vergessen wird. Erwartet: `rollen`, `gesamt`, optional `gewaehlt`.
+{% endcomment %}
+<div class="km-alle">
+    <div class="km-alle-kopf">
+        <b>Alle {{ gesamt }} {{ km_was|default:"Einträge" }}</b>
+        <span class="km-js">in {{ rollen|length }} Rollen — Klick zeigt,
+            wer sie nutzt und was sie nutzen</span>
+        <input type="search" id="km-suche" placeholder="Suchen…"
+               autocomplete="off">
+        <span class="km-js" data-km-treffer></span>
+    </div>
+    {% for r in rollen %}
+    <details class="km-rolle" {% if forloop.first %}open{% endif %}>
+        <summary><b>{{ r.name }}</b>
+            <span class="km-rolle-zahl">{{ r.zahl }}</span></summary>
+        {% for b in r.gruppen %}
+        <details class="km-bereich">
+            <summary>{{ b.name }} <span class="km-js">{{ b.zahl }}</span></summary>
+            <div class="km-namen">
+                {% for n in b.namen %}
+                <button type="button" class="km-ast km-klasse" data-km-ast="{{ n }}"
+                        {% if gewaehlt == n %}data-km-gewaehlt="1"{% endif %}>{{ n }}</button>
+                {% endfor %}
+            </div>
+        </details>
+        {% endfor %}
+    </details>
+    {% endfor %}
+</div>
