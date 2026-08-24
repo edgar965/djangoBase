@@ -57,7 +57,23 @@ Die <li>-Eintraege werden in ein vorhandenes <ul class="nav"> eingehaengt.
     ``skills3``) statt einzeln aufgezaehlt - die Aufzaehlung hatte eine
     Seite verpasst, und die naechste haette sie wieder verpasst.
     {% endcomment %}
-    <div class="collapse {% if aktiv == 'versions' or aktiv == 'logs' or aktiv == 'tests' or aktiv == 'jobs' or aktiv == 'review' or aktiv == 'aktuell' or aktiv|slice:':6' == 'skills' %}show{% endif %}" id="hilfeMenu">
+    {% comment %}
+    AUCH DIE SEITEN DES PROJEKTS HALTEN DIE GRUPPE OFFEN (24.08.2026)
+    ================================================================
+    Die Aufzaehlung kannte nur die Seiten von djangoBase. Sobald ein Projekt
+    seine eigenen Hilfeseiten ueber `hilfe_extra` einhaengt, klappte die
+    Gruppe auf genau diesen Seiten zu — gemeldet von CamTracks Pruefung
+    `test_genau_ein_abschnitt_ist_offen`:
+
+        /help/prozesse/: 0 offene Abschnitte
+
+    `help`/`hilfe` als Praefix deckt beide Schreibweisen ab. Dazu
+    `active_section` — nachgemessen setzen CamTracks Hilfeseiten `aktiv`
+    ueberhaupt nicht, sondern nur `active_section = 'help'`. Beide
+    Schreibweisen zu lesen kostet nichts und erspart jedem Projekt, seine
+    Ansichten umzustellen.
+    {% endcomment %}
+    <div class="collapse {% if aktiv == 'versions' or aktiv == 'logs' or aktiv == 'tests' or aktiv == 'jobs' or aktiv == 'review' or aktiv == 'aktuell' or aktiv|slice:':6' == 'skills' or aktiv|slice:':4' == 'help' or aktiv|slice:':5' == 'hilfe' or aktiv == 'klassenmodell' or active_section == 'help' %}show{% endif %}" id="hilfeMenu">
         <ul class="nav flex-column submenu">
             <li><a class="nav-link {% if aktiv == 'versions' %}active{% endif %}" href="{% url 'djangobase:versionen' %}">
                 <i class="bi bi-clock-history"></i> Versionen
@@ -98,6 +114,37 @@ Die <li>-Eintraege werden in ein vorhandenes <ul class="nav"> eingehaengt.
                 <i class="bi bi-chat-left-text"></i> Review
             </a></li>
             {% include "djangobase/_nav_skills.html" %}
+            {% comment %}
+            Die Hilfeseiten des PROJEKTS — Gegenstueck zu
+            `einstellungen_extra` (24.08.2026). Ohne sie musste ein Projekt
+            mit eigenen Hilfeseiten die ganze Gruppe nachbauen, und dann
+            fehlten regelmaessig die von djangoBase.
+            {% endcomment %}
+            {% for it in djangobase.hilfe_extra %}
+            {% if it.untermenu %}
+            <li><a class="nav-link menu-toggle" data-bs-toggle="collapse"
+                   href="#hilfeExtra{{ forloop.counter }}">
+                <i class="bi {{ it.icon|default:'bi-dot' }}"></i> {{ it.label }}
+                <i class="bi bi-chevron-down float-end"></i>
+            </a>
+                <div class="collapse" id="hilfeExtra{{ forloop.counter }}">
+                    <ul class="nav flex-column submenu">
+                        {% for u in it.untermenu %}
+                        <li><a class="nav-link {% if u.aktiv and aktiv == u.aktiv %}active{% endif %}"
+                               href="{{ u.url }}">
+                            <i class="bi {{ u.icon|default:'bi-dot' }}"></i> {{ u.label }}
+                        </a></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </li>
+            {% else %}
+            <li><a class="nav-link {% if it.aktiv and aktiv == it.aktiv %}active{% endif %}"
+                   href="{{ it.url }}">
+                <i class="bi {{ it.icon|default:'bi-dot' }}"></i> {{ it.label }}
+            </a></li>
+            {% endif %}
+            {% endfor %}
         </ul>
     </div>
 </li>

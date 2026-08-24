@@ -24,7 +24,7 @@ from django.test import override_settings
 from django.urls import reverse
 
 from djangobase.aktuell import AktuellFeed
-from djangobase.tests.base import BasisTest
+from djangobase.tests.base import BasisTest, StoreIsolationMixin
 
 
 class AktuellFeedTest(BasisTest):

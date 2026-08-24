@@ -1,7 +1,47 @@
+import logging
+
 from . import jobs
 from .conf import conf
 from .statik import Statik
 from .pflichtmenue import PFLICHTSEITEN
+
+log = logging.getLogger('djangobase.nav')
+
+
+def _hilfe_extra(c):
+    u"""Die Hilfeseiten des Projekts — Liste ODER Funktion.
+
+    WARUM AUCH EINE FUNKTION (24.08.2026)
+    =====================================
+        „camtrack soll NICHT seine eigene Hilfe Seitenleiste nutzen, sondern
+         die von djangoBase nutzen!!"
+
+    CamTrack hat 32 eigene Hilfeseiten. Eine feste Liste in `settings.py`
+    kann sie nicht tragen: Die Adressen entstehen ueber `reverse()`, und
+    beim Laden der Einstellungen gibt es noch keine URL-Zuordnung. Fest
+    eingetragene Pfade waeren beim naechsten Umbenennen still kaputt.
+
+    Deshalb darf `hilfe_extra` auch ein Aufruf sein — als Funktion oder als
+    gepunkteter Pfad. Er laeuft beim Anzeigen, wenn `reverse()` geht.
+
+    Faellt er hin, bleibt das Menue leer statt die Seite mitzureissen: Eine
+    Navigation ist Beiwerk, kein Grund fuer eine Fehlerseite.
+    """
+    wert = c.get("hilfe_extra") or []
+    if isinstance(wert, str):
+        try:
+            from django.utils.module_loading import import_string
+            wert = import_string(wert)
+        except Exception:
+            log.exception("hilfe_extra: %r nicht ladbar", wert)
+            return []
+    if callable(wert):
+        try:
+            wert = wert()
+        except Exception:
+            log.exception("hilfe_extra: Aufruf fehlgeschlagen")
+            return []
+    return list(wert or [])
 
 
 def djangobase(request):
@@ -45,6 +85,7 @@ def djangobase(request):
         # bestehende Projekte unveraendert.
         "profile_switcher": c.get("profile_switcher", True),
         "einstellungen_extra": c["einstellungen_extra"],
+        "hilfe_extra": _hilfe_extra(c),
         "benutzer_verwaltung": c["benutzer_verwaltung"],
         # Nav-Eintrag „Jobs" nur zeigen, wenn ein Projekt Jobs registriert hat
         # (djangobase.jobs). Leere Registry -> kein Eintrag -> bestehende

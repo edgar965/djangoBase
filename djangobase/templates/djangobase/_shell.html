@@ -65,7 +65,18 @@
     {% block head_extra %}{% endblock %}
 </head>
 <body{% if aktives_theme or djangobase.theme_default %} data-theme="{{ aktives_theme|default:djangobase.theme_default }}"{% endif %}{% block body_attrs %}{% endblock %}>
-    {% block sidebar %}{% include djangobase.sidebar_template with inside_shell=True %}{% endblock %}
+    {% comment %}
+    Ohne eigenes Sidebar-Template gilt das von djangoBase. Der Rueckfall
+    stand in `conf.py` beschrieben („wenn gesetzt, wird statt
+    djangobase/_sidebar.html dieses Template eingehaengt"), war aber nie
+    gebaut: `sidebar_template` ist None, `{% include None %}` rendert
+    nichts, und die Seite kam GANZ OHNE Menue.
+
+    Gefunden am 24.08.2026 ueber `test_menue_zeigt_aktuell_und_review_ohne_
+    konfiguration` — der Test heisst „ohne Konfiguration" und prueft genau
+    diesen Fall. Er war rot, seit es ihn gibt.
+    {% endcomment %}
+    {% block sidebar %}{% include djangobase.sidebar_template|default:"djangobase/_sidebar.html" with inside_shell=True %}{% endblock %}
 
     {% if djangobase.resizable_sidebar %}
     <div id="db-sidebar-resizer" class="db-sidebar-resizer"

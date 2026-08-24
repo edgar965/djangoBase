@@ -36,3 +36,17 @@ derselben Seite. Jetzt öffnet er den Reiter der Kategorie.
     {{ a.kurz }}
 </a></li>
 {% endfor %}
+{% comment %}
+Der Reiter „Aufzeichnen" steht NICHT in `test_arten` — er ist keine
+Test-Kategorie, sondern das Aufzeichnen einer Bedienung. Ohne diesen
+Eintrag ist er gebaut und niemand kommt hin; genau das ist am 21.08.2026
+schon einmal passiert („warum ist es bei dir nicht sichtbar?").
+
+Er gehoert hierher und nicht in die Seitenleiste eines einzelnen
+Projekts: Die Seite ist die von djangoBase, also muss jedes Projekt sie
+erreichen. CamTrack hatte ihn von Hand eingetragen — und war damit das
+einzige Projekt, das ihn hatte.
+{% endcomment %}
+<li><a class="nav-link" href="{% url 'djangobase:tests' %}?tab=Aufzeichnen">
+    <i class="bi bi-record-circle"></i> Aufzeichnen
+</a></li>

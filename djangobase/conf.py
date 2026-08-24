@@ -114,6 +114,18 @@ DEFAULTS = {
     #    "aktiv": "einstellungen_benutzer"}
     # 'aktiv' (optional) wird mit der Template-Variable `aktiv` verglichen.
     "einstellungen_extra": [],
+    # Dasselbe fuer die HILFE-Gruppe (24.08.2026, auf Ansage: „camtrack soll
+    # NICHT seine eigene Hilfe Seitenleiste nutzen, sondern die von
+    # djangoBase"). Ohne dieses Gegenstueck musste ein Projekt mit eigenen
+    # Hilfeseiten die ganze Gruppe selbst nachbauen — und dann fehlten
+    # regelmaessig die djangoBase-Seiten. Genau das hat CamTrack getan, und
+    # djangoBases eigene Pruefung `test_menue_zeigt_aktuell_und_review_ohne_
+    # konfiguration` war dort dauerhaft rot.
+    #
+    # Format wie oben, zusaetzlich optional ein Untermenue:
+    #   {"label": "Tests", "icon": "bi-list-check", "untermenu": [
+    #       {"label": "Alle", "url": "/test/", "aktiv": "test_alle"}]}
+    "hilfe_extra": [],
     # Optionaler Projekt-Provider für Zusatz-Details im Benutzer-Verlauf-Popup
     # (Benutzerliste). Dotted path oder Callable f(user_ids) -> {user_id:
     #   [{"titel": str, "zeilen": [(label, wert), ...]}, ...]}. Wird gebündelt für
