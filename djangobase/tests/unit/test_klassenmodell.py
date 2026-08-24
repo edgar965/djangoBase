@@ -484,3 +484,35 @@ class DerSteckbriefZeigtBeideRichtungen(BasisTest):
     def test_niemand_haelt_mich_ist_eine_leere_liste(self):
         u"""Und keine Ausnahme — das ist der Normalfall bei 933 von 1004."""
         self.assertEqual(self._modell().steckbrief('Halter')['genutzt_von'], [])
+
+
+class KeinSammelbegriffAlsGruppe(BasisTest):
+    u"""Eine Gruppe heißt wie die Datei, nicht „(Wurzel)".
+
+    DIE ANSAGE (Edgar, 24.08.2026)
+    ==============================
+        „Entferne den Eintrag ‚Wurzel‘ bei den Kategorien, den verstehe ich
+         nicht"
+
+    Berechtigt: „(Wurzel)" war meine Beschriftung für Klassen, die direkt im
+    eingelesenen Ordner liegen und kein Unterverzeichnis haben. Der Name
+    sagte nichts — jetzt steht dort `models.py (21)`, `admin.py (7)`,
+    `forms.py (6)`.
+    """
+
+    def _gruppen(self, m):
+        return ({b['name'] for b in m.nach_bereich()}
+                | {g['name'] for r in m.nach_rolle() for g in r['gruppen']})
+
+    def test_die_datei_gibt_der_gruppe_den_namen(self):
+        m = _projekt({'models.py': 'class Kamera:\n    pass\n'})
+        self.assertIn('models.py', self._gruppen(m))
+
+    def test_wurzel_steht_nirgends_mehr(self):
+        m = _projekt({'models.py': 'class Kamera:\n    pass\n',
+                      'views/a.py': 'class Ansicht:\n    pass\n'})
+        self.assertNotIn('(Wurzel)', self._gruppen(m))
+
+    def test_unterverzeichnisse_bleiben_wie_sie_waren(self):
+        m = _projekt({'views/live/grid.py': 'class Gitter:\n    pass\n'})
+        self.assertIn('views/live', self._gruppen(m))

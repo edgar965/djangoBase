@@ -417,8 +417,12 @@ class Klassenmodell:
         for name in sorted(self.klassen):
             k = self.klassen[name]
             teile = k.datei.split('/')
-            schluessel = '/'.join(teile[:2]) if len(teile) > 2 else (
-                teile[0] if len(teile) > 1 else '(Wurzel)')
+            # Liegt die Datei direkt im eingelesenen Ordner, ist ihr
+            # eigener Name die Gruppe — `models.py`, `admin.py`. Vorher
+            # hiess das „(Wurzel)": ein Sammelbegriff, der nichts sagt
+            # (24.08.2026: „Entferne den Eintrag Wurzel bei den
+            # Kategorien, den verstehe ich nicht").
+            schluessel = ('/'.join(teile[:2]) if len(teile) > 2 else teile[0])
             bereiche.setdefault(schluessel, []).append(name)
         return [{'name': n, 'namen': v, 'zahl': len(v)}
                 for n, v in sorted(bereiche.items(),
@@ -468,8 +472,12 @@ class Klassenmodell:
             k = self.klassen[name]
             teile = k.datei.replace('\\', '/').split('/')
             rolle = self._rolle(teile)
-            unter = '/'.join(teile[:2]) if len(teile) > 2 else (
-                teile[0] if len(teile) > 1 else '(Wurzel)')
+            # Liegt die Datei direkt im eingelesenen Ordner, ist ihr
+            # eigener Name die Gruppe — `models.py`, `admin.py`. Vorher
+            # hiess das „(Wurzel)": ein Sammelbegriff, der nichts sagt
+            # (24.08.2026: „Entferne den Eintrag Wurzel bei den
+            # Kategorien, den verstehe ich nicht").
+            unter = ('/'.join(teile[:2]) if len(teile) > 2 else teile[0])
             je_rolle.setdefault(rolle, {}).setdefault(unter, []).append(name)
 
         raus = []
