@@ -77,11 +77,14 @@ class Kasten:
 class Klassenbild:
     u"""Ordnet Kaesten in Ebenen an und schreibt das SVG."""
 
-    def __init__(self, kaesten, linien, wurzel=None):
+    def __init__(self, kaesten, linien, wurzel=None, steckbriefe=None):
         self.klassen = {k.name: k for k in kaesten}
         self.linien = linien
         self.wurzel = wurzel or (kaesten[0].name if kaesten else None)
         self.plaetze = {}
+        #: ``{name: steckbrief}`` — fuer Hover-Text und Popup. Optional:
+        #: Ohne sie zeigt der Hover nur Name und Fundstelle wie bisher.
+        self.steckbriefe = steckbriefe or {}
 
     # ── Anordnung: ein echter Baum ──────────────────────────────
     def _baum(self):
@@ -266,10 +269,44 @@ class Klassenbild:
             '<path d="M0,0 L10,5 L0,10 z" fill="var(--km-strich,#7aa2c8)"/>'
             '</marker></defs>')
 
+    def _hovertext(self, klasse):
+        u"""Was beim Zeigen erscheint — beide Richtungen der Beziehung.
+
+        DIE ANSAGE (Edgar, 24.08.2026)
+        ==============================
+            „kannst du bei den Klassen im Hover und bei Klick darauf (Popup)
+             eigenschaften zeigen, wie: Von wem genutzt, und welche
+             Unterklassen (als Instanzen) als Member"
+
+        Die Linien im Bild zeigen nur nach unten: was eine Klasse haelt.
+        Die Gegenrichtung — WER haelt sie — ist im Bild oft gar nicht zu
+        sehen, weil der Halter ausserhalb der gezeigten Nachbarschaft liegt.
+        """
+        s = self.steckbriefe.get(klasse.name)
+        zeilen = ['%s   (%s:%d)' % (klasse.name, klasse.datei, klasse.zeile)]
+        if not s:
+            return escape(chr(10).join(zeilen))
+        if s['genutzt_von']:
+            zeilen.append('genutzt von: ' + ', '.join(
+                '%s.%s' % (g['von'], g['feld']) for g in s['genutzt_von'][:6]))
+        else:
+            zeilen.append('genutzt von: niemandem')
+        if s['haelt']:
+            zeilen.append('haelt: ' + ', '.join(
+                '%s = %s (%s)' % (h['feld'], h['klasse'], h['viel'])
+                for h in s['haelt'][:6]))
+        if s['beerbt_von']:
+            zeilen.append('beerbt von: ' + ', '.join(s['beerbt_von'][:6]))
+        if s['basen']:
+            zeilen.append('erbt von: ' + ', '.join(s['basen']))
+        zeilen.append('%d Felder, %d Methoden'
+                      % (len(s['felder']), s['methodenzahl']))
+        return escape(chr(10).join(zeilen))
+
     def _kasten(self, k):
         h = k.hoehe
         n = escape(k.klasse.name)
-        raus = ['<g class="km-kasten">',
+        raus = ['<g class="km-kasten" data-km-klasse="%s">' % n,
                 '<rect x="%d" y="%d" width="%d" height="%d" rx="3" '
                 'fill="var(--km-fuell,#1b2129)" '
                 'stroke="var(--km-strich,#7aa2c8)" stroke-width="1.2"/>'
@@ -293,8 +330,7 @@ class Klassenbild:
         for name in k.methoden:
             y += ZEILE
             raus.append(self._zeile(k, y, '+ %s()' % escape(name)))
-        raus.append('<title>%s — %s:%d</title>'
-                    % (n, escape(k.klasse.datei), k.klasse.zeile))
+        raus.append('<title>%s</title>' % self._hovertext(k.klasse))
         raus.append('</g>')
         return '\n'.join(raus)
 

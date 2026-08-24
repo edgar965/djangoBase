@@ -153,9 +153,17 @@ class KlassenmodellView(ZugriffMixin, View):
             tiefe = TIEFE_VORGABE
         kaesten, linien = modell.nachbarschaft(start, tiefe)
         gewaehlt = start or modell.dickster_ast()
+        # Steckbriefe der GEZEIGTEN Klassen — fuer Hover und Popup. Alle
+        # 1004 waeren ein Megabyte JSON in der Seite.
+        steckbriefe = modell.steckbriefe(k.name for k in kaesten)
         return self._seite(
             request,
-            bild=Klassenbild(kaesten, linien, gewaehlt).svg() if kaesten else '',
+            bild=(Klassenbild(kaesten, linien, gewaehlt, steckbriefe).svg()
+                  if kaesten else ''),
+            # Das Woerterbuch selbst, NICHT als Zeichenkette: `json_script`
+            # kodiert noch einmal, und `JSON.parse` liefert dann eine
+            # Zeichenkette statt eines Objekts. Das Popup blieb still leer.
+            steckbriefe_json=steckbriefe,
             kennzahlen=modell.kennzahlen(),
             gewaehlt=gewaehlt,
             tiefe=tiefe,
@@ -165,6 +173,8 @@ class KlassenmodellView(ZugriffMixin, View):
             # Alle Klassen, nach Verzeichnis gebuendelt — sonst nennt die
             # Seite eine Zahl, zu der es keinen Weg gibt.
             bereiche_klassen=modell.nach_bereich(),
+            # Zwei Ebenen: Rolle im Projekt, darunter das Verzeichnis.
+            rollen=modell.nach_rolle(),
             klassen_gesamt=len(modell.klassen),
             alter=int(alter) if alter is not None else None,
             leer=not kaesten and bool(start),

@@ -377,3 +377,110 @@ class EinTestIstKeinAst(BasisTest):
                 '    def pruefe(self):\n        pass\n'),
         })
         self.assertEqual(m.dickster_ast(), 'Dienst')
+
+
+class DieRollenGliedernDasProjekt(BasisTest):
+    u"""Zwei Ebenen statt einer Aufzählung.
+
+    DIE ANSAGE (Edgar, 24.08.2026)
+    ==============================
+        „mach die Unterteilung im unteren Bereich noch nach tests (darunter
+         unit tests, usw), Services, Views"
+
+    Die flache Liste nach Verzeichnis hatte 55 Einträge nach Größe sortiert
+    — `tests/unit` (306) neben `views/settings_views` (54). Eine
+    Aufzählung, keine Gliederung: Man sah nicht, dass fast die Hälfte des
+    Projekts Tests sind. Gemessen an CamTrack/app::
+
+        Tests 445 · Ansichten 227 · Dienste 142 · Erkennung 76 · Aufnahme 57
+    """
+
+    def _rollen(self, dateien):
+        return {r['name']: r for r in _projekt(dateien).nach_rolle()}
+
+    def test_die_summe_bleibt_vollstaendig(self):
+        m = _projekt({
+            'views/a.py': 'class Ansicht:\n    pass\n',
+            'services/b.py': 'class Dienst:\n    pass\n',
+            'tests/unit/c.py': 'class Pruefung:\n    pass\n',
+        })
+        self.assertEqual(sum(r['zahl'] for r in m.nach_rolle()),
+                         len(m.klassen))
+
+    def test_tests_stehen_unter_tests(self):
+        rollen = self._rollen({'tests/unit/c.py': 'class Pruefung:\n    pass\n'})
+        self.assertIn('Tests', rollen)
+        self.assertEqual(rollen['Tests']['zahl'], 1)
+
+    def test_das_verzeichnis_steht_als_untergruppe(self):
+        rollen = self._rollen({
+            'tests/unit/a.py': 'class Eins:\n    pass\n',
+            'tests/ui/b.py': 'class Zwei:\n    pass\n',
+        })
+        namen = {g['name'] for g in rollen['Tests']['gruppen']}
+        self.assertEqual(namen, {'tests/unit', 'tests/ui'})
+
+    def test_ansichten_und_dienste_sind_getrennt(self):
+        rollen = self._rollen({
+            'views/a.py': 'class Ansicht:\n    pass\n',
+            'services/b.py': 'class Dienst:\n    pass\n',
+        })
+        self.assertEqual(rollen['Ansichten']['zahl'], 1)
+        self.assertEqual(rollen['Dienste']['zahl'], 1)
+
+    def test_was_in_keine_rolle_passt_faellt_nicht_weg(self):
+        rollen = self._rollen({'kram/a.py': 'class Irgendwas:\n    pass\n'})
+        self.assertIn('Uebrige', rollen)
+
+
+class DerSteckbriefZeigtBeideRichtungen(BasisTest):
+    u"""Nicht nur was eine Klasse hält, auch WER sie hält.
+
+    DIE ANSAGE (Edgar, 24.08.2026)
+    ==============================
+        „kannst du bei den Klassen im Hover und bei Klick darauf (Popup)
+         eigenschaften zeigen, wie: Von wem genutzt, und welche Unterklassen
+         (als Instanzen) als Member"
+
+    Die Linien im Bild zeigen nur nach unten. Bei 71 gehaltenen von 1004
+    ist „wer hält mich" die interessantere Frage — und der Halter liegt oft
+    ausserhalb der gezeigten Nachbarschaft.
+    """
+
+    def _modell(self):
+        return _projekt({'a.py': (
+            'class Teil:\n'
+            '    def tu(self):\n        pass\n\n\n'
+            'class Halter:\n'
+            '    def __init__(self):\n'
+            '        self.t = Teil()\n'
+            '        self.viele = [Teil()]\n'
+            '    def lauf(self):\n        pass\n\n\n'
+            'class Erbe(Halter):\n    pass\n')})
+
+    def test_wer_mich_haelt_steht_drin(self):
+        s = self._modell().steckbrief('Teil')
+        self.assertEqual(sorted(g['feld'] for g in s['genutzt_von']),
+                         ['t', 'viele'])
+        self.assertEqual({g['von'] for g in s['genutzt_von']}, {'Halter'})
+
+    def test_die_vielfachheit_steht_dabei(self):
+        s = self._modell().steckbrief('Teil')
+        werte = {g['feld']: g['viel'] for g in s['genutzt_von']}
+        self.assertEqual(werte['t'], '1')
+        self.assertEqual(werte['viele'], '0..*')
+
+    def test_was_ich_halte_steht_drin(self):
+        s = self._modell().steckbrief('Halter')
+        self.assertEqual({h['klasse'] for h in s['haelt']}, {'Teil'})
+
+    def test_wer_von_mir_erbt_steht_drin(self):
+        self.assertEqual(self._modell().steckbrief('Halter')['beerbt_von'],
+                         ['Erbe'])
+
+    def test_eine_unbekannte_klasse_liefert_nichts(self):
+        self.assertIsNone(self._modell().steckbrief('GibtsNicht'))
+
+    def test_niemand_haelt_mich_ist_eine_leere_liste(self):
+        u"""Und keine Ausnahme — das ist der Normalfall bei 933 von 1004."""
+        self.assertEqual(self._modell().steckbrief('Halter')['genutzt_von'], [])

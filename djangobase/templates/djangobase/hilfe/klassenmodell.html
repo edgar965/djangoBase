@@ -87,7 +87,31 @@ jede `.py` des Projekts.
 .km-namen { display: flex; flex-wrap: wrap; gap: 0.25rem;
             padding: 0.4rem 0 0.2rem; }
 .km-klasse[data-km-gewaehlt] { border-color: #1f6feb; color: #9ecbff; }
-.km-bereich[hidden], .km-klasse[hidden] { display: none; }
+.km-bereich[hidden], .km-klasse[hidden], .km-rolle[hidden] { display: none; }
+.km-rolle { border-top: 1px solid #2b3540; padding: 0.4rem 0; }
+.km-rolle > summary { cursor: pointer; font-size: 0.95rem; padding: 0.2rem 0;
+                      display: flex; align-items: baseline; gap: 0.6rem; }
+.km-rolle > summary:hover { color: var(--km-strich, #7aa2c8); }
+.km-rolle-zahl { font-size: 1.05rem; font-weight: 600; color: #9ecbff;
+                 font-variant-numeric: tabular-nums; }
+.km-rolle .km-bereich { margin-left: 1.1rem; border-top: 1px solid #1c232b; }
+/* Steckbrief-Fenster */
+.km-popup { position: fixed; z-index: 60; max-width: 30rem; max-height: 70vh;
+    overflow: auto; background: #1b2129; color: #e6edf3;
+    border: 1px solid #7aa2c8; border-radius: 6px; padding: 0.8rem 1rem;
+    box-shadow: 0 8px 26px rgba(0,0,0,0.55); font-size: 0.84rem; }
+.km-popup h4 { margin: 0 0 0.2rem; font-size: 1rem; }
+.km-popup dl { display: grid; grid-template-columns: auto 1fr;
+               gap: 0.15rem 0.7rem; margin: 0.5rem 0 0; }
+.km-popup dt { color: #8b98a5; white-space: nowrap; }
+.km-popup dd { margin: 0; word-break: break-word; }
+.km-popup .km-zu { color: #9ecbff; cursor: pointer; text-decoration: underline;
+                   text-underline-offset: 2px; }
+.km-popup-zu { position: absolute; top: 0.4rem; right: 0.6rem;
+    background: none; border: 0; color: #8b98a5; font-size: 1.1rem;
+    cursor: pointer; line-height: 1; }
+.km-kasten { cursor: pointer; }
+.km-kasten:hover rect { stroke-width: 2; }
 </style>
 
 {% comment %}
@@ -365,7 +389,8 @@ Tastendruck erst recht nicht.
 <div class="km-alle">
     <div class="km-alle-kopf">
         <b>Alle {{ klassen_gesamt }} Klassen</b>
-        <span class="km-js">auf {{ bereiche_klassen|length }}
+        <span class="km-js">in {{ rollen|length }} Rollen auf
+            {{ bereiche_klassen|length }}
             Verzeichnis{{ bereiche_klassen|length|pluralize:"se" }}
             verteilt — die Zahlen darunter ergeben zusammen
             {{ klassen_gesamt }}. Klick zeichnet die Nachbarschaft.</span>
@@ -373,15 +398,30 @@ Tastendruck erst recht nicht.
                autocomplete="off">
         <span class="km-js" data-km-treffer></span>
     </div>
-    {% for b in bereiche_klassen %}
-    <details class="km-bereich" {% if forloop.first %}open{% endif %}>
-        <summary><b>{{ b.name }}</b> <span class="km-js">{{ b.zahl }}</span></summary>
-        <div class="km-namen">
-            {% for n in b.namen %}
-            <button type="button" class="km-ast km-klasse" data-km-ast="{{ n }}"
-                    {% if gewaehlt == n %}data-km-gewaehlt="1"{% endif %}>{{ n }}</button>
-            {% endfor %}
-        </div>
+    {% comment %}
+    Zwei Ebenen (24.08.2026, auf Ansage: „mach die Unterteilung im unteren
+    Bereich noch nach tests (darunter unit tests, usw), Services, Views").
+
+    Die flache Liste nach Verzeichnis hatte 55 Eintraege nach Groesse
+    sortiert — `tests/unit` (306) neben `views/settings_views` (54) neben
+    `live/service` (25). Das ist eine Aufzaehlung, keine Gliederung: Man
+    sah nicht, dass fast die Haelfte des Projekts Tests sind.
+    {% endcomment %}
+    {% for r in rollen %}
+    <details class="km-rolle" {% if forloop.first %}open{% endif %}>
+        <summary><b>{{ r.name }}</b>
+            <span class="km-rolle-zahl">{{ r.zahl }}</span></summary>
+        {% for b in r.gruppen %}
+        <details class="km-bereich">
+            <summary>{{ b.name }} <span class="km-js">{{ b.zahl }}</span></summary>
+            <div class="km-namen">
+                {% for n in b.namen %}
+                <button type="button" class="km-ast km-klasse" data-km-ast="{{ n }}"
+                        {% if gewaehlt == n %}data-km-gewaehlt="1"{% endif %}>{{ n }}</button>
+                {% endfor %}
+            </div>
+        </details>
+        {% endfor %}
     </details>
     {% endfor %}
 </div>
@@ -392,6 +432,8 @@ Tastendruck erst recht nicht.
     einige Sekunden.
 </p>
 {% endif %}
+
+{{ steckbriefe_json|json_script:"km-steckbriefe" }}
 
 <script type="module">
     // Ein Klick auf einen Ast setzt ihn als Startklasse und rechnet neu.
@@ -415,6 +457,96 @@ Tastendruck erst recht nicht.
             start.value = btn.dataset.kmAst;
             form.submit();
         });
+    });
+
+    // ── Steckbrief-Fenster ───────────────────────────────────────
+    // Der Hover zeigt dasselbe als `<title>` — knapp und ohne Klick. Das
+    // Fenster ist für den zweiten Blick: Dort stehen die Namen als
+    // Verweise, und ein Klick springt zu dieser Klasse weiter.
+    const steckbriefe = JSON.parse(
+        document.getElementById('km-steckbriefe')?.textContent || '{}');
+
+    function liste(eintraege, bauen) {
+        if (!eintraege || !eintraege.length) return '<i>—</i>';
+        return eintraege.map(bauen).join(', ');
+    }
+
+    function zuKlasse(name) {
+        return `<span class="km-zu" data-km-zu="${name}">${name}</span>`;
+    }
+
+    function fensterBauen(s) {
+        const el = document.createElement('div');
+        el.className = 'km-popup';
+        el.innerHTML = `
+            <button type="button" class="km-popup-zu" title="Schliessen"
+                    data-km-schliessen>&times;</button>
+            <h4>${s.name}</h4>
+            <div class="km-js">${s.datei}:${s.zeile}</div>
+            <dl>
+              <dt>genutzt von</dt><dd>${liste(s.genutzt_von,
+                  (g) => `${zuKlasse(g.von)}<span class="km-js">.${g.feld}`
+                       + `${g.viel === '1' ? '' : ' (' + g.viel + ')'}</span>`)}</dd>
+              <dt>hält</dt><dd>${liste(s.haelt,
+                  (h) => `<span class="km-js">${h.feld} =</span> ${zuKlasse(h.klasse)}`
+                       + `${h.viel === '1' ? '' : ' <span class="km-js">('
+                       + h.viel + ')</span>'}`)}</dd>
+              <dt>erbt von</dt><dd>${liste(s.basen, zuKlasse)
+                  }${s.fremde_basen.length
+                      ? ' <span class="km-js">' + s.fremde_basen.join(', ')
+                        + ' (fremd)</span>' : ''}</dd>
+              <dt>beerbt von</dt><dd>${liste(s.beerbt_von, zuKlasse)}</dd>
+              <dt>Felder</dt><dd>${s.felder.length
+                  ? s.felder.join('<br>') : '<i>—</i>'}</dd>
+              <dt>Methoden</dt><dd>${s.methoden.length
+                  ? s.methoden.join(', ') : '<i>—</i>'}
+                  <span class="km-js">(${s.methodenzahl} gesamt)</span></dd>
+            </dl>`;
+        return el;
+    }
+
+    let offen = null;
+    function schliessen() { offen?.remove(); offen = null; }
+
+    function zeigen(name, x, y) {
+        const s = steckbriefe[name];
+        if (!s) return;
+        schliessen();
+        offen = fensterBauen(s);
+        document.body.appendChild(offen);
+        // Innerhalb des Fensters bleiben — sonst steht das Fenster halb
+        // ausserhalb, wenn die Kachel am rechten Rand liegt.
+        const b = offen.getBoundingClientRect();
+        offen.style.left = Math.min(x + 12, innerWidth - b.width - 12) + 'px';
+        offen.style.top = Math.min(y + 12, innerHeight - b.height - 12) + 'px';
+        offen.querySelector('[data-km-schliessen]')
+            .addEventListener('click', schliessen);
+        offen.querySelectorAll('[data-km-zu]').forEach((a) => {
+            a.addEventListener('click', () => {
+                // Ein Verweis auf eine Klasse, die gerade nicht gezeichnet
+                // ist, hat keinen Steckbrief — dann neu zeichnen.
+                const ziel = a.dataset.kmZu;
+                if (steckbriefe[ziel]) {
+                    zeigen(ziel, x, y);
+                } else {
+                    start.value = ziel;
+                    form.submit();
+                }
+            });
+        });
+    }
+
+    document.querySelectorAll('[data-km-klasse]').forEach((g) => {
+        g.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            zeigen(g.dataset.kmKlasse, ev.clientX, ev.clientY);
+        });
+    });
+    document.addEventListener('click', (ev) => {
+        if (offen && !offen.contains(ev.target)) schliessen();
+    });
+    document.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Escape') schliessen();
     });
 
     // Suchen ohne Abruf: Bei tausend Knöpfen ist Blättern kein Weg.

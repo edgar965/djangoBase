@@ -424,6 +424,133 @@ class Klassenmodell:
                 for n, v in sorted(bereiche.items(),
                                    key=lambda p: (-len(p[1]), p[0]))]
 
+    #: Rolle im Projekt, am Pfad erkannt. Die erste passende gewinnt.
+    #: Ein Django-Projekt hat immer dieselben Rollen; die Namen der
+    #: Verzeichnisse sind Konvention, kein Zufall.
+    ROLLEN = (
+        ('Tests', ('tests', 'test')),
+        ('Ansichten', ('views', 'view')),
+        ('Dienste', ('services', 'service')),
+        ('Datenmodell', ('models', 'migrations', 'model')),
+        ('Befehle', ('management', 'commands')),
+        ('Schnittstelle', ('api', 'api_v1')),
+        ('Erkennung', ('detection', 'analysis', 'recognition',
+                       'face_backends')),
+        ('Aufnahme', ('live', 'recording', 'integrations')),
+        ('Oberflaeche', ('forms', 'templatetags', 'widgets')),
+    )
+
+    def nach_rolle(self):
+        u"""Zwei Ebenen: Rolle im Projekt, darunter das Verzeichnis.
+
+        DIE ANSAGE (Edgar, 24.08.2026)
+        ==============================
+            „mach die Unterteilung im unteren Bereich noch nach tests
+             (darunter unit tests, usw), Services, Views"
+
+        Die flache Liste nach Verzeichnis hatte 55 Eintraege, sortiert nach
+        Groesse — `tests/unit` (306) stand neben `views/settings_views`
+        (54) neben `live/service` (25). Das ist eine Aufzaehlung, keine
+        Gliederung: Man sieht nicht, dass fast die Haelfte des Projekts
+        Tests sind.
+
+        Gemessen an CamTrack/app::
+
+            Tests          465    Erkennung       67
+            Ansichten      201    Aufnahme        61
+            Dienste        104    Uebrige        106
+
+        Die Rolle steht am Pfad, nicht am Namen: `views/` sind Ansichten,
+        egal wie die Klassen darin heissen.
+        """
+        je_rolle = {}
+        for name in sorted(self.klassen):
+            k = self.klassen[name]
+            teile = k.datei.replace('\\', '/').split('/')
+            rolle = self._rolle(teile)
+            unter = '/'.join(teile[:2]) if len(teile) > 2 else (
+                teile[0] if len(teile) > 1 else '(Wurzel)')
+            je_rolle.setdefault(rolle, {}).setdefault(unter, []).append(name)
+
+        raus = []
+        for rolle, gruppen in je_rolle.items():
+            eintraege = [{'name': g, 'namen': v, 'zahl': len(v)}
+                         for g, v in sorted(gruppen.items(),
+                                            key=lambda p: (-len(p[1]), p[0]))]
+            raus.append({'name': rolle,
+                         'zahl': sum(e['zahl'] for e in eintraege),
+                         'gruppen': eintraege})
+        raus.sort(key=lambda r: (-r['zahl'], r['name']))
+        return raus
+
+    @classmethod
+    def _rolle(cls, teile):
+        gesenkt = [t.lower() for t in teile]
+        for etikett, marken in cls.ROLLEN:
+            if any(t in marken for t in gesenkt):
+                return etikett
+            # Auch `test_x.py` und `models.py` — die Rolle kann an der
+            # DATEI haengen, nicht nur am Verzeichnis.
+            if any(t.split('.')[0] in marken or t.startswith('test_')
+                   and 'Tests' == etikett for t in gesenkt[-1:]):
+                return etikett
+        return 'Uebrige'
+
+    def steckbrief(self, name):
+        u"""Alles zu EINER Klasse — fuer Hover und Popup.
+
+        DIE ANSAGE (Edgar, 24.08.2026)
+        ==============================
+            „kannst du bei den Klassen im Hover und bei Klick darauf (Popup)
+             eigenschaften zeigen, wie: Von wem genutzt, und welche
+             Unterklassen (als Instanzen) als Member"
+
+        Im Bild steht bisher nur, WAS eine Klasse haelt — die Linien zeigen
+        nach unten. Die Gegenrichtung fehlte: WER haelt sie? Bei 71
+        gehaltenen von 1004 ist genau das die interessante Frage, und sie
+        ist im Bild oft nicht zu sehen, weil der Halter ausserhalb der
+        gezeigten Nachbarschaft liegt.
+        """
+        k = self.klassen.get(name)
+        if k is None:
+            return None
+        genutzt, beerbt = [], []
+        for anderer in sorted(self.klassen):
+            a = self.klassen[anderer]
+            for feld, ziel, viel in a.haelt:
+                if ziel == name:
+                    genutzt.append({'von': anderer, 'feld': feld,
+                                    'viel': viel})
+            if name in a.basen:
+                beerbt.append(anderer)
+        return {
+            'name': name,
+            'datei': k.datei,
+            'zeile': k.zeile,
+            'basen': [b for b in k.basen if b in self.klassen],
+            'fremde_basen': [b for b in k.basen if b not in self.klassen],
+            'felder': [f.zeile for f in k.felder],
+            'methoden': k.methoden,
+            'methodenzahl': k.methodenzahl,
+            # Was sie als Instanz haelt — die „Unterklassen als Member".
+            'haelt': [{'feld': f, 'klasse': z, 'viel': v}
+                      for f, z, v in k.haelt if z in self.klassen],
+            'haelt_fremd': [{'feld': f, 'klasse': z, 'viel': v}
+                            for f, z, v in k.haelt if z not in self.klassen],
+            'genutzt_von': genutzt,
+            'beerbt_von': beerbt,
+            'ist_test': k.ist_test,
+        }
+
+    def steckbriefe(self, namen):
+        u"""Steckbriefe fuer die gezeigten Klassen — als Woerterbuch."""
+        raus = {}
+        for name in namen:
+            eintrag = self.steckbrief(name)
+            if eintrag:
+                raus[name] = eintrag
+        return raus
+
     def kennzahlen(self):
         alle = len(self.klassen)
         gehalten = {z for k in self.klassen.values()
