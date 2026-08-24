@@ -15,13 +15,20 @@ Rechtsklick speichern.
 
 DIE ANORDNUNG
 =============
-Nach EBENEN, von der Wurzel abwaerts — genau das Bild, das die Frage
+Ein Baum von der Wurzel abwaerts — genau das Bild, das die Frage
 beantwortet: „hast du eine Basisklasse, und alles andere geht wie ein Baum
 davon ab?" Wer viel haelt, steht oben; was gehalten wird, darunter.
 
-Kein Kraeftemodell und keine Kantenglaettung: Beides braucht Iterationen
-und macht das Ergebnis von Zufall abhaengig. Bei einer Nachbarschaft von
-zwanzig Kaesten reicht die Ebene.
+Die Kinder eines Kastens stehen NICHT in einer Zeile, sondern in einem
+ungefaehr quadratischen Block (24.08.2026, auf Ansage: „nicht alles in
+einer Zeile … höhe und breite gleichermassen genutzt"). Vorher ergab
+`PersonDetector` mit vierzehn gehaltenen Klassen ein Bild von 3500 Punkten
+Breite bei 500 Hoehe: Man scrollte quer und sah nie mehr als ein Drittel.
+
+Jeder Ast wird von unten nach oben vermessen und der Halter ueber der
+Mitte seines Blocks abgesetzt. Kein Kraeftemodell und keine
+Kantenglaettung: Beides braucht Iterationen und macht das Ergebnis von
+Zufall abhaengig.
 """
 from html import escape
 
@@ -31,9 +38,14 @@ KOPF = 26
 ZEILE = 16
 RAND = 8
 
-#: Abstaende im Raster.
-SPALTE = 250
-EBENE = 190
+#: Abstaende zwischen den Aesten.
+ABSTAND_X = 34
+ABSTAND_Y = 62
+#: Luft am Bildrand.
+RAHMEN = 40
+
+#: Die gesuchte Form des Bildes: breiter als hoch, wie ein Bildschirm.
+ZIEL_VERHAELTNIS = 1.55
 
 #: Hoechstens so viele Eintraege je Abteil — darunter wird gekuerzt.
 MAX_FELDER = 5
@@ -71,47 +83,156 @@ class Klassenbild:
         self.wurzel = wurzel or (kaesten[0].name if kaesten else None)
         self.plaetze = {}
 
-    # ── Anordnung ───────────────────────────────────────────────
-    def _ebenen(self):
-        u"""Wer haelt wen — daraus die Ebene. Die Wurzel steht oben."""
-        tiefe = {self.wurzel: 0} if self.wurzel else {}
-        rand = [self.wurzel] if self.wurzel else []
+    # ── Anordnung: ein echter Baum ──────────────────────────────
+    def _baum(self):
+        u"""Wer haengt unter wem — jede Klasse bekommt GENAU einen Platz.
+
+        Eine Klasse kann von mehreren gehalten werden (`Lock` haengt an
+        drei Stellen). Im Bild darf sie trotzdem nur einmal stehen, sonst
+        gaebe es zwei Kaesten mit demselben Namen. Sie bekommt den Platz
+        unter dem ERSTEN Halter, den der Weg von der Wurzel aus erreicht;
+        die uebrigen Linien laufen quer dorthin.
+        """
         gehalten = {}
         for linie in self.linien:
             gehalten.setdefault(linie.von, []).append(linie.nach)
+        kinder = {name: [] for name in self.klassen}
+        vergeben = {self.wurzel} if self.wurzel else set()
+        rand = [self.wurzel] if self.wurzel else []
         while rand:
             naechste = []
             for name in rand:
-                for ziel in gehalten.get(name, []):
-                    if ziel not in tiefe:
-                        tiefe[ziel] = tiefe[name] + 1
-                        naechste.append(ziel)
+                for ziel in sorted(set(gehalten.get(name, []))):
+                    if ziel in vergeben or ziel not in self.klassen:
+                        continue
+                    vergeben.add(ziel)
+                    kinder[name].append(ziel)
+                    naechste.append(ziel)
             rand = naechste
-        # Was von der Wurzel aus nicht erreichbar ist, kommt in die letzte
-        # Ebene — es gehoert zum Ausschnitt, haengt aber nicht am Baum.
-        tiefste = max(tiefe.values()) if tiefe else 0
-        for name in self.klassen:
-            tiefe.setdefault(name, tiefste + 1)
-        return tiefe
+        # Was von der Wurzel aus nicht erreichbar ist, haengt als eigener
+        # Strauss unter ihr — es gehoert zum Ausschnitt, aber nicht zum Baum.
+        rest = [n for n in sorted(self.klassen) if n not in vergeben]
+        if rest and self.wurzel:
+            kinder[self.wurzel].extend(rest)
+        return kinder
+
+    @staticmethod
+    def _spalten(masse):
+        u"""Wie viele Kinder nebeneinander, bevor umgebrochen wird?
+
+        DIE ANSAGE (Edgar, 24.08.2026)
+        ==============================
+            „mach die Klassenstruktur geordneter, nicht alles in einer
+             Zeile, möglichst als Ast und höhe und breite gleichermassen
+             genutzt"
+
+        Gerechnet wird mit den GEMESSENEN Massen der Kinder, nicht mit
+        einer angenommenen Kastengroesse. Ein Kasten ist je nach Zahl
+        seiner Felder 110 bis 190 hoch — wer mit einem festen Wert rechnet,
+        liegt um die Haelfte daneben und bekommt wieder ein schlauchfoermiges
+        Bild.
+
+        Nachgemessen an `PersonDetector` (14 gehaltene Klassen)::
+
+            eine Zeile                    3500 x  500   quer, unbrauchbar
+            Wurzel aus der Anzahl          718 x 1394   hoch, unbrauchbar
+            feste Kastenhoehe (110)        942 x 1210   noch zu hoch
+            gemessene Masse                             passt
+
+        Durchprobiert werden alle Spaltenzahlen; genommen wird die, deren
+        Block dem `ZIEL_VERHAELTNIS` am naechsten kommt. Bei zwanzig
+        Kindern sind das zwanzig Rechnungen — nicht der Rede wert.
+        """
+        anzahl = len(masse)
+        if anzahl <= 3:
+            return anzahl or 1
+        beste, abstand = anzahl, None
+        for spalten in range(2, anzahl + 1):
+            reihen = [masse[i:i + spalten]
+                      for i in range(0, anzahl, spalten)]
+            breite = max(sum(b for b, _h in r) + ABSTAND_X * (len(r) - 1)
+                         for r in reihen)
+            hoehe = (sum(max(h for _b, h in r) for r in reihen)
+                     + ABSTAND_Y * (len(reihen) - 1))
+            if hoehe <= 0:
+                continue
+            weit = abs(breite / hoehe - ZIEL_VERHAELTNIS)
+            if abstand is None or weit < abstand:
+                beste, abstand = spalten, weit
+        return beste
+
+    def _masse_ast(self, name, kinder, gesehen=None):
+        u"""``(Breite, Hoehe)`` des ganzen Astes unter `name`."""
+        gesehen = gesehen if gesehen is not None else set()
+        if name in gesehen:
+            return (BREITE, 0)
+        gesehen.add(name)
+        eigen_h = Kasten(self.klassen[name], 0, 0).hoehe
+        meine = kinder.get(name) or []
+        if not meine:
+            return (BREITE, eigen_h)
+        reihen = self._reihen(meine, kinder, gesehen)
+        block_b = max(sum(b for b, _h in r) + ABSTAND_X * (len(r) - 1)
+                      for r in reihen)
+        block_h = (sum(max(h for _b, h in r) for r in reihen)
+                   + ABSTAND_Y * (len(reihen) - 1))
+        return (max(BREITE, block_b), eigen_h + ABSTAND_Y + block_h)
+
+    def _reihen(self, meine, kinder, gesehen):
+        u"""Die Kinder in Reihen aufteilen, je mit ihren Astmassen."""
+        masse = [self._masse_ast(k, kinder, gesehen) for k in meine]
+        spalten = self._spalten(masse)
+        return [masse[i:i + spalten] for i in range(0, len(masse), spalten)]
+
+    def _setzen(self, name, x, y, kinder, gesehen):
+        u"""Den Ast ab `name` an die Stelle (x, y) legen."""
+        if name in gesehen:
+            return
+        gesehen.add(name)
+        breite, _hoehe = self._masse_ast(name, kinder, set())
+        kasten = Kasten(self.klassen[name],
+                        x=x + (breite - BREITE) / 2, y=y)
+        self.plaetze[name] = kasten
+        meine = [k for k in (kinder.get(name) or []) if k not in gesehen]
+        if not meine:
+            return
+        alle_masse = [self._masse_ast(k, kinder, set()) for k in meine]
+        spalten = self._spalten(alle_masse)
+        oben = y + kasten.hoehe + ABSTAND_Y
+        for anfang in range(0, len(meine), spalten):
+            reihe = meine[anfang:anfang + spalten]
+            masse = [self._masse_ast(k, kinder, set()) for k in reihe]
+            reihe_b = sum(b for b, _h in masse) + ABSTAND_X * (len(reihe) - 1)
+            links = x + (breite - reihe_b) / 2
+            for kind, (kb, _kh) in zip(reihe, masse):
+                self._setzen(kind, links, oben, kinder, gesehen)
+                links += kb + ABSTAND_X
+            oben += max(h for _b, h in masse) + ABSTAND_Y
 
     def anordnen(self):
-        tiefe = self._ebenen()
-        je_ebene = {}
-        for name in sorted(self.klassen, key=lambda n: (tiefe[n], n)):
-            je_ebene.setdefault(tiefe[name], []).append(name)
-        for ebene, namen in je_ebene.items():
-            for i, name in enumerate(namen):
-                self.plaetze[name] = Kasten(self.klassen[name],
-                                            x=40 + i * SPALTE,
-                                            y=40 + ebene * EBENE)
+        if not self.klassen:
+            return self
+        kinder = self._baum()
+        start = (self.wurzel if self.wurzel in self.klassen
+                 else sorted(self.klassen)[0])
+        self._setzen(start, RAHMEN, RAHMEN, kinder, set())
+        # Was der Baum nicht erreicht hat (Ringe): rechts daneben.
+        offen = [n for n in sorted(self.klassen) if n not in self.plaetze]
+        if offen:
+            x = max(k.x + BREITE for k in self.plaetze.values()) + ABSTAND_X
+            y = RAHMEN
+            for name in offen:
+                k = Kasten(self.klassen[name], x, y)
+                self.plaetze[name] = k
+                y += k.hoehe + ABSTAND_Y
         return self
 
     def masse(self):
         if not self.plaetze:
             return (400, 200)
-        breite = max(k.x + BREITE for k in self.plaetze.values()) + 60
-        hoehe = max(k.y + k.hoehe for k in self.plaetze.values()) + 60
-        return (breite, hoehe)
+        breite = max(k.x + BREITE for k in self.plaetze.values()) + RAHMEN
+        hoehe = max(k.y + k.hoehe for k in self.plaetze.values()) + RAHMEN
+        return (int(breite), int(hoehe))
 
     # ── Zeichnen ────────────────────────────────────────────────
     def svg(self):

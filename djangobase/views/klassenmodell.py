@@ -14,6 +14,7 @@ Das Bild entsteht auf Knopfdruck, nicht beim Seitenaufruf: Der Durchgang
 liest jede ``.py`` des Projekts. Bei CamTrack sind das 1004 Klassen — das
 gehoert nicht in den Weg von jemandem, der nur die Seite aufschlaegt.
 """
+import time
 from pathlib import Path
 
 from django.conf import settings
@@ -28,6 +29,41 @@ from ..umbau.klassenmodell import Klassenmodell
 TIEFE_VORGABE = 2
 
 
+class Modellspeicher:
+    u"""Haelt das eingelesene Modell, bis jemand ausdruecklich neu liest.
+
+    DIE ANSAGE (Edgar, 24.08.2026)
+    ==============================
+        „mach auch einen Refresh button, damit der nicht alles neu
+         durchgeht?"
+
+    Berechtigt: Der Durchgang liest jede ``.py`` des Projekts — bei
+    CamTrack 1023 Klassen. Wer nur eine andere Startklasse ansehen oder
+    einen Schritt tiefer gehen will, braucht davon nichts neu.
+
+    Gehalten wird je Bereich, im Arbeitsspeicher des Web-Dienstes. Ein
+    Neustart leert ihn, und das ist richtig so: Nach einem Neustart hat
+    sich der Quelltext womoeglich geaendert.
+    """
+
+    _modelle = {}
+
+    @classmethod
+    def holen(cls, wurzel, neu=False):
+        u"""``(Modell, Alter in Sekunden oder None)``."""
+        schluessel = str(wurzel)
+        if not neu and schluessel in cls._modelle:
+            modell, wann = cls._modelle[schluessel]
+            return modell, time.time() - wann
+        modell = Klassenmodell(wurzel).lesen()
+        cls._modelle[schluessel] = (modell, time.time())
+        return modell, None
+
+    @classmethod
+    def leeren(cls):
+        cls._modelle.clear()
+
+
 class KlassenmodellView(ZugriffMixin, View):
     u"""Zeigt die Seite; auf Knopfdruck rechnet sie das Bild."""
 
@@ -38,7 +74,8 @@ class KlassenmodellView(ZugriffMixin, View):
 
     def post(self, request):
         wurzel = self._wurzel(request.POST.get('bereich', ''))
-        modell = Klassenmodell(wurzel).lesen()
+        modell, alter = Modellspeicher.holen(
+            wurzel, neu=bool(request.POST.get('neu')))
         start = (request.POST.get('start') or '').strip() or None
         try:
             tiefe = max(1, min(4, int(request.POST.get('tiefe')
@@ -56,6 +93,7 @@ class KlassenmodellView(ZugriffMixin, View):
             bereich=request.POST.get('bereich', ''),
             gezeigt=len(kaesten),
             aeste=self._aeste(modell),
+            alter=int(alter) if alter is not None else None,
             leer=not kaesten and bool(start),
         )
 

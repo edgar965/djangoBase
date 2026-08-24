@@ -25,6 +25,9 @@ jede `.py` des Projekts.
 .km-knopf { background: #1f6feb; color: #fff; border: 0; border-radius: 4px;
             padding: 0.45rem 1.1rem; font-size: 0.9rem; cursor: pointer; }
 .km-knopf:hover { background: #2b7ef7; }
+.km-knopf-matt { background: #2b3540; }
+.km-knopf-matt:hover { background: #3a4652; }
+.km-stand { font-size: 0.78rem; opacity: 0.7; align-self: center; }
 .km-zahlen { display: flex; gap: 1.4rem; flex-wrap: wrap; margin: 0.6rem 0 1rem;
              font-size: 0.85rem; }
 .km-zahlen b { font-variant-numeric: tabular-nums; }
@@ -72,6 +75,15 @@ jede `.py` des Projekts.
     </div>
     <button type="submit" class="km-knopf">
         <i class="bi bi-diagram-3"></i> Übersicht erstellen</button>
+    {% comment %}
+    Der zweite Knopf liest den Quelltext neu ein. Der erste nimmt, was
+    schon gelesen ist — der Durchgang geht durch jede `.py` des Projekts
+    und braucht bei tausend Klassen einige Sekunden. Wer nur eine andere
+    Startklasse ansehen will, soll darauf nicht warten.
+    {% endcomment %}
+    <button type="submit" name="neu" value="1" class="km-knopf km-knopf-matt"
+            title="Quelltext neu einlesen — dauert einige Sekunden">
+        <i class="bi bi-arrow-clockwise"></i> Neu einlesen</button>
 </form>
 
 {% if leer %}
@@ -98,6 +110,14 @@ jede `.py` des Projekts.
     <span>Oberklassen: <b>{{ kennzahlen.oberklassen }}</b></span>
     <span>Beziehungen: <b>{{ kennzahlen.beziehungen }}</b></span>
     <span>im Bild: <b>{{ gezeigt }}</b></span>
+    {% if alter %}
+    <span class="km-stand">
+        <i class="bi bi-clock-history"></i>
+        Quelltext vor {{ alter }} s gelesen — „Neu einlesen" holt ihn frisch
+    </span>
+    {% else %}
+    <span class="km-stand"><i class="bi bi-check2"></i> frisch eingelesen</span>
+    {% endif %}
 </div>
 {% endif %}
 
