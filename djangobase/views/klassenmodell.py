@@ -21,6 +21,7 @@ from django.conf import settings
 from django.views import View
 
 from ..mixins import ZugriffMixin
+from ..umbau.globalbestand import Globalbestand, hauptaeste
 from ..umbau.klassenbild import Klassenbild
 from ..umbau.klassenmodell import Klassenmodell
 
@@ -64,6 +65,26 @@ class Modellspeicher:
         cls._modelle.clear()
 
 
+class Bestandsspeicher:
+    u"""Dasselbe fuer den Modulebenen-Bestand: einmal lesen, oft ansehen."""
+
+    _bestaende = {}
+
+    @classmethod
+    def holen(cls, wurzel, neu=False):
+        schluessel = str(wurzel)
+        if not neu and schluessel in cls._bestaende:
+            bestand, wann = cls._bestaende[schluessel]
+            return bestand, time.time() - wann
+        bestand = Globalbestand(wurzel).lesen()
+        cls._bestaende[schluessel] = (bestand, time.time())
+        return bestand, None
+
+    @classmethod
+    def leeren(cls):
+        cls._bestaende.clear()
+
+
 class KlassenmodellView(ZugriffMixin, View):
     u"""Zeigt die Seite; auf Knopfdruck rechnet sie das Bild."""
 
@@ -72,10 +93,29 @@ class KlassenmodellView(ZugriffMixin, View):
     def get(self, request):
         return self._seite(request)
 
+    #: Die Reiter der Seite. Der Schluessel steht im Formular.
+    REITER = (
+        ('baum', 'Klassenmodell', 'bi-diagram-3'),
+        ('funktionen', 'Globale Funktionen', 'bi-code-slash'),
+        ('klassen', 'Globale Klassen', 'bi-boxes'),
+        ('variablen', 'Globale Variablen', 'bi-hash'),
+        ('seiten', 'HTML-Seiten', 'bi-filetype-html'),
+    )
+
     def post(self, request):
         wurzel = self._wurzel(request.POST.get('bereich', ''))
-        modell, alter = Modellspeicher.holen(
-            wurzel, neu=bool(request.POST.get('neu')))
+        neu = bool(request.POST.get('neu'))
+        reiter = request.POST.get('reiter', 'baum')
+        if reiter not in dict((k, 1) for k, _l, _i in self.REITER):
+            reiter = 'baum'
+        if reiter != 'baum':
+            bestand, alter = Bestandsspeicher.holen(wurzel, neu=neu)
+            return self._seite(
+                request, reiter=reiter, bestand=bestand,
+                kennzahlen=bestand.kennzahlen(),
+                bereich=request.POST.get('bereich', ''),
+                alter=int(alter) if alter is not None else None)
+        modell, alter = Modellspeicher.holen(wurzel, neu=neu)
         start = (request.POST.get('start') or '').strip() or None
         try:
             tiefe = max(1, min(4, int(request.POST.get('tiefe')
@@ -95,6 +135,7 @@ class KlassenmodellView(ZugriffMixin, View):
             aeste=self._aeste(modell),
             alter=int(alter) if alter is not None else None,
             leer=not kaesten and bool(start),
+            reiter='baum',
         )
 
     # ── intern ──────────────────────────────────────────────────
@@ -134,6 +175,12 @@ class KlassenmodellView(ZugriffMixin, View):
             'titel': 'Werkzeug Klassenmodell',
             'tiefe': TIEFE_VORGABE,
             'aktiv': 'klassenmodell',
+            'reiter': 'baum',
+            'reiter_liste': [{'key': k, 'label': l, 'icon': i}
+                             for k, l, i in self.REITER],
+            # Je ein Bereich pro Hauptast — ein kleinerer Ausschnitt
+            # bedeutet einen schnelleren Durchgang und ein lesbares Bild.
+            'bereiche': hauptaeste(settings.BASE_DIR),
         }
         daten.update(zusatz)
         return render(request, self.vorlage, daten)

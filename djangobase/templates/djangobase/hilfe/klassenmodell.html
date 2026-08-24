@@ -43,6 +43,26 @@ jede `.py` des Projekts.
               max-width: 62rem; }
 .km-leer { border: 1px solid #5a3a3a; background: #2a1c1c; border-radius: 6px;
            padding: 0.7rem 1rem; font-size: 0.86rem; margin-bottom: 0.9rem; }
+.km-reiter { display: flex; gap: 0.3rem; flex-wrap: wrap;
+             border-bottom: 1px solid #2b3540; margin-bottom: 0.9rem; }
+.km-reiter-knopf {
+    background: transparent; border: 1px solid transparent; border-bottom: 0;
+    color: #8b98a5; padding: 0.4rem 0.9rem; font-size: 0.85rem;
+    cursor: pointer; border-radius: 5px 5px 0 0; }
+.km-reiter-knopf:hover { color: #e6edf3; }
+.km-reiter-knopf.active {
+    color: #e6edf3; background: #1b2129; border-color: #2b3540;
+    margin-bottom: -1px; }
+.km-liste { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+.km-liste th, .km-liste td {
+    text-align: left; padding: 0.32rem 0.6rem;
+    border-bottom: 1px solid #222a33; }
+.km-liste th { color: #8b98a5; font-weight: 600; position: sticky; top: 0;
+               background: #12161c; }
+.km-liste code { color: #9ecbff; font-size: 0.82rem; }
+.km-liste tr:hover td { background: #171d24; }
+.km-warn { color: #ffd479; }
+.km-js { color: #8b98a5; font-size: 0.78rem; }
 </style>
 
 <p class="km-hinweis">
@@ -53,17 +73,38 @@ jede `.py` des Projekts.
     dicksten Ast.
 </p>
 
+{% comment %}
+Fuenf Sichten auf denselben Bereich (24.08.2026, auf Ansage). Das Klassen-
+bild zeigt, wer wen haelt. Die drei Listen danach zeigen, was an gar keiner
+Klasse haengt — genau der Massstab aus Kriterium 1 und 18, und im Bild
+NICHT zu sehen. Die HTML-Seiten zeigen, welchen Code eine Seite wirklich
+zieht.
+{% endcomment %}
+<div class="km-reiter">
+    {% for r in reiter_liste %}
+    <button type="button" class="km-reiter-knopf {% if reiter == r.key %}active{% endif %}"
+            data-km-reiter="{{ r.key }}">
+        <i class="bi {{ r.icon }}"></i> {{ r.label }}</button>
+    {% endfor %}
+</div>
+
 <form method="post" class="km-kopf">
     {% csrf_token %}
+    <input type="hidden" name="reiter" value="{{ reiter }}">
     <div class="km-feld">
         <label for="km-start">Startklasse (leer = dickster Ast)</label>
         <input type="text" id="km-start" name="start" value="{{ gewaehlt|default:'' }}"
                placeholder="z. B. PersonDetector" size="26">
     </div>
     <div class="km-feld">
-        <label for="km-bereich">Bereich (leer = ganzes Projekt)</label>
-        <input type="text" id="km-bereich" name="bereich" value="{{ bereich|default:'' }}"
-               placeholder="z. B. app/live" size="20">
+        <label for="km-bereich">Bereich</label>
+        <select id="km-bereich" name="bereich">
+            <option value="">ganzes Projekt</option>
+            {% for b in bereiche %}
+            <option value="{{ b.name }}"{% if bereich == b.name %} selected{% endif %}>
+                {{ b.name }} ({{ b.dateien }})</option>
+            {% endfor %}
+        </select>
     </div>
     <div class="km-feld">
         <label for="km-tiefe">Schritte</label>
@@ -105,11 +146,26 @@ jede `.py` des Projekts.
 
 {% if kennzahlen %}
 <div class="km-zahlen">
+    {% comment %}
+    Je Reiter die Zahlen, die dort etwas bedeuten. Vorher standen ueberall
+    die des Klassenmodells — auf „HTML-Seiten" also „Beziehungen: " ohne
+    Wert. Eine leere Kennzahl ist schlimmer als keine: Sie sieht aus wie
+    eine Null.
+    {% endcomment %}
+    {% if reiter == 'baum' %}
     <span>Klassen im Bereich: <b>{{ kennzahlen.klassen }}</b></span>
     <span>davon gehalten: <b>{{ kennzahlen.im_baum }}</b></span>
     <span>Oberklassen: <b>{{ kennzahlen.oberklassen }}</b></span>
     <span>Beziehungen: <b>{{ kennzahlen.beziehungen }}</b></span>
     <span>im Bild: <b>{{ gezeigt }}</b></span>
+    {% else %}
+    <span>Funktionen auf Modulebene: <b>{{ kennzahlen.funktionen }}</b></span>
+    <span>Klassen: <b>{{ kennzahlen.klassen }}</b></span>
+    <span>Modulvariablen: <b>{{ kennzahlen.variablen }}</b>
+        (davon <b class="km-warn">{{ kennzahlen.veraenderlich }}</b> veränderlich)</span>
+    <span>HTML-Seiten: <b>{{ kennzahlen.seiten }}</b></span>
+    <span>eingebundene Skripte: <b>{{ kennzahlen.skripte }}</b></span>
+    {% endif %}
     {% if alter %}
     <span class="km-stand">
         <i class="bi bi-clock-history"></i>
@@ -121,7 +177,75 @@ jede `.py` des Projekts.
 </div>
 {% endif %}
 
-{% if bild %}
+{% if reiter == 'funktionen' %}
+<div class="km-rahmen">
+    <table class="km-liste">
+        <tr><th>Funktion</th><th>Stellen</th><th>Datei</th></tr>
+        {% for e in bestand.funktionen %}
+        <tr><td><b>{{ e.name }}</b></td><td class="km-js">{{ e.zusatz }}</td>
+            <td><code>{{ e.datei }}:{{ e.zeile }}</code></td></tr>
+        {% empty %}
+        <tr><td colspan="3">Keine Funktion auf Modulebene — so soll es sein.</td></tr>
+        {% endfor %}
+    </table>
+</div>
+
+{% elif reiter == 'klassen' %}
+<div class="km-rahmen">
+    <table class="km-liste">
+        <tr><th>Klasse</th><th>erbt von</th><th>Datei</th></tr>
+        {% for e in bestand.klassen %}
+        <tr><td><b>{{ e.name }}</b></td><td class="km-js">{{ e.zusatz|default:'—' }}</td>
+            <td><code>{{ e.datei }}:{{ e.zeile }}</code></td></tr>
+        {% empty %}
+        <tr><td colspan="3">Keine Klasse in diesem Bereich.</td></tr>
+        {% endfor %}
+    </table>
+</div>
+
+{% elif reiter == 'variablen' %}
+<div class="km-rahmen">
+    <table class="km-liste">
+        <tr><th>Variable</th><th>Art</th><th>Datei</th></tr>
+        {% for e in bestand.variablen %}
+        <tr><td><b>{{ e.name }}</b></td>
+            <td class="{% if e.zusatz == 'veränderlich' %}km-warn{% else %}km-js{% endif %}">
+                {{ e.zusatz }}</td>
+            <td><code>{{ e.datei }}:{{ e.zeile }}</code></td></tr>
+        {% empty %}
+        <tr><td colspan="3">Nichts auf Modulebene zugewiesen.</td></tr>
+        {% endfor %}
+    </table>
+</div>
+
+{% elif reiter == 'seiten' %}
+<div class="km-rahmen">
+    <table class="km-liste">
+        <tr><th>Seite</th><th>Zeilen</th><th>Skripte und ihre Abhängigkeiten</th></tr>
+        {% for s in bestand.seiten %}
+        <tr>
+            <td><b>{{ s.pfad }}</b>
+                {% if s.eingebunden %}
+                <div class="km-js">bindet ein: {{ s.eingebunden|join:", " }}</div>
+                {% endif %}</td>
+            <td>{{ s.zeilen }}</td>
+            <td>
+                {% for js, abh in s.skripte %}
+                <div><code>{{ js }}</code>
+                    {% if abh %}<span class="km-js">
+                        → {{ abh|length }}: {{ abh|join:", " }}</span>{% endif %}</div>
+                {% empty %}
+                <span class="km-js">kein eigenes Skript</span>
+                {% endfor %}
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3">Keine Vorlage in diesem Bereich.</td></tr>
+        {% endfor %}
+    </table>
+</div>
+
+{% elif bild %}
 <div class="km-rahmen">{{ bild|safe }}</div>
 {% elif not leer %}
 <p class="km-hinweis">
@@ -137,6 +261,15 @@ jede `.py` des Projekts.
     // es zwei Stellen, die dasselbe Bild erzeugen.
     const form = document.querySelector('form.km-kopf');
     const start = document.getElementById('km-start');
+    // Reiterwechsel: dasselbe Formular, anderer Wert. Ein eigener Abruf
+    // waere eine zweite Stelle, die dieselben Daten holt.
+    const feld = form.querySelector('input[name=reiter]');
+    document.querySelectorAll('[data-km-reiter]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            feld.value = btn.dataset.kmReiter;
+            form.submit();
+        });
+    });
     document.querySelectorAll('[data-km-ast]').forEach((btn) => {
         btn.addEventListener('click', () => {
             start.value = btn.dataset.kmAst;
