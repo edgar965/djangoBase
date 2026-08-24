@@ -64,7 +64,11 @@ class FreieFunktionen(BefundWerkzeug):
              'Bvhbibliothek und Animationsauswahl — vorher lose Funktionen mit '
              'globalen Zwischenspeichern in einer 6.000-Zeilen-Datei.')
     dauer = 'Sekunden'
-    eingabe = ('ab', 'Ab wie vielen freien Funktionen je Datei melden?', '5')
+    #: ALLE melden, nicht erst ab fuenf (24.08.2026, auf Ansage: „der test
+    #: soll sie alle melden"). Die Vorgabe 5 versteckte an CamTrack 238 von
+    #: 283 Modulen — gemeldet wurden 45. Wer die Zahl kleiner haben will,
+    #: dreht sie hier hoch; die Voreinstellung darf nichts verschweigen.
+    eingabe = ('ab', 'Ab wie vielen freien Funktionen je Datei melden?', '1')
 
     anlassfall = Anlassfall(
         {"helfer.py": "".join("def schritt%d(wert):\n    return wert + %d\n\n\n"
@@ -73,11 +77,11 @@ class FreieFunktionen(BefundWerkzeug):
         warum="Acht lose Funktionen auf Modulebene: Der Zusammenhang steht "
               "nirgends, und jede traegt ihren Zustand selbst")
 
-    def pruefen(self, ab='5', **_argumente):
+    def pruefen(self, ab='1', **_argumente):
         try:
-            grenze = max(2, int(str(ab).strip() or 5))
+            grenze = max(1, int(str(ab).strip() or 1))
         except ValueError:
-            grenze = 5
+            grenze = 1
 
         sichten, befunde = [], []
         rufer, ansichten = {}, set()
@@ -109,9 +113,13 @@ class FreieFunktionen(BefundWerkzeug):
                 else Befund.HINWEIS))
 
         gesamt = sum(len(s.funktionen) for s in sichten)
+        gebuendelt = sum(len(g[1]) for s in sichten for g in s.gruppen())
         kopf = ['%d Module, %d Funktionen auf Modulebene' % (len(sichten), gesamt),
                 '%d Module mit mindestens %d freien Funktionen'
-                % (len(befunde), grenze)]
+                % (len(befunde), grenze),
+                '%d davon stehen in einem Buendel gleichen Namensanfangs — '
+                'das sind die Klassen, die noch niemand geschrieben hat'
+                % gebuendelt]
         return Befundsatz(self.titel, kopf, befunde)
 
     #: Klassen, an die nichts gehaengt wird. Ein Test RUFT den Code, er

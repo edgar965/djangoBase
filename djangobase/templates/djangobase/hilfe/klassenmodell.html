@@ -65,12 +65,34 @@ jede `.py` des Projekts.
 .km-js { color: #8b98a5; font-size: 0.78rem; }
 </style>
 
+{% comment %}
+Je Reiter der Satz, der dort gilt. Vorher stand ueberall die Erklaerung des
+Bildes — auf „Globale Variablen" also eine Auskunft ueber Vielfachheiten.
+{% endcomment %}
 <p class="km-hinweis">
+    {% if reiter == 'baum' %}
     Liest jede <code>.py</code> des Projekts und zeichnet, <b>wer wen hält</b>
     (durchgezogen, mit Feldname und Vielfachheit) und <b>wer von wem erbt</b>
     (gestrichelt, mit Dreieck). Gezeigt wird die Nachbarschaft einer Klasse —
     ein Bild mit tausend Kästen liest niemand. Ohne Angabe beginnt es beim
     dicksten Ast.
+    {% elif reiter == 'funktionen' %}
+    Jede Funktion, die <b>auf Modulebene</b> steht und damit an keiner Klasse
+    hängt. Drei mit demselben Namensanfang sind fast immer eine Klasse, die
+    noch niemand geschrieben hat — welche, sagt das Werkzeug
+    <b>Freie Funktionen</b> unter „Werkzeug Code Review".
+    {% elif reiter == 'klassen' %}
+    Jede Klasse des Bereichs mit ihrer Oberklasse. Ob sie im Baum <b>hängt</b>
+    oder eine eigene Wurzel ist, zeigt der Reiter <b>Klassenmodell</b>.
+    {% elif reiter == 'variablen' %}
+    Was auf Modulebene zugewiesen wird. <code>MAX = 5</code> ist eine Vorgabe
+    und gehört dorthin; <code class="km-warn">_cache = {}</code> ist Zustand,
+    der jeden Aufruf überlebt und niemandem gehört — <b>das</b> ist der Fund.
+    {% else %}
+    Jede Vorlage mit den Skripten, die sie zieht, und dem, was diese
+    ihrerseits importieren — eine Stufe tief. Zwei wären schon ein Netz
+    statt eines Baums.
+    {% endif %}
 </p>
 
 {% comment %}
@@ -91,11 +113,24 @@ zieht.
 <form method="post" class="km-kopf">
     {% csrf_token %}
     <input type="hidden" name="reiter" value="{{ reiter }}">
+    {% comment %}
+    Startklasse und Schritte gehoeren zum BILD. Auf den Listen-Reitern
+    stehen sie nur im Weg und schoben die Knoepfe aus dem Fenster
+    (24.08.2026, gemeldet: „braucht der Tab Freie Funktionen nicht die
+    Untertabs der Äste. auch dieser Bereich ist kaputt").
+
+    Der Wert der Startklasse reist als verstecktes Feld mit — sonst waere
+    die Auswahl nach einem Ausflug in eine Liste weg.
+    {% endcomment %}
+    {% if reiter == 'baum' %}
     <div class="km-feld">
         <label for="km-start">Startklasse (leer = dickster Ast)</label>
         <input type="text" id="km-start" name="start" value="{{ gewaehlt|default:'' }}"
                placeholder="z. B. PersonDetector" size="26">
     </div>
+    {% else %}
+    <input type="hidden" id="km-start" name="start" value="{{ gewaehlt|default:'' }}">
+    {% endif %}
     <div class="km-feld">
         <label for="km-bereich">Bereich</label>
         <select id="km-bereich" name="bereich">
@@ -106,6 +141,7 @@ zieht.
             {% endfor %}
         </select>
     </div>
+    {% if reiter == 'baum' %}
     <div class="km-feld">
         <label for="km-tiefe">Schritte</label>
         <select id="km-tiefe" name="tiefe">
@@ -114,8 +150,10 @@ zieht.
             {% endfor %}
         </select>
     </div>
+    {% endif %}
     <button type="submit" class="km-knopf">
-        <i class="bi bi-diagram-3"></i> Übersicht erstellen</button>
+        <i class="bi bi-diagram-3"></i>
+        {% if reiter == 'baum' %}Übersicht erstellen{% else %}Liste erstellen{% endif %}</button>
     {% comment %}
     Der zweite Knopf liest den Quelltext neu ein. Der erste nimmt, was
     schon gelesen ist — der Durchgang geht durch jede `.py` des Projekts
@@ -260,6 +298,8 @@ zieht.
     // Bewusst kein eigener Abruf: Dieselbe Form, derselbe Weg — sonst gäbe
     // es zwei Stellen, die dasselbe Bild erzeugen.
     const form = document.querySelector('form.km-kopf');
+    // Auf den Listen-Reitern ist das Feld versteckt, aber vorhanden —
+    // sonst ginge die gewaehlte Startklasse beim Reiterwechsel verloren.
     const start = document.getElementById('km-start');
     // Reiterwechsel: dasselbe Formular, anderer Wert. Ein eigener Abruf
     // waere eine zweite Stelle, die dieselben Daten holt.
