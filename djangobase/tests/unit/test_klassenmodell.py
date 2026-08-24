@@ -31,7 +31,11 @@ from ..base import BasisTest
 def _projekt(dateien):
     ordner = Path(tempfile.mkdtemp(prefix='km_'))
     for name, inhalt in dateien.items():
-        (ordner / name).write_text(inhalt, encoding='utf-8')
+        ziel = ordner / name
+        # Unterordner anlegen: Seit den Test-Faellen liegen Dateien auch in
+        # `tests/…`, und `write_text` legt kein Verzeichnis an.
+        ziel.parent.mkdir(parents=True, exist_ok=True)
+        ziel.write_text(inhalt, encoding='utf-8')
     return Klassenmodell(ordner).lesen()
 
 
@@ -290,3 +294,86 @@ class JedeKlasseInGenauEinenTopf(BasisTest):
         u"""Eine Zahl ohne Erklaerung ist eine Behauptung."""
         for k in _projekt({'a.py': 'class A:\n    pass\n'}).kategorien():
             self.assertTrue(k['label'] and k['erklaerung'], k)
+
+
+class AlleKlassenSindErreichbar(BasisTest):
+    u"""Zu jeder genannten Zahl muss es einen Weg geben.
+
+    DIE BESCHWERDE (Edgar, 24.08.2026)
+    ==================================
+        „ich verstehe die Übersicht immer noch nicht. 1004 klassen, ich
+         erwarte bereiche und buttons wo ich alle 1004 klassen sehen kann!"
+
+    Die Seite nannte 1004, zeigte 17 im Bild und bot zwölf Ast-Knöpfe. Die
+    übrigen 987 waren genannt, aber nicht erreichbar — eine Zahl ohne Weg
+    ist eine Behauptung.
+    """
+
+    def test_die_bereiche_enthalten_jede_klasse(self):
+        m = _projekt({'a.py': 'class Eins:\n    pass\n\n\nclass Zwei:\n    pass\n'})
+        bereiche = m.nach_bereich()
+        alle = [n for b in bereiche for n in b['namen']]
+        self.assertEqual(sorted(alle), sorted(m.klassen))
+
+    def test_keine_klasse_steht_doppelt(self):
+        m = _projekt({'a.py': 'class A:\n    pass\n\n\nclass B:\n    pass\n'})
+        alle = [n for b in m.nach_bereich() for n in b['namen']]
+        self.assertEqual(len(alle), len(set(alle)))
+
+    def test_die_zahl_stimmt_mit_der_liste(self):
+        m = _projekt({'a.py': 'class A:\n    pass\n\n\nclass B:\n    pass\n'})
+        for b in m.nach_bereich():
+            self.assertEqual(b['zahl'], len(b['namen']))
+
+
+class EinTestIstKeinAst(BasisTest):
+    u"""Der Einstieg ins Klassenbild darf keine Prüfung sein.
+
+    DER FALL (Edgar, 24.08.2026)
+    ============================
+        „was soll die Unterteilung Mit Chrome oder Vollbild zeigt den
+         Hauptstrom?? das ist komplett gaga!"
+
+    Unter „Dickste Äste" standen `_MitChrome`, `VollbildZeigtDenHauptstrom`,
+    `WacheUnterscheidetKaputtVonLeer` — Testklassen, die je EIN Objekt
+    halten. Sie füllten die Liste auf zwölf auf, obwohl es nur sechs echte
+    Äste gibt. Ein Test RUFT das Programm, er ist nicht Teil seines Modells.
+    """
+
+    def _mit_test(self):
+        return _projekt({
+            'echt.py': (
+                'class Teil:\n    pass\n\n\n'
+                'class Dienst:\n'
+                '    def __init__(self):\n'
+                '        self.t = Teil()\n'
+                '    def lauf(self):\n        pass\n'),
+        })
+
+    def test_eine_klasse_im_testordner_ist_ein_test(self):
+        m = _projekt({'tests/test_x.py': 'class MitChrome:\n    pass\n'})
+        self.assertTrue(m.klassen['MitChrome'].ist_test)
+
+    def test_eine_datei_mit_test_praefix_zaehlt_auch(self):
+        m = _projekt({'test_lauf.py': 'class VollbildZeigt:\n    pass\n'})
+        self.assertTrue(m.klassen['VollbildZeigt'].ist_test)
+
+    def test_produktionscode_ist_kein_test(self):
+        u"""`VideoCodecProbe` in `views/` heisst nur so."""
+        m = _projekt({'codec_probe.py': 'class VideoCodecProbe:\n    pass\n'})
+        self.assertFalse(m.klassen['VideoCodecProbe'].ist_test)
+
+    def test_der_dickste_ast_ist_nie_ein_test(self):
+        m = _projekt({
+            'echt.py': ('class A:\n    pass\n\n\n'
+                        'class Dienst:\n'
+                        '    def __init__(self):\n        self.a = A()\n'
+                        '    def lauf(self):\n        pass\n'),
+            'tests/test_viel.py': (
+                'class VielHalter:\n'
+                '    def __init__(self):\n'
+                '        self.a = A()\n'
+                '        self.b = A()\n'
+                '    def pruefe(self):\n        pass\n'),
+        })
+        self.assertEqual(m.dickster_ast(), 'Dienst')

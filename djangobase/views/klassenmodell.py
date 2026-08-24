@@ -140,6 +140,10 @@ class KlassenmodellView(ZugriffMixin, View):
             bereich=request.POST.get('bereich', ''),
             gezeigt=len(kaesten),
             aeste=self._aeste(modell),
+            # Alle Klassen, nach Verzeichnis gebuendelt — sonst nennt die
+            # Seite eine Zahl, zu der es keinen Weg gibt.
+            bereiche_klassen=modell.nach_bereich(),
+            klassen_gesamt=len(modell.klassen),
             alter=int(alter) if alter is not None else None,
             leer=not kaesten and bool(start),
             reiter='baum',
@@ -170,8 +174,13 @@ class KlassenmodellView(ZugriffMixin, View):
         u"""Die dicksten Aeste als Vorschlagsliste — Wer haelt wie viele?"""
         gezaehlt = []
         for k in modell.klassen.values():
+            # Tests halten oft genau ein Objekt und fuellten die Liste auf
+            # zwoelf auf — dabei gibt es nur sechs echte Aeste. Ein Test
+            # RUFT das Programm, er ist nicht Teil seines Modells.
+            if k.ist_test:
+                continue
             eigene = {z for _f, z, _v in k.haelt if z in modell.klassen}
-            if eigene:
+            if len(eigene) > 1:
                 gezaehlt.append((len(eigene), k.name))
         gezaehlt.sort(reverse=True)
         return [{'name': n, 'zahl': z} for z, n in gezaehlt[:wie_viele]]

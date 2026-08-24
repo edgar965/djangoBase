@@ -95,6 +95,11 @@ class Klasse:
     __slots__ = ('name', 'datei', 'zeile', 'basen', 'felder', 'methoden',
                  'haelt', 'dekorateure', 'nur_statisch', 'methodenzahl')
 
+    #: Woran eine Testklasse zu erkennen ist — am Ort, nicht am Namen.
+    #: `VideoCodecProbe` in `views/` ist keiner, `_MitChrome` in
+    #: `tests/longrunner/` schon.
+    TEST_ORTE = ('tests/', '/tests/', 'test_')
+
     def __init__(self, name, datei, zeile):
         self.name = name
         self.datei = datei
@@ -110,6 +115,33 @@ class Klasse:
         self.nur_statisch = False
         #: Auch die privaten — fuer die Unterscheidung Datenklasse/Dienst.
         self.methodenzahl = 0
+
+    @property
+    def ist_test(self):
+        u"""Gehoert diese Klasse zur Pruefung statt zum Programm?
+
+        DER FALL (Edgar, 24.08.2026)
+        ============================
+            „was soll die Unterteilung Mit Chrome oder Vollbild zeigt den
+             Hauptstrom?? das ist komplett gaga!"
+
+        Er hatte recht. Unter „Dickste Aeste" standen `_MitChrome`,
+        `VollbildZeigtDenHauptstrom`, `WacheUnterscheidetKaputtVonLeer` —
+        alles Testklassen, die je EIN Objekt halten. Sie fuellten die Liste
+        auf zwoelf auf, obwohl es nur sechs echte Aeste gibt::
+
+            PersonDetector        14      SmartSearchJob         2
+            StrictPersonDetector   9      ---- ab hier Tests ----
+            LiveOrchestrator       7      _MitChrome             1
+            LiveDetectorWorker     6      VollbildZeigtDenHaupt  1
+            RecordingProcessor     5
+
+        Ein Test RUFT das Programm, er ist nicht Teil seines Modells. Als
+        Einstieg in ein Klassenbild ist er wertlos.
+        """
+        pfad = self.datei.replace('\\', '/').lower()
+        return (pfad.startswith('tests/') or '/tests/' in pfad
+                or '/test_' in '/' + pfad)
 
 
 class Klassenmodell:
@@ -234,6 +266,8 @@ class Klassenmodell:
         u"""Die Klasse, die am meisten haelt — dort ist am meisten zu sehen."""
         beste, zahl = None, -1
         for k in self.klassen.values():
+            if k.ist_test:
+                continue
             eigene = len({z for _f, z, _v in k.haelt if z in self.klassen})
             if eigene > zahl:
                 beste, zahl = k.name, eigene
@@ -361,6 +395,34 @@ class Klassenmodell:
         if k.name in basen:
             return 'oberklasse'
         return 'frei'
+
+    def nach_bereich(self):
+        u"""Alle Klassen, nach Verzeichnis gebuendelt — damit jede erreichbar ist.
+
+        DIE BESCHWERDE (Edgar, 24.08.2026)
+        ==================================
+            „ich verstehe die Übersicht immer noch nicht. 1004 klassen, ich
+             erwarte bereiche und buttons wo ich alle 1004 klassen sehen
+             kann!"
+
+        Berechtigt. Die Seite nannte 1004, zeigte 27 im Bild und bot zwoelf
+        Ast-Knoepfe — die uebrigen 965 waren genannt, aber nicht erreichbar.
+        Eine Zahl, zu der es keinen Weg gibt, ist eine Behauptung.
+
+        Gebuendelt wird ueber die ersten zwei Pfadteile (`views/persons`,
+        `live/service`). Ein Teil waere zu grob (`views` allein sind 300),
+        drei zu fein — dann hat die Haelfte der Bereiche einen Eintrag.
+        """
+        bereiche = {}
+        for name in sorted(self.klassen):
+            k = self.klassen[name]
+            teile = k.datei.split('/')
+            schluessel = '/'.join(teile[:2]) if len(teile) > 2 else (
+                teile[0] if len(teile) > 1 else '(Wurzel)')
+            bereiche.setdefault(schluessel, []).append(name)
+        return [{'name': n, 'namen': v, 'zahl': len(v)}
+                for n, v in sorted(bereiche.items(),
+                                   key=lambda p: (-len(p[1]), p[0]))]
 
     def kennzahlen(self):
         alle = len(self.klassen)

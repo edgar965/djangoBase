@@ -74,6 +74,20 @@ jede `.py` des Projekts.
 .km-anteil { color: #8b98a5; font-size: 0.75rem; font-variant-numeric: tabular-nums; }
 .km-kat-namen { color: #7d8894; font-size: 0.74rem; margin-top: 0.35rem;
                 line-height: 1.45; word-break: break-word; }
+.km-alle { margin-top: 1rem; border: 1px solid #2b3540; border-radius: 6px;
+           padding: 0.7rem 0.9rem; background: #12161c; }
+.km-alle-kopf { display: flex; align-items: center; gap: 0.7rem;
+                flex-wrap: wrap; margin-bottom: 0.6rem; }
+.km-alle-kopf input { background: #10151b; color: #e6edf3;
+    border: 1px solid #2b3540; border-radius: 4px; padding: 0.25rem 0.6rem;
+    font-size: 0.83rem; min-width: 14rem; margin-left: auto; }
+.km-bereich { border-top: 1px solid #222a33; padding: 0.35rem 0; }
+.km-bereich summary { cursor: pointer; font-size: 0.85rem; padding: 0.15rem 0; }
+.km-bereich summary:hover { color: var(--km-strich, #7aa2c8); }
+.km-namen { display: flex; flex-wrap: wrap; gap: 0.25rem;
+            padding: 0.4rem 0 0.2rem; }
+.km-klasse[data-km-gewaehlt] { border-color: #1f6feb; color: #9ecbff; }
+.km-bereich[hidden], .km-klasse[hidden] { display: none; }
 </style>
 
 {% comment %}
@@ -319,6 +333,40 @@ Ausnahme, Test), von dem, was frei steht, weil es niemand eingehaengt hat.
 
 {% elif bild %}
 <div class="km-rahmen">{{ bild|safe }}</div>
+
+{% comment %}
+ALLE Klassen, nach Verzeichnis (24.08.2026, auf Ansage: „ich erwarte
+bereiche und buttons wo ich alle 1004 klassen sehen kann").
+
+Vorher nannte die Seite 1004, zeigte 17 im Bild und bot zwoelf Ast-Knoepfe
+— die uebrigen 987 waren genannt, aber nicht erreichbar. Eine Zahl, zu der
+es keinen Weg gibt, ist eine Behauptung.
+
+Jeder Knopf setzt die Startklasse und zeichnet neu. Das Suchfeld filtert im
+Browser: Bei tausend Knoepfen ist Blaettern kein Weg, und ein Abruf je
+Tastendruck erst recht nicht.
+{% endcomment %}
+<div class="km-alle">
+    <div class="km-alle-kopf">
+        <b>Alle {{ klassen_gesamt }} Klassen</b>
+        <span class="km-js">in {{ bereiche_klassen|length }} Bereichen —
+            Klick zeichnet die Nachbarschaft</span>
+        <input type="search" id="km-suche" placeholder="Klasse suchen…"
+               autocomplete="off">
+        <span class="km-js" data-km-treffer></span>
+    </div>
+    {% for b in bereiche_klassen %}
+    <details class="km-bereich" {% if forloop.first %}open{% endif %}>
+        <summary><b>{{ b.name }}</b> <span class="km-js">{{ b.zahl }}</span></summary>
+        <div class="km-namen">
+            {% for n in b.namen %}
+            <button type="button" class="km-ast km-klasse" data-km-ast="{{ n }}"
+                    {% if gewaehlt == n %}data-km-gewaehlt="1"{% endif %}>{{ n }}</button>
+            {% endfor %}
+        </div>
+    </details>
+    {% endfor %}
+</div>
 {% elif not leer %}
 <p class="km-hinweis">
     Noch nichts gerechnet — auf <b>Übersicht erstellen</b> drücken.
@@ -349,6 +397,29 @@ Ausnahme, Test), von dem, was frei steht, weil es niemand eingehaengt hat.
             start.value = btn.dataset.kmAst;
             form.submit();
         });
+    });
+
+    // Suchen ohne Abruf: Bei tausend Knöpfen ist Blättern kein Weg.
+    const suche = document.getElementById('km-suche');
+    const stand = document.querySelector('[data-km-treffer]');
+    const bereiche = [...document.querySelectorAll('.km-bereich')];
+    suche?.addEventListener('input', () => {
+        const text = suche.value.trim().toLowerCase();
+        let treffer = 0;
+        bereiche.forEach((bereich) => {
+            let sichtbar = 0;
+            bereich.querySelectorAll('.km-klasse').forEach((btn) => {
+                const passt = !text
+                    || btn.textContent.toLowerCase().includes(text);
+                btn.hidden = !passt;
+                if (passt) sichtbar += 1;
+            });
+            bereich.hidden = Boolean(text) && !sichtbar;
+            // Beim Suchen aufklappen, sonst sieht man die Treffer nicht.
+            if (text) bereich.open = Boolean(sichtbar);
+            treffer += sichtbar;
+        });
+        if (stand) stand.textContent = text ? treffer + ' Treffer' : '';
     });
 </script>
 {% endblock %}
