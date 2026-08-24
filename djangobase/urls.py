@@ -6,7 +6,8 @@ from .views import (AufzeichnungView, AktuellDatenView, AktuellLeerenView, Aktue
                     BenutzerBearbeitenView, BenutzerErstellenView,
                     BenutzerInlineView, BenutzerListeView, BenutzerLoeschenView,
                     BenutzerStatusView, EinstellungenTabsView, EinstellungenView,
-                    JobsView, LogsClearView, LogsView, ReviewNachfassenView,
+                    JobsView, KlassenmodellView, LogsClearView, LogsView,
+                    ReviewNachfassenView,
                     ReviewStartView, ReviewStatusView, ReviewView,
                     SkillsView, TestDauerView, TestsView,
                     TestNummerView, TestStromView,
@@ -49,6 +50,11 @@ urlpatterns = [
     # server-seitige Stapellauf mit Klartext-Bericht. Die Werkzeuge laufen im
     # Serverprozess und rufen ausschliesslich GET-Routen auf.
     path("skills/", SkillsView.as_view(), name="skills"),
+    # Das Objektmodell als Bild: wer haelt wen, wer erbt von wem.
+    # Gerechnet wird auf Knopfdruck (POST) — der Durchgang liest
+    # jede `.py` des Projekts.
+    path("klassenmodell/", KlassenmodellView.as_view(),
+         name="klassenmodell"),
     # Skills2 und Skills3 sind UEBERGANGSSEITEN auf dem Weg zur Abschaffung
     # (17.08.2026). Ihre Werkzeuge liegen im Master; sie bleiben nur, damit
     # Lesezeichen und fremde Links nicht ins Leere zeigen.

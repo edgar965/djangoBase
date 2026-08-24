@@ -1,0 +1,127 @@
+{% extends djangobase.base_template|default:"djangobase/base.html" %}
+
+{% block title_extra %} · Werkzeug Klassenmodell{% endblock %}
+{% block topbar_title %}<i class="bi bi-diagram-3"></i> Hilfe · Werkzeug Klassenmodell{% endblock %}
+
+{% comment %}
+Das Objektmodell des Projekts als Bild (24.08.2026, auf Ansage).
+
+`objektwurzeln` misst dasselbe Verhaeltnis als ZAHL. Eine Zahl sagt, wie
+gut das Modell ist; sie zeigt nicht, WIE es aussieht.
+
+Gerechnet wird auf Knopfdruck, nicht beim Seitenaufruf: Der Durchgang liest
+jede `.py` des Projekts.
+{% endcomment %}
+
+{% block content %}
+<style>
+.km-kopf { display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;
+           margin-bottom: 0.9rem; }
+.km-feld { display: flex; flex-direction: column; gap: 0.2rem; }
+.km-feld label { font-size: 0.78rem; opacity: 0.75; }
+.km-feld input, .km-feld select {
+    background: #10151b; color: #e6edf3; border: 1px solid #2b3540;
+    border-radius: 4px; padding: 0.3rem 0.5rem; font-size: 0.85rem; }
+.km-knopf { background: #1f6feb; color: #fff; border: 0; border-radius: 4px;
+            padding: 0.45rem 1.1rem; font-size: 0.9rem; cursor: pointer; }
+.km-knopf:hover { background: #2b7ef7; }
+.km-zahlen { display: flex; gap: 1.4rem; flex-wrap: wrap; margin: 0.6rem 0 1rem;
+             font-size: 0.85rem; }
+.km-zahlen b { font-variant-numeric: tabular-nums; }
+.km-rahmen { border: 1px solid #2b3540; border-radius: 6px; overflow: auto;
+             max-height: 78vh; background: #12161c; }
+.km-bild { display: block; }
+.km-aeste { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
+.km-ast { background: #1b2129; border: 1px solid #2b3540; color: #e6edf3;
+          border-radius: 999px; padding: 0.18rem 0.7rem; font-size: 0.78rem;
+          cursor: pointer; }
+.km-ast:hover { border-color: #7aa2c8; }
+.km-hinweis { opacity: 0.75; font-size: 0.85rem; line-height: 1.5;
+              max-width: 62rem; }
+.km-leer { border: 1px solid #5a3a3a; background: #2a1c1c; border-radius: 6px;
+           padding: 0.7rem 1rem; font-size: 0.86rem; margin-bottom: 0.9rem; }
+</style>
+
+<p class="km-hinweis">
+    Liest jede <code>.py</code> des Projekts und zeichnet, <b>wer wen hält</b>
+    (durchgezogen, mit Feldname und Vielfachheit) und <b>wer von wem erbt</b>
+    (gestrichelt, mit Dreieck). Gezeigt wird die Nachbarschaft einer Klasse —
+    ein Bild mit tausend Kästen liest niemand. Ohne Angabe beginnt es beim
+    dicksten Ast.
+</p>
+
+<form method="post" class="km-kopf">
+    {% csrf_token %}
+    <div class="km-feld">
+        <label for="km-start">Startklasse (leer = dickster Ast)</label>
+        <input type="text" id="km-start" name="start" value="{{ gewaehlt|default:'' }}"
+               placeholder="z. B. PersonDetector" size="26">
+    </div>
+    <div class="km-feld">
+        <label for="km-bereich">Bereich (leer = ganzes Projekt)</label>
+        <input type="text" id="km-bereich" name="bereich" value="{{ bereich|default:'' }}"
+               placeholder="z. B. app/live" size="20">
+    </div>
+    <div class="km-feld">
+        <label for="km-tiefe">Schritte</label>
+        <select id="km-tiefe" name="tiefe">
+            {% for t in "1234" %}
+            <option value="{{ t }}"{% if tiefe|stringformat:"s" == t %} selected{% endif %}>{{ t }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <button type="submit" class="km-knopf">
+        <i class="bi bi-diagram-3"></i> Übersicht erstellen</button>
+</form>
+
+{% if leer %}
+<div class="km-leer">
+    Zu <code>{{ gewaehlt }}</code> gibt es keine Klasse in diesem Bereich.
+    Feld leeren, dann beginnt das Bild beim dicksten Ast.
+</div>
+{% endif %}
+
+{% if aeste %}
+<div class="km-aeste">
+    <span class="km-hinweis" style="align-self:center">Dickste Äste:</span>
+    {% for a in aeste %}
+    <button type="button" class="km-ast" data-km-ast="{{ a.name }}">
+        {{ a.name }} <b>({{ a.zahl }})</b></button>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if kennzahlen %}
+<div class="km-zahlen">
+    <span>Klassen im Bereich: <b>{{ kennzahlen.klassen }}</b></span>
+    <span>davon gehalten: <b>{{ kennzahlen.im_baum }}</b></span>
+    <span>Oberklassen: <b>{{ kennzahlen.oberklassen }}</b></span>
+    <span>Beziehungen: <b>{{ kennzahlen.beziehungen }}</b></span>
+    <span>im Bild: <b>{{ gezeigt }}</b></span>
+</div>
+{% endif %}
+
+{% if bild %}
+<div class="km-rahmen">{{ bild|safe }}</div>
+{% elif not leer %}
+<p class="km-hinweis">
+    Noch nichts gerechnet — auf <b>Übersicht erstellen</b> drücken.
+    Der Durchgang liest den ganzen Projektbaum und dauert je nach Grösse
+    einige Sekunden.
+</p>
+{% endif %}
+
+<script type="module">
+    // Ein Klick auf einen Ast setzt ihn als Startklasse und rechnet neu.
+    // Bewusst kein eigener Abruf: Dieselbe Form, derselbe Weg — sonst gäbe
+    // es zwei Stellen, die dasselbe Bild erzeugen.
+    const form = document.querySelector('form.km-kopf');
+    const start = document.getElementById('km-start');
+    document.querySelectorAll('[data-km-ast]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            start.value = btn.dataset.kmAst;
+            form.submit();
+        });
+    });
+</script>
+{% endblock %}

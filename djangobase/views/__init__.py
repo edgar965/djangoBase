@@ -12,6 +12,7 @@ from .review import (ReviewView, ReviewStartView, ReviewNachfassenView,
                      ReviewStatusView)
 from .aktuell import AktuellView, AktuellDatenView, AktuellLeerenView
 from .settings import EinstellungenView, EinstellungenTabsView
+from .klassenmodell import KlassenmodellView
 from .skills import SkillsView
 from .traffic import TrafficView, VerbrauchBeaconView
 from .uebersetzung import SpracheSetzenView, UebersetzungView
@@ -24,7 +25,8 @@ __all__ = [
     "api_system_stats","LogsView", "LogsClearView", "VersionsView", "TestsView", "AufzeichnungView", "TestDauerView", "TestStromView", "TestNummerView", "TestVerschiebenView", "JobsView",
            "ReviewView", "ReviewStartView", "ReviewNachfassenView", "ReviewStatusView",
            "AktuellView", "AktuellDatenView", "AktuellLeerenView",
-           "EinstellungenView", "EinstellungenTabsView", "SkillsView", 
+           "EinstellungenView", "EinstellungenTabsView", "SkillsView",
+           "KlassenmodellView", 
            "TrafficView", "VerbrauchBeaconView",
            "SpracheSetzenView", "UebersetzungView",
            "BenutzerListeView", "BenutzerErstellenView",

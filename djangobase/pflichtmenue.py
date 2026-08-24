@@ -84,6 +84,10 @@ PFLICHTSEITEN = (
         "Der Werkzeugkasten: alle Prüfungen und Fixer, Stapellauf mit Bericht "
         "zum Mitnehmen, Sicherung und Netz, dazu die Lehren aus den "
         "Code-Reviews als Ankreuzliste"),
+    PflichtEintrag(
+        "Werkzeug Klassenmodell", "bi-diagram-3", "klassenmodell",
+        "Das Objektmodell als Bild: wer hält wen, wer erbt von wem — auf "
+        "Knopfdruck aus dem Quelltext gezeichnet"),
 )
 
 
