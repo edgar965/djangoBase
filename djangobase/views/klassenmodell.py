@@ -110,11 +110,18 @@ class KlassenmodellView(ZugriffMixin, View):
             reiter = 'baum'
         if reiter != 'baum':
             bestand, alter = Bestandsspeicher.holen(wurzel, neu=neu)
+            zusatz = {}
+            if reiter == 'klassen':
+                # Die Einteilung braucht das Klassenmodell (wer haelt wen),
+                # nicht den Modulebenen-Bestand.
+                modell, _a = Modellspeicher.holen(wurzel, neu=neu)
+                zusatz['kategorien'] = modell.kategorien()
+                zusatz['klassen_gesamt'] = len(modell.klassen)
             return self._seite(
                 request, reiter=reiter, bestand=bestand,
                 kennzahlen=bestand.kennzahlen(),
                 bereich=request.POST.get('bereich', ''),
-                alter=int(alter) if alter is not None else None)
+                alter=int(alter) if alter is not None else None, **zusatz)
         modell, alter = Modellspeicher.holen(wurzel, neu=neu)
         start = (request.POST.get('start') or '').strip() or None
         try:

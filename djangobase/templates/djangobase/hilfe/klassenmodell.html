@@ -63,6 +63,17 @@ jede `.py` des Projekts.
 .km-liste tr:hover td { background: #171d24; }
 .km-warn { color: #ffd479; }
 .km-js { color: #8b98a5; font-size: 0.78rem; }
+.km-kategorien { display: grid; gap: 0.6rem; margin-bottom: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr)); }
+.km-kat { border: 1px solid #2b3540; border-radius: 6px; padding: 0.5rem 0.75rem;
+          background: #171d24; }
+.km-kat-warn { border-color: #6b5320; background: #241f14; }
+.km-kat-kopf { font-size: 0.9rem; display: flex; justify-content: space-between;
+               align-items: baseline; gap: 0.5rem; }
+.km-kat-kopf b { font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+.km-anteil { color: #8b98a5; font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+.km-kat-namen { color: #7d8894; font-size: 0.74rem; margin-top: 0.35rem;
+                line-height: 1.45; word-break: break-word; }
 </style>
 
 {% comment %}
@@ -229,6 +240,29 @@ zieht.
 </div>
 
 {% elif reiter == 'klassen' %}
+{% comment %}
+Jede Klasse in genau einen Topf (24.08.2026, auf Ansage: „Wo ist der Rest?
+Kategorisiere sie alle"). Das Bild zeigt eine Nachbarschaft — am groessten
+Ast siebzehn Kaesten. Der Rest fehlt nicht im Bild, er haengt an nichts.
+
+Die Einteilung trennt, was SYSTEMBEDINGT frei steht (Model, Ansicht,
+Ausnahme, Test), von dem, was frei steht, weil es niemand eingehaengt hat.
+{% endcomment %}
+<div class="km-kategorien">
+    {% for k in kategorien %}
+    {% if k.zahl %}
+    <div class="km-kat {% if k.key == 'frei' %}km-kat-warn{% endif %}">
+        <div class="km-kat-kopf">
+            <b>{{ k.zahl }}</b> {{ k.label }}
+            <span class="km-anteil">{{ k.zahl }}&thinsp;/&thinsp;{{ klassen_gesamt }}</span>
+        </div>
+        <div class="km-js">{{ k.erklaerung }}</div>
+        <div class="km-kat-namen">{{ k.namen|slice:":14"|join:", " }}{% if k.zahl > 14 %} …{% endif %}</div>
+    </div>
+    {% endif %}
+    {% endfor %}
+</div>
+
 <div class="km-rahmen">
     <table class="km-liste">
         <tr><th>Klasse</th><th>erbt von</th><th>Datei</th></tr>

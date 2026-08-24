@@ -187,3 +187,106 @@ class DasBildWirdGezeichnet(BasisTest):
             "        self.x = '<script>'\n")})
         kaesten, linien = m.nachbarschaft('A', tiefe=1)
         self.assertNotIn('<script>', Klassenbild(kaesten, linien, 'A').svg())
+
+
+class JedeKlasseInGenauEinenTopf(BasisTest):
+    u"""Die Einteilung aller Klassen.
+
+    DIE FRAGE (Edgar, 24.08.2026)
+    =============================
+        „bei Klassenmodell steht 1004 Klassen, wenn ich aber die Bereiche
+         aufzähle die gelistet sind, komme ich auf unter 50. Wo ist der
+         Rest? Kategorisiere sie alle"
+
+    Das Bild zeigt eine Nachbarschaft — am groessten Ast von CamTrack
+    siebzehn Kaesten, und tiefer wird es nicht. Der Rest fehlt nicht im
+    Bild, er haengt an nichts::
+
+        Klassen gesamt   1004      Test              465
+        gehalten           71      Freistehend       274
+        Oberklasse         26      Datenklasse        79
+
+    Die Einteilung trennt, was SYSTEMBEDINGT frei steht (Model, Ansicht,
+    Ausnahme, Test), von dem, was frei steht, weil es niemand eingehaengt
+    hat. Ohne diese Trennung liest sich „908 haengen an nichts" wie ein
+    Vorwurf — die Haelfte davon sind Tests.
+    """
+
+    def _toepfe(self, quelle):
+        m = _projekt({'a.py': quelle})
+        return {k['key']: k['namen'] for k in m.kategorien()}
+
+    def test_die_summe_stimmt(self):
+        u"""Kein Doppel, keine Luecke — sonst taugt die Zahl nichts."""
+        m = _projekt({'a.py': (
+            'from django.db import models\n\n\n'
+            'class Kamera(models.Model):\n    pass\n\n\n'
+            'class Fehler(Exception):\n    pass\n\n\n'
+            'class Wert:\n    pass\n\n\n'
+            'class Dienst:\n'
+            '    def __init__(self):\n        self.w = Wert()\n'
+            '    def tu(self):\n        pass\n')})
+        toepfe = m.kategorien()
+        self.assertEqual(sum(k['zahl'] for k in toepfe), len(m.klassen))
+        alle = [n for k in toepfe for n in k['namen']]
+        self.assertEqual(len(alle), len(set(alle)), 'eine Klasse doppelt')
+
+    def test_ein_model_ist_ein_model(self):
+        toepfe = self._toepfe('from django.db import models\n\n\n'
+                              'class Kamera(models.Model):\n    pass\n')
+        self.assertEqual(toepfe['model'], ['Kamera'])
+
+    def test_eine_ansicht_ist_eine_ansicht(self):
+        toepfe = self._toepfe('from django.views import View\n\n\n'
+                              'class SeiteView(View):\n'
+                              '    def get(self, r):\n        pass\n')
+        self.assertEqual(toepfe['ansicht'], ['SeiteView'])
+
+    def test_eine_ausnahme_auch_am_namen(self):
+        u"""`class JsonBodyError(ValueError)` erbt nicht von Exception."""
+        toepfe = self._toepfe('class JsonBodyError(ValueError):\n    pass\n')
+        self.assertEqual(toepfe['ausnahme'], ['JsonBodyError'])
+
+    def test_eine_klasse_ohne_methoden_ist_ein_wert(self):
+        toepfe = self._toepfe('class Punkt:\n    x = 0\n    y = 0\n')
+        self.assertEqual(toepfe['daten'], ['Punkt'])
+
+    def test_nur_statische_methoden_sind_ein_werkzeug(self):
+        toepfe = self._toepfe(
+            'class Rechner:\n'
+            '    @staticmethod\n    def plus(a, b):\n        return a + b\n'
+            '    @classmethod\n    def mal(cls, a, b):\n        return a * b\n')
+        self.assertEqual(toepfe['werkzeug'], ['Rechner'])
+
+    def test_wer_gehalten_wird_haengt_im_baum(self):
+        toepfe = self._toepfe(
+            'class Teil:\n'
+            '    def __init__(self):\n        self.n = 1\n'
+            '    def tu(self):\n        pass\n\n\n'
+            'class Halter:\n'
+            '    def __init__(self):\n        self.t = Teil()\n'
+            '    def lauf(self):\n        pass\n')
+        self.assertEqual(toepfe['im_baum'], ['Teil'])
+        self.assertEqual(toepfe['frei'], ['Halter'])
+
+    def test_wer_beerbt_wird_ist_oberklasse(self):
+        toepfe = self._toepfe(
+            'class Basis:\n'
+            '    def __init__(self):\n        self.n = 1\n'
+            '    def tu(self):\n        pass\n\n\n'
+            'class Kind(Basis):\n'
+            '    def __init__(self):\n        self.m = 2\n'
+            '    def auch(self):\n        pass\n')
+        self.assertEqual(toepfe['oberklasse'], ['Basis'])
+
+    def test_der_eigentliche_befund_heisst_freistehend(self):
+        toepfe = self._toepfe(
+            'class Einsam:\n'
+            '    def __init__(self):\n        self.n = 1\n'
+            '    def tu(self):\n        pass\n')
+        self.assertEqual(toepfe['frei'], ['Einsam'])
+
+    def test_jede_kategorie_erklaert_sich(self):
+        u"""Eine Zahl ohne Erklaerung ist eine Behauptung."""
+        for k in _projekt({'a.py': 'class A:\n    pass\n'}).kategorien():
+            self.assertTrue(k['label'] and k['erklaerung'], k)

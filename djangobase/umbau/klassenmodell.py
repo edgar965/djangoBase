@@ -93,7 +93,7 @@ class Klasse:
     u"""Ein Kasten: Name, Felder, Methoden — und woher er stammt."""
 
     __slots__ = ('name', 'datei', 'zeile', 'basen', 'felder', 'methoden',
-                 'haelt')
+                 'haelt', 'dekorateure', 'nur_statisch', 'methodenzahl')
 
     def __init__(self, name, datei, zeile):
         self.name = name
@@ -104,6 +104,12 @@ class Klasse:
         self.methoden = []
         #: ``[(feldname, klassenname, vielfachheit)]``
         self.haelt = []
+        #: ``@dataclass`` und Verwandte — sie machen die Art der Klasse aus.
+        self.dekorateure = []
+        #: Nur ``@staticmethod``/``@classmethod``: eine Werkzeugklasse.
+        self.nur_statisch = False
+        #: Auch die privaten — fuer die Unterscheidung Datenklasse/Dienst.
+        self.methodenzahl = 0
 
 
 class Klassenmodell:
@@ -135,10 +141,18 @@ class Klassenmodell:
             name = self._name(basis)
             if name and name not in FREMD:
                 k.basen.append(name)
+        k.dekorateure = [self._name(d) for d in knoten.decorator_list]
+        eigene, statisch = 0, 0
         for teil in knoten.body:
             if isinstance(teil, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 if not teil.name.startswith('_') or teil.name == '__init__':
                     k.methoden.append(teil.name)
+                eigene += 1
+                marken = {self._name(d) for d in teil.decorator_list}
+                if marken & {'staticmethod', 'classmethod'}:
+                    statisch += 1
+        k.methodenzahl = eigene
+        k.nur_statisch = bool(eigene) and statisch == eigene
         self._felder(knoten, k)
         # Gleichnamige Klassen in mehreren Dateien: die erste gewinnt, die
         # zweite waere im Bild ohnehin nicht unterscheidbar.
@@ -257,6 +271,96 @@ class Klassenmodell:
         linien = [b for b in self.beziehungen()
                   if b.von in drin and b.nach in drin]
         return kaesten, linien
+
+    #: Die Kategorien in der Reihenfolge, in der sie geprueft werden.
+    #: Die erste passende gewinnt — sonst zaehlte eine Model-Klasse mit
+    #: statischen Methoden zweimal.
+    KATEGORIEN = (
+        ('model', 'Django-Model', 'Vom ORM erzeugt, nicht vom Quelltext'),
+        ('ansicht', 'Django-Ansicht', 'Der URL-Router ruft sie'),
+        ('formular', 'Django-Formular', 'Django erzeugt und bindet sie'),
+        ('test', 'Test', 'Prueft anderen Code, gehoert nicht ins Modell'),
+        ('ausnahme', 'Ausnahme', 'Wird geworfen, nicht gehalten'),
+        ('aufzaehlung', 'Aufzaehlung', 'Feste Werte statt Verhalten'),
+        ('daten', 'Datenklasse', 'Nur Felder — ein Wert mit Namen'),
+        ('werkzeug', 'Werkzeugklasse', 'Nur statische Methoden, kein Zustand'),
+        ('im_baum', 'Baustein im Baum', 'Haengt als self.x an einer anderen'),
+        ('oberklasse', 'Oberklasse', 'Wird beerbt, aber nicht gehalten'),
+        ('frei', 'Freistehend', 'Haengt an nichts — der eigentliche Befund'),
+    )
+
+    #: Woran eine Django-Klasse zu erkennen ist. Ueber die Oberklasse, nicht
+    #: ueber den Namen: `PersonListPage` ist keine Ansicht, `SkillsView(View)`
+    #: schon.
+    DJANGO_BASEN = {
+        'model': ('Model',),
+        'ansicht': ('View', 'TemplateView', 'ListView', 'DetailView',
+                    'APIView', 'ViewSet'),
+        'formular': ('Form', 'ModelForm', 'FormSet'),
+        'test': ('TestCase', 'TransactionTestCase', 'SimpleTestCase',
+                 'BasisTest', 'LiveServerTestCase'),
+        'ausnahme': ('Exception', 'Error', 'BaseException'),
+        'aufzaehlung': ('Enum', 'IntEnum', 'StrEnum', 'TextChoices',
+                        'IntegerChoices'),
+    }
+
+    def kategorien(self):
+        u"""Jede Klasse in genau einen Topf.
+
+        DIE FRAGE (Edgar, 24.08.2026)
+        =============================
+            „bei Klassenmodell steht 1004 Klassen, wenn ich aber die
+             Bereiche aufzähle die gelistet sind, komme ich auf unter 50.
+             Wo ist der Rest? Kategorisiere sie alle"
+
+        Das Bild zeigt eine NACHBARSCHAFT — Wurzel plus n Schritte. Am
+        groessten Ast von CamTrack sind das 17 Kaesten, und tiefer wird es
+        nicht. Der Rest fehlt nicht im Bild, er haengt an nichts::
+
+            Klassen gesamt        1004
+            irgendwo gehalten       71
+            als Oberklasse          26
+            weder noch             908
+
+        908 von 1004 — das ist die Antwort auf „wo ist der Rest", und sie
+        ist unangenehm. Aber nicht jede davon ist ein Versaeumnis: Ein
+        Django-Model wird vom ORM erzeugt, eine Ansicht vom URL-Router,
+        eine Ausnahme wird geworfen. Diese Einteilung trennt, was
+        SYSTEMBEDINGT frei steht, von dem, was frei steht, weil niemand es
+        eingehaengt hat.
+        """
+        gehalten = {z for k in self.klassen.values()
+                    for _f, z, _v in k.haelt if z in self.klassen}
+        basen = {b for k in self.klassen.values() for b in k.basen
+                 if b in self.klassen}
+        toepfe = {schluessel: [] for schluessel, _l, _e in self.KATEGORIEN}
+        for name in sorted(self.klassen):
+            toepfe[self._topf(self.klassen[name], gehalten, basen)].append(name)
+        return [{'key': schluessel, 'label': etikett, 'erklaerung': erklaerung,
+                 'namen': toepfe[schluessel], 'zahl': len(toepfe[schluessel])}
+                for schluessel, etikett, erklaerung in self.KATEGORIEN]
+
+    def _topf(self, k, gehalten, basen):
+        for schluessel, endungen in self.DJANGO_BASEN.items():
+            if any(b.endswith(endungen) for b in k.basen):
+                return schluessel
+        if 'test' in k.datei.lower() or '/tests/' in '/' + k.datei:
+            return 'test'
+        if k.name.endswith(('Error', 'Exception')):
+            return 'ausnahme'
+        if any(d in ('dataclass',) for d in k.dekorateure):
+            return 'daten'
+        # Eine Klasse ohne jede Methode ist ein Wert mit Namen. Mit genau
+        # einer (`__init__`) auch — sie tut nichts, sie haelt nur.
+        if k.methodenzahl <= 1 and not k.haelt:
+            return 'daten'
+        if k.nur_statisch:
+            return 'werkzeug'
+        if k.name in gehalten:
+            return 'im_baum'
+        if k.name in basen:
+            return 'oberklasse'
+        return 'frei'
 
     def kennzahlen(self):
         alle = len(self.klassen)
