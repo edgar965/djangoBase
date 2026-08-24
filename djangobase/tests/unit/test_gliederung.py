@@ -89,3 +89,47 @@ class DieSummeStimmt(BasisTest):
 
     def test_ohne_eintraege_ist_die_liste_leer(self):
         self.assertEqual(nach_rolle([]), [])
+
+
+class KleineRollenStehenFlach(BasisTest):
+    u"""Die Ebene der Verzeichnisse nur, wo sie etwas austrägt.
+
+    DIE FRAGE (Edgar, 24.08.2026)
+    =============================
+        „was sollen die untertabs bei Globale Funktionen?"
+
+    Sie sagen, WO der Code liegt, und zerlegen eine Rolle, die sonst eine
+    Wand wäre. Gemessen an CamTrack/app, Funktionen je Rolle::
+
+        Ansichten 370 (15 Gruppen)   Aufnahme    42 (5)
+        Dienste   181 (13)           Übrige      11 (3)
+        Tests      96 (5)            Oberfläche  10 (1)  <- ohne Nutzen
+        Erkennung  56 (6)            Befehle      3 (1)  <- ebenso
+
+    Bei 370 Einträgen hilft die Ebene, bei 10 ist sie ein Klick ins Leere —
+    und bei EINER Untergruppe sagt sie gar nichts.
+    """
+
+    def test_eine_grosse_rolle_bleibt_unterteilt(self):
+        gross = [('N%d' % i, 'views/teil%d/a.py' % (i % 5)) for i in range(60)]
+        rolle = nach_rolle(gross)[0]
+        self.assertFalse(rolle['flach'])
+        self.assertEqual(len(rolle['gruppen']), 5)
+
+    def test_eine_kleine_rolle_steht_flach(self):
+        klein = [('N%d' % i, 'views/teil%d/a.py' % (i % 3)) for i in range(9)]
+        self.assertTrue(nach_rolle(klein)[0]['flach'])
+
+    def test_eine_einzige_untergruppe_ist_immer_flach(self):
+        u"""Auch bei vielen Einträgen: Die Ebene sagt dann nichts."""
+        viele = [('N%d' % i, 'views/nur_hier/a.py') for i in range(200)]
+        rolle = nach_rolle(viele)[0]
+        self.assertTrue(rolle['flach'])
+        self.assertEqual(len(rolle['gruppen']), 1)
+
+    def test_flach_heisst_nicht_weniger(self):
+        u"""Die Namen stehen dann direkt an der Rolle — keiner fällt weg."""
+        klein = [('Eins', 'kram/a.py'), ('Zwei', 'kram/b.py')]
+        rolle = nach_rolle(klein)[0]
+        self.assertEqual(rolle['namen'], ['Eins', 'Zwei'])
+        self.assertEqual(rolle['zahl'], 2)

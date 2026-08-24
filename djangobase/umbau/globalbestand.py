@@ -28,8 +28,18 @@ import re
 from pathlib import Path
 
 #: Verzeichnisse, die nicht zum Bestand gehoeren.
-AUS = ('migrations', '__pycache__', 'node_modules', '.git', 'venv',
-       'staticfiles', 'site-packages', 'tests')
+#:
+#: DIESELBE LISTE WIE IM KLASSENMODELL (24.08.2026)
+#: ================================================
+#: Hier stand zusaetzlich `tests`. Auf dem Reiter „Globale Klassen"
+#: rechneten die Karten oben deshalb mit 1004 und die Gliederung darunter
+#: mit 584 — zwei Zaehlungen auf EINEM Reiter, 420 Testklassen Unterschied.
+#: Gemeldet als „struktur noch immer unklar".
+#:
+#: Tests gehoeren dazu: Die Gliederung nach Rolle stellt sie ohnehin
+#: getrennt, und wer sie ausblenden will, klappt die Rolle zu. Sie
+#: wegzulassen macht die Zahl kleiner, nicht wahrer.
+from .klassenmodell import AUS
 
 #: Namen, die zwar Listen sind, aber keinen Zustand tragen.
 AUSFUHRLISTEN = {'__all__'}
@@ -241,14 +251,12 @@ def hauptaeste(wurzel):
     # `AUS` hier schliesst `tests` aus, `Klassenmodell.AUS` nicht. Das
     # Auswahlfeld sagte damit „app 615", das Ergebnis darunter „1004" —
     # zwei Zaehlweisen fuer dieselbe Sache, und keine Erklaerung dazu.
-    from .klassenmodell import AUS as MODELL_AUS
-
     basis = Path(wurzel)
     raus = []
     for eintrag in sorted(basis.iterdir()):
         if not eintrag.is_dir() or eintrag.name.startswith('.'):
             continue
-        if (eintrag.name in MODELL_AUS
+        if (eintrag.name in AUS
                 or eintrag.name in ('media', 'logs', 'db')):
             continue
         # VERSCHIEDENE NAMEN, NICHT DEFINITIONEN (24.08.2026)
@@ -260,7 +268,7 @@ def hauptaeste(wurzel):
         # glaubt keiner von beiden.
         namen = set()
         for datei in eintrag.rglob('*.py'):
-            if any(t in datei.parts for t in MODELL_AUS):
+            if any(t in datei.parts for t in AUS):
                 continue
             try:
                 baum = _ast.parse(datei.read_text(encoding='utf-8',

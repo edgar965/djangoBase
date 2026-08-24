@@ -11,7 +11,8 @@ vergessen wird. Erwartet: `rollen`, `gesamt`, optional `gewaehlt`.
     <div class="km-alle-kopf">
         <b>Alle {{ gesamt }} {{ km_was|default:"Einträge" }}</b>
         <span class="km-js">in {{ rollen|length }} Rollen — Klick zeigt,
-            wer sie nutzt und was sie nutzen</span>
+            wer sie nutzt und was sie nutzen. Grosse Rollen sind nach
+            Verzeichnis unterteilt.</span>
         <input type="search" id="km-suche" placeholder="Suchen…"
                autocomplete="off">
         <span class="km-js" data-km-treffer></span>
@@ -20,6 +21,21 @@ vergessen wird. Erwartet: `rollen`, `gesamt`, optional `gewaehlt`.
     <details class="km-rolle" {% if forloop.first %}open{% endif %}>
         <summary><b>{{ r.name }}</b>
             <span class="km-rolle-zahl">{{ r.zahl }}</span></summary>
+        {% comment %}
+        Kleine Rollen stehen FLACH (24.08.2026, gefragt: „was sollen die
+        untertabs bei Globale Funktionen?"). Die Ebene der Verzeichnisse
+        sagt, WO der Code liegt, und zerlegt eine Rolle mit 370 Eintraegen.
+        Bei zehn ist sie ein Klick ins Leere, und bei EINER Untergruppe
+        sagt sie gar nichts.
+        {% endcomment %}
+        {% if r.flach %}
+        <div class="km-namen">
+            {% for n in r.namen %}
+            <button type="button" class="km-ast km-klasse" data-km-ast="{{ n }}"
+                    {% if gewaehlt == n %}data-km-gewaehlt="1"{% endif %}>{{ n }}</button>
+            {% endfor %}
+        </div>
+        {% else %}
         {% for b in r.gruppen %}
         <details class="km-bereich">
             <summary>{{ b.name }} <span class="km-js">{{ b.zahl }}</span></summary>
@@ -31,6 +47,7 @@ vergessen wird. Erwartet: `rollen`, `gesamt`, optional `gewaehlt`.
             </div>
         </details>
         {% endfor %}
+        {% endif %}
     </details>
     {% endfor %}
 </div>

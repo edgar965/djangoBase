@@ -39,6 +39,24 @@ ROLLEN = (
 #: Was in keine Rolle passt. Faellt nicht weg — sonst stimmt die Summe nicht.
 UEBRIGE = 'Uebrige'
 
+#: Bis zu so vielen Eintraegen steht eine Rolle FLACH — ohne die Ebene der
+#: Verzeichnisse.
+#:
+#: WOZU DIE ZWEITE EBENE UEBERHAUPT (24.08.2026, gefragt: „was sollen die
+#: untertabs bei Globale Funktionen?")
+#: ====================================================================
+#: Sie sagt, WO der Code liegt, und zerlegt eine Rolle, die sonst eine Wand
+#: waere. Gemessen an CamTrack/app, Funktionen je Rolle::
+#:
+#:     Ansichten 370 (15 Gruppen)   Aufnahme    42 (5)
+#:     Dienste   181 (13)           Uebrige     11 (3)
+#:     Tests      96 (5)            Oberflaeche 10 (1)  <- Ebene ohne Nutzen
+#:     Erkennung  56 (6)            Befehle      3 (1)  <- ebenso
+#:
+#: Bei 370 Eintraegen hilft die Ebene, bei 10 ist sie ein Klick ins Leere —
+#: und bei EINER Untergruppe sagt sie gar nichts.
+FLACH_BIS = 40
+
 
 def rolle(datei):
     u"""Die Rolle einer Datei — ``'Tests'``, ``'Ansichten'``, …"""
@@ -83,9 +101,14 @@ def nach_rolle(eintraege):
         teile = [{'name': g, 'namen': sorted(v), 'zahl': len(v)}
                  for g, v in sorted(gruppen.items(),
                                     key=lambda p: (-len(p[1]), p[0]))]
-        raus.append({'name': etikett,
-                     'zahl': sum(t['zahl'] for t in teile),
-                     'gruppen': teile})
+        zahl = sum(t['zahl'] for t in teile)
+        raus.append({
+            'name': etikett, 'zahl': zahl, 'gruppen': teile,
+            # Flach, wenn die Ebene nichts austraegt: eine einzige
+            # Untergruppe oder eine kleine Rolle.
+            'flach': len(teile) <= 1 or zahl <= FLACH_BIS,
+            'namen': sorted(n for t in teile for n in t['namen']),
+        })
     raus.sort(key=lambda r: (-r['zahl'], r['name']))
     return raus
 

@@ -164,18 +164,25 @@ class KlassenmodellView(ZugriffMixin, View):
                 # Knoepfen, so dass man sieht, wer sie nutzt").
                 netz, _n = Netzspeicher.holen(wurzel, neu=neu)
                 if reiter == 'klassen':
+                    # EINE QUELLE JE REITER (24.08.2026, gemeldet:
+                    # „struktur noch immer unklar"). Die Karten oben
+                    # rechneten mit dem Klassenmodell (1004), die
+                    # Gliederung darunter mit dem Modulebenen-Bestand
+                    # (584) — zwei Zaehlungen auf EINEM Reiter. Hier zaehlt
+                    # nur noch das Klassenmodell, dieselbe Quelle wie das
+                    # Auswahlfeld.
                     modell, _a = Modellspeicher.holen(wurzel, neu=neu)
                     zusatz['kategorien'] = modell.kategorien()
                     zusatz['klassen_gesamt'] = len(modell.klassen)
-                    eintraege = bestand.klassen
+                    namen = sorted(modell.klassen)
+                    zusatz['rollen'] = modell.nach_rolle()
                 else:
-                    eintraege = bestand.funktionen
-                zusatz['rollen'] = gliedern((e.name, e.datei)
-                                            for e in eintraege)
-                zusatz['gesamt'] = len(eintraege)
+                    namen = [e.name for e in bestand.funktionen]
+                    zusatz['rollen'] = gliedern(
+                        (e.name, e.datei) for e in bestand.funktionen)
+                zusatz['gesamt'] = len(namen)
                 # Nur die gezeigten — alle 1737 waeren ein Megabyte JSON.
-                zusatz['steckbriefe_json'] = netz.steckbriefe(
-                    e.name for e in eintraege)
+                zusatz['steckbriefe_json'] = netz.steckbriefe(namen)
                 zusatz['netz_zahlen'] = netz.kennzahlen()
             return self._seite(
                 request, reiter=reiter, bestand=bestand,
