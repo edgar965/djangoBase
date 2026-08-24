@@ -70,7 +70,9 @@ class PflichtEintrag:
 
 #: Die Seiten selbst. Neue Pflichtseite? HIER eintragen - dann erscheint sie in
 #: allen drei Einbau-Wegen zugleich.
-#: „Skills" ist der EINE Werkzeugkasten. Die Übergangsseiten „Skills2" und
+#: „Werkzeug Code Review" (bis 24.08.2026 „Skills") ist der EINE
+#: Werkzeugkasten. Der Routenname bleibt `skills` — Lesezeichen und die
+#: `aktiv|slice`-Abfrage in `_nav.html` haengen daran. Die Übergangsseiten „Skills2" und
 #: „Skills3" sind am 18.08.2026 ENTFALLEN: Skills2 zeigte dieselben 44
 #: Werkzeuge und dieselben 18 Lehren (gemessen, kein einziger Unterschied),
 #: Skills3 hatte zusätzlich die 20 Review-Lehren — die stehen jetzt hier.
@@ -78,7 +80,7 @@ class PflichtEintrag:
 #: der Überspringen-Liste (von „dateigroesse" abgedeckt).
 PFLICHTSEITEN = (
     PflichtEintrag(
-        "Skills", "bi-tools", "skills",
+        "Werkzeug Code Review", "bi-tools", "skills",
         "Der Werkzeugkasten: alle Prüfungen und Fixer, Stapellauf mit Bericht "
         "zum Mitnehmen, Sicherung und Netz, dazu die Lehren aus den "
         "Code-Reviews als Ankreuzliste"),
