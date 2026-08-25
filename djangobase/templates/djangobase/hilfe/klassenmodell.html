@@ -1,4 +1,5 @@
 {% extends djangobase.base_template|default:"djangobase/base.html" %}
+{% load zahlen %}
 
 {% block title_extra %} · Werkzeug Klassenmodell{% endblock %}
 {% block topbar_title %}<i class="bi bi-diagram-3"></i> Hilfe · Werkzeug Klassenmodell{% endblock %}
@@ -6,7 +7,7 @@
 {% comment %}
 Das Objektmodell des Projekts als Bild (24.08.2026, auf Ansage).
 
-`objektwurzeln` misst dasselbe Verhaeltnis als ZAHL. Eine Zahl sagt, wie
+`objektwurzeln` misst dasselbe Verhältnis als ZAHL. Eine Zahl sagt, wie
 gut das Modell ist; sie zeigt nicht, WIE es aussieht.
 
 Gerechnet wird auf Knopfdruck, nicht beim Seitenaufruf: Der Durchgang liest
@@ -43,6 +44,38 @@ jede `.py` des Projekts.
               max-width: 62rem; }
 .km-leer { border: 1px solid #5a3a3a; background: #2a1c1c; border-radius: 6px;
            padding: 0.7rem 1rem; font-size: 0.86rem; margin-bottom: 0.9rem; }
+/* Code Qualität ------------------------------------------------ */
+.km-verfahren {
+    border: 1px solid #30363d; border-radius: 6px;
+    padding: 0.7rem 0.9rem; margin-bottom: 0.9rem; background: #0d1117;
+}
+.km-verfahren-kopf {
+    display: flex; gap: 0.6rem; align-items: baseline; flex-wrap: wrap;
+}
+/* Gescheiterte Messungen: was fehlt, fällt sonst niemandem auf. */
+.km-verfahren-rot { border-color: #da3633; }
+.km-werkzeug {
+    font-family: monospace; font-size: 0.8rem; color: #58a6ff;
+    border: 1px solid #1f6feb; border-radius: 3px; padding: 0 0.35rem;
+}
+.km-verfahren-satz { color: #e6edf3; }
+.km-verfahren-misst {
+    color: #8b949e; font-size: 0.86rem; margin: 0.25rem 0 0.55rem;
+}
+.km-raenge { display: flex; gap: 0.35rem; flex-wrap: wrap;
+             margin-bottom: 0.55rem; }
+.km-rang {
+    font-size: 0.8rem; padding: 0.1rem 0.45rem; border-radius: 3px;
+    background: #161b22; border: 1px solid #30363d; color: #8b949e;
+}
+/* Von gut nach schlecht — radon vergibt A (1-5) bis F (über 40). */
+.km-rang-A { border-color: #238636; color: #3fb950; }
+.km-rang-B { border-color: #9e6a03; color: #d29922; }
+.km-rang-C, .km-rang-D { border-color: #bb8009; color: #e3b341; }
+.km-rang-E, .km-rang-F { border-color: #da3633; color: #f85149; }
+.km-wert { text-align: right; font-variant-numeric: tabular-nums; }
+.km-summe td { border-top: 2px solid #30363d; font-weight: 600; }
+
 .km-reiter { display: flex; gap: 0.3rem; flex-wrap: wrap;
              border-bottom: 1px solid #2b3540; margin-bottom: 0.9rem; }
 .km-reiter-knopf {
@@ -115,8 +148,8 @@ jede `.py` des Projekts.
 </style>
 
 {% comment %}
-Je Reiter der Satz, der dort gilt. Vorher stand ueberall die Erklaerung des
-Bildes — auf „Globale Variablen" also eine Auskunft ueber Vielfachheiten.
+Je Reiter der Satz, der dort gilt. Vorher stand überall die Erklärung des
+Bildes — auf „Globale Variablen" also eine Auskunft über Vielfachheiten.
 {% endcomment %}
 <p class="km-hinweis">
     {% if reiter == 'baum' %}
@@ -137,6 +170,13 @@ Bildes — auf „Globale Variablen" also eine Auskunft ueber Vielfachheiten.
     Was auf Modulebene zugewiesen wird. <code>MAX = 5</code> ist eine Vorgabe
     und gehört dorthin; <code class="km-warn">_cache = {}</code> ist Zustand,
     der jeden Aufruf überlebt und niemandem gehört — <b>das</b> ist der Fund.
+    {% elif reiter == 'qualitaet' %}
+    Zwei Fragen, zwei Knöpfe. <b>Statistik</b> zählt aus, wie groß das
+    Projekt ist — Dateien, Zeilen und Klassen nach Art getrennt.
+    <b>Qualität prüfen</b> lässt vier etablierte Werkzeuge darüberlaufen
+    (<code>radon</code>, <code>pyflakes</code>, <code>pycodestyle</code>)
+    und zeigt, was sie finden. Laufzeitdaten zählen nicht mit: Was in
+    <code>media/</code> oder <code>logs/</code> liegt, ist kein Quelltext.
     {% else %}
     Jede Vorlage mit den Skripten, die sie zieht, und dem, was diese
     ihrerseits importieren — eine Stufe tief. Zwei wären schon ein Netz
@@ -145,9 +185,9 @@ Bildes — auf „Globale Variablen" also eine Auskunft ueber Vielfachheiten.
 </p>
 
 {% comment %}
-Fuenf Sichten auf denselben Bereich (24.08.2026, auf Ansage). Das Klassen-
-bild zeigt, wer wen haelt. Die drei Listen danach zeigen, was an gar keiner
-Klasse haengt — genau der Massstab aus Kriterium 1 und 18, und im Bild
+Fünf Sichten auf denselben Bereich (24.08.2026, auf Ansage). Das Klassen-
+bild zeigt, wer wen hält. Die drei Listen danach zeigen, was an gar keiner
+Klasse hängt — genau der Maßstab aus Kriterium 1 und 18, und im Bild
 NICHT zu sehen. Die HTML-Seiten zeigen, welchen Code eine Seite wirklich
 zieht.
 {% endcomment %}
@@ -163,12 +203,19 @@ zieht.
     {% csrf_token %}
     <input type="hidden" name="reiter" value="{{ reiter }}">
     {% comment %}
-    Startklasse und Schritte gehoeren zum BILD. Auf den Listen-Reitern
-    stehen sie nur im Weg und schoben die Knoepfe aus dem Fenster
+    Anderer Name als `was`, mit Absicht: Ein zweites Feld `was` würde bei
+    Django gewinnen (der LETZTE Wert einer QueryDict zählt) und die beiden
+    Knöpfe wirkungslos machen. So merkt sich „Neu einlesen", was zuletzt
+    gezeigt wurde, ohne den Knöpfen in die Quere zu kommen.
+    {% endcomment %}
+    <input type="hidden" name="was_zuletzt" value="{{ was|default:'' }}">
+    {% comment %}
+    Startklasse und Schritte gehören zum BILD. Auf den Listen-Reitern
+    stehen sie nur im Weg und schoben die Knöpfe aus dem Fenster
     (24.08.2026, gemeldet: „braucht der Tab Freie Funktionen nicht die
     Untertabs der Äste. auch dieser Bereich ist kaputt").
 
-    Der Wert der Startklasse reist als verstecktes Feld mit — sonst waere
+    Der Wert der Startklasse reist als verstecktes Feld mit — sonst wäre
     die Auswahl nach einem Ausflug in eine Liste weg.
     {% endcomment %}
     {% if reiter == 'baum' %}
@@ -181,10 +228,10 @@ zieht.
     <input type="hidden" id="km-start" name="start" value="{{ gewaehlt|default:'' }}">
     {% endif %}
     {% comment %}
-    „Bereich" hiess an zwei Stellen etwas Verschiedenes (24.08.2026,
+    „Bereich" hieß an zwei Stellen etwas Verschiedenes (24.08.2026,
     gemeldet: „ich verstehe deine Navigation nicht. was soll der Bereich??").
     Oben war es der EINGELESENE Teil des Projekts, unten die Gruppierung der
-    Klassen. Oben heisst es jetzt QUELLE, unten VERZEICHNIS.
+    Klassen. Oben heißt es jetzt QUELLE, unten VERZEICHNIS.
 
     Die Zahl dahinter sind Klassen, nicht Dateien: `tools (14)` und
     `config (6)` lasen sich wie Inhalt und enthielten null Klassen — sie
@@ -210,9 +257,22 @@ zieht.
         </select>
     </div>
     {% endif %}
+    {% comment %}
+    ZWEI KNÖPFE AUF DEM QUALITÄTS-REITER (24.08.2026, auf Ansage: „ein
+    Button der eine Statistik macht … Mach einen Button dazu der Code-
+    Qualität mit 2-3 Methoden überprüft"). Getrennt, weil es zwei sehr
+    verschiedene Kosten sind: die Zählung 2 Sekunden, die Messung 19.
+    {% endcomment %}
+    {% if reiter == 'qualitaet' %}
+    <button type="submit" name="was" value="statistik" class="km-knopf">
+        <i class="bi bi-123"></i> Statistik erstellen</button>
+    <button type="submit" name="was" value="qualitaet" class="km-knopf">
+        <i class="bi bi-speedometer2"></i> Qualität prüfen</button>
+    {% else %}
     <button type="submit" class="km-knopf">
         <i class="bi bi-diagram-3"></i>
         {% if reiter == 'baum' %}Übersicht erstellen{% else %}Liste erstellen{% endif %}</button>
+    {% endif %}
     {% comment %}
     Der zweite Knopf liest den Quelltext neu ein. Der erste nimmt, was
     schon gelesen ist — der Durchgang geht durch jede `.py` des Projekts
@@ -244,7 +304,7 @@ zieht.
 {% if kennzahlen %}
 <div class="km-zahlen">
     {% comment %}
-    Je Reiter die Zahlen, die dort etwas bedeuten. Vorher standen ueberall
+    Je Reiter die Zahlen, die dort etwas bedeuten. Vorher standen überall
     die des Klassenmodells — auf „HTML-Seiten" also „Beziehungen: " ohne
     Wert. Eine leere Kennzahl ist schlimmer als keine: Sie sieht aus wie
     eine Null.
@@ -252,22 +312,22 @@ zieht.
     {% if reiter == 'baum' %}
     {% comment %}
     Die Quelle steht dabei. Vorher konnte im Feld `werkzeug` stehen und
-    darunter die Zahl von `app` — das Feld zeigt die naechste Auswahl, die
+    darunter die Zahl von `app` — das Feld zeigt die nächste Auswahl, die
     Zeile das letzte Ergebnis, und nichts sagte das.
     {% endcomment %}
     <span><b>{{ bereich|default:"ganzes Projekt" }}</b>:
-        <b>{{ kennzahlen.klassen }}</b> Klassen</span>
-    <span>davon gehalten: <b>{{ kennzahlen.im_baum }}</b></span>
-    <span>Oberklassen: <b>{{ kennzahlen.oberklassen }}</b></span>
-    <span>Beziehungen: <b>{{ kennzahlen.beziehungen }}</b></span>
-    <span>im Bild: <b>{{ gezeigt }}</b></span>
+        <b>{{ kennzahlen.klassen|de }}</b> Klassen</span>
+    <span>davon gehalten: <b>{{ kennzahlen.im_baum|de }}</b></span>
+    <span>Oberklassen: <b>{{ kennzahlen.oberklassen|de }}</b></span>
+    <span>Beziehungen: <b>{{ kennzahlen.beziehungen|de }}</b></span>
+    <span>im Bild: <b>{{ gezeigt|de }}</b></span>
     {% else %}
-    <span>Funktionen auf Modulebene: <b>{{ kennzahlen.funktionen }}</b></span>
-    <span>Klassen: <b>{{ kennzahlen.klassen }}</b></span>
-    <span>Modulvariablen: <b>{{ kennzahlen.variablen }}</b>
-        (davon <b class="km-warn">{{ kennzahlen.veraenderlich }}</b> veränderlich)</span>
-    <span>HTML-Seiten: <b>{{ kennzahlen.seiten }}</b></span>
-    <span>eingebundene Skripte: <b>{{ kennzahlen.skripte }}</b></span>
+    <span>Funktionen auf Modulebene: <b>{{ kennzahlen.funktionen|de }}</b></span>
+    <span>Klassen: <b>{{ kennzahlen.klassen|de }}</b></span>
+    <span>Modulvariablen: <b>{{ kennzahlen.variablen|de }}</b>
+        (davon <b class="km-warn">{{ kennzahlen.veraenderlich|de }}</b> veränderlich)</span>
+    <span>HTML-Seiten: <b>{{ kennzahlen.seiten|de }}</b></span>
+    <span>eingebundene Skripte: <b>{{ kennzahlen.skripte|de }}</b></span>
     {% endif %}
     {% if alter %}
     <span class="km-stand">
@@ -283,9 +343,9 @@ zieht.
 {% if reiter == 'funktionen' %}
 {% if netz_zahlen %}
 <div class="km-zahlen">
-    <span>Aufrufe im Projekt: <b>{{ netz_zahlen.kanten }}</b></span>
+    <span>Aufrufe im Projekt: <b>{{ netz_zahlen.kanten|de }}</b></span>
     <span>Funktionen, die NIEMAND ruft:
-        <b class="km-warn">{{ netz_zahlen.ungenutzte_funktionen }}</b></span>
+        <b class="km-warn">{{ netz_zahlen.ungenutzte_funktionen|de }}</b></span>
 </div>
 {% endif %}
 {% include "djangobase/_km_gliederung.html" with km_was="Funktionen" %}
@@ -293,19 +353,19 @@ zieht.
 {% elif reiter == 'klassen' %}
 {% comment %}
 Jede Klasse in genau einen Topf (24.08.2026, auf Ansage: „Wo ist der Rest?
-Kategorisiere sie alle"). Das Bild zeigt eine Nachbarschaft — am groessten
-Ast siebzehn Kaesten. Der Rest fehlt nicht im Bild, er haengt an nichts.
+Kategorisiere sie alle"). Das Bild zeigt eine Nachbarschaft — am größten
+Ast siebzehn Kästen. Der Rest fehlt nicht im Bild, er hängt an nichts.
 
 Die Einteilung trennt, was SYSTEMBEDINGT frei steht (Model, Ansicht,
-Ausnahme, Test), von dem, was frei steht, weil es niemand eingehaengt hat.
+Ausnahme, Test), von dem, was frei steht, weil es niemand eingehängt hat.
 {% endcomment %}
 <div class="km-kategorien">
     {% for k in kategorien %}
     {% if k.zahl %}
     <div class="km-kat {% if k.key == 'frei' %}km-kat-warn{% endif %}">
         <div class="km-kat-kopf">
-            <b>{{ k.zahl }}</b> {{ k.label }}
-            <span class="km-anteil">{{ k.zahl }}&thinsp;/&thinsp;{{ klassen_gesamt }}</span>
+            <b>{{ k.zahl|de }}</b> {{ k.label }}
+            <span class="km-anteil">{{ k.zahl|de }}&thinsp;/&thinsp;{{ klassen_gesamt|de }}</span>
         </div>
         <div class="km-js">{{ k.erklaerung }}</div>
         <div class="km-kat-namen">{{ k.namen|slice:":14"|join:", " }}{% if k.zahl > 14 %} …{% endif %}</div>
@@ -341,7 +401,7 @@ Ausnahme, Test), von dem, was frei steht, weil es niemand eingehaengt hat.
                 {% if s.eingebunden %}
                 <div class="km-js">bindet ein: {{ s.eingebunden|join:", " }}</div>
                 {% endif %}</td>
-            <td>{{ s.zeilen }}</td>
+            <td>{{ s.zeilen|de }}</td>
             <td>
                 {% for js, abh in s.skripte %}
                 <div><code>{{ js }}</code>
@@ -358,6 +418,172 @@ Ausnahme, Test), von dem, was frei steht, weil es niemand eingehaengt hat.
     </table>
 </div>
 
+{% elif reiter == 'qualitaet' %}
+{% if was == 'qualitaet' %}
+{% comment %}
+Vier Verfahren, die einander widersprechen dürfen — genau das ist der
+Nutzen. Eine Datei kann nach pyflakes fehlerfrei sein und trotzdem einen
+Wartbarkeitsindex im Keller haben: Dann ist nichts kaputt, aber niemand
+traut sich hinein.
+{% endcomment %}
+{% if pannen %}
+{% comment %}
+Was beim MESSEN scheiterte, steht ganz oben. Eine Datei ohne gültige Syntax
+ist der schwerste Fund, den es gibt — und sie verschwand bis zum 24.08.2026
+hinter einem stummen `except: continue`, also aus Statistik UND Bericht.
+{% endcomment %}
+<div class="km-verfahren km-verfahren-rot">
+    <div class="km-verfahren-kopf">
+        <b class="km-warn">{{ pannen|length }} Messungen gescheitert</b>
+        <span class="km-verfahren-satz">Diese Dateien konnten nicht
+            gemessen werden — sie fehlen in jeder Zahl darunter.</span>
+    </div>
+    <table class="km-liste">
+        <tr><th>Datei</th><th>Verfahren</th><th>Grund</th></tr>
+        {% for p in pannen %}
+        <tr><td><code>{{ p.datei }}</code></td>
+            <td>{{ p.verfahren }}</td>
+            <td class="km-warn">{{ p.grund }}</td></tr>
+        {% endfor %}
+    </table>
+</div>
+{% endif %}
+
+<div class="km-zahlen">
+    <span>gemessen: <b>{{ q_dateien|de }}</b> Python-Dateien</span>
+    {% if alter %}
+    <span class="km-stand"><i class="bi bi-clock-history"></i>
+        vor {{ alter }} s gemessen — „Neu einlesen" misst frisch</span>
+    {% else %}
+    <span class="km-stand"><i class="bi bi-check2"></i> frisch gemessen</span>
+    {% endif %}
+</div>
+
+{% for v in verfahren %}
+<div class="km-verfahren">
+    <div class="km-verfahren-kopf">
+        <b>{{ v.name }}</b>
+        <span class="km-werkzeug">{{ v.werkzeug }}</span>
+        {% if v.fehlt %}
+        <span class="km-warn">nicht gelaufen: {{ v.fehlt }}</span>
+        {% else %}
+        <span class="km-verfahren-satz">{{ v.satz }}</span>
+        {% endif %}
+    </div>
+    <div class="km-verfahren-misst">{{ v.misst }}</div>
+
+    {% if v.zahlen.raenge %}
+    {% comment %}
+    Die Verteilung, nicht nur die Ausreißer: „216 auffällig" allein sagt
+    nicht, ob der Rest gut ist.
+    {% endcomment %}
+    <div class="km-raenge">
+        {% for rang, zahl in v.zahlen.raenge %}
+        <span class="km-rang km-rang-{{ rang }}">{{ rang }}
+            <b>{{ zahl|de }}</b></span>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% if v.zahlen.arten %}
+    <div class="km-raenge">
+        {% for art, zahl in v.zahlen.arten %}
+        <span class="km-rang">{{ art }} <b>{{ zahl|de }}</b></span>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if v.treffer %}
+    <table class="km-liste">
+        <tr><th>Wert</th><th>Stelle</th><th>Datei</th><th>Befund</th></tr>
+        {% for t in v.treffer %}
+        <tr>
+            <td class="km-wert">{{ t.wert }}</td>
+            <td><b>{{ t.name }}</b></td>
+            <td><code>{{ t.datei }}{% if t.zeile %}:{{ t.zeile }}{% endif %}</code></td>
+            <td>{{ t.text }}</td>
+        </tr>
+        {% endfor %}
+        {% if v.mehr %}
+        <tr><td colspan="4" class="km-js">… {{ v.mehr|de }} weitere</td></tr>
+        {% endif %}
+    </table>
+    {% elif not v.fehlt %}
+    <div class="km-js">Nichts gefunden.</div>
+    {% endif %}
+</div>
+{% endfor %}
+
+{% elif arten %}
+{% comment %}
+Sieben Arten statt „py / html / js / sonstige": Wer alles außer dreien in
+einen Topf schiebt, bekommt einen Posten, der größer ist als alle anderen
+zusammen, und lernt nichts.
+{% endcomment %}
+<div class="km-zahlen">
+    <span><b>{{ bereich|default:"ganzes Projekt" }}</b>:
+        <b>{{ zahlen.dateien|de }}</b> Quelldateien</span>
+    <span>Zeilen: <b>{{ zahlen.zeilen|de }}</b>
+        (davon <b>{{ zahlen.anweisungen|de }}</b> Anweisungen)</span>
+    <span>Klassen: <b>{{ zahlen.klassen|de }}</b>
+        ({{ zahlen.py_klassen|de }} Python, {{ zahlen.js_klassen|de }} JavaScript)</span>
+    <span>Kommentaranteil: <b>{{ zahlen.kommentar_anteil|de:1 }} %</b></span>
+    {% if alter %}
+    <span class="km-stand"><i class="bi bi-clock-history"></i>
+        vor {{ alter }} s gezählt</span>
+    {% else %}
+    <span class="km-stand"><i class="bi bi-check2"></i> frisch gezählt</span>
+    {% endif %}
+</div>
+
+<div class="km-rahmen">
+    <table class="km-liste">
+        <tr><th>Art</th><th>Dateien</th><th>Zeilen</th><th>Anweisungen</th>
+            <th>Kommentar</th><th>leer</th><th>Klassen</th><th>Funktionen</th></tr>
+        {% for a in arten %}
+        <tr>
+            <td><b>{{ a.name }}</b></td>
+            <td class="km-wert">{{ a.dateien|de }}</td>
+            <td class="km-wert">{{ a.zeilen|de }}</td>
+            <td class="km-wert">{{ a.anweisungen|de }}</td>
+            <td class="km-wert">{{ a.kommentar|de }}</td>
+            <td class="km-wert">{{ a.leer|de }}</td>
+            <td class="km-wert">{{ a.klassen|de }}</td>
+            <td class="km-wert">{{ a.funktionen|de }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="km-summe">
+            <td><b>Gesamt</b></td>
+            <td class="km-wert">{{ arten_gesamt.dateien|de }}</td>
+            <td class="km-wert">{{ arten_gesamt.zeilen|de }}</td>
+            <td class="km-wert">{{ arten_gesamt.anweisungen|de }}</td>
+            <td class="km-wert">{{ arten_gesamt.kommentar|de }}</td>
+            <td class="km-wert">{{ arten_gesamt.leer|de }}</td>
+            <td class="km-wert">{{ arten_gesamt.klassen|de }}</td>
+            <td class="km-wert">{{ arten_gesamt.funktionen|de }}</td>
+        </tr>
+    </table>
+</div>
+
+{% if ausgelassen %}
+{% comment %}
+Ehrlich sagen, was NICHT mitgezählt wurde. Im ersten Lauf standen hier
+3861 Dateien und 4,8 Millionen Zeilen — es waren die `.pkl`-Zwischen-
+speicher des Kalenders, byteweise als Text gelesen, und ein 1,7-GB-Video.
+{% endcomment %}
+<p class="km-hinweis">
+    <b>{{ ausgelassen|de }}</b> Dateien nicht mitgezählt, weil sie
+    Laufzeitdaten sind und kein Quelltext:
+    {% for wo, zahl in ausgelassen_wo %}<code>{{ wo }}</code> ({{ zahl|de }}){% if not forloop.last %}, {% endif %}{% endfor %}.
+</p>
+{% endif %}
+
+{% else %}
+<p class="km-hinweis">
+    Noch nichts gerechnet — <b>Statistik erstellen</b> zählt aus,
+    <b>Qualität prüfen</b> lässt die vier Werkzeuge laufen.
+</p>
+{% endif %}
+
 {% elif bild %}
 <div class="km-rahmen">{{ bild|safe }}</div>
 
@@ -365,12 +591,12 @@ Ausnahme, Test), von dem, was frei steht, weil es niemand eingehaengt hat.
 ALLE Klassen, nach Verzeichnis (24.08.2026, auf Ansage: „ich erwarte
 bereiche und buttons wo ich alle 1004 klassen sehen kann").
 
-Vorher nannte die Seite 1004, zeigte 17 im Bild und bot zwoelf Ast-Knoepfe
-— die uebrigen 987 waren genannt, aber nicht erreichbar. Eine Zahl, zu der
+Vorher nannte die Seite 1004, zeigte 17 im Bild und bot zwölf Ast-Knöpfe
+— die übrigen 987 waren genannt, aber nicht erreichbar. Eine Zahl, zu der
 es keinen Weg gibt, ist eine Behauptung.
 
 Jeder Knopf setzt die Startklasse und zeichnet neu. Das Suchfeld filtert im
-Browser: Bei tausend Knoepfen ist Blaettern kein Weg, und ein Abruf je
+Browser: Bei tausend Knöpfen ist Blättern kein Weg, und ein Abruf je
 Tastendruck erst recht nicht.
 {% endcomment %}
 {% include "djangobase/_km_gliederung.html" with km_was="Klassen" %}
@@ -390,10 +616,10 @@ Tastendruck erst recht nicht.
     // es zwei Stellen, die dasselbe Bild erzeugen.
     const form = document.querySelector('form.km-kopf');
     // Auf den Listen-Reitern ist das Feld versteckt, aber vorhanden —
-    // sonst ginge die gewaehlte Startklasse beim Reiterwechsel verloren.
+    // sonst ginge die gewählte Startklasse beim Reiterwechsel verloren.
     const start = document.getElementById('km-start');
     // Reiterwechsel: dasselbe Formular, anderer Wert. Ein eigener Abruf
-    // waere eine zweite Stelle, die dieselben Daten holt.
+    // wäre eine zweite Stelle, die dieselben Daten holt.
     const feld = form.querySelector('input[name=reiter]');
     document.querySelectorAll('[data-km-reiter]').forEach((btn) => {
         btn.addEventListener('click', () => {
@@ -434,7 +660,7 @@ Tastendruck erst recht nicht.
         return `<span class="km-zu" data-km-zu="${name}">${name}</span>`;
     }
 
-    // Zwei Formen, ein Fenster: Klassen bringen Besitz mit (`haelt`,
+    // Zwei Formen, ein Fenster: Klassen bringen Besitz mit (`hält`,
     // `basen`), Funktionen Aufrufe (`nutzt`). Wer beides in zwei Fenster
     // trennt, hat zwei Stellen zu pflegen und der Nutzer zwei Sorten
     // Aussehen für dieselbe Frage.
@@ -456,14 +682,14 @@ Tastendruck erst recht nicht.
         const el = document.createElement('div');
         el.className = 'km-popup';
         el.innerHTML = `
-            <button type="button" class="km-popup-zu" title="Schliessen"
-                    data-km-schliessen>&times;</button>
+            <button type="button" class="km-popup-zu" title="Schließen"
+                    data-km-schließen>&times;</button>
             <h4>${s.name}</h4>
             <div class="km-js">${s.datei}:${s.zeile}</div>
             <dl>
               <dt>genutzt von</dt><dd>${nutzer(s)}</dd>
               ${zeile('nutzt', (s.nutzt || []).map(zuKlasse).join(', '))}
-              ${zeile('hält', (s.haelt || []).map((h) =>
+              ${zeile('hält', (s.hält || []).map((h) =>
                   `<span class="km-js">${h.feld} =</span> ${zuKlasse(h.klasse)}`
                   + (h.viel === '1' ? ''
                      : ` <span class="km-js">(${h.viel})</span>`)).join(', '))}
@@ -484,21 +710,21 @@ Tastendruck erst recht nicht.
     }
 
     let offen = null;
-    function schliessen() { offen?.remove(); offen = null; }
+    function schließen() { offen?.remove(); offen = null; }
 
     function zeigen(name, x, y) {
         const s = steckbriefe[name];
         if (!s) return;
-        schliessen();
+        schließen();
         offen = fensterBauen(s);
         document.body.appendChild(offen);
         // Innerhalb des Fensters bleiben — sonst steht das Fenster halb
-        // ausserhalb, wenn die Kachel am rechten Rand liegt.
+        // außerhalb, wenn die Kachel am rechten Rand liegt.
         const b = offen.getBoundingClientRect();
         offen.style.left = Math.min(x + 12, innerWidth - b.width - 12) + 'px';
         offen.style.top = Math.min(y + 12, innerHeight - b.height - 12) + 'px';
-        offen.querySelector('[data-km-schliessen]')
-            .addEventListener('click', schliessen);
+        offen.querySelector('[data-km-schließen]')
+            .addEventListener('click', schließen);
         offen.querySelector('[data-km-zeichnen]')
             ?.addEventListener('click', () => {
                 start.value = offen.querySelector('[data-km-zeichnen]')
@@ -523,17 +749,58 @@ Tastendruck erst recht nicht.
         });
     }
 
+    // HOVER UND KLICK — bisher gab es nur den Klick, und den nur im Bild
+    // (24.08.2026, gemeldet: „bei jedem Klassen-Eintrag einen Popup … und
+    // hover, warum fehlt das???"). Der Kurztext entsteht beim ersten
+    // Überfahren, nicht beim Laden: 1021 title-Attribute im Voraus zu
+    // setzen kostet Zeit für etwas, das die meisten nie sehen.
+    function kurzfassung(s) {
+        const teile = [`${s.datei}:${s.zeile}`];
+        const von = (s.genutzt_von || []).map((x) =>
+            typeof x === 'string' ? x : x.von);
+        if (von.length) {
+            teile.push('genutzt von: ' + von.slice(0, 5).join(', ')
+                + (von.length > 5 ? ` … (${von.length})` : ''));
+        } else {
+            teile.push('genutzt von: niemandem');
+        }
+        if ((s.hält || []).length) {
+            teile.push('hält: ' + s.hält.map((h) => h.klasse)
+                .slice(0, 5).join(', '));
+        }
+        if ((s.basen || []).length || (s.fremde_basen || []).length) {
+            teile.push('erbt von: '
+                + [...(s.basen || []), ...(s.fremde_basen || [])].join(', '));
+        }
+        teile.push(`${s.methodenzahl || 0} Methoden`);
+        return teile.join('\n');
+    }
+
     document.querySelectorAll('[data-km-klasse]').forEach((g) => {
         g.addEventListener('click', (ev) => {
             ev.stopPropagation();
             zeigen(g.dataset.kmKlasse, ev.clientX, ev.clientY);
         });
+        g.addEventListener('mouseenter', () => {
+            if (g.dataset.kmTitel) return;      // schon gesetzt
+            g.dataset.kmTitel = '1';
+            const s = steckbriefe[g.dataset.kmKlasse];
+            if (!s) return;
+            // Im Bild ist der Kasten ein <g> mit eigenem <title>-Kind;
+            // ein title-ATTRIBUT zeigt der Browser dort nicht an.
+            const vorhanden = g.querySelector && g.querySelector('title');
+            if (vorhanden) {
+                vorhanden.textContent = kurzfassung(s);
+            } else {
+                g.setAttribute('title', kurzfassung(s));
+            }
+        });
     });
     document.addEventListener('click', (ev) => {
-        if (offen && !offen.contains(ev.target)) schliessen();
+        if (offen && !offen.contains(ev.target)) schließen();
     });
     document.addEventListener('keydown', (ev) => {
-        if (ev.key === 'Escape') schliessen();
+        if (ev.key === 'Escape') schließen();
     });
 
     // Suchen ohne Abruf: Bei tausend Knöpfen ist Blättern kein Weg.

@@ -3,17 +3,17 @@
   * Hilfe (Versionen / Logs / Tests)
 
 Wird von djangobase/_sidebar.html eingebunden. Projekte mit EIGENER Sidebar
-(z. B. der Assistant via sidebar_template-Override) koennen denselben Block per
+(z. B. der Assistant via sidebar_template-Override) können denselben Block per
   {% include "djangobase/_nav.html" %}
-in ihre Sidebar einhaengen — Voraussetzung: djangobase.urls ist unter "hilfe/"
+in ihre Sidebar einhängen — Voraussetzung: djangobase.urls ist unter "hilfe/"
 eingebunden und der Context-Processor djangobase.context_processors.djangobase
 ist aktiv. Bootstrap (Collapse) + Bootstrap-Icons werden vorausgesetzt.
 
-Sichtbarkeit pro Gruppe ueber settings.DJANGOBASE:
+Sichtbarkeit pro Gruppe über settings.DJANGOBASE:
   "einstellungen_menu": True|False   (Default True)
   "hilfe_menu":         True|False   (Default True)
 
-Die <li>-Eintraege werden in ein vorhandenes <ul class="nav"> eingehaengt.
+Die <li>-Einträge werden in ein vorhandenes <ul class="nav"> eingehängt.
 {% endcomment %}
 {% if djangobase.einstellungen_menu %}
 <li class="nav-item">
@@ -53,23 +53,23 @@ Die <li>-Eintraege werden in ein vorhandenes <ul class="nav"> eingehaengt.
         <i class="bi bi-chevron-down float-end"></i>
     </a>
     {% comment %}Aufgeklappt, solange eine Hilfe-Seite aktiv ist. Die
-    Werkzeugkaesten stehen als PRAEFIX drin (``skills``, ``skills2``,
-    ``skills3``) statt einzeln aufgezaehlt - die Aufzaehlung hatte eine
-    Seite verpasst, und die naechste haette sie wieder verpasst.
+    Werkzeugkästen stehen als PRAEFIX drin (``skills``, ``skills2``,
+    ``skills3``) statt einzeln aufgezählt - die Aufzählung hatte eine
+    Seite verpasst, und die nächste hätte sie wieder verpasst.
     {% endcomment %}
     {% comment %}
     AUCH DIE SEITEN DES PROJEKTS HALTEN DIE GRUPPE OFFEN (24.08.2026)
     ================================================================
-    Die Aufzaehlung kannte nur die Seiten von djangoBase. Sobald ein Projekt
-    seine eigenen Hilfeseiten ueber `hilfe_extra` einhaengt, klappte die
-    Gruppe auf genau diesen Seiten zu — gemeldet von CamTracks Pruefung
+    Die Aufzählung kannte nur die Seiten von djangoBase. Sobald ein Projekt
+    seine eigenen Hilfeseiten über `hilfe_extra` einhängt, klappte die
+    Gruppe auf genau diesen Seiten zu — gemeldet von CamTracks Prüfung
     `test_genau_ein_abschnitt_ist_offen`:
 
         /help/prozesse/: 0 offene Abschnitte
 
-    `help`/`hilfe` als Praefix deckt beide Schreibweisen ab. Dazu
+    `help`/`hilfe` als Präfix deckt beide Schreibweisen ab. Dazu
     `active_section` — nachgemessen setzen CamTracks Hilfeseiten `aktiv`
-    ueberhaupt nicht, sondern nur `active_section = 'help'`. Beide
+    überhaupt nicht, sondern nur `active_section = 'help'`. Beide
     Schreibweisen zu lesen kostet nichts und erspart jedem Projekt, seine
     Ansichten umzustellen.
     {% endcomment %}
@@ -100,11 +100,11 @@ Die <li>-Eintraege werden in ein vorhandenes <ul class="nav"> eingehaengt.
             {% comment %}
             Review und Aktuell haben BEWUSST keine Bedingung (Vorgabe 13.08.2026):
             Sie sollen in jedem Projekt erscheinen, das djangoBase einbindet. Fehlt
-            die Konfiguration, erklaert die jeweilige Seite selbst, was einzutragen
-            ist - das ist hilfreicher als ein fehlender Menuepunkt, den niemand sucht.
+            die Konfiguration, erklärt die jeweilige Seite selbst, was einzutragen
+            ist - das ist hilfreicher als ein fehlender Menüpunkt, den niemand sucht.
 
             {% templatetag openblock %} comment {% templatetag closeblock %} und
-            nicht die Kurzform mit Doppelkreuz: die gilt nur fuer EINE Zeile,
+            nicht die Kurzform mit Doppelkreuz: die gilt nur für EINE Zeile,
             mehrzeilig stand der Kommentar sichtbar in der Sidebar.
             {% endcomment %}
             <li><a class="nav-link {% if aktiv == 'aktuell' %}active{% endif %}" href="{% url 'djangobase:aktuell' %}">
@@ -115,46 +115,38 @@ Die <li>-Eintraege werden in ein vorhandenes <ul class="nav"> eingehaengt.
             </a></li>
             {% include "djangobase/_nav_skills.html" %}
             {% comment %}
-            Die Hilfeseiten des PROJEKTS — Gegenstueck zu
+            Die Hilfeseiten des PROJEKTS — Gegenstück zu
             `einstellungen_extra` (24.08.2026). Ohne sie musste ein Projekt
             mit eigenen Hilfeseiten die ganze Gruppe nachbauen, und dann
-            fehlten regelmaessig die von djangoBase.
+            fehlten regelmäßig die von djangoBase.
+            {% endcomment %}
+            {% comment %}
+            EIN Baustein für alle Bauarten (24.08.2026, auf Ansage: „in
+            djangoBase fehlt wohl die Einstellung für Menüs die mehr Kinder
+            haben als 1 … z.B. fehlt nun das ‚Architektur' Untermenü").
+
+            Hier standen zwei Fälle ausgeschrieben: Verweis oder EIN
+            aufklappbares Untermenü. Die dritte Bauart des alten
+            CamTrack-Menüs — eine Zwischenüberschrift mit eingerückten,
+            IMMER sichtbaren Kindern — gab es nicht, und „Architektur",
+            „Bedienung" und „Kameras" gingen beim Umzug verloren.
+
+            `_nav_eintrag.html` ruft sich selbst auf, damit die Schachtelung
+            nicht an der Zahl der ausgeschriebenen Fälle endet.
             {% endcomment %}
             {% for it in djangobase.hilfe_extra %}
-            {% if it.untermenu %}
-            <li><a class="nav-link menu-toggle" data-bs-toggle="collapse"
-                   href="#hilfeExtra{{ forloop.counter }}">
-                <i class="bi {{ it.icon|default:'bi-dot' }}"></i> {{ it.label }}
-                <i class="bi bi-chevron-down float-end"></i>
-            </a>
-                <div class="collapse" id="hilfeExtra{{ forloop.counter }}">
-                    <ul class="nav flex-column submenu">
-                        {% for u in it.untermenu %}
-                        <li><a class="nav-link {% if u.aktiv and aktiv == u.aktiv %}active{% endif %}"
-                               href="{{ u.url }}">
-                            <i class="bi {{ u.icon|default:'bi-dot' }}"></i> {{ u.label }}
-                        </a></li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            </li>
-            {% else %}
-            <li><a class="nav-link {% if it.aktiv and aktiv == it.aktiv %}active{% endif %}"
-                   href="{{ it.url }}">
-                <i class="bi {{ it.icon|default:'bi-dot' }}"></i> {{ it.label }}
-            </a></li>
-            {% endif %}
+            {% include "djangobase/_nav_eintrag.html" with it=it tiefe=0 eingerueckt=0 %}
             {% endfor %}
         </ul>
     </div>
 </li>
 {% endif %}
 {% comment %}
-Skills und Skills2 gehoeren unter HILFE - nirgendwo sonst (Ansage 16.08.2026).
-Sie stehen deshalb ausschliesslich in der Hilfe-Gruppe oben, ueber
+Skills und Skills2 gehören unter HILFE - nirgendwo sonst (Ansage 16.08.2026).
+Sie stehen deshalb ausschließlich in der Hilfe-Gruppe oben, über
 ``_nav_skills.html``.
 
 Projekte mit eigener Navigation (``hilfe_menu: False``) holen sie sich in ihre
-EIGENE Hilfe-Gruppe - ueber ``djangobase.pflichtmenue.pflicht_eintraege()``.
-Eine separate Menue-Gruppe dafuer waere falsch: Es sind Hilfe-Seiten.
+EIGENE Hilfe-Gruppe - über ``djangobase.pflichtmenue.pflicht_eintraege()``.
+Eine separate Menü-Gruppe dafür wäre falsch: Es sind Hilfe-Seiten.
 {% endcomment %}

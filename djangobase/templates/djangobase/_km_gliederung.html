@@ -1,3 +1,17 @@
+{% load zahlen %}
+{% comment %}
+ZWEI ATTRIBUTE, ZWEI AUFGABEN (24.08.2026)
+==========================================
+`data-km-ast` zeichnet das Bild ab dieser Klasse neu.
+`data-km-klasse` öffnet den Steckbrief — wer nutzt sie, was hält
+sie, welche Methoden hat sie.
+
+Gemeldet: „ich hatte dir aufgegeben, bei jedem Klassen-Eintrag
+einen Popup zu machen mit den Infos … warum fehlt das???"
+Nachgesehen: Das Popup hing an `[data-km-klasse]`, und das trugen
+NUR die Kästen im Bild. In den Listen — also dort, wo alle 1021
+Klassen stehen — gab es weder Steckbrief noch Hover.
+{% endcomment %}
 {% comment %}
 Die Gliederung mit Knöpfen — von Klassenmodell, Globale Klassen und
 Globale Funktionen benutzt (24.08.2026, auf Ansage: „mache alle Klassen in
@@ -9,9 +23,9 @@ vergessen wird. Erwartet: `rollen`, `gesamt`, optional `gewaehlt`.
 {% endcomment %}
 <div class="km-alle">
     <div class="km-alle-kopf">
-        <b>Alle {{ gesamt }} {{ km_was|default:"Einträge" }}</b>
+        <b>Alle {{ gesamt|de }} {{ km_was|default:"Einträge" }}</b>
         <span class="km-js">in {{ rollen|length }} Rollen — Klick zeigt,
-            wer sie nutzt und was sie nutzen. Grosse Rollen sind nach
+            wer sie nutzt und was sie nutzen. Große Rollen sind nach
             Verzeichnis unterteilt.</span>
         <input type="search" id="km-suche" placeholder="Suchen…"
                autocomplete="off">
@@ -20,11 +34,11 @@ vergessen wird. Erwartet: `rollen`, `gesamt`, optional `gewaehlt`.
     {% for r in rollen %}
     <details class="km-rolle" {% if forloop.first %}open{% endif %}>
         <summary><b>{{ r.name }}</b>
-            <span class="km-rolle-zahl">{{ r.zahl }}</span></summary>
+            <span class="km-rolle-zahl">{{ r.zahl|de }}</span></summary>
         {% comment %}
         Kleine Rollen stehen FLACH (24.08.2026, gefragt: „was sollen die
         untertabs bei Globale Funktionen?"). Die Ebene der Verzeichnisse
-        sagt, WO der Code liegt, und zerlegt eine Rolle mit 370 Eintraegen.
+        sagt, WO der Code liegt, und zerlegt eine Rolle mit 370 Einträgen.
         Bei zehn ist sie ein Klick ins Leere, und bei EINER Untergruppe
         sagt sie gar nichts.
         {% endcomment %}
@@ -32,16 +46,18 @@ vergessen wird. Erwartet: `rollen`, `gesamt`, optional `gewaehlt`.
         <div class="km-namen">
             {% for n in r.namen %}
             <button type="button" class="km-ast km-klasse" data-km-ast="{{ n }}"
+                    data-km-klasse="{{ n }}"
                     {% if gewaehlt == n %}data-km-gewaehlt="1"{% endif %}>{{ n }}</button>
             {% endfor %}
         </div>
         {% else %}
         {% for b in r.gruppen %}
         <details class="km-bereich">
-            <summary>{{ b.name }} <span class="km-js">{{ b.zahl }}</span></summary>
+            <summary>{{ b.name }} <span class="km-js">{{ b.zahl|de }}</span></summary>
             <div class="km-namen">
                 {% for n in b.namen %}
                 <button type="button" class="km-ast km-klasse" data-km-ast="{{ n }}"
+                    data-km-klasse="{{ n }}"
                         {% if gewaehlt == n %}data-km-gewaehlt="1"{% endif %}>{{ n }}</button>
                 {% endfor %}
             </div>

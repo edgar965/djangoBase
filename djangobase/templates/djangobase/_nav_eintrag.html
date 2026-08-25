@@ -1,0 +1,83 @@
+{% comment %}
+EIN Menüeintrag — in drei Bauarten, beliebig tief geschachtelt.
+
+DIE ANSAGE (Edgar, 24.08.2026)
+=============================
+    „in djangoBase fehlt wohl die Einstellung für Menüs die mehr Kinder
+     haben als 1. Mach die Erweiterung, z.B. fehlt nun das ‚Architektur'
+     Untermenü. im vorherigen CamTrack code waren die Einrückungen gut
+     gelöst für Menüs die Kinder haben"
+
+WAS FEHLTE
+==========
+`_nav.html` kannte genau zwei Fälle: einen Verweis oder EIN aufklappbares
+Untermenü. Das alte CamTrack-Menü hatte aber eine dritte Bauart, die dabei
+verlorenging — eine **Zwischenüberschrift mit eingerückten Kindern**:
+
+    ── ARCHITEKTUR ──────────────      <div class="ct-sidebar-subgroup-header"
+        H.264 vs. H.265                <a style="padding-left: 76px;" …
+        Vergleich
+        Spulen / Playback              (14 Einträge, alle sichtbar)
+
+Nicht aufklappbar, sondern immer offen: Nur die Überschrift gliedert.
+Beim Umzug nach djangoBase habe ich daraus ein Klappmenü gemacht — damit
+lagen vierzehn Seiten hinter einem Klick, und „Architektur", „Bedienung"
+und „Kameras" verschwanden ganz.
+
+DIE DREI BAUARTEN
+=================
+    {'label': …, 'icon': …, 'url': …}          ein Verweis
+    {'label': …, 'icon': …, 'untermenu': […]}  aufklappbar, zu wenn leer
+    {'label': …, 'icon': …, 'abschnitt': […]}  Überschrift, immer sichtbar
+
+`abschnitt` und `untermenu` dürfen einander enthalten; dieser Baustein ruft
+sich selbst auf. `tiefe` bricht bei vier ab — nicht, weil vier eine gute
+Zahl wäre, sondern weil ein Zyklus in den Daten sonst den Web-Dienst mit
+einem RecursionError abräumt. Eine Navigation ist Beiwerk und darf die
+Seite nicht mitreißen.
+
+DIE EINRÜCKUNG KOMMT AUS DEM STILBLATT, nicht aus `style="padding-left:
+76px"` wie früher. Sechsundsiebzig Pixel an 32 Verweisen sind 32 Stellen,
+die beim nächsten Layoutwechsel einzeln nachgezogen werden müssen.
+{% endcomment %}
+{% if tiefe|default:0 < 4 %}
+
+{% if it.abschnitt %}
+<li class="nav-abschnitt">
+    <i class="bi {{ it.icon|default:'bi-dash' }}"></i> {{ it.label }}
+</li>
+{% for u in it.abschnitt %}
+{% include "djangobase/_nav_eintrag.html" with it=u tiefe=tiefe|default:0|add:1 eingerueckt=1 %}
+{% endfor %}
+
+{% elif it.untermenu %}
+<li class="nav-item">
+    <a class="nav-link menu-toggle" data-bs-toggle="collapse"
+       href="#nav-{{ it.label|slugify }}">
+        <i class="bi {{ it.icon|default:'bi-dot' }}"></i> {{ it.label }}
+        <i class="bi bi-chevron-down float-end"></i>
+    </a>
+    {% comment %}
+    `offen` setzt der Kontextprozessor, wenn eine der Unterseiten gerade
+    angezeigt wird. Ohne das blieb die Gruppe auf ihren EIGENEN Seiten zu —
+    dieselbe Falle, die `test_genau_ein_abschnitt_ist_offen` schon einmal
+    für die Hilfe-Gruppe gemeldet hat.
+    {% endcomment %}
+    <div class="collapse {% if it.offen %}show{% endif %}"
+         id="nav-{{ it.label|slugify }}">
+        <ul class="nav flex-column submenu">
+            {% for u in it.untermenu %}
+            {% include "djangobase/_nav_eintrag.html" with it=u tiefe=tiefe|default:0|add:1 eingerueckt=0 %}
+            {% endfor %}
+        </ul>
+    </div>
+</li>
+
+{% else %}
+<li><a class="nav-link {% if eingerueckt %}nav-link-abschnitt{% endif %} {% if it.aktiv and aktiv == it.aktiv %}active{% endif %}"
+       href="{{ it.url }}"{% if it.zweck %} title="{{ it.zweck }}"{% endif %}>
+    <i class="bi {{ it.icon|default:'bi-dot' }}"></i> {{ it.label }}
+</a></li>
+{% endif %}
+
+{% endif %}

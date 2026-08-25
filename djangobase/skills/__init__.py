@@ -63,6 +63,7 @@ from .altlast import Altlast
 from .anlassfall import Anlassfall
 from .anlassfall_check import AnlassfallCheck
 from .anzeigeformat import Anzeigeformat
+from .codequalitaet import CodeQualitaet
 from .dateigroesse import Dateigroesse
 from .doppelrumpf import Doppelrumpf
 from .esmodulimporte import EsModulImporte
@@ -118,6 +119,7 @@ from .testdeckung import Testdeckung
 # --- Fixer -------------------------------------------------------------------
 from .fix_ausnahme import FixAusnahme
 from .fix_dictklasse import FixDictKlasse
+from .fix_fzeichenkette import FixFZeichenkette
 from .fix_importe import ImportFixer
 from .fix_jserbe import FixJsErbe
 from .fix_jsschnitt import FixJsSchnitt
@@ -200,6 +202,14 @@ NEUE = [
 #: dieselbe Basis wie alle anderen — dieselbe Projektwurzel, dieselbe
 #: Ausschlussliste. Frueher war das eine eigene Welt mit eigener Basisklasse.
 BEFUNDBASIERT = [
+    # Ganz vorn (24.08.2026): das EINZIGE Werkzeug hier, das nicht
+    # selbst misst. Komplexitaet, Wartbarkeit, tote Namen und PEP 8
+    # sind seit Jahren geloest — radon, pyflakes und pycodestyle
+    # koennen das besser, als ich es nachbauen wuerde. Die anderen
+    # Werkzeuge stellen Fragen, die kein Standardwerkzeug kennt;
+    # dieses bringt die Antworten der Standardwerkzeuge in dieselbe
+    # Form.
+    CodeQualitaet,
     FreieFunktionen,
     # Direkt hinter FreieFunktionen (19.08.2026, Kriterium 18): dieselbe Frage
     # von der Zustandsseite. Freie Funktionen zeigen, wo Verhalten heimatlos
@@ -264,6 +274,11 @@ FIXER = [
     FixJsErbe,
     FixDictKlasse,
     ImportFixer,
+    # Direkt hinter ImportFixer (25.08.2026): dieselbe Bauart, andere
+    # Fehlerklasse. `ImportFixer` nimmt tote Einfuhren, dieser die
+    # leeren f-Zeichenketten — beides meldet `pyflakes`, und beides
+    # gehoert HIERHER und nicht in ein Skript im Wirtsprojekt.
+    FixFZeichenkette,
 ]
 
 

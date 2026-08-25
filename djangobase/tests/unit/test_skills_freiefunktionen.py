@@ -142,3 +142,70 @@ class FreieFunktionenTest(BasisTest):
         satz = self._lauf({})
         self.assertFalse(satz.befunde)
         self.assertTrue(satz.kopf)
+
+    # ── der Name des Vorschlags ──────────────────────────────────
+    def test_ein_verb_ist_kein_gegenstand(self):
+        u"""DER BEFUND (24.08.2026): Für `path_resolver.py` kam
+        `GetVerwaltung` heraus — gebündelt über `get_media_root`,
+        `get_persons_dir`, `get_ffmpeg`. Das Verb hatten alle gemeinsam,
+        den Gegenstand keine. So ein Vorschlag ist schlechter als keiner,
+        weil er aussieht, als hätte jemand nachgedacht."""
+        satz = self._lauf({'wege.py': (
+            'def get_medien():\n    return 1\n\n\n'
+            'def get_personen():\n    return 2\n\n\n'
+            'def get_aufnahmen():\n    return 3\n')}, ab='3')
+        self.assertNotIn('GetVerwaltung', self._warum(satz, 'als Klasse'))
+
+    def test_ohne_buendel_gilt_der_dateiname(self):
+        u"""`mqtt.py` hält `get_client`, `publish_sighting`,
+        `publish_offline`: kein gemeinsames Wort, aber offensichtlich EINE
+        Sache. Vorher stand hier „kein gemeinsamer Namensanfang — einzeln
+        prüfen", also die Bankrotterklärung."""
+        satz = self._lauf({'mqtt.py': (
+            'def get_client():\n    x = 1\n    return x\n\n\n'
+            'def publish_sichtung():\n    y = 1\n    return y\n\n\n'
+            'def publish_offline():\n    z = 1\n    return z\n')}, ab='3')
+        self.assertIn('`Mqtt`', self._warum(satz, 'als Klasse'))
+
+    def test_ein_paketordner_gibt_den_namen_statt_init(self):
+        satz = self._lauf({'kameras/__init__.py': (
+            'def eins():\n    a = 1\n    return a\n\n\n'
+            'def zwei():\n    b = 1\n    return b\n\n\n'
+            'def drei():\n    c = 1\n    return c\n')}, ab='3')
+        self.assertIn('`Kameras`', self._warum(satz, 'als Klasse'))
+
+    # ── Fassade statt fehlender Klasse ───────────────────────────
+    FASSADE = ('class Pfade:\n'
+               '    @staticmethod\n'
+               '    def medien():\n        return 1\n\n\n'
+               'def get_medien():\n    return Pfade.medien()\n\n\n'
+               'def get_personen():\n    return Pfade.medien()\n\n\n'
+               'def get_aufnahmen():\n    return Pfade.medien()\n')
+
+    def test_wo_die_klasse_schon_steht_fehlt_keine(self):
+        u"""DER UNTERSCHIED, DER GEFEHLT HAT (24.08.2026)
+
+        `app/integrations/` bekam sieben Mal „schreib eine Klasse".
+        Gemessen: fünf der sechs Dateien HABEN sie — `Pfade`, `Dateien`,
+        `FFmpeg`, `DiskSpace`, `Aufgabenplanung`. Davor stehen nur
+        Einzeiler, und `get_media_root` allein wird an 146 Stellen
+        gerufen. Abreissen kostet 146 Änderungen, die fehlende Klasse
+        schreiben kostet eine — ohne die Unterscheidung sieht beides
+        gleich dringend aus.
+        """
+        satz = self._lauf({'wege.py': self.FASSADE}, ab='2')
+        self.assertIn('Klasse steht schon da',
+                      self._warum(satz, 'Klasse steht schon da'))
+        self.assertEqual([b.was for b in satz.befunde],
+                         ['3 Weiterleitungen vor 1 Klasse(n)'])
+
+    def test_echte_logik_bleibt_ein_auftrag(self):
+        u"""Eine Klasse im Modul allein genügt nicht — die freien
+        Funktionen müssen auch wirklich nur weitergeben."""
+        satz = self._lauf({'wege.py': (
+            'class Pfade:\n    pass\n\n\n'
+            'def eins():\n    a = 1\n    b = 2\n    return a + b\n\n\n'
+            'def zwei():\n    a = 1\n    b = 2\n    return a - b\n\n\n'
+            'def drei():\n    a = 1\n    b = 2\n    return a * b\n')},
+            ab='3')
+        self.assertIn('als Klasse', self._warum(satz, 'als Klasse'))

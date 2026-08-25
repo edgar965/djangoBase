@@ -44,6 +44,44 @@ def _hilfe_extra(c):
     return list(wert or [])
 
 
+def _offen_setzen(eintraege, aktiv):
+    u"""Ein Klappmenü, dessen Seite gerade offen ist, muss offen stehen.
+
+    DIE FALLE, ZWEIMAL DIESELBE (24.08.2026)
+    ========================================
+    Das aufklappbare Untermenü hatte kein ``show`` — es blieb auf seinen
+    EIGENEN Seiten zu. Wer „Technik → Kodierung" anklickte, sah danach ein
+    geschlossenes „Technik" und keinen Hinweis, wo er ist.
+
+    Genau das hat `test_genau_ein_abschnitt_ist_offen` schon einmal für die
+    Hilfe-Gruppe gemeldet („/help/prozesse/: 0 offene Abschnitte"). Dort
+    wurde es an Ort und Stelle geflickt; hier ist es wiedergekommen, weil
+    die Regel nirgends stand. Jetzt steht sie an EINER Stelle und gilt für
+    jede Schachtelungstiefe.
+
+    Arbeitet auf Kopien: Die Liste kommt womöglich aus einer Konstanten des
+    Projekts, und ein Kontextprozessor, der sie beschreibt, verändert sie
+    für jeden weiteren Aufruf.
+    """
+    raus = []
+    for eintrag in eintraege or ():
+        if not isinstance(eintrag, dict):
+            raus.append(eintrag)
+            continue
+        eintrag = dict(eintrag)
+        for schluessel in ('untermenu', 'abschnitt'):
+            kinder = eintrag.get(schluessel)
+            if not kinder:
+                continue
+            kinder = _offen_setzen(kinder, aktiv)
+            eintrag[schluessel] = kinder
+            if any(k.get('offen') or (k.get('aktiv') and k['aktiv'] == aktiv)
+                   for k in kinder if isinstance(k, dict)):
+                eintrag['offen'] = True
+        raus.append(eintrag)
+    return raus
+
+
 def djangobase(request):
     """Stellt Branding, Farben, Menue, Version und Layout-Optionen in
     jedem Template bereit. Die Layout-Keys (extra_css, extra_js_head,
@@ -85,7 +123,14 @@ def djangobase(request):
         # bestehende Projekte unveraendert.
         "profile_switcher": c.get("profile_switcher", True),
         "einstellungen_extra": c["einstellungen_extra"],
-        "hilfe_extra": _hilfe_extra(c),
+        # Die offene Gruppe kennt nur der Kontextprozessor: Der URL-Name
+        # steht am `resolver_match`, und die Eintraege tragen ihn als
+        # `aktiv`. In der Vorlage waere dieselbe Frage eine Schleife ueber
+        # unbekannte Tiefe — dort gibt es die nicht.
+        "hilfe_extra": _offen_setzen(
+            _hilfe_extra(c),
+            getattr(getattr(request, 'resolver_match', None),
+                    'url_name', '') or ''),
         "benutzer_verwaltung": c["benutzer_verwaltung"],
         # Nav-Eintrag „Jobs" nur zeigen, wenn ein Projekt Jobs registriert hat
         # (djangobase.jobs). Leere Registry -> kein Eintrag -> bestehende

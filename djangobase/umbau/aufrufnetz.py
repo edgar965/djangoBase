@@ -39,9 +39,11 @@ import ast
 from collections import defaultdict
 from pathlib import Path
 
-#: Verzeichnisse, die nicht zum Netz gehoeren.
-AUS = ('migrations', '__pycache__', 'node_modules', '.git', 'venv',
-       'staticfiles', 'site-packages')
+#: Verzeichnisse, die nicht zum Netz gehoeren — DIESELBE Liste wie im
+#: Klassenmodell. Zwei Kopien liefen beim naechsten Zusatz auseinander:
+#: `sicherung` kam dort dazu, hier nicht, und das Netz zaehlte einen
+#: Abzug des Projekts mit.
+from .klassenmodell import AUS  # noqa: F401
 
 #: Was Python selbst mitbringt. Ohne diese Liste ist `len` der meist-
 #: genutzte „Baustein" des Projekts.

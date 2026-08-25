@@ -40,11 +40,41 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 .sidebar .submenu { padding: 0; background: rgba(0,0,0,0.18); }
 .sidebar .submenu .nav-link { padding-left: 2.6rem; font-size: 0.85rem; }
 .sidebar .submenu .nav-link i { font-size: 0.85rem; }
-/* Dritte Ebene (verschachteltes untermenu): tiefere Einrueckung + dunkler.
-   Greift nur, wenn ein Projekt 3-stufige Menues nutzt — 2-stufige Menues
-   matchen .submenu .submenu nie und bleiben unveraendert. */
+/* Dritte Ebene (verschachteltes untermenu): tiefere Einrückung + dunkler.
+   Greift nur, wenn ein Projekt 3-stufige Menüs nutzt — 2-stufige Menüs
+   matchen .submenu .submenu nie und bleiben unverändert. */
 .sidebar .submenu .submenu { background: rgba(0,0,0,0.28); }
 .sidebar .submenu .submenu .nav-link { padding-left: 3.7rem; }
+
+/* Zwischenüberschrift mit eingerückten Kindern (24.08.2026).
+   ------------------------------------------------------------------
+   Die dritte Bauart neben Verweis und Klappmenü: eine Ueberschrift
+   gliedert, die Kinder bleiben SICHTBAR. Das alte CamTrack-Menü hatte
+   damit vierzehn Architektur-Seiten offen daliegen; als Klappmenü lagen
+   sie hinter einem Klick.
+
+   Die Einrückung steht hier und nicht als `style="padding-left: 76px"`
+   an jedem einzelnen Verweis — vorher waren es 32 Stellen, die beim
+   nächsten Layoutwechsel einzeln nachzuziehen gewesen wären. */
+.sidebar .nav-abschnitt {
+    padding: 0.7rem 1rem 0.2rem 2.6rem;
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    /* Kein Zeiger: Die Ueberschrift ist keine Schaltfläche. Ein Wort, das
+       aussieht wie ein Verweis und keiner ist, kostet jeden Leser einen
+       Klick ins Leere. */
+    cursor: default;
+    user-select: none;
+}
+.sidebar .nav-abschnitt i { margin-right: 0.45rem; opacity: 0.75; }
+.sidebar .nav-link.nav-link-abschnitt { padding-left: 3.7rem; }
+/* Trennlinie über jeder Ueberschrift außer der ersten — die Gruppen
+   sollen als Gruppen lesbar sein, nicht als Aufzählung mit Zwischenwort. */
+.sidebar .nav-abschnitt + li,
+.sidebar li + .nav-abschnitt { border-top: 1px solid rgba(255,255,255,0.06); }
 
 .main-wrapper {
     margin-left: var(--sidebar-width);
@@ -88,7 +118,7 @@ body.sidebar-collapsed .main-wrapper { margin-left: 56px; }
 .db-sidebar-resizer:hover,
 .db-sidebar-resizer.dragging { background: var(--sidebar-light); }
 body.sidebar-collapsed .db-sidebar-resizer { left: 56px; }
-/* Waehrend des Ziehens: keine Animationen + Text-Auswahl aus. */
+/* Während des Ziehens: keine Animationen + Text-Auswahl aus. */
 body.resizing-sidebar { cursor: col-resize; user-select: none; }
 body.resizing-sidebar .sidebar,
 body.resizing-sidebar .main-wrapper { transition: none; }
@@ -96,7 +126,7 @@ body.resizing-sidebar .main-wrapper { transition: none; }
 @media (max-width: 768px) {
     .sidebar { transform: translateX(-100%); transition: transform 0.2s ease; }
     body.sidebar-mobile-open .sidebar { transform: translateX(0); }
-    /* Abgedunkelter Hintergrund hinter dem Drawer (Klick schliesst). */
+    /* Abgedunkelter Hintergrund hinter dem Drawer (Klick schließt). */
     body.sidebar-mobile-open::after {
         content: ''; position: fixed; inset: 0;
         background: rgba(0, 0, 0, 0.5); z-index: 999;

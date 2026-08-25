@@ -516,3 +516,40 @@ class KeinSammelbegriffAlsGruppe(BasisTest):
     def test_unterverzeichnisse_bleiben_wie_sie_waren(self):
         m = _projekt({'views/live/grid.py': 'class Gitter:\n    pass\n'})
         self.assertIn('views/live', self._gruppen(m))
+
+
+class EinSicherungsordnerIstKeineQuelle(BasisTest):
+    u"""Ein Abzug des Projekts darf nicht als Projekt gelten.
+
+    DER BEFUND (24.08.2026)
+    =======================
+    Im Auswahlfeld der Seite stand `werkzeug — 322 Klassen`. Nachgemessen
+    lagen **alle 322** unter `werkzeug/sicherung/`: 233 Dateien, die ein
+    Fixer am 18.08. beiseitegelegt hatte, git-ignoriert. Das Modell zeigte
+    einen Abzug des Projekts als eigenen Ast — mit denselben Klassennamen
+    doppelt im Bestand.
+
+    Gemeldet hatte es `altlast`, und zwar als allererste Zeile. Gesehen
+    habe ich es erst, nachdem der Läufer `tools/wartung/pruefen.py` nicht
+    mehr an der Bauart des Werkzeugs abstürzte — ein Werkzeug, dessen
+    Befunde niemand zu Gesicht bekommt, ist so gut wie keines.
+    """
+
+    DATEIEN = {
+        'echt.py': 'class Echt:\n    pass\n',
+        'sicherung/fixer/20260818/echt.py': 'class Echt:\n    pass\n',
+        'backup/alt.py': 'class Alt:\n    pass\n',
+    }
+
+    def test_der_abzug_zaehlt_nicht_mit(self):
+        self.assertEqual(sorted(_projekt(self.DATEIEN).klassen), ['Echt'])
+
+    def test_die_echte_datei_gewinnt(self):
+        u"""Nicht nur die Zahl stimmt — der Ort muss der echte sein."""
+        self.assertEqual(_projekt(self.DATEIEN).klassen['Echt'].datei,
+                         'echt.py')
+
+    def test_dieselbe_liste_gilt_fuer_das_aufrufnetz(self):
+        u"""Zwei Kopien liefen beim nächsten Zusatz auseinander."""
+        from djangobase.umbau import aufrufnetz, klassenmodell
+        self.assertIs(aufrufnetz.AUS, klassenmodell.AUS)

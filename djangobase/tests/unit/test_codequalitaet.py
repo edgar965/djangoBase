@@ -1,0 +1,178 @@
+# -*- coding: utf-8 -*-
+u"""Code-Qualität mit vier etablierten Werkzeugen.
+
+DIE ANSAGE (Edgar, 24.08.2026)
+==============================
+    „Dann brauche ich ein Tool zur Evaluierung der Code-Qualität, davon
+     sollte es schon einige geben. Mach einen Button dazu der Code-Qualität
+     mit 2-3 Methoden überprüft"
+
+„Davon sollte es schon einige geben" — deshalb ist hier nichts selbst
+gebaut: `radon` misst zweimal (Komplexität je Funktion, Wartbarkeit je
+Datei), `pyflakes` findet echte Fehler, `pycodestyle` Formsachen.
+
+DIE ZWEI FEHLER AUS DEM ERSTEN LAUF
+===================================
+1. `pycodestyle` meldete **„0 Abweichungen in 0 Regeln"** für einen
+   Quelltext mit 2839 zu langen Zeilen. Grund: `Checker(pfad, quiet=True,
+   options=...)` hat ein `assert not kwargs`, sobald `options` gesetzt ist
+   — jede Datei flog in meinen eigenen `except Exception: continue`. Ein
+   Verfahren, das bei jedem Fehlschlag „alles gut" sagt, ist schlimmer als
+   keines.
+2. Die Vorlage lief in ein `TypeError: 'int' object is not iterable`:
+   `zahlen['arten']` war bei „Echte Fehler" eine Liste von Paaren, bei
+   „Stil" eine Zahl. Gleicher Name, andere Bauart.
+"""
+import tempfile
+from pathlib import Path
+
+from djangobase.umbau.codequalitaet import Codequalitaet, Verfahren
+
+from ..base import BasisTest
+
+
+def _messen(dateien):
+    ordner = Path(tempfile.mkdtemp(prefix='cq_'))
+    for name, inhalt in dateien.items():
+        ziel = ordner / name
+        ziel.parent.mkdir(parents=True, exist_ok=True)
+        ziel.write_text(inhalt, encoding='utf-8')
+    return Codequalitaet(ordner).messen()
+
+
+#: Eine Funktion mit vielen Verzweigungen — radon soll sie finden.
+VERWICKELT = u'def viel(a):\n' + u''.join(
+    u'    if a == %d:\n        return %d\n' % (i, i) for i in range(14))
+
+#: Ein unbenutzter Import und eine unbenutzte Variable — pyflakes-Futter.
+FEHLERHAFT = u'import os\nimport sys\n\n\ndef machen():\n    x = 1\n    return 2\n'
+
+#: Eine zu lange Zeile — pycodestyle-Futter (E501).
+ZU_LANG = u'x = "%s"\n' % ('y' * 120)
+
+
+class AlleVierLaufen(BasisTest):
+
+    def _namen(self, messung):
+        return [v['name'] for v in messung.als_liste()]
+
+    def test_vier_verfahren_stehen_da(self):
+        namen = self._namen(_messen({'a.py': u'x = 1\n'}))
+        self.assertEqual(len(namen), 4)
+        for teil in (u'Komplexität', u'Wartbarkeitsindex', u'Echte Fehler',
+                     u'Stil'):
+            self.assertTrue(any(teil in n for n in namen), teil)
+
+    def test_jedes_nennt_sein_werkzeug(self):
+        u"""Damit nachlesbar ist, WER das behauptet."""
+        werkzeuge = set(v['werkzeug'] for v in
+                        _messen({'a.py': u'x = 1\n'}).als_liste())
+        self.assertEqual(werkzeuge, {'radon', 'pyflakes', 'pycodestyle'})
+
+
+class JedesVerfahrenFindetSeinen(BasisTest):
+
+    def _eines(self, messung, teil):
+        for v in messung.als_liste():
+            if teil in v['name']:
+                return v
+        raise AssertionError('%r ist kein Verfahren' % teil)
+
+    def test_radon_findet_die_verwickelte_funktion(self):
+        v = self._eines(_messen({'a.py': VERWICKELT}), u'Komplexität')
+        self.assertTrue(v['treffer'])
+        self.assertEqual(v['treffer'][0]['name'], 'viel')
+
+    def test_eine_geradlinige_funktion_faellt_nicht_auf(self):
+        v = self._eines(_messen({'a.py': u'def wenig():\n    return 1\n'}),
+                        u'Komplexität')
+        self.assertFalse(v['treffer'])
+
+    def test_die_verteilung_steht_dabei(self):
+        u"""„216 auffällig" allein sagt nicht, ob der Rest gut ist."""
+        v = self._eines(_messen({'a.py': VERWICKELT}), u'Komplexität')
+        raenge = dict(v['zahlen']['raenge'])
+        self.assertEqual(sorted(raenge), list('ABCDEF'))
+
+    def test_pyflakes_findet_die_unbenutzte_variable(self):
+        v = self._eines(_messen({'a.py': FEHLERHAFT}), u'Echte Fehler')
+        arten = dict(v['zahlen']['arten'])
+        self.assertEqual(arten.get('UnusedVariable'), 1)
+
+    def test_tote_einfuhren_fuehrt_ein_anderes_werkzeug(self):
+        u"""KEINE DUPLIKATE (Edgar, 25.08.2026)
+
+        `pyflakes` meldet auch unbenutzte Einfuhren — und genau die meldet
+        `tote-importe` seit Kriterium 5, mit Wissen, das `pyflakes` nicht
+        hat (Seiteneffekt-Module, `__all__`, Namen in Zeichenketten). Zwei
+        Werkzeuge fuer denselben Befund heisst zwei Listen, die
+        auseinanderlaufen.
+        """
+        v = self._eines(_messen({'a.py': FEHLERHAFT}), u'Echte Fehler')
+        self.assertIsNone(dict(v['zahlen']['arten']).get('UnusedImport'))
+        self.assertEqual(dict(v['zahlen']['anderswo'])['tote-importe'], 2)
+
+    def test_der_befund_verschwindet_aber_nicht(self):
+        u"""Weglassen waere schlimmer als doppelt melden."""
+        v = self._eines(_messen({'a.py': FEHLERHAFT}), u'Echte Fehler')
+        self.assertIn('tote-importe', v['satz'])
+
+    def test_pycodestyle_findet_die_lange_zeile(self):
+        u"""DER ERSTE LAUF MELDETE HIER NULL — weil mein eigener
+        `except Exception` den `assert not kwargs` verschluckte."""
+        v = self._eines(_messen({'a.py': ZU_LANG}), u'Stil')
+        self.assertTrue(v['treffer'], u'pycodestyle meldet wieder nichts')
+        self.assertEqual(v['treffer'][0]['name'], 'E501')
+
+    def test_die_wartbarkeit_misst_jede_datei(self):
+        v = self._eines(_messen({'a.py': u'x = 1\n', 'b.py': u'y = 2\n'}),
+                        u'Wartbarkeitsindex')
+        self.assertEqual(v['zahlen']['gemessen'], 2)
+
+
+class DieZahlenHabenUeberallDieselbeBauart(BasisTest):
+    u"""DER FEHLER (24.08.2026): `TypeError: 'int' object is not iterable`.
+
+    `zahlen['arten']` war bei „Echte Fehler" eine Liste von Paaren, bei
+    „Stil" eine Zahl — und die Vorlage lief mit einem `{% for %}` darüber.
+    """
+
+    def test_arten_ist_ueberall_eine_liste_von_paaren(self):
+        for v in _messen({'a.py': FEHLERHAFT + ZU_LANG}).als_liste():
+            arten = v['zahlen'].get('arten')
+            if arten is None:
+                continue
+            for eintrag in arten:
+                self.assertEqual(len(eintrag), 2,
+                                 u'%s: %r' % (v['name'], eintrag))
+
+    def test_raenge_ist_ueberall_eine_liste_von_paaren(self):
+        for v in _messen({'a.py': VERWICKELT}).als_liste():
+            for eintrag in v['zahlen'].get('raenge') or ():
+                self.assertEqual(len(eintrag), 2)
+
+
+class WasNichtGemessenWird(BasisTest):
+
+    def test_laufzeitdaten_bleiben_draussen(self):
+        m = _messen({'echt.py': u'x = 1\n',
+                     'media/weg.py': FEHLERHAFT,
+                     'logs/auch_weg.py': FEHLERHAFT})
+        self.assertEqual(len(m.dateien), 1)
+
+    def test_ein_fehlendes_werkzeug_meldet_sich(self):
+        u"""Eine leere Trefferliste sähe aus wie „nichts gefunden"."""
+        v = Verfahren(u'Test', 'gibtsnicht', u'nichts')
+        v.fehlt = 'gibtsnicht'
+        self.assertEqual(v.als_dict()['fehlt'], 'gibtsnicht')
+        self.assertEqual(v.als_dict()['treffer'], [])
+
+    def test_ein_leeres_projekt_wirft_nicht(self):
+        m = _messen({})
+        self.assertEqual(len(m.dateien), 0)
+        self.assertEqual(len(m.als_liste()), 4)
+
+    def test_eine_kaputte_datei_stoppt_den_lauf_nicht(self):
+        m = _messen({'kaputt.py': u'def (:\n', 'gut.py': VERWICKELT})
+        namen = [t['name'] for v in m.als_liste() for t in v['treffer']]
+        self.assertIn('viel', namen)

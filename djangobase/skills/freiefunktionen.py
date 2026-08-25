@@ -11,14 +11,42 @@ from .anlassfall import Anlassfall
 class Modulsicht:
     """Was auf Modulebene steht: freie Funktionen, Klassen, gemeinsame Praefixe."""
 
-    __slots__ = ('pfad', 'funktionen', 'klassen', 'zeilen')
+    __slots__ = ('pfad', 'funktionen', 'klassen', 'zeilen', 'weiterleitungen')
 
-    def __init__(self, pfad, funktionen, klassen, zeilen):
+    def __init__(self, pfad, funktionen, klassen, zeilen, weiterleitungen=0):
         self.pfad = pfad
         #: [(name, zeile, zeilenzahl, erstes_argument)]
         self.funktionen = funktionen
         self.klassen = klassen
         self.zeilen = zeilen
+        #: Wie viele davon nur ``return Klasse.methode()`` sind.
+        self.weiterleitungen = weiterleitungen
+
+    def ist_fassade(self):
+        u"""Steht hier eine Klasse, und davor nur Einzeiler?
+
+        Dann fehlt keine Klasse — dann steht eine Fassade davor. Ein
+        anderer Befund, und ein viel weniger dringender.
+        """
+        return bool(self.klassen) and self.weiterleitungen >= max(
+            2, len(self.funktionen) - 1)
+
+    #: Namensteile, die KEINEN Gegenstand benennen, sondern eine Taetigkeit.
+    #:
+    #: WARUM DIE LISTE (24.08.2026)
+    #: ===========================
+    #: Fuer `app/integrations/path_resolver.py` schlug das Werkzeug
+    #: `GetVerwaltung` vor — gebuendelt ueber `get_media_root`,
+    #: `get_persons_dir`, `get_ffmpeg`. Das Verb ist allen gemeinsam, der
+    #: Gegenstand keinem. Ein solcher Vorschlag ist schlechter als keiner,
+    #: weil er so aussieht, als haette jemand nachgedacht.
+    VERBEN = frozenset((
+        'get', 'set', 'is', 'has', 'build', 'make', 'create', 'load',
+        'save', 'read', 'write', 'publish', 'send', 'run', 'do', 'ensure',
+        'check', 'try', 'init', 'update', 'delete', 'remove', 'add',
+        'hole', 'setze', 'lade', 'schreibe', 'pruefe', 'melde', 'baue',
+        'ist', 'hat', 'mach', 'lies',
+    ))
 
     def gruppen(self):
         """Funktionen mit gemeinsamem Namensanfang — die deutlichsten Kandidaten.
@@ -27,6 +55,8 @@ class Modulsicht:
         demselben Gegenstand: zusammen eine Klasse. Gruppiert wird ueber den
         ersten Namensteil vor dem Unterstrich, in beide Richtungen (Praefix und
         Suffix), weil beide Schreibweisen ueblich sind.
+
+        Ein Verb als Schluessel zaehlt NICHT — siehe `VERBEN`.
         """
         nach_anfang = defaultdict(list)
         nach_ende = defaultdict(list)
@@ -37,7 +67,7 @@ class Modulsicht:
                 nach_ende[teile[-1]].append((name, zeile, laenge))
         gefunden = []
         for schluessel, eintraege in list(nach_anfang.items()) + list(nach_ende.items()):
-            if len(eintraege) >= 3:
+            if len(eintraege) >= 3 and schluessel.lower() not in self.VERBEN:
                 gefunden.append((schluessel, eintraege))
         # Nach Groesse: die dicksten Buendel zuerst.
         gefunden.sort(key=lambda paar: -len(paar[1]))
@@ -94,21 +124,42 @@ class FreieFunktionen(BefundWerkzeug):
         for sicht in sorted(sichten, key=lambda s: -len(s.funktionen)):
             if len(sicht.funktionen) < grenze:
                 continue
+            if sicht.ist_fassade():
+                # Die Klasse gibt es schon — hier steht nur eine Fassade
+                # davor. Kein Auftrag zum Schreiben, ein Hinweis zum Wissen.
+                befunde.append(Befund(
+                    sicht.pfad,
+                    '%d Weiterleitungen vor %d Klasse(n)'
+                    % (sicht.weiterleitungen, sicht.klassen),
+                    'Die Klasse steht schon da; die freien Funktionen geben '
+                    'nur weiter. Abreissen kostet so viele Aenderungen, wie '
+                    'es Aufrufstellen gibt — erst zaehlen, dann entscheiden.',
+                    Befund.HINWEIS))
+                continue
+
             gruppen = sicht.gruppen()
-            hinweis = ''
             if gruppen:
                 schluessel, eintraege = gruppen[0]
-                platz = self._wo_hin(eintraege, rufer, ansichten,
-                                     sicht.klassen)
-                hinweis = ('%d Funktionen als Klasse `%s`: %s. %s'
-                           % (len(eintraege), self._klassenname(schluessel),
-                              ', '.join(n for n, _z, _l in eintraege[:6]),
-                              platz))
+            else:
+                # DAS MODUL IST DAS BUENDEL (24.08.2026). Vorher stand hier
+                # „kein gemeinsamer Namensanfang — einzeln pruefen", also die
+                # Bankrotterklaerung. Dabei hat jede Datei einen Namen, der
+                # ihren Gegenstand nennt: `mqtt.py` haelt `get_client`,
+                # `publish_sighting`, `publish_offline` — kein gemeinsames
+                # Wort, aber ganz offensichtlich EINE Sache.
+                schluessel, eintraege = None, [(n, z, l) for n, z, l, _e
+                                               in sicht.funktionen]
+            platz = self._wo_hin(eintraege, rufer, ansichten, sicht.klassen)
+            hinweis = ('%d Funktionen als Klasse `%s`: %s. %s'
+                       % (len(eintraege),
+                          self._klassenname(schluessel, sicht.pfad),
+                          ', '.join(n for n, _z, _l in eintraege[:6]),
+                          platz))
             befunde.append(Befund(
                 sicht.pfad,
                 '%d freie Funktionen, %d Klassen' % (len(sicht.funktionen),
                                                      sicht.klassen),
-                hinweis or 'kein gemeinsamer Namensanfang — einzeln pruefen',
+                hinweis,
                 Befund.WARNUNG if len(sicht.funktionen) >= grenze * 2
                 else Befund.HINWEIS))
 
@@ -147,15 +198,32 @@ class FreieFunktionen(BefundWerkzeug):
                     hinein.setdefault(teil.func.id, Counter())[knoten.name] += 1
 
     @staticmethod
-    def _klassenname(schluessel):
-        u"""Aus dem Buendel-Schluessel ein Klassenname.
+    def _klassenname(schluessel, pfad=None):
+        u"""Ein Klassenname — aus dem Buendel, sonst aus dem DATEINAMEN.
 
         `person` -> `PersonVerwaltung`, `marzahn` -> `MarzahnVerwaltung`.
+
+        Ohne Buendel gilt die Datei. `path_resolver.py` -> `PathResolver`,
+        `mqtt.py` -> `Mqtt`, `ffmpeg_path.py` -> `FfmpegPath`. Der Dateiname
+        ist der bessere Ausgangspunkt, sobald der gemeinsame Namensteil ein
+        Verb waere: fuer `path_resolver.py` kam vorher `GetVerwaltung`
+        heraus — das Verb hatten alle gemeinsam, den Gegenstand keine.
+
         Ein Vorschlag, kein Befehl: Wer die Klasse schreibt, findet meist
-        einen besseren Namen. Aber ein Vorschlag ist leichter zu
-        widersprechen als ein leeres Feld.
+        einen besseren Namen (aus `path_resolver.py` wurde `Pfade`). Aber
+        ein Vorschlag ist leichter zu widersprechen als ein leeres Feld.
         """
-        return schluessel.strip('_').replace('_', ' ').title().replace(' ', '')             + 'Verwaltung'
+        if schluessel:
+            return (schluessel.strip('_').replace('_', ' ').title()
+                    .replace(' ', '') + 'Verwaltung')
+        stamm = str(pfad or '').replace('\\', '/').split('/')[-1]
+        stamm = stamm[:-3] if stamm.endswith('.py') else stamm
+        if stamm in ('__init__', ''):
+            # `__init__.py` sagt nichts — dann gilt das Verzeichnis.
+            teile = [t for t in str(pfad or '').replace('\\', '/').split('/')
+                     if t and not t.endswith('.py')]
+            stamm = teile[-1] if teile else 'Modul'
+        return stamm.strip('_').replace('_', ' ').title().replace(' ', '')
 
     def _ansichten_sammeln(self, datei, hinein):
         u"""Namen, die in einer `urls.py` als Ansicht eingetragen sind.
@@ -217,7 +285,7 @@ class FreieFunktionen(BefundWerkzeug):
             return None
         if rufer is not None:
             self._rufer_sammeln(baum, rufer, datei)
-        funktionen, klassen = [], 0
+        funktionen, klassen, weiterleitungen = [], 0, 0
         for knoten in baum.body:          # nur Modulebene, nicht ast.walk
             if isinstance(knoten, ast.ClassDef):
                 klassen += 1
@@ -228,7 +296,30 @@ class FreieFunktionen(BefundWerkzeug):
                 erstes = (knoten.args.args[0].arg if knoten.args.args else '')
                 funktionen.append((knoten.name, knoten.lineno,
                                    ende - knoten.lineno + 1, erstes))
+                weiterleitungen += 1 if self._weiterleitung(knoten) else 0
         if not funktionen:
             return None
         return Modulsicht(self.kurz(datei), funktionen, klassen,
-                          getattr(baum, 'end_lineno', 0) or 0)
+                          getattr(baum, 'end_lineno', 0) or 0, weiterleitungen)
+
+    @staticmethod
+    def _weiterleitung(knoten):
+        u"""Ein Einzeiler, der nur weitergibt: ``return Pfade.medien()``.
+
+        DER UNTERSCHIED, DER GEFEHLT HAT (24.08.2026)
+        =============================================
+        `app/integrations/` bekam sieben Mal „schreib eine Klasse". Gemessen:
+        **fuenf der sechs Dateien HABEN die Klasse** — `Pfade`, `Dateien`,
+        `FFmpeg`, `DiskSpace`, `Aufgabenplanung`. Davor stehen 15 Einzeiler
+        als Fassade, und `get_media_root` allein an 146 Stellen gerufen.
+
+        Das ist ein anderer Befund: nicht „hier fehlt eine Klasse", sondern
+        „hier steht eine Fassade davor" — und die abzureissen kostet 146
+        Aenderungen, waehrend die fehlende Klasse zu schreiben eine kostet.
+        Ohne die Unterscheidung sieht beides gleich dringend aus.
+        """
+        koerper = [z for z in knoten.body
+                   if not (isinstance(z, ast.Expr)
+                           and isinstance(z.value, ast.Constant))]
+        return (len(koerper) == 1 and isinstance(koerper[0], ast.Return)
+                and isinstance(koerper[0].value, ast.Call))

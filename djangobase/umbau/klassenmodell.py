@@ -40,8 +40,16 @@ import ast
 from pathlib import Path
 
 #: Verzeichnisse, die nicht zum Modell gehoeren.
+#:
+#: EIN SICHERUNGSORDNER IST KEINE QUELLE (24.08.2026)
+#: ================================================
+#: Im Auswahlfeld stand `werkzeug — 322 Klassen`. Gemessen: **alle 322**
+#: lagen unter `werkzeug/sicherung/` — 233 Dateien, die ein Fixer am
+#: 18.08. beiseitegelegt hatte. Das Modell zeigte also einen Abzug des
+#: Projekts als eigenen Ast, mit doppelten Klassennamen im Bestand.
 AUS = ('migrations', '__pycache__', 'node_modules', '.git', 'venv',
-       'staticfiles', 'site-packages')
+       'staticfiles', 'site-packages',
+       'sicherung', 'sicherungen', 'backup', 'backups', '.bak')
 
 #: Sammlungen: Ein Feld dieser Bauart haelt VIELE.
 SAMMLUNGEN = {'list', 'dict', 'set', 'tuple', 'defaultdict', 'OrderedDict',

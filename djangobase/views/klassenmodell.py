@@ -14,6 +14,7 @@ Das Bild entsteht auf Knopfdruck, nicht beim Seitenaufruf: Der Durchgang
 liest jede ``.py`` des Projekts. Bei CamTrack sind das 1004 Klassen — das
 gehoert nicht in den Weg von jemandem, der nur die Seite aufschlaegt.
 """
+import logging
 import time
 from pathlib import Path
 
@@ -21,7 +22,11 @@ from django.conf import settings
 from django.views import View
 
 from ..mixins import ZugriffMixin
+from ..umbau import ablage
+from ..umbau.ablage import Speicher
 from ..umbau.aufrufnetz import Aufrufnetz
+from ..umbau.codequalitaet import Codequalitaet
+from ..umbau.codezahlen import Codezahlen
 from ..umbau.gliederung import nach_rolle as gliedern
 from ..umbau.globalbestand import Globalbestand, hauptaeste
 from ..umbau.klassenbild import Klassenbild
@@ -31,8 +36,34 @@ from ..umbau.klassenmodell import Klassenmodell
 #: haelt, und was DIESE halten — bei drei wird es eine Tapete.
 TIEFE_VORGABE = 2
 
+logger = logging.getLogger('djangobase.klassenmodell')
 
-class Modellspeicher:
+
+class Letzterlauf:
+    u"""Was zuletzt gezeigt wurde — Reiter, Quelle, Startklasse.
+
+    Nicht das ERGEBNIS (das liegt in den Speichern oben), sondern
+    die FRAGE. Damit zeigt ein frischer Seitenaufruf denselben
+    Stand wie vorhin, statt leer dazustehen — und der Durchgang
+    kommt aus dem Speicher.
+    """
+
+    BEREICH = 'letzterlauf'
+    SCHLUESSEL = 'seite'
+
+    @classmethod
+    def holen(cls):
+        return ablage.lesen(cls.BEREICH, cls.SCHLUESSEL)
+
+    @classmethod
+    def merken(cls, daten):
+        ablage.schreiben(cls.BEREICH, cls.SCHLUESSEL,
+                         dict((k, daten.get(k, ''))
+                              for k in ('reiter', 'bereich',
+                                        'start', 'tiefe', 'was')))
+
+
+class Modellspeicher(Speicher):
     u"""Haelt das eingelesene Modell, bis jemand ausdruecklich neu liest.
 
     DIE ANSAGE (Edgar, 24.08.2026)
@@ -41,37 +72,31 @@ class Modellspeicher:
          durchgeht?"
 
     Berechtigt: Der Durchgang liest jede ``.py`` des Projekts — bei
-    CamTrack 1023 Klassen. Wer nur eine andere Startklasse ansehen oder
-    einen Schritt tiefer gehen will, braucht davon nichts neu.
+    CamTrack 1021 Klassen.
 
-    Gehalten wird je Bereich, im Arbeitsspeicher des Web-Dienstes. Ein
-    Neustart leert ihn, und das ist richtig so: Nach einem Neustart hat
-    sich der Quelltext womoeglich geaendert.
+    UND EINE ZWEITE (24.08.2026)
+    ============================
+        „cache die Ergebnisse des letzten Laufs"
+
+    Vorher lag alles nur im Arbeitsspeicher des Web-Dienstes. Der wird
+    nach jeder Aenderung neu gestartet (Daphne laedt nicht nach), und
+    danach stand die Seite wieder leer da. Jetzt liegt das Ergebnis unter
+    ``BASE_DIR/.cache/umbau/`` und ueberlebt den Neustart — siehe
+    ``djangobase/umbau/ablage.py``.
     """
 
-    _modelle = {}
+    bereich = 'klassenmodell'
 
-    @classmethod
-    def holen(cls, wurzel, neu=False):
-        u"""``(Modell, Alter in Sekunden oder None)``."""
-        schluessel = str(wurzel)
-        if not neu and schluessel in cls._modelle:
-            modell, wann = cls._modelle[schluessel]
-            return modell, time.time() - wann
-        modell = Klassenmodell(wurzel).lesen()
-        cls._modelle[schluessel] = (modell, time.time())
-        return modell, None
-
-    @classmethod
-    def leeren(cls):
-        cls._modelle.clear()
+    @staticmethod
+    def bauen(wurzel):
+        return Klassenmodell(wurzel).lesen()
 
 
 class Quellenspeicher:
     u"""Die waehlbaren Quellen — einmal gezaehlt, dann gemerkt.
 
-    Die Zaehlung liest jede ``.py`` des Projekts. Sie lief bei JEDEM
-    Seitenaufruf, auch beim blossen Aufschlagen der Seite.
+    Ohne Wurzel-Schluessel, deshalb keine Unterklasse von ``Speicher``:
+    Es gibt genau EINE Liste, nicht eine je Quelle.
     """
 
     _liste = None
@@ -87,48 +112,49 @@ class Quellenspeicher:
         cls._liste = None
 
 
-class Netzspeicher:
-    u"""Das Aufrufnetz — einmal gelesen, dann gemerkt.
+class Netzspeicher(Speicher):
+    u"""Das Aufrufnetz — liest jede ``.py`` zweimal (Definitionen, dann
+    Aufrufe). Das gehoert nicht in jeden Reiterwechsel."""
 
-    Es liest jede ``.py`` zweimal (Definitionen, dann Aufrufe); das gehoert
-    nicht in jeden Reiterwechsel.
-    """
+    bereich = 'aufrufnetz'
 
-    _netze = {}
-
-    @classmethod
-    def holen(cls, wurzel, neu=False):
-        schluessel = str(wurzel)
-        if not neu and schluessel in cls._netze:
-            netz, wann = cls._netze[schluessel]
-            return netz, time.time() - wann
-        netz = Aufrufnetz(wurzel).lesen()
-        cls._netze[schluessel] = (netz, time.time())
-        return netz, None
-
-    @classmethod
-    def leeren(cls):
-        cls._netze.clear()
+    @staticmethod
+    def bauen(wurzel):
+        return Aufrufnetz(wurzel).lesen()
 
 
-class Bestandsspeicher:
+class Bestandsspeicher(Speicher):
     u"""Dasselbe fuer den Modulebenen-Bestand: einmal lesen, oft ansehen."""
 
-    _bestaende = {}
+    bereich = 'globalbestand'
 
-    @classmethod
-    def holen(cls, wurzel, neu=False):
-        schluessel = str(wurzel)
-        if not neu and schluessel in cls._bestaende:
-            bestand, wann = cls._bestaende[schluessel]
-            return bestand, time.time() - wann
-        bestand = Globalbestand(wurzel).lesen()
-        cls._bestaende[schluessel] = (bestand, time.time())
-        return bestand, None
+    @staticmethod
+    def bauen(wurzel):
+        return Globalbestand(wurzel).lesen()
 
-    @classmethod
-    def leeren(cls):
-        cls._bestaende.clear()
+
+class Zahlenspeicher(Speicher):
+    u"""Die Bestandszahlen — der Durchgang geht ueber JEDE Datei, nicht
+    nur ueber die ``.py``. Bei CamTrack 1119 Quelldateien, knapp zwei
+    Sekunden."""
+
+    bereich = 'codezahlen'
+
+    @staticmethod
+    def bauen(wurzel):
+        return Codezahlen(wurzel).lesen()
+
+
+class Qualitaetsspeicher(Speicher):
+    u"""Die Messung — vier Werkzeuge ueber 711 Dateien: gemessen **19
+    Sekunden**. Das gehoert nicht in jeden Reiterwechsel und schon gar
+    nicht in den Seitenaufruf."""
+
+    bereich = 'codequalitaet'
+
+    @staticmethod
+    def bauen(wurzel):
+        return Codequalitaet(wurzel).messen()
 
 
 class KlassenmodellView(ZugriffMixin, View):
@@ -137,6 +163,29 @@ class KlassenmodellView(ZugriffMixin, View):
     vorlage = 'djangobase/hilfe/klassenmodell.html'
 
     def get(self, request):
+        u"""Zeigt den letzten Lauf, statt leer dazustehen.
+
+        DIE ANSAGE (Edgar, 24.08.2026)
+        ==============================
+            „cache die Ergebnisse des letzten Laufs"
+
+        Eine Ablage, die den Neustart überlebt, nützt nichts, solange die
+        Seite beim Aufschlagen trotzdem leer ist. Gemerkt wird deshalb
+        auch, WAS zuletzt gezeigt wurde — Reiter, Quelle, Startklasse.
+        Der Durchgang selbst kommt dann aus dem Speicher und kostet
+        nichts.
+
+        Fällt das Wiederholen hin (eine Ablage aus einer älteren Fassung,
+        eine Quelle, die es nicht mehr gibt), kommt die leere Seite. Das
+        ist der alte Zustand, kein Fehler.
+        """
+        letzter, _alter = Letzterlauf.holen()
+        if letzter:
+            try:
+                return self._zeigen(request, letzter)
+            except Exception:
+                logger.warning('letzten Lauf nicht wiederholbar',
+                               exc_info=True)
         return self._seite(request)
 
     #: Die Reiter der Seite. Der Schluessel steht im Formular.
@@ -146,14 +195,27 @@ class KlassenmodellView(ZugriffMixin, View):
         ('klassen', 'Globale Klassen', 'bi-boxes'),
         ('variablen', 'Globale Variablen', 'bi-hash'),
         ('seiten', 'HTML-Seiten', 'bi-filetype-html'),
+        ('qualitaet', 'Code Qualität', 'bi-speedometer2'),
     )
 
     def post(self, request):
-        wurzel = self._wurzel(request.POST.get('bereich', ''))
-        neu = bool(request.POST.get('neu'))
-        reiter = request.POST.get('reiter', 'baum')
+        Letzterlauf.merken(request.POST)
+        return self._zeigen(request, request.POST)
+
+    def _zeigen(self, request, daten):
+        u"""Eine Sicht bauen — aus dem Formular ODER aus dem letzten Lauf.
+
+        Beide Wege gehen durch dieselbe Stelle. Zwei Stellen, die
+        dieselbe Seite bauen, laufen auseinander; das hat dieses Projekt
+        an der Live-Kachel bereits Wochen gekostet.
+        """
+        wurzel = self._wurzel(daten.get('bereich', ''))
+        neu = bool(daten.get('neu'))
+        reiter = daten.get('reiter', 'baum')
         if reiter not in dict((k, 1) for k, _l, _i in self.REITER):
             reiter = 'baum'
+        if reiter == 'qualitaet':
+            return self._qualitaet(request, daten, wurzel, neu)
         if reiter != 'baum':
             bestand, alter = Bestandsspeicher.holen(wurzel, neu=neu)
             zusatz = {}
@@ -187,23 +249,35 @@ class KlassenmodellView(ZugriffMixin, View):
             return self._seite(
                 request, reiter=reiter, bestand=bestand,
                 kennzahlen=bestand.kennzahlen(),
-                bereich=request.POST.get('bereich', ''),
+                bereich=daten.get('bereich', ''),
                 alter=int(alter) if alter is not None else None, **zusatz)
         if neu:
             Quellenspeicher.leeren()
             Netzspeicher.leeren()
         modell, alter = Modellspeicher.holen(wurzel, neu=neu)
-        start = (request.POST.get('start') or '').strip() or None
+        start = (daten.get('start') or '').strip() or None
         try:
-            tiefe = max(1, min(4, int(request.POST.get('tiefe')
+            tiefe = max(1, min(4, int(daten.get('tiefe')
                                       or TIEFE_VORGABE)))
         except (TypeError, ValueError):
             tiefe = TIEFE_VORGABE
         kaesten, linien = modell.nachbarschaft(start, tiefe)
         gewaehlt = start or modell.dickster_ast()
-        # Steckbriefe der GEZEIGTEN Klassen — fuer Hover und Popup. Alle
-        # 1004 waeren ein Megabyte JSON in der Seite.
-        steckbriefe = modell.steckbriefe(k.name for k in kaesten)
+        # STECKBRIEFE FUER ALLES, WAS AUF DER SEITE STEHT (24.08.2026)
+        # ============================================================
+        # Hier stand `modell.steckbriefe(k.name for k in kaesten)` — also
+        # nur fuer die Kaesten IM BILD, mit der Begruendung „alle 1004
+        # waeren ein Megabyte JSON". Nachgemessen sind es **430 KB**, und
+        # die Gliederung darunter listet alle 1021 Klassen als Knoepfe.
+        #
+        # Gemeldet: „ich hatte dir aufgegeben, bei jedem Klassen-Eintrag
+        # einen Popup zu machen mit den Infos … warum fehlt das???" Genau
+        # deshalb: Wer einen Knopf anklickte, bekam nichts, weil zu seinem
+        # Namen kein Steckbrief mitgeschickt war.
+        #
+        # Eine geschaetzte Zahl hat hier eine Funktion verhindert. 430 KB
+        # sind fuer eine Entwickler-Seite kein Grund dazu.
+        steckbriefe = modell.steckbriefe(sorted(modell.klassen))
         return self._seite(
             request,
             bild=(Klassenbild(kaesten, linien, gewaehlt, steckbriefe).svg()
@@ -215,7 +289,7 @@ class KlassenmodellView(ZugriffMixin, View):
             kennzahlen=modell.kennzahlen(),
             gewaehlt=gewaehlt,
             tiefe=tiefe,
-            bereich=request.POST.get('bereich', ''),
+            bereich=daten.get('bereich', ''),
             gezeigt=len(kaesten),
             aeste=self._aeste(modell),
             # Alle Klassen, nach Verzeichnis gebuendelt — sonst nennt die
@@ -228,6 +302,53 @@ class KlassenmodellView(ZugriffMixin, View):
             leer=not kaesten and bool(start),
             reiter='baum',
         )
+
+    # ── Code Qualität ───────────────────────────────────────────
+    def _qualitaet(self, request, daten, wurzel, neu):
+        u"""Zwei Knöpfe auf einem Reiter — Zählung und Bewertung.
+
+        DIE ANSAGE (Edgar, 24.08.2026)
+        ==============================
+            „ein Button der eine Statistik macht … Dann brauche ich ein
+             Tool zur Evaluierung der Code-Qualität … Mach einen Button
+             dazu der Code-Qualität mit 2-3 Methoden überprüft"
+
+        Zwei Knöpfe, weil es zwei sehr verschiedene Kosten sind: Die
+        Zählung braucht 2 Sekunden, die Messung 19. Wer nur wissen will,
+        wie groß das Projekt ist, soll nicht auf vier Werkzeuge warten.
+        """
+        # „Neu einlesen" schickt kein `was` mit — dann gilt, was zuletzt
+        # gezeigt wurde. Ein zweites Feld NAMENS `was` ginge nicht: Bei
+        # einer QueryDict zaehlt der letzte Wert, und der Knopf verlöre.
+        was = (daten.get('was')
+               or daten.get('was_zuletzt') or 'statistik')
+        if was not in ('statistik', 'qualitaet'):
+            was = 'statistik'
+        zusatz = {'was': was, 'bereich': daten.get('bereich', '')}
+        if was == 'qualitaet':
+            messung, alter = Qualitaetsspeicher.holen(wurzel, neu=neu)
+            zusatz['verfahren'] = messung.als_liste()
+            zusatz['q_dateien'] = len(messung.dateien)
+            # Was beim MESSEN scheiterte, gehört ganz nach oben: Eine
+            # Datei, die nicht parst, ist der schwerste Fund — und sie
+            # verschwand bis zum 24.08.2026 hinter einem stummen
+            # `except: continue`, also aus Statistik UND Bericht.
+            zusatz['pannen'] = [{'datei': d, 'verfahren': v, 'grund': g}
+                                for d, v, g in messung.pannen]
+        else:
+            zahlen, alter = Zahlenspeicher.holen(wurzel, neu=neu)
+            zusatz['arten'] = zahlen.liste()
+            zusatz['arten_gesamt'] = zahlen.gesamt()
+            zusatz['zahlen'] = zahlen.kennzahlen()
+            # Ehrlich sagen, was NICHT mitgezählt wurde. Ohne diese Zeile
+            # liest sich „1119 Dateien" wie das ganze Verzeichnis, und im
+            # ersten Lauf standen dort 3861 — mit einem 1,7-GB-Video darin.
+            zusatz['ausgelassen'] = zahlen.ausgelassen
+            zusatz['ausgelassen_wo'] = sorted(
+                zahlen.ausgelassen_wo.items(), key=lambda p: -p[1])
+        return self._seite(request, reiter='qualitaet',
+                           alter=int(alter) if alter is not None else None,
+                           **zusatz)
 
     # ── intern ──────────────────────────────────────────────────
     @staticmethod
