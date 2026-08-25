@@ -11,6 +11,7 @@ Jede Klasse faengt eine Fehlerklasse ab, die in echten Sitzungen Zeit gekostet
 hat - und zwar die gemeinste Sorte: Der Server startet, die Seite liefert 200,
 und trotzdem ist etwas kaputt.
 
+    Werkzeugkatalog   ein vorhandenes Pruefwerkzeug wird nachgebaut
     Seiten            kaputter Import, Vorlagenfehler, fehlende Kontextvariable
     Urls              eine Funktion ist umgezogen und die Route zeigt ins Leere
     Module            Syntaxfehler in einer Datei, die niemand importiert hat
@@ -50,7 +51,16 @@ from pathlib import Path
 from django.conf import settings
 from django.test import SimpleTestCase, TestCase
 
-__all__ = ["GrundtestSeiten", "GrundtestUrls", "GrundtestModule",
+# ERSTER FALL DER LISTE (Ansage 25.08.2026). Er prueft nichts am
+# Programm - er DRUCKT den Werkzeugkasten und meldet Nachbauten. Genau
+# deshalb steht er vorn: Wer den Bericht von oben liest, sieht zuerst,
+# was es an Pruefwerkzeugen schon gibt, und baut es nicht ein zweites
+# Mal. Anlass war ein Nachbau von `fix_importe`, den niemand gebraucht
+# haette - der vorhandene Fixer war sogar gruendlicher.
+from .werkzeugkatalog import GrundtestWerkzeugkatalog  # noqa: F401
+
+__all__ = ["GrundtestWerkzeugkatalog",
+           "GrundtestSeiten", "GrundtestUrls", "GrundtestModule",
            "GrundtestMigrationen", "GrundtestVorlagen", "GrundtestSystemcheck",
            "GrundtestLogging", "GrundtestMenue", "GrundtestEsModule",
            "einstellung"]

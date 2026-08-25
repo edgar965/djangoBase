@@ -13,12 +13,19 @@ lieferte HTTP 200 und stand in keinem der beiden Menues. Beide Wege lesen jetzt
 ``PFLICHTSEITEN``; eine neue Seite erscheint ueberall, ohne dass hier jemand
 etwas nachtraegt.
 
-Die Seiten haben BEWUSST keine Bedingung (wie Review und Aktuell): Sie brauchen
-keine Konfiguration - die Werkzeuge fragen Django nach Vorlagen, Routen und
-Modulen und laufen deshalb in jedem Projekt, das djangoBase einbindet.
+Die Seiten haben BEWUSST keine Bedingung: Fehlt einem Projekt die noetige
+Konfiguration (Traffic, Uebersetzung), erklaert die Seite selbst, was
+einzutragen ist - hilfreicher als ein fehlender Menuepunkt, den niemand sucht.
 
-Warum mehrere: Skills und Skills2 sind am 16.08.2026 in zwei parallelen
-Sitzungen entstanden, jede mit eigenem Zuschnitt. Skills1 fuehrt beide zusammen.
+SEIT 25.08.2026 STEHT HIER DIE GANZE HILFE-GRUPPE, nicht mehr nur der
+Werkzeugkasten: Skills, Review, Aktuell, KI-Modelle, Traffic, Uebersetzung.
+Der Grund ist der alte: „Review" und „Aktuell" standen einzeln in
+``_nav.html``, und die binden Projekte mit eigener Navigation gar nicht ein -
+assistant, NoiseSpy und CamTrack sahen sie deshalb nie. „KI-Modelle",
+„Traffic" und „Uebersetzung" standen ueberhaupt nirgends.
+
+Der Name der Datei ist damit zu eng geworden; er bleibt, damit die Einbindungen
+in den Projekten weiterlaufen.
 {% endcomment %}
 {% for seite in djangobase.pflichtseiten %}
 <li><a class="nav-link {% if aktiv == seite.route %}active{% endif %}" href="{{ seite.url }}"{% if seite.zweck %} title="{{ seite.zweck }}"{% endif %}>

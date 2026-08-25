@@ -91,6 +91,11 @@ class Protokoll(EigenesWerkzeug):
         r"|self\._?log(?:ger)?|getLogger\([^)]*\))"
         r"\s*\.\s*"
         r"(?:debug|info|warning|warn|error|exception|critical)")
+    #: Die Methodennamen eines Loggers. Als Menge fuer den Syntaxbaum -
+    #: ``LOGGER_RUF`` daneben arbeitet auf dem Text und wird dort
+    #: gebraucht, wo kein Baum vorliegt.
+    LOGSTUFEN = frozenset(("debug", "info", "warning", "warn", "error",
+                           "exception", "critical"))
     #: Vermerk am Code fuer einen Block, der bewusst stumm bleibt. Die
     #: Begruendung MUSS dahinterstehen — „# stumm gewollt:" allein zaehlt nicht,
     #: sonst wird der Vermerk zum Schalter, mit dem man jeden Befund abschaltet.
@@ -387,6 +392,8 @@ def schlucken(fall):
             return []
         if self._eigener_code(k) or self._testbericht(d, k):
             return []
+        if self._ueber_helfer(d, k):
+            return []
         # DEM NUTZER GEMELDET ist auch gemeldet (17.08.2026). Django-Messages
         # zeigen den Grund auf der naechsten Seite an:
         #   except Exception as exc:
@@ -407,6 +414,168 @@ def schlucken(fall):
         return [{"art": art, "datei": d.name, "zeile": k.lineno,
                  "fundstelle": "except %s" % self._typname(k.type),
                  "hinweis": hinweis}]
+
+    @classmethod
+    def _ueber_helfer(cls, d, knoten):
+        """``return self._fehler("…")`` — die 4xx-Antwort steht eine Ebene tiefer.
+
+        ``_fehlerstatus`` sucht den Statuscode IM Block. Das trifft die
+        direkte Schreibweise::
+
+            except ValueError:
+                return JsonResponse({"error": "…"}, status=400)
+
+        und nicht die haeufigere, sobald eine Datei mehr als zwei
+        Fehlerantworten hat — dann wandert der Aufbau in eine kleine
+        Hilfsmethode::
+
+            def _fehler(self, text, code=400):
+                return JsonResponse({"ok": False, "error": text}, status=code)
+            ...
+            except ValueError:
+                return self._fehler("mail_id ist keine Zahl")
+
+        Beides sagt dem Nutzer dasselbe. Trotzdem galt nur das erste als
+        behandelt: im Projekt assistant standen am 25.08.2026 SIEBZEHN
+        Befunde "behandelt, aber nicht protokolliert", und NACH DER
+        EINZELPRUEFUNG WAR KEIN EINZIGER ECHT — dreizehn davon riefen so
+        einen Helfer, drei reichten die Ausnahme an eine Methode weiter,
+        einer wich auf einen zweiten Weg aus.
+
+        Das ist kein neues Zugestaendnis, sondern dieselbe Regel wie
+        oben, nur eine Ebene tiefer aufgeloest: Der Helfer muss IM
+        SELBEN MODUL stehen und dort nachweislich eine 4xx-Antwort
+        bauen. Ein Name allein genuegt nicht - sonst wuerde jede Methode
+        mit "fehler" im Namen den Block stillstellen.
+        """
+        aufrufe = [x for x in ast.walk(knoten) if isinstance(x, ast.Call)]
+        if not aufrufe:
+            return False
+        fest, durchgereicht, protokollierend = cls._helfer(d)
+        for ruf in aufrufe:
+            name = (ruf.func.attr if isinstance(ruf.func, ast.Attribute)
+                    else getattr(ruf.func, "id", ""))
+            if name in fest:
+                return True
+            # Helfer, der den Code DURCHREICHT: dann steht die Zahl beim
+            # Aufruf - `self._fehler("Mail nicht gefunden", 404)`.
+            if name in durchgereicht and cls._ruft_mit_4xx(ruf,
+                                                          durchgereicht[name]):
+                return True
+            # Die gefangene Ausnahme wird an eine Methode gegeben, die
+            # protokolliert. Sie ist damit nicht verschwunden - sie wird
+            # nur woanders behandelt.
+            if name in protokollierend and cls._gibt_ausnahme_mit(ruf, knoten):
+                return True
+        return False
+
+    @staticmethod
+    def _ruft_mit_4xx(ruf, vorgabe):
+        """Steht beim Aufruf ein 4xx - als Wert oder als Vorgabe des Helfers?"""
+        for wert in list(ruf.args) + [s.value for s in ruf.keywords]:
+            if isinstance(wert, ast.Constant) and isinstance(wert.value, int):
+                if 400 <= wert.value < 500:
+                    return True
+                if wert.value >= 500:
+                    return False
+        return vorgabe is not None and 400 <= vorgabe < 500
+
+    @staticmethod
+    def _gibt_ausnahme_mit(ruf, knoten):
+        """Wandert die gefangene Ausnahme als Argument in den Aufruf?"""
+        if not knoten.name:
+            return False
+        for wert in list(ruf.args) + [s.value for s in ruf.keywords]:
+            for teil in ast.walk(wert):
+                if isinstance(teil, ast.Name) and teil.id == knoten.name:
+                    return True
+        return False
+
+    @classmethod
+    def _helfer(cls, d):
+        """Die Hilfsmethoden dieses Moduls, in drei Gruppen.
+
+        ``(fest, durchgereicht, protokollierend)``:
+
+        * **fest** - baut eine Antwort mit fest verdrahtetem 4xx.
+        * **durchgereicht** - Name -> Vorgabewert des Status-Parameters
+          (oder ``None``). Der eigentliche Code steht beim Aufruf.
+        * **protokollierend** - schreibt selbst ins Log. Wer die
+          gefangene Ausnahme dorthin gibt, hat sie nicht verschluckt.
+
+        Je Datei einmal ermittelt und gemerkt - ``_ausnahme`` fragt sonst
+        fuer jeden except-Block erneut den ganzen Syntaxbaum ab.
+        """
+        gemerkt = getattr(d, "_protokoll_helfer", None)
+        if gemerkt is not None:
+            return gemerkt
+        fest, durchgereicht, protokollierend = set(), {}, set()
+        try:
+            baum = d.baum
+        except Exception:
+            baum = None
+        if baum is not None:
+            for x in ast.walk(baum):
+                if not isinstance(x, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    continue
+                status = cls._fehlerstatus(x)
+                if status is not None and 400 <= status < 500:
+                    fest.add(x.name)
+                elif cls._status_durchgereicht(x):
+                    durchgereicht[x.name] = cls._vorgabe_status(x)
+                if cls._protokolliert(x):
+                    protokollierend.add(x.name)
+        ergebnis = (fest, durchgereicht, protokollierend)
+        try:
+            d._protokoll_helfer = ergebnis
+        except Exception:
+            # stumm gewollt: Der Merkzettel ist Beschleunigung, kein
+            # Ergebnis. Laesst die Quelldatei kein Attribut zu, wird
+            # eben jedes Mal neu gerechnet.
+            pass
+        return ergebnis
+
+    @staticmethod
+    def _status_durchgereicht(fn):
+        """``status=status`` - der Code kommt von aussen, nicht aus dem Code."""
+        namen = {a.arg for a in fn.args.args + fn.args.kwonlyargs}
+        for x in ast.walk(fn):
+            if not isinstance(x, ast.Call):
+                continue
+            for s in x.keywords:
+                if s.arg == "status" and isinstance(s.value, ast.Name):
+                    if s.value.id in namen:
+                        return True
+        return False
+
+    @staticmethod
+    def _vorgabe_status(fn):
+        """Vorgabewert des ``status``-Parameters - oder ``None``."""
+        stellen = fn.args.args + fn.args.kwonlyargs
+        vorgaben = ([None] * (len(fn.args.args) - len(fn.args.defaults))
+                    + list(fn.args.defaults)
+                    + list(fn.args.kw_defaults))
+        for arg, vorgabe in zip(stellen, vorgaben):
+            if arg.arg not in ("status", "code"):
+                continue
+            if isinstance(vorgabe, ast.Constant) and isinstance(vorgabe.value, int):
+                return vorgabe.value
+        return None
+
+    @classmethod
+    def _protokolliert(cls, fn):
+        """Schreibt diese Funktion selbst ins Log?"""
+        for x in ast.walk(fn):
+            if not isinstance(x, ast.Call) or not isinstance(x.func, ast.Attribute):
+                continue
+            if x.func.attr not in cls.LOGSTUFEN:
+                continue
+            wurzel = x.func.value
+            name = (getattr(wurzel, "id", "") or getattr(wurzel, "attr", ""))
+            if "log" in name.lower():
+                return True
+        return False
+
 
     @staticmethod
     def _eigener_code(knoten):

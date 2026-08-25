@@ -78,6 +78,29 @@ class PflichtEintrag:
 #: Skills3 hatte zusätzlich die 20 Review-Lehren — die stehen jetzt hier.
 #: „grossdateien" war der einzige Werkzeug-Unterschied und steht bewusst auf
 #: der Überspringen-Liste (von „dateigroesse" abgedeckt).
+#:
+#: VIER SEITEN DAZU (25.08.2026) — derselbe Fehler wie bei „Skills1"
+#: ==================================================================
+#: Gemessen im Projekt assistant mit ``werkzeug/hilfe_menue_probe.py``:
+#: jede Route unter ``/hilfe/`` abgerufen und gegen die GERENDERTE
+#: Seitenleiste gehalten. Ergebnis: „Review", „Aktuell", „KI-Modelle",
+#: „Traffic" und „Übersetzung" lieferten alle HTTP 200 und standen in
+#: KEINEM Menü.
+#:
+#: Der Grund ist derselbe wie damals: „Review" und „Aktuell" standen
+#: EINZELN in ``_nav.html`` statt in dieser Liste. Projekte mit eigener
+#: Navigation (assistant, NoiseSpy, CamTrack — die Hälfte aller
+#: Konsumenten) binden ``_nav.html`` gar nicht ein und sahen sie
+#: deshalb nie. „KI-Modelle", „Traffic" und „Übersetzung" standen
+#: nirgends, auch nicht in ``_nav.html``.
+#:
+#: Sie stehen jetzt alle hier, und ``_nav.html`` führt sie nicht mehr
+#: einzeln — sonst stünden sie in den Standard-Shell-Projekten doppelt.
+#:
+#: KEINE BEDINGUNGEN, auch nicht bei Traffic und Übersetzung, die ein
+#: Projekt abschalten kann. Das ist die Vorgabe vom 13.08.2026: Fehlt
+#: die Konfiguration, erklärt die Seite selbst, was einzutragen ist —
+#: das ist hilfreicher als ein fehlender Menüpunkt, den niemand sucht.
 PFLICHTSEITEN = (
     PflichtEintrag(
         "Werkzeug Code Review", "bi-tools", "skills",
@@ -88,6 +111,24 @@ PFLICHTSEITEN = (
         "Werkzeug Klassenmodell", "bi-diagram-3", "klassenmodell",
         "Das Objektmodell als Bild: wer hält wen, wer erbt von wem — auf "
         "Knopfdruck aus dem Quelltext gezeichnet"),
+    PflichtEintrag(
+        "Review", "bi-chat-left-text", "review",
+        "Code-Review im Gespräch mit einem zweiten Modell — die Runden "
+        "laufen im Hintergrund, eine bis fünf Minuten"),
+    PflichtEintrag(
+        "Aktuell", "bi-broadcast", "aktuell",
+        "Rollierendes Fenster mit den Ergebnissen der Claude-CLI; "
+        "geschrieben wird ausschließlich über `manage.py aktuell`"),
+    PflichtEintrag(
+        "KI-Modelle", "bi-cpu", "ki_modelle",
+        "Welches Modell taugt als Sparringspartner? Katalog live von "
+        "OpenRouter und aus `ollama list`, Bewertung aus eigener Messung"),
+    PflichtEintrag(
+        "Traffic", "bi-graph-up", "traffic",
+        "Zugriffsstatistik: welche Seiten wie oft aufgerufen wurden"),
+    PflichtEintrag(
+        "Übersetzung", "bi-translate", "uebersetzung",
+        "Oberflächentexte in andere Sprachen übersetzen (deep_translator)"),
 )
 
 
