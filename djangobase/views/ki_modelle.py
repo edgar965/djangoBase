@@ -36,8 +36,13 @@ from django.views import View
 logger = logging.getLogger(__name__)
 
 #: Anbieter, die das Feld abdecken, das fuer diese Arbeit in Frage kommt.
+#: ``stealth`` kam am 22.08.2026 dazu (Ansage Edgar: „aktiviere oxAlpha"). Unter
+#: diesem Namen veroeffentlicht OpenRouter Modelle, deren Hersteller sich noch
+#: nicht nennt - hier ``stealth/ox-alpha``. Ohne den Eintrag stuende das Modell
+#: mit Note in der Bestenliste und fehlte im Katalog darunter, genau wie Kimi K3
+#: am 11.08.2026.
 ANBIETER = ("qwen", "nvidia", "gemini", "gemma", "llama", "deepseek",
-            "openai", "anthropic", "mistral", "moonshot")
+            "openai", "anthropic", "mistral", "moonshot", "stealth")
 
 
 class KiModelleView(View):

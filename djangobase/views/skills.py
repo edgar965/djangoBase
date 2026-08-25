@@ -24,6 +24,7 @@ from ..mixins import ZugriffMixin
 from ..skills import (EIGENE, Bericht, Umbaunetz, fixer, fixer_finden,
                        kriterien, werkzeuge)
 from ..skills.lehren_review import BEREICHE, LEHREN, Lehrenstand
+from ..skills.rangliste import rangliste
 from ..skills.werkzeug import Ergebnis
 
 
@@ -48,6 +49,15 @@ class SkillsView(ZugriffMixin, View):
             return self._fix(request)
         if request.POST.get("netz"):
             return self._netz(request)
+        if request.POST.get("aktion") == "rang":
+            # EIN Eintrag je Absenden. Anders als bei einer Zuordnung lassen
+            # sich Ränge nicht stapelweise setzen: Jede Verschiebung ändert die
+            # Nummern der anderen, zwei Wünsche zugleich widersprechen sich
+            # („A auf 3" und „B auf 3"). Der Knopf steht deshalb in der Zeile.
+            slug = request.POST.get("rang_slug", "")
+            ziel = request.POST.get("rang_ziel", "")
+            ok = rangliste().verschieben(slug, ziel, list(werkzeuge()))
+            return redirect("%s?verschoben=%s" % (request.path, slug if ok else ""))
         if request.POST.get("aktion") == "lehren":
             # Die Ankreuzliste der Review-Lehren (bis 18.08.2026 auf der
             # eigenen Seite „Skills3"). Sie gehoert hierher: Es ist derselbe
@@ -257,32 +267,72 @@ class SkillsView(ZugriffMixin, View):
         """Struktur fuer djangobase/_tabelle.html. Die Zellen enthalten die
         Formularfelder; die Tabelle steht innerhalb des Formulars."""
         zeilen = []
-        for w in werkzeuge():
-            krit = getattr(w, "kriterium", 0)
-            zeilen.append({
-                "klasse": "db-hervor" if w.slug in gelaufen else "",
-                "zellen": [
-                    {"html": ('<input type="checkbox" name="werkzeug" value="%s"'
-                              ' class="sk1-wahl"%s>'
-                              % (escape(w.slug),
-                                 " checked" if w.slug in gelaufen else "")),
-                     "sort": 1 if w.slug in gelaufen else 0, "klasse": "sk1-mitte"},
-                    {"html": (str(krit) if krit else "—"), "sort": krit,
-                     "klasse": "sk1-mitte", "titel": kriterien().get(krit, "")},
-                    {"html": ('<span class="sk1-name">%s</span>'
-                              '<span class="sk1-dauer">%s</span>%s'
-                              % (escape(w.titel), escape(w.dauer),
-                                 ('<span class="sk1-ruft">ruft Endpunkte auf</span>'
-                                  if getattr(w, "ruft_endpunkte_auf", False) else ""))),
-                     "sort": w.titel},
-                    {"html": escape(w.zweck)},
-                    {"html": self._eingabefeld(w), "klasse": "sk1-mitte"},
-                    {"html": ('<button type="submit" name="werkzeug" value="%s"'
-                              ' class="sk1-run"><i class="bi bi-play-fill"></i>'
-                              ' Start</button>' % escape(w.slug)),
-                     "klasse": "sk1-mitte"},
-                ],
-            })
+        rang = rangliste()
+        alle = list(werkzeuge())
+        # NACH BEREICHEN GEGLIEDERT (25.08.2026). Vorher eine Liste von 50
+        # Eintraegen in Kriteriums-Reihenfolge - man sah nicht, was zusammen
+        # gehoert. Die Abschnittszeile kann _tabelle.html von sich aus
+        # (``gruppe``), es musste nichts an der Vorlage geaendert werden.
+        for abschnitt in rang.abschnitte(alle):
+            eintraege = abschnitt["eintraege"]
+            if not eintraege:
+                continue
+            b = abschnitt["bereich"]
+            zeilen.append({"gruppe": True, "zellen": [
+                {"html": '<b>%s</b> <span class="sk1-leise">%s</span>'
+                         % (escape(b["name"]), escape(b["warum"])),
+                 "colspan": 6}]})
+            for nr, w in eintraege:
+                zeilen.append(self._zeile(w, nr, gelaufen))
+        return self._rahmen(zeilen)
+
+    def _zeile(self, w, nr, gelaufen):
+        u"""Eine Werkzeug-Zeile. Herausgeloest, weil _tabelle sonst ueber
+        300 Zeilen ginge und zwei Dinge zugleich taete."""
+        return {
+            "klasse": "db-hervor" if w.slug in gelaufen else "",
+            "zellen": [
+                {"html": ('<input type="checkbox" name="werkzeug" value="%s"'
+                          ' class="sk1-wahl"%s>'
+                          % (escape(w.slug),
+                             " checked" if w.slug in gelaufen else "")),
+                 "sort": 1 if w.slug in gelaufen else 0, "klasse": "sk1-mitte"},
+                # DER RANG - eindeutig, und aendern verschiebt (Ansage
+                # 25.08.2026). Der Knopf steht IN der Zeile, nicht oben am
+                # Stapel: Jede Verschiebung aendert die Nummern der anderen,
+                # zwei Wuensche zugleich widersprechen sich.
+                #
+                # ``formnovalidate`` am Knopf, damit die Zahlenfelder der
+                # anderen Zeilen keine Pflichtpruefung ausloesen - sie gehoeren
+                # zum selben Formular wie der Stapellauf.
+                {"html": ('<input type="number" name="rang_ziel" value="%d"'
+                          ' min="1" max="999" class="sk1-rang"'
+                          ' aria-label="Rang">'
+                          '<button type="submit" name="aktion" value="rang"'
+                          ' class="sk1-rang-los" formnovalidate'
+                          ' title="Auf diese Nummer verschieben">'
+                          '<i class="bi bi-arrow-right-short"></i></button>'
+                          '<input type="hidden" name="rang_slug" value="%s">'
+                          % (nr, escape(w.slug))),
+                 "sort": nr, "klasse": "sk1-mitte"},
+                {"html": ('<span class="sk1-name">%s</span>'
+                          '<span class="sk1-dauer">%s</span>%s'
+                          % (escape(w.titel), escape(w.dauer),
+                             ('<span class="sk1-ruft">ruft Endpunkte auf</span>'
+                              if getattr(w, "ruft_endpunkte_auf", False) else ""))),
+                 "sort": w.titel},
+                {"html": escape(w.zweck)},
+                {"html": self._eingabefeld(w), "klasse": "sk1-mitte"},
+                {"html": ('<button type="submit" name="werkzeug" value="%s"'
+                          ' class="sk1-run"><i class="bi bi-play-fill"></i>'
+                          ' Start</button>' % escape(w.slug)),
+                 "klasse": "sk1-mitte"},
+            ],
+        }
+
+    def _rahmen(self, zeilen):
+        u"""Kopf und Rumpf der Tabelle - getrennt vom Zeilenbau, damit
+        keine der beiden Methoden zwei Dinge zugleich tut."""
         # Dictionary gewollt: das ist die Eingabestruktur von _tabelle.html.
         return {
             "key": "db-skills",
@@ -290,7 +340,18 @@ class SkillsView(ZugriffMixin, View):
                 {"label": ('<input type="checkbox" id="sk1-alle" '
                            'title="Alle aus- oder abwählen">'),
                  "key": "wahl", "sortAus": True},
-                {"label": "Nr.", "key": "nr", "titel": "Nummer des Auftrags-Kriteriums"},
+                # RANG STATT KRITERIUMS-NUMMER (25.08.2026, Ansage Edgar:
+                # „mach nur die neuen Bereiche, die alten brauche ich nicht
+                # mehr"). Hier stand die Nummer des Auftrags-Kriteriums (1-18),
+                # die sich mehrere Werkzeuge teilten. Jetzt eine EINDEUTIGE
+                # Nummer je Eintrag: Wer sie ändert, verschiebt den Eintrag,
+                # und die anderen rutschen nach.
+                #
+                # Das Kriterium ist damit nicht abgeschafft - es steht weiter
+                # am Werkzeug und ordnet es seinem Bereich zu. Es wird nur
+                # nicht mehr angezeigt und nicht mehr von Hand gepflegt.
+                {"label": "Rang", "key": "rang", "sortAus": True,
+                 "titel": "Eindeutige Nummer. Ändern verschiebt den Eintrag."},
                 {"label": "Werkzeug", "key": "name"},
                 {"label": "Was es tut", "key": "zweck"},
                 {"label": "Vorgabe", "key": "eingabe", "sortAus": True,

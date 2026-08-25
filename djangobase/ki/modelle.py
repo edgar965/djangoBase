@@ -247,9 +247,17 @@ class ModellKatalog:
             # Wartezeit - sie verdoppeln die Tabelle ohne Erkenntnisgewinn.
             if z["kennung"].endswith(":batch") or z["kennung"].startswith("~"):
                 continue
-            if z["kennung"].endswith(":free"):
+            # KOSTENLOS ENTSCHEIDET DER PREIS, NICHT DER NAME (22.08.2026).
+            # Vorher stand hier ``endswith(":free")`` fuer die eine und
+            # ``preis > 0`` fuer die andere Tabelle - ein Modell, das nichts
+            # kostet und trotzdem kein ``:free`` im Namen traegt, fiel damit
+            # durch BEIDE Raster und stand in keiner Tabelle. Aufgefallen an
+            # ``stealth/ox-alpha`` (Preis 0/0, kein Suffix), das dadurch
+            # unsichtbar blieb; von 288 Modellen im Filter war genau dieses eine
+            # betroffen, fuer alle anderen aendert sich nichts.
+            if z["preis_ein"] <= 0 and z["preis_aus"] <= 0:
                 frei.append(z)
-            elif z["preis_ein"] > 0 or z["preis_aus"] > 0:
+            else:
                 bezahlt.append(z)
         frei.sort(key=lambda z: (-(_mrd(z["param_gesamt"]) or 0), z["kennung"]))
         bezahlt.sort(key=lambda z: (z["preis_ein"], z["preis_aus"]))

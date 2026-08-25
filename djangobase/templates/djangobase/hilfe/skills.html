@@ -40,7 +40,9 @@ nur Zeilen.
                     <i class="bi bi-play-circle"></i> Ausgewählte ausführen</button>
                 <button type="button" class="sk1-knopf" id="sk1-alle-an">alle</button>
                 <button type="button" class="sk1-knopf" id="sk1-keine">keine</button>
+                
                 <span class="sk1-leise" id="sk1-zaehler"></span>
+                
             </div>
 
             {% include "djangobase/_tabelle.html" with tabelle=tabelle %}
@@ -246,6 +248,43 @@ nur Zeilen.
     border-radius: 5px; padding: .2rem .35rem; font-size: .8rem;
 }
 .db-hervor { background: rgba(120,170,255,.08); }
+
+/* Spalte 2 „Nr." ist seit dem 25.08.2026 ein Eingabefeld (Ansage Edgar:
+   „die nummern aus spalte 2 sollten veraenderbar sein").
+
+   BREITE FEST IN ZEICHEN, nicht in Prozent: Die Spalte ist die schmalste der
+   Tabelle, und ein Zahlenfeld waechst sonst auf die Standardbreite des
+   Browsers - damit wandert die ganze Tabelle. Vier Zeichen reichen fuer
+   zweistellige Nummern samt Pfeilchen.
+
+   Die Pfeilchen bleiben AN. Sie kosten Platz, aber die Nummern werden im
+   Vorbeigehen um eins verschoben - dafuer ist ein Klick besser als Tippen. */
+/* RANG-SPALTE (25.08.2026). Eindeutige Nummer je Werkzeug; wer sie aendert
+   und den Pfeil drueckt, verschiebt den Eintrag - die anderen rutschen nach.
+
+   Feld und Knopf stehen NEBENEINANDER in einer schmalen Spalte, deshalb beide
+   sehr klein gehalten. Der Knopf ist kein Text, sondern ein Pfeil: "Los" oder
+   "Setzen" haette die Spalte doppelt so breit gemacht. */
+.sk1-rang {
+    width: 3.2rem; text-align: center;
+    background: var(--input-bg, #11151b); color: inherit;
+    border: 1px solid var(--card-border, #2b323d);
+    border-radius: 5px; padding: .18rem .2rem; font-size: .8rem;
+}
+.sk1-rang:focus { outline: 1px solid #2d6cdf; border-color: #2d6cdf; }
+.sk1-rang-los {
+    border: 1px solid var(--card-border, #2b323d); background: transparent;
+    color: inherit; border-radius: 5px; cursor: pointer;
+    padding: .1rem .2rem; margin-left: .15rem; line-height: 1;
+}
+.sk1-rang-los:hover { background: #2d6cdf; border-color: #2d6cdf; color: #fff; }
+
+/* Bereichskopf: eine Zeile ueber die volle Breite. Die Erklaerung daneben in
+   gedaempfter Farbe - sie sagt, WARUM der Bereich an dieser Stelle steht, und
+   ohne sie waere die Reihenfolge eine Behauptung. */
+tr[data-gruppe] td { background: rgba(120,170,255,.10); padding: .45rem .6rem; }
+tr[data-gruppe] .sk1-leise { font-weight: 400; margin-left: .5rem; }
+
 
 .sk1-stapel { display: flex; gap: .5rem; align-items: center; margin: .5rem 0 .75rem; }
 .sk1-batch, .sk1-run, .sk1-knopf {

@@ -42,15 +42,129 @@ def _prozessor_namen():
 
     namen = set()
     anfrage = RequestFactory().get("/")
-    anfrage.user = None
+    # EIN ECHTES User-Objekt, nicht None (25.08.2026). Fast jeder
+    # Prozessor beginnt mit `if request.user.is_authenticated` - bei
+    # `None` wirft das einen AttributeError, den das `except` darunter
+    # still schluckt. Der Prozessor liefert dann KEINE Namen, und alles,
+    # was er global bereitstellt, gilt anschliessend als "von der
+    # Ansicht vergessen".
+    #
+    # Im Projekt assistant waren das achtzig Befunde der hoechsten
+    # Stufe - `bank_firmen`, `sidebar_mail_accounts`, `steuer_firmen`
+    # und Geschwister, allesamt aus einem Prozessor, der nie zu Wort kam.
+    from django.contrib.auth.models import AnonymousUser
+
+    anfrage.user = AnonymousUser()
+    anfrage.session = {}
     for eintrag in settings.TEMPLATES:
         for pfad in (eintrag.get("OPTIONS") or {}).get("context_processors", []):
-            try:
-                namen |= set(import_string(pfad)(anfrage) or {})
-            except Exception:  # noqa: BLE001 - siehe Docstring
-                continue
+            for wer in (anfrage, _anfrage_angemeldet()):
+                try:
+                    namen |= set(import_string(pfad)(wer) or {})
+                except Exception:  # noqa: BLE001 - siehe Docstring
+                    continue
+            # AUCH WENN DER AUFRUF LEER BLEIBT. Ein Prozessor, der fuer
+            # einen nicht angemeldeten Nutzer nichts liefert, tut genau
+            # das Richtige - seine Namen gibt es trotzdem, sobald jemand
+            # angemeldet ist. Im Projekt assistant lieferten VIER
+            # Seitenleisten-Prozessoren dem anonymen Nutzer ein leeres
+            # Woerterbuch; ihre Namen (`bank_firmen`,
+            # `sidebar_mail_accounts`, `steuer_firmen` …) galten danach
+            # als "von der Ansicht vergessen" - achtzig Befunde der
+            # hoechsten Stufe fuer nichts.
+            namen |= _rueckgabeschluessel(pfad)
     _PROZESSOR_CACHE = namen
     return namen
+
+
+def _anfrage_angemeldet():
+    """Eine Anfrage, die als angemeldet gilt - ohne Datenbank.
+
+    WARUM (25.08.2026, Projekt assistant)
+    =====================================
+    Seitenleisten-Prozessoren beginnen fast immer mit::
+
+        if not request.user.is_authenticated:
+            return {}
+
+    Fuer einen anonymen Nutzer liefern sie also NICHTS - richtig so, nur
+    sieht der Pruefer ihre Namen dadurch nie. Sechzehn Befunde der
+    hoechsten Stufe entstanden allein aus `sidebar_mail_accounts`, das
+    ein solcher Prozessor bereitstellt.
+
+    Der Quelltext half hier nicht weiter: Die Funktion reicht bloss an
+    eine Klasse durch (`return Seitenleistenkontext(request).kontext()`),
+    die Schluessel stehen eine Ebene tiefer.
+
+    Gefragt wird deshalb ein zweites Mal, mit einem Nutzer, der sich als
+    angemeldet ausgibt. Was der Prozessor dann versucht - eine Abfrage,
+    ein Zugriff auf ein Profil - scheitert vielleicht; das faengt der
+    Aufrufer ab. Kommt er bis zum `return`, kennen wir seine Namen.
+    """
+    from django.test import RequestFactory
+
+    from django.contrib.auth import get_user_model
+
+    # EIN ECHTES, NICHT GESPEICHERTES User-Objekt. Eine eigene Klasse
+    # mit `is_authenticated = True` reicht nicht: Sobald der Prozessor
+    # danach filtert (`profil__owner=request.user`), verlangt Django ein
+    # Model und wirft sonst
+    # `TypeError: Field 'id' expected a number`.
+    #
+    # Nicht gespeichert und mit `pk=0`: Die Abfragen laufen ins Leere -
+    # genau richtig. Gesucht sind die NAMEN, die der Prozessor setzt,
+    # nicht ihre Werte.
+    nutzer = get_user_model()(pk=0, username="pruefung")
+
+    anfrage = RequestFactory().get("/")
+    anfrage.user = nutzer
+    anfrage.session = {}
+    return anfrage
+
+
+def _rueckgabeschluessel(pfad):
+    """Die Schluessel, die diese Funktion laut Quelltext zurueckgibt.
+
+    Gelesen wird der Syntaxbaum, nicht das Ergebnis: Ein Prozessor kann
+    je nach Anfrage etwas anderes liefern, aber die MOEGLICHEN Namen
+    stehen im Code. Erfasst wird ``return {...}`` mit festen
+    Zeichenketten als Schluessel - alles andere waere geraten.
+    """
+    import ast
+    import inspect
+
+    try:
+        from django.utils.module_loading import import_string as _holen
+
+        funktion = _holen(pfad)
+        quelle = inspect.getsource(funktion)
+    except Exception:  # noqa: BLE001
+        # stumm gewollt: Ohne Quelltext bleibt es beim Aufruf-Ergebnis.
+        return set()
+
+    quelle = quelle[quelle.index("def "):] if "def " in quelle else quelle
+    try:
+        baum = ast.parse(quelle)
+    except SyntaxError:
+        try:
+            import textwrap
+
+            baum = ast.parse(textwrap.dedent(quelle))
+        except SyntaxError:
+            return set()
+
+    raus = set()
+    for knoten in ast.walk(baum):
+        if not isinstance(knoten, ast.Return) or knoten.value is None:
+            continue
+        for teil in ast.walk(knoten.value):
+            if not isinstance(teil, ast.Dict):
+                continue
+            for schluessel in teil.keys:
+                if (isinstance(schluessel, ast.Constant)
+                        and isinstance(schluessel.value, str)):
+                    raus.add(schluessel.value)
+    return raus
 
 
 #: Ueber diese Attribute fuehrt der Weg aus der Vorlage heraus: jeder Knoten
@@ -77,6 +191,52 @@ def _ist_name(text):
     return bool(re.match(r'^[A-Za-z_]\w*$', text or ''))
 
 
+#: Einstellungsschluessel, die den Namen einer Vorlage tragen. Wird eine
+#: Vorlage ueber eine VARIABLE eingebunden, steht ihr Name nicht im
+#: Quelltext - er kommt aus den Einstellungen.
+VORLAGE_AUS_EINSTELLUNG = ('sidebar_template', 'nav_template',
+                           'shell_template', 'kopf_template')
+
+_INCLUDE_VARIABEL = re.compile(r"{%\s*include\s+([^\"'%\s][^%]*?)%}")
+_DEFAULT_WERT = re.compile(r'default:"([^"]+)"')
+
+
+def _ueber_variable(quelle):
+    """Vorlagen, die per ``{% include <variable> %}`` eingebunden werden.
+
+    DER FALL (25.08.2026, Projekt assistant)
+    ========================================
+    ``_shell.html`` bindet die Seitenleiste so ein::
+
+        {% include djangobase.sidebar_template|default:"djangobase/_sidebar.html" %}
+
+    Im Quelltext steht damit KEIN Vorlagenname, den das Muster daneben
+    finden koennte. Die Kette endete an dieser Stelle - und jede
+    Variable, die nur in der projekteigenen Seitenleiste gelesen wird,
+    galt als "wird uebergeben, aber von keiner beteiligten Vorlage
+    gelesen".
+
+    Gemessen: 73 Befunde, darunter reihenweise `active_page`,
+    `active_subpage` und `firmen` - obwohl `search/_sidebar.html` allein
+    `active_page` ZWEIUNDVIERZIGMAL liest.
+
+    Aufgeloest wird beides: der ``default:"…"`` aus dem Quelltext UND der
+    Wert, der in ``DJANGOBASE`` wirklich eingetragen ist.
+    """
+    from django.conf import settings
+
+    gefunden = set()
+    cfg = getattr(settings, 'DJANGOBASE', {}) or {}
+    for treffer in _INCLUDE_VARIABEL.finditer(quelle):
+        stueck = treffer.group(1)
+        for wert in _DEFAULT_WERT.finditer(stueck):
+            gefunden.add(wert.group(1))
+        for schluessel in VORLAGE_AUS_EINSTELLUNG:
+            if schluessel in stueck and cfg.get(schluessel):
+                gefunden.add(str(cfg[schluessel]))
+    return gefunden
+
+
 class Vorlagensicht:
     """Alle Variablennamen einer Vorlage samt eingebundener Bausteine."""
 
@@ -94,6 +254,8 @@ class Vorlagensicht:
         quelle = vorlage.source
         for treffer in re.finditer(r'{%\s*(?:extends|include)\s+"([^"]+)"', quelle):
             self.eingebunden.add(treffer.group(1))
+        for name in _ueber_variable(quelle):
+            self.eingebunden.add(name)
         for muster in (r'{%\s*with\s+([^%]+)%}',
                        r'{%\s*include\s+"[^"]+"\s+with\s+([^%]+)%}'):
             for treffer in re.finditer(muster, quelle):

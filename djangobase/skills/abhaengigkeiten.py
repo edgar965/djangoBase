@@ -112,11 +112,78 @@ class Abhaengigkeiten(BefundWerkzeug):
         return kurz.replace('/', '.')
 
     @staticmethod
+    def _ladezeit_knoten(baum):
+        """Die Import-Anweisungen, die BEIM LADEN wirklich laufen.
+
+        WARUM DAS ZAEHLT (25.08.2026, Projekt assistant)
+        ================================================
+        Dieses Werkzeug meldete 13 Zyklen mit der Schwere `fehler` - die
+        einzigen Fehler-Befunde des ganzen Durchgangs. Nach Einzelpruefung
+        war KEIN EINZIGER echt. Alle dreizehn waren bereits sauber
+        aufgeloest, auf genau die zwei Arten, die Python dafuer kennt:
+
+            def _stand(self):
+                from .views_chat_api import ChatApi     # laeuft erst beim Aufruf
+
+            if TYPE_CHECKING:
+                from .kern import IndexerJob            # laeuft NIE
+
+        Ein Zyklus ueber solche Importe entsteht zur Ladezeit gar nicht.
+        Ihn als Fehler zu melden dreht die REPARATUR zum BEFUND um - und
+        wer der Liste folgt, reisst dreizehn funktionierende Aufloesungen
+        wieder auf.
+
+        Ein Zyklus ueber Importe auf Modulebene bleibt ein Fehler: dort
+        ist beim Laden des einen Moduls das andere erst halb fertig.
+
+        Gezaehlt wird deshalb nur, was beim Laden ausgefuehrt wird:
+        Importe direkt im Modulrumpf und in `if`/`try`/`with` darin -
+        aber nicht in Funktionen, nicht in Klassenmethoden, und nicht
+        unter `if TYPE_CHECKING:`.
+        """
+        gefunden = []
+
+        def sammeln(knoten):
+            for teil in knoten:
+                if isinstance(teil, (ast.Import, ast.ImportFrom)):
+                    gefunden.append(teil)
+                elif isinstance(teil, ast.If):
+                    if Abhaengigkeiten._nur_typpruefung(teil):
+                        continue
+                    sammeln(teil.body)
+                    sammeln(teil.orelse)
+                elif isinstance(teil, ast.Try):
+                    sammeln(teil.body)
+                    sammeln(teil.orelse)
+                    sammeln(teil.finalbody)
+                    for behandler in teil.handlers:
+                        sammeln(behandler.body)
+                elif isinstance(teil, (ast.With, ast.For, ast.While)):
+                    sammeln(teil.body)
+
+        sammeln(baum.body)
+        return gefunden
+
+    @staticmethod
+    def _nur_typpruefung(knoten):
+        """``if TYPE_CHECKING:`` - der Block laeuft zur Laufzeit nie."""
+        pruefung = knoten.test
+        if isinstance(pruefung, ast.Name):
+            return pruefung.id == "TYPE_CHECKING"
+        if isinstance(pruefung, ast.Attribute):
+            return pruefung.attr == "TYPE_CHECKING"
+        return False
+
+    @staticmethod
     def _importe(baum, eigener_name, bekannte):
-        """Importierte Projektmodule — relative Importe aufgeloest."""
+        """Importierte Projektmodule — relative Importe aufgeloest.
+
+        Nur die Importe, die beim LADEN laufen - siehe
+        ``_ladezeit_knoten``.
+        """
         ziele = set()
         eigene_teile = eigener_name.split('.')
-        for knoten in ast.walk(baum):
+        for knoten in Abhaengigkeiten._ladezeit_knoten(baum):
             kandidaten = []
             if isinstance(knoten, ast.Import):
                 kandidaten = [a.name for a in knoten.names]

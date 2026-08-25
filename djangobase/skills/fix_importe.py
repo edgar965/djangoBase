@@ -20,6 +20,7 @@ VIER SICHERUNGEN, DAMIT NUR EINDEUTIG TOTES FAELLT
 * ``__all__``-Eintraege und ``"app.Modell"``-Strings zaehlen als Verwendung.
 """
 import ast
+import re
 
 from .anlassfall import Anlassfall
 from .fixer import Aenderung, Fixer, Vorschau
@@ -46,6 +47,11 @@ class ImportFixer(Fixer):
     slug = "fix-importe"
     titel = "Tote Importe entfernen"
     tut = "Entfernt importierte Namen, die in der Datei nirgends vorkommen."
+
+    #: Markierung fuer "aus dieser Datei holt jemand per import *".
+    #: Ein Name, den es als Python-Bezeichner nicht geben kann - so kann er
+    #: nie mit einem echten Import kollidieren.
+    STERN = "*stern*"
     warum = ("Tote Importe kosten Ladezeit, halten Abhaengigkeiten kuenstlich am "
              "Leben und verwischen, welches Modul wirklich wovon abhaengt.")
     grenzen = ("Seiteneffekt-Importe (signals, admin) und __init__.py bleiben. "
@@ -85,6 +91,10 @@ class ImportFixer(Fixer):
             # (`from .dav_schalter import suppress_dav_push  # noqa: F401`).
             weg = {n for n in weg
                    if 'noqa' not in zeilen[n - 1].lower()}
+            # FUENFTE SICHERUNG (25.08.2026): Holt jemand den Namen AUS
+            # DIESER Datei? Siehe `_wird_weitergereicht`.
+            weg = {n for n in weg
+                   if not self._wird_weitergereicht(pfad, baum, n)}
             if not weg:
                 continue
             neu = "".join(z for i, z in enumerate(zeilen, 1) if i not in weg)
@@ -95,7 +105,14 @@ class ImportFixer(Fixer):
                         "Seiteneffekt-Module und __init__.py bleiben aussen vor.")
 
     def pruefen(self, aenderung):
-        """Netz: kompiliert die Datei nach dem Schnitt noch?"""
+        """Netz: kompiliert die Datei nach dem Schnitt noch?
+
+        DAS REICHT NICHT ALLEIN, und das ist wichtig zu wissen: Ein
+        gebrochener Re-Export kompiliert tadellos. Er faellt erst auf,
+        wenn ein ANDERES Modul den Namen holen will - im Zweifel erst
+        beim Start der Anwendung. Deshalb liegt die eigentliche
+        Sicherung in `_wird_weitergereicht`, VOR dem Schnitt.
+        """
         try:
             ast.parse(aenderung.pfad.read_text(encoding="utf-8"))
         except SyntaxError as e:
@@ -103,6 +120,130 @@ class ImportFixer(Fixer):
         except OSError as e:
             return ["nicht lesbar: %s" % e]
         return []
+
+    def _wird_weitergereicht(self, pfad, baum, zeile):
+        """Holt ein anderes Modul einen dieser Namen AUS DIESER Datei?
+
+        DER VORFALL (25.08.2026, Projekt assistant)
+        ===========================================
+        In `mail/sync/MailboxSyncer/kern.py` stand::
+
+            from .basis import SyncFolderResult
+
+        - im Modul selbst nirgends benutzt, also nach allen bisherigen
+        Regeln tot. Daneben lag::
+
+            # mail/sync/MailboxSyncer/__init__.py
+            # SyncFolderResult stand als zweite Klasse in derselben Datei
+            # und wird von aussen gebraucht - beim ersten Schnitt fiel
+            # sie durch (23.08.2026).
+            from .kern import MailboxSyncer, SyncFolderResult  # noqa: F401
+
+        Nach dem Schnitt war die Anwendung nicht mehr startbar:
+        `ImportError: cannot import name 'SyncFolderResult' from
+        'mail.sync.MailboxSyncer.kern'`.
+
+        Die vorhandenen Sicherungen greifen hier alle NICHT: `__init__.py`
+        ist geschuetzt, aber die Datei, aus der es holt, war es nicht.
+        Das `# noqa` steht in der anderen Datei. Und das Netz
+        (`pruefen`) sieht nichts, weil die geschnittene Datei weiter
+        sauber kompiliert.
+
+        Ein Modul kann also ein Durchgangstor sein, ohne `__init__.py` zu
+        heissen. Deshalb wird jetzt gefragt, ob irgendwo im Projekt
+        `from <dieses Modul> import <Name>` steht.
+        """
+        geholt = self._geholte_namen().get(pfad.stem, set())
+        # Holt IRGENDWER per ``import *`` aus dieser Datei, ist jeder Import
+        # darin potentiell der, den ein anderes Modul braucht - siehe
+        # :meth:`_geholte_namen`. Dann bleibt die ganze Datei unangetastet.
+        if self.STERN in geholt:
+            return True
+        namen = set()
+        for k in ast.walk(baum):
+            if isinstance(k, (ast.Import, ast.ImportFrom)) and k.lineno == zeile:
+                namen |= {(a.asname or a.name).split(".")[0] for a in k.names}
+        if not namen:
+            return False
+        return bool(namen & geholt)
+
+    def _geholte_namen(self):
+        """``{Modulname: {Namen, die andere daraus holen}}`` - einmal gebaut.
+
+        Bewusst nur ueber den Modul-KURZNAMEN (`kern`, nicht
+        `mail.sync.MailboxSyncer.kern`): Der relative Import
+        `from .kern import X` nennt den vollen Pfad gar nicht. Zwei
+        gleichnamige Module in verschiedenen Paketen schuetzen sich damit
+        gegenseitig - das ist die harmlose Richtung, denn zu viel
+        stehenlassen kostet eine Zeile, zu viel schneiden eine
+        startunfaehige Anwendung.
+        """
+        if getattr(self, "_geholt", None) is not None:
+            return self._geholt
+        raus = {}
+        # AUCH MEHRZEILIGE IMPORTE (26.08.2026 - der Vorfall in shortlongx)
+        # ==================================================================
+        # Hier stand ``import\s+(.+)$``: Das liest nur bis zum Zeilenende.
+        # Bei der ueblichen Klammerform
+        #
+        #     from .basis import (
+        #         logger, render, JsonResponse, csrf_exempt, require_POST,
+        #     )
+        #
+        # steht auf der ERSTEN Zeile nur ``(`` - alle Namen dahinter waren
+        # unsichtbar. ``views/basis.py`` in shortlongx reicht so rund fuenfzig
+        # Namen an zehn Module weiter; der Fixer hielt sie fuer tot und
+        # entfernte sie. Danach war keine einzige Seite mehr aufrufbar
+        # (``NameError: name 'require_POST' is not defined``).
+        #
+        # Die Sicherung hat den Schaden reparabel gemacht - aber genau davor
+        # sollte diese Methode schuetzen, und sie sah die Haelfte nicht.
+        #
+        # ``[^)]*`` laeuft ueber Zeilengrenzen (eine Zeichenklasse schliesst
+        # ``\n`` ein), deshalb braucht es kein DOTALL - und weil die Klammer
+        # zuerst versucht wird, gewinnt sie gegen die einzeilige Form.
+        muster = re.compile(r"^[ \t]*from\s+([\w.]+)\s+import\s+(\([^)]*\)|[^\n]+)",
+                            re.MULTILINE)
+        for pfad in self.pfade("*.py"):
+            if any(t in RAUS for t in pfad.parts):
+                continue
+            try:
+                text = pfad.read_text(encoding="utf-8")
+            except OSError:
+                # stumm gewollt: Was sich nicht lesen laesst, holt auch
+                # keinen Namen - genau die Frage hier.
+                continue
+            for woher, was in muster.findall(text):
+                modul = woher.rsplit(".", 1)[-1]
+                if not modul:
+                    continue
+                # STERN-IMPORT MACHT DAS MODUL UNANTASTBAR (26.08.2026)
+                # ======================================================
+                # ``from .basis_datensatz import *`` nennt KEINEN Namen. Ein
+                # Werkzeug kann darum nicht wissen, welche gebraucht werden -
+                # es sind moeglicherweise alle.
+                #
+                # DER VORFALL: shortlongx baut seine Views auf einer Kette von
+                # Stern-Importen auf (``basis`` -> ``basis_segmente`` ->
+                # ``basis_datensatz`` -> rund zehn View-Module). In ``basis.py``
+                # selbst wird kaum einer der rund fuenfzig Importe benutzt; sie
+                # sind ausschliesslich zum Weiterreichen da. Der Fixer hielt
+                # alle fuer tot und entfernte sie - danach war keine Seite mehr
+                # aufrufbar (``NameError: name 'require_POST' is not defined``).
+                #
+                # ``STERN`` als Markierung statt der Namensmenge: Der Eintrag
+                # muss LEER bleiben duerfen und trotzdem schuetzen. Eine leere
+                # Menge waere von „niemand holt hier etwas" nicht zu
+                # unterscheiden - und genau das ist der gefaehrliche Fall.
+                inhalt = was.split("#")[0].strip()
+                if inhalt.strip("() \t\n") == "*":
+                    raus.setdefault(modul, set()).add(self.STERN)
+                    continue
+                namen = {n.strip().split(" as ")[0].strip(" ()")
+                         for n in inhalt.split(",")}
+                raus.setdefault(modul, set()).update(n for n in namen if n)
+        self._geholt = raus
+        return raus
 
     # ------------------------------------------------------------------ intern
 

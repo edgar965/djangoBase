@@ -138,20 +138,32 @@ def _ausnahmen():
 class GrundtestWerkzeugkatalog(SimpleTestCase):
     u"""Steht der Katalog im Bericht - und baut das Projekt nichts nach?"""
 
-    def test_katalog_steht_im_bericht(self):
-        u"""Druckt jedes Werkzeug. Kein Urteil - nur Sichtbarkeit."""
+    def test_katalog_ist_nicht_leer(self):
+        u"""Nur noch die Zahl, nicht mehr die Liste (25.08.2026).
+
+        HIER WURDEN BIS HEUTE ALLE 57 EINTRAEGE GEDRUCKT. Die Absicht war
+        richtig - ein Verzeichnis, das man aufschlagen KANN, wird nicht
+        aufgeschlagen. Nur trifft derselbe Satz die Loesung: Eine Liste, die
+        bei JEDEM Lauf vollstaendig dasteht, wird nach dem dritten Mal
+        ueberscrollt.
+
+        Belegt beim Lauf vom 25.08.2026: Die 57 Eintraege schoben die Zeile
+        „Ran 116 tests ... OK" so weit nach oben, dass sie beim Auswerten
+        abgeschnitten wurde - der Lauf musste wiederholt werden, um das
+        Ergebnis ueberhaupt zu sehen. Ein Katalog, der die Zusammenfassung
+        verdeckt, kostet mehr als er bringt.
+
+        Wer den Katalog braucht, findet ihn unter Hilfe -> Werkzeug Code
+        Review. Wer ein Werkzeug fuer einen konkreten Befund sucht, bekommt es
+        seit heute AM FEHLSCHLAG genannt (``skills/werkzeugwahl.py``) - dort,
+        wo er danach sucht, und nur die zwei, die passen.
+        """
         alles = katalog()
         self.assertTrue(alles, "Der Werkzeugkasten ist leer - das kann nicht "
                                "stimmen; laeuft djangobase.skills?")
-        zeilen = ["", "=" * 78,
-                  "WERKZEUGKASTEN (Hilfe -> Skills): %d Eintraege" % len(alles),
-                  "Bevor du ein eigenes Pruefwerkzeug baust: steht es hier "
-                  "schon?", "=" * 78]
-        for kennung, titel, zweck, bauform in alles:
-            zeilen.append("%-9s %-26s %s" % (bauform, kennung, titel))
-            if zweck:
-                zeilen.append("%-9s %-26s %.72s" % ("", "", zweck))
-        print("\n".join(zeilen))
+        print("Werkzeugkasten: %d Eintraege (Hilfe -> Werkzeug Code Review). "
+              "Bei einem Fehlschlag wird das passende genannt." % len(alles))
+
 
     def test_projekt_baut_nichts_nach(self):
         u"""Eine Projektdatei, die heisst wie ein Werkzeug, IST meist eins."""

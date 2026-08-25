@@ -85,7 +85,7 @@ class Doppelcode(BefundWerkzeug):
                 dateien += 1
                 self._sammeln(datei, fenster, bloecke)
 
-        befunde = []
+        roh = []
         for fundstellen in bloecke.values():
             if len(fundstellen) < 2:
                 continue
@@ -93,8 +93,12 @@ class Doppelcode(BefundWerkzeug):
             orte = sorted({str(f) for f in fundstellen})
             if len(orte) < 2:
                 continue
+            roh.append(orte)
+
+        befunde = []
+        for orte, laenge in self._zusammenfassen(roh, fenster):
             befunde.append(Befund(
-                orte[0], '%d gleiche Bloecke à %d Zeilen' % (len(orte), fenster),
+                orte[0], '%d gleiche Bloecke à %d Zeilen' % (len(orte), laenge),
                 'auch: ' + ', '.join(orte[1:6]) + (' …' if len(orte) > 6 else ''),
                 Befund.WARNUNG if len(orte) > 2 else Befund.HINWEIS))
         befunde.sort(key=lambda b: b.was, reverse=True)
@@ -107,6 +111,83 @@ class Doppelcode(BefundWerkzeug):
                         'wird die Liste kuerzer und die Funde gewichtiger'
                         % self.ZEILEN)
         return Befundsatz(self.titel, kopf, befunde[:self.ZEILEN])
+
+    @staticmethod
+    def _zusammenfassen(roh, fenster):
+        """Aneinandergrenzende Fenster zu EINEM Block - mit echter Laenge.
+
+        WARUM (25.08.2026, Projekt assistant)
+        =====================================
+        Gesucht wird mit einem GLEITENDEN Fenster: jede Startzeile
+        bekommt ihren eigenen Hash. Ein zusammenhaengender Duplikatblock
+        von zwoelf Zeilen erzeugt bei Fenstergroesse sechs also SIEBEN
+        Fenster - und damit sieben Befunde fuer eine einzige Stelle.
+
+        Gemessen in den ersten 200 angezeigten Befunden: 112 waren
+        blosse Folgezeilen, echte Stellen gab es 88. In
+        ``acestep_create.html`` standen zehn Befunde untereinander
+        (Zeile 32 bis 41), alle fuer denselben Block.
+
+        ZWEI FALLEN AUF DEM WEG
+        =======================
+        1. Die Fundstellen muessen NUMERISCH sortiert werden. Mit
+           ``sorted()`` ueber die Textform steht ``x.html:1000`` vor
+           ``x.html:961``, und die Nachbarschaft ist nicht mehr zu sehen.
+        2. Der Sprung ist NICHT immer eins. ``_sammeln`` laesst
+           Leerzeilen weg und schiebt das Fenster um einen INHALTS-Index
+           weiter; steht im Block eine Leerzeile, springt die gemeldete
+           Zeilennummer um zwei oder drei. Verlangt man +1, fasst man
+           fast nichts zusammen (670 wurden 659 statt der halben Zahl).
+
+        Zusammengefasst wird deshalb, was in ALLEN beteiligten Dateien um
+        DENSELBEN Betrag weiterrueckt. Die gemeldete Laenge waechst je
+        Fenster um eine Zeile: aus "7 Stellen a 6 Zeilen" wird "1 Stelle
+        a 12 Zeilen" - und das ist die Zahl, die zaehlt.
+        """
+        def zerlegen(orte):
+            raus = []
+            for ort in orte:
+                datei, _t, nummer = ort.rpartition(':')
+                if not nummer.isdigit():
+                    return None
+                raus.append((datei, int(nummer)))
+            return raus
+
+        def sortierschluessel(orte):
+            zerlegt = zerlegen(orte)
+            if zerlegt is None:
+                return (1, orte[0], 0)
+            return (0, zerlegt[0][0], zerlegt[0][1])
+
+        offen = []      # [[Dateien, aktuelle Zeilen, Laenge, Startorte]]
+        fertig = []
+        for orte in sorted(roh, key=sortierschluessel):
+            zerlegt = zerlegen(orte)
+            if zerlegt is None:
+                fertig.append((orte, fenster))
+                continue
+            dateien = tuple(d for d, _n in zerlegt)
+            zeilen = tuple(n for _d, n in zerlegt)
+
+            fortsetzung = None
+            for eintrag in offen:
+                if eintrag[0] != dateien:
+                    continue
+                spruenge = {neu_ - alt_
+                            for alt_, neu_ in zip(eintrag[1], zeilen)}
+                if len(spruenge) == 1 and 1 <= next(iter(spruenge)) <= 4:
+                    fortsetzung = eintrag
+                    break
+
+            if fortsetzung is not None:
+                fortsetzung[1] = zeilen
+                fortsetzung[2] += 1
+            else:
+                offen.append([dateien, zeilen, fenster, list(orte)])
+
+        for _dateien, _zeilen, laenge, startorte in offen:
+            fertig.append((startorte, laenge))
+        return fertig
 
     def _sammeln(self, datei, fenster, bloecke):
         roh = datei.read_text(encoding='utf-8', errors='replace').split('\n')

@@ -59,6 +59,29 @@ class Testlauf:
         # gerundeten Zahl wuerden dort Stufen von 100 ms.
         dauer = round(time.time() - t0, 3)
         dauern = Dauern.lesen(out) or Dauern.lesen(err)
+        # WERKZEUGE ZUM FEHLSCHLAG NENNEN (25.08.2026, Ansage Edgar: „gleich
+        # die Werkzeuge, die sich für den Fix des spezifischen Testcases gibt,
+        # anbieten, damit nicht jede andere Session sich eigene Fix-Werkzeuge
+        # baut").
+        #
+        # HIER UND NUR HIER: Das ist die eine Stelle, durch die jeder Testlauf
+        # geht - die Alternative wäre ein Feld an über 240 Testfällen gewesen,
+        # von denen der nächste neue es vergisst.
+        #
+        # NUR BEI ROT. Bei einem grünen Lauf gibt es nichts zu beheben, und
+        # eine Werkzeugliste unter jedem erfolgreichen Lauf wäre genau das
+        # Rauschen, das den Katalog vorher unlesbar gemacht hat.
+        #
+        # Ein Fehler beim Nachschlagen darf den Testlauf nicht umbringen: Er
+        # hat sein Ergebnis schon, die Empfehlung ist Zugabe.
+        if rc != 0:
+            try:
+                from .skills.werkzeugwahl import Werkzeugwahl
+                hinweis = Werkzeugwahl().zu_ausgabe(out + "\n" + err)
+                if hinweis:
+                    out = (out or "") + hinweis
+            except Exception:                                   # noqa: BLE001
+                log.exception("Werkzeug-Empfehlung fehlgeschlagen")
         self._merken(slug, name, dauer, rc == 0, dauern)
         # Dictionary gewollt: geht unveraendert in die Vorlage.
         return {"name": name,

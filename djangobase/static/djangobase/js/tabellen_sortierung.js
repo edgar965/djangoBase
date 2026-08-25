@@ -50,9 +50,24 @@ export class TabellenSortierung {
     const w = wurzel || document;
     if (!TabellenSortierung._handler) {
       TabellenSortierung._handler = e => {
-        // Markieren geht vor Sortieren.
+        // Markieren geht vor Sortieren - ABER NICHT AUS EINEM EINGABEFELD
+        // HERAUS (25.08.2026).
+        //
+        // Der Schutz ist dafuer da, dass ein Doppelklick auf Tabellentext die
+        // Auswahl nicht sofort wieder wegsortiert. Steht der Cursor dagegen in
+        // einem Feld der Tabelle - die Werkzeugliste hat deren zwei je Zeile,
+        // die Kriteriums-Nummer und das Argument -, dann meldet
+        // ``getSelection()`` je nach Browser die Auswahl IM FELD. Der naechste
+        // Klick auf eine Spaltenueberschrift lief damit ins ``return``, und
+        // die Sortierung wirkte kaputt: gemeldet als "bei einer Aenderung der
+        // Nummern funktioniert der Sortier-Button nicht mehr".
+        //
+        // Eine Auswahl innerhalb eines Feldes ist keine Textmarkierung im
+        // Sinne dieses Schutzes - sie gehoert zum Bearbeiten, nicht zum Lesen.
+        const aktiv = document.activeElement;
+        const imFeld = aktiv && /^(INPUT|TEXTAREA|SELECT)$/.test(aktiv.tagName);
         const sel = window.getSelection && window.getSelection();
-        if (sel && String(sel).length) return;
+        if (!imFeld && sel && String(sel).length) return;
         if (e.target.closest('.tb-griff')) return;      // Breiten-Ziehen
         const th = e.target.closest('table.sortable thead th');
         if (!th || th.dataset.sortAus !== undefined) return;
