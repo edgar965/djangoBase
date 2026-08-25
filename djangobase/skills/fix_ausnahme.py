@@ -39,6 +39,7 @@ der drei Pruefungen, wird genau diese Datei zurueckgespielt.
 import ast
 
 from .fix_ausnahme_datei import Ausnahmedatei
+from .anlassfall import Anlassfall
 from .fixer import Aenderung, Fixer, Vorschau
 
 __all__ = ["FixAusnahme"]
@@ -61,6 +62,22 @@ class FixAusnahme(Fixer):
     kriterium = 16
     dauer = "5–20 s"
 
+    anlassfall = Anlassfall(
+        # NICHT `test…` oder `…middleware…` nennen: Diese Pfadteile stehen in
+        # NICHT_HIER, und die Datei fiele aus dem Lauf — der Anlassfall
+        # meldete dann „blind", obwohl der Fixer richtig arbeitet.
+        {"holen.py": "import json\n"
+                     "\n\n"
+                     "def lesen(pfad):\n"
+                     "    try:\n"
+                     "        return json.loads(open(pfad).read())\n"
+                     "    except Exception:\n"
+                     "        pass\n"
+                     "    return None\n"},
+        mindestens=1, hoechstens=1, erwartet_in="holen.py",
+        warum="Ein `except Exception: pass` macht aus einem Absturz eine leere "
+              "Seite — die Ursache ist mit der Antwort weg")
+
     #: Pfadteile, in denen nicht instrumentiert wird (siehe Modulkopf).
     NICHT_HIER = ("tests", "test", "logging_utils.py", "middleware", "dblog.py",
                   "conftest.py")
@@ -72,9 +89,36 @@ class FixAusnahme(Fixer):
         self._protokoll = None
 
     def pruefer(self):
+        u"""Das Pruefwerk, das die stummen Bloecke findet.
+
+        DIESELBE WURZEL WIE DER FIXER (25.08.2026)
+        ==========================================
+        Hier stand nur ``Protokoll()`` — mit der EIGENEN Wurzel des
+        Pruefwerks, nicht der des Fixers. ``vorschau()`` durchsuchte damit
+        immer das ganze Projekt, gleichgueltig worauf der Fixer gerichtet
+        war. Aufgefallen ist es, als `anlassfall-check` erstmals auch die
+        Fixer pruefte::
+
+            fix-ausnahme   im Anlassfall 32   im Leeren 32
+            -> meldet im Leeren 32 — sucht nicht in der uebergebenen Wurzel
+
+        Im gewoehnlichen Lauf faellt das nicht auf, weil beide Wurzeln
+        dieselbe sind. Bei einem Werkzeug, das SCHREIBT, ist „durchsucht
+        mehr als ihm gesagt wurde" trotzdem der falsche Zustand.
+        """
         from .protokoll import Protokoll
         if self._protokoll is None:
             self._protokoll = Protokoll()
+            self._protokoll.wurzel = self.wurzel
+            # `raus()` des Fixers hat dieselbe Form wie `ausgeschlossen()`
+            # des Pruefwerks: eine Menge von Verzeichnisnamen.
+            self._protokoll.ausgeschlossen = self.raus
+            # UND den Git-Filter. Ohne ihn filtert das innere Pruefwerk
+            # gegen das echte Repo — im Probelauf sind die Pruefdateien
+            # dort nicht bekannt, und der Fixer sieht nichts. Drei Dinge
+            # muessen uebereinstimmen, nicht zwei: Wurzel, Ausschlussliste
+            # UND die Frage, was ueberhaupt zum Projekt gehoert.
+            self._protokoll.gitfilter = self.gitfilter
         return self._protokoll
 
     # ------------------------------------------------------------- Vorschau

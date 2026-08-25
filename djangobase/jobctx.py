@@ -87,6 +87,34 @@ class TimestampedStream:
     Carriage-Return-Tick (waere unleserlich).
     """
 
+    #: Deutsche Typografie auf ASCII, fuer Stroeme die sie nicht koennen.
+    #:
+    #: WARUM DAS HIER STEHT (25.08.2026)
+    #: =================================
+    #: `GrundtestWerkzeugkatalog.test_katalog_steht_im_bericht` druckt alle
+    #: 57 Werkzeuge mit Titel und Zweck. Auf einer Windows-Konsole (cp1252,
+    #: die Vorgabe) stuerzte er ab::
+    #:
+    #:     UnicodeEncodeError: 'charmap' codec can't encode character
+    #:     '→' in position 8181
+    #:
+    #: Der Katalog selbst ist sauber in ASCII geschrieben ("Hilfe -> Skills",
+    #: "Eintraege"). Der Pfeil kam aus den TEXTEN der Werkzeuge — nachgezaehlt
+    #: tragen **ueber 30 der 57** Gedankenstriche, Anfuehrungszeichen oder
+    #: Pfeile. Das ist richtig so; ein Bericht soll lesbar sein.
+    #:
+    #: Falsch war, dass die Ausgabe daran zerbricht. Ein Schreiber, der bei
+    #: einem Gedankenstrich eine Pruefung reissen laesst, zwingt jeden
+    #: Aufrufer zu ASCII — und dann steht in den Berichten „laeuft" statt
+    #: „läuft". Deshalb wird hier UMGESETZT statt zu scheitern, und nur was
+    #: die Liste nicht kennt, wird ersetzt.
+    ERSATZ = {
+        '→': '->', '←': '<-', '—': '--', '–': '-',
+        '„': '"', '“': '"', '”': '"', '‘': "'",
+        '’': "'", '…': '...', '·': '*', '•': '*',
+        '✅': '[ok]', '❌': '[x]', '⚠': '[!]',
+    }
+
     def __init__(self, wrapped):
         self._wrapped = wrapped
         self._buffer = ""
@@ -94,6 +122,29 @@ class TimestampedStream:
         # Lock fuer Multi-Thread-Schreiber (Waitress-Worker, Detector-Threads,
         # ...). Acquire kostet ~1 µs gegenueber dem eigentlichen Write.
         self._lock = threading.Lock()
+
+    def _darstellbar(self, text):
+        u"""Text, den der umschlossene Strom auch wirklich schreiben kann.
+
+        Auf einem UTF-8-Strom bleibt alles wie es ist — die Umsetzung
+        kostet dort nur einen Versuch, der gelingt.
+        """
+        kodierung = getattr(self._wrapped, 'encoding', None) or 'utf-8'
+        try:
+            text.encode(kodierung)
+            return text
+        except (UnicodeEncodeError, LookupError):
+            pass
+        for zeichen, ersatz in self.ERSATZ.items():
+            text = text.replace(zeichen, ersatz)
+        try:
+            text.encode(kodierung)
+            return text
+        except (UnicodeEncodeError, LookupError):
+            # Was die Liste nicht kennt: lieber ein Fragezeichen als ein
+            # abgebrochener Bericht.
+            return text.encode(kodierung, 'replace').decode(kodierung,
+                                                            'replace')
 
     def write(self, s):
         if not s:
@@ -129,7 +180,7 @@ class TimestampedStream:
             self._buffer = ""
             self._at_line_start = line_start
         if out:
-            self._wrapped.write("".join(out))
+            self._wrapped.write(self._darstellbar("".join(out)))
         return len(s)
 
     def flush(self):
@@ -137,9 +188,10 @@ class TimestampedStream:
             if self._buffer:
                 ts = time.strftime("%Y-%m-%d %H:%M:%S")
                 if not _TS_PREFIX_RE.match(self._buffer):
-                    self._wrapped.write(f"{ts} {self._buffer}")
+                    self._wrapped.write(
+                        self._darstellbar(f"{ts} {self._buffer}"))
                 else:
-                    self._wrapped.write(self._buffer)
+                    self._wrapped.write(self._darstellbar(self._buffer))
                 self._buffer = ""
             self._wrapped.flush()
 

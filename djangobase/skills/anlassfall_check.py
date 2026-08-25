@@ -48,10 +48,43 @@ class Probelauf:
         self.zeilen = []
         self.fehler = ""
 
+    #: Ein Filter, der nichts filtert — fuer den Probelauf eines Fixers.
+    class _AllesErlaubt:
+        u"""``Fixer.pfade()`` geht ueber den Git-Filter.
+
+        Der Anlassfall-Ordner liegt UNTER der Projektwurzel, also innerhalb
+        des Repos — git antwortet dort, kennt die frisch geschriebenen
+        Pruefdateien aber nicht. Der Fixer saehe also grundsaetzlich
+        nichts und stuende immer als „blind" da.
+        """
+
+        aktiv = False
+
+        @staticmethod
+        def erlaubt(_pfad):
+            return True
+
     def fahren(self):
         werkzeug = self.klasse()
         # Instanzattribut schlaegt Methode: das Werkzeug sucht ab HIER.
         werkzeug.wurzel = lambda: self.wurzel
+        if not hasattr(werkzeug, "ausgeschlossen"):
+            # EIN FIXER IST ANDERS GEBAUT (25.08.2026): Er hat kein
+            # `ausgeschlossen()`, sondern `raus()` — und einen Git-Filter.
+            # Beides muss fuer den Probelauf geoeffnet werden, sonst sieht
+            # er den eigenen Anlassfall nicht.
+            frei = werkzeug.raus() - {ORDNER}
+            werkzeug.raus = lambda: frei
+            werkzeug.gitfilter = lambda: self._AllesErlaubt()
+            # `erlaubt()` ist eine KLASSENmethode und fragt `cls.raus()` —
+            # die Instanz-Fassung oben erreicht sie nicht. Das ist Absicht:
+            # Sie ist der SCHREIBSCHUTZ („nur zum Suchen, nicht als
+            # Schreibschutz", `Fixer.pfade`). Hier wird nur `vorschau()`
+            # gerufen und nie `anwenden()` — geschrieben wird also nichts,
+            # und ohne diese Zeile verwirft jeder Fixer seinen eigenen
+            # Anlassfall, weil dessen Ordner `_anlassfall` heisst.
+            werkzeug.erlaubt = lambda p: not (set(Path(p).parts) & frei)
+            return self._fixerlauf(werkzeug)
         # UND es muss hier auch hinsehen duerfen. ``_anlassfall`` steht in der
         # Ausschlussliste, damit die Werkzeuge im NORMALEN Lauf nicht ihre
         # eigenen Testdateien als Befund melden - im Probelauf filtert genau das
@@ -61,6 +94,30 @@ class Probelauf:
         werkzeug.ausgeschlossen = lambda: offen
         try:
             self.zeilen = list(werkzeug.laufen().zeilen)
+        except Exception:                                     # noqa: BLE001
+            self.fehler = traceback.format_exc(limit=2).strip().split("\n")[-1]
+        return self
+
+    def _fixerlauf(self, werkzeug):
+        u"""Ein Fixer meldet ueber ``vorschau()``, nicht ueber ``laufen()``.
+
+        EIN FIXER HEISST NICHT `laufen` (25.08.2026)
+        ============================================
+        Der Sammellauf ging nur ueber ``WERKZEUGE`` — und die sieben Fixer,
+        also genau die, die in Dateien SCHREIBEN, blieben ungeprueft. Ein
+        Fixer, der still aufhoert seinen Fall zu finden, faellt niemandem
+        auf: Er meldet dann einfach „nichts zu tun".
+
+        Dieselbe Verwechslung hatte kurz zuvor schon den Laeufer
+        `tools/wartung/pruefen.py` im Wirtsprojekt abstuerzen lassen
+        (``'Altlast' object has no attribute 'pruefen'``).
+
+        GESCHRIEBEN WIRD NICHT: ``vorschau()`` allein, nie ``anwenden()``.
+        Ein Selbsttest, der Dateien aendert, ist kein Selbsttest mehr.
+        """
+        try:
+            self.zeilen = [a.als_dict()
+                           for a in werkzeug.vorschau().aenderungen]
         except Exception:                                     # noqa: BLE001
             self.fehler = traceback.format_exc(limit=2).strip().split("\n")[-1]
         return self
@@ -142,14 +199,18 @@ class AnlassfallCheck(Werkzeug):
                "urteil", "nachgebaut")
 
     def laufen(self):
-        from . import WERKZEUGE
+        # AUCH DIE FIXER (25.08.2026, auf Ansage: „mach alle die
+        # Verbesserungen"). Sie standen nicht in dieser Schleife — und das
+        # sind genau die Werkzeuge, die in Dateien SCHREIBEN. Von sieben
+        # hatte einer einen Anlassfall.
+        from . import FIXER, WERKZEUGE
         basis = self.wurzel() / ORDNER
         self._aufraeumen(basis)
         ergebnisse = []
         try:
             leer = (basis / "leer")
             leer.mkdir(parents=True, exist_ok=True)
-            for klasse in WERKZEUGE:
+            for klasse in list(WERKZEUGE) + list(FIXER):
                 if klasse is type(self):
                     continue
                 ergebnisse.append(self._eines(klasse, basis, leer))

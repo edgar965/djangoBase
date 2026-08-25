@@ -38,6 +38,7 @@ import re
 from pathlib import Path
 
 from .fix_vermerk import Serialisierungsweg
+from .anlassfall import Anlassfall
 from .fixer import Aenderung, Fixer, Vorschau
 
 MARKER = "Dictionary gewollt"
@@ -198,6 +199,26 @@ class FixDictKlasse(Fixer):
                "vermerkten Anzeigeformaten.")
     kriterium = 11
     dauer = "10–30 s"
+
+    anlassfall = Anlassfall(
+        # Vier feste Schluessel (MIN_SCHLUESSEL) und ZWEI Leser
+        # (MIN_LESER) — beides muss zutreffen. Ein Rueckgabe-Dictionary mit
+        # nur einem Leser ist ein Zwischenergebnis, keine Klasse.
+        {"kennzahlen.py":
+            "def kennzahlen(x):\n"
+            "    return {'gesamt': x, 'offen': 0, 'fertig': 0, 'quote': 0.0}\n"
+            "\n\n"
+            "def zeigen(x):\n"
+            "    k = kennzahlen(x)\n"
+            "    return k['gesamt']\n"
+            "\n\n"
+            "def melden(x):\n"
+            "    k = kennzahlen(x)\n"
+            "    return k['quote']\n"},
+        mindestens=1, hoechstens=1, erwartet_in="kennzahlen.py",
+        warum="Ein Datensatz mit vier Feldern, den zwei Stellen per "
+              "[\"schluessel\"] auslesen, gehoert in eine Klasse — genau die "
+              "Regel, die dieser Durchgang hervorgebracht hat")
 
     MIN_SCHLUESSEL = 4
     RAUS = ("__pycache__", "node_modules", "venv", "pythonVENV", ".git",

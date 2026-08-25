@@ -38,6 +38,7 @@ wenn keine bleibt.
 """
 import re
 
+from .anlassfall import Anlassfall
 from .fixer import Aenderung, Fixer, Vorschau
 
 
@@ -491,6 +492,21 @@ class FixJsErbe(Fixer):
                "Datei ist ein Platzhalter.")
     kriterium = 3
     dauer = "5–15 s"
+
+    anlassfall = Anlassfall(
+        # Über GRENZE (200) Zeilen UND mindestens zwei Methoden in EINER
+        # Klasse — beides muss zutreffen, sonst ist es ein Fall für
+        # `fix-jsschnitt` und nicht für die Vererbung.
+        {"kachel.js": "export class Kachel {\n"
+         + "".join(
+             "    schritt%02d() {\n"
+             "        const wert = %d;\n"
+             "        return wert * 2;\n"
+             "    }\n\n" % (i, i) for i in range(50))
+         + "}\n"},
+        mindestens=1, hoechstens=1, erwartet_in="kachel.js",
+        warum="Eine Klasse mit fünfzig Methoden auf 250 Zeilen — die hintere "
+              "Hälfte gehört in eine Basisklasse")
 
     GRENZE = 200
     RAUS = ("__pycache__", "node_modules", "venv", "pythonVENV", ".git",

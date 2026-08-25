@@ -21,6 +21,7 @@ VIER SICHERUNGEN, DAMIT NUR EINDEUTIG TOTES FAELLT
 """
 import ast
 
+from .anlassfall import Anlassfall
 from .fixer import Aenderung, Fixer, Vorschau
 
 __all__ = ["ImportFixer"]
@@ -32,7 +33,17 @@ RAUS = ("__pycache__", "migrations", "node_modules", "venv", "pythonVENV",
 
 
 class ImportFixer(Fixer):
-    slug = "tote-importe"
+    #: HIESS BIS ZUM 25.08.2026 `tote-importe` — wie das PRUEFWERKZEUG
+    #: (``toteimporte.ToteImporte``). Zwei Eintraege unter einer Kennung:
+    #:
+    #:   * `werkzeug_finden("tote-importe")` war mehrdeutig,
+    #:   * der neue Werkzeugkatalog druckte zwei Zeilen mit demselben Namen,
+    #:   * und `anlassfall-check` legt sein Pruefverzeichnis nach dem Slug an
+    #:     — beide haetten in denselben Ordner geschrieben.
+    #:
+    #: `fix-importe` heisst jetzt wie die Datei und passt zu den uebrigen
+    #: Fixern (`fix-vermerk`, `fix-jsschnitt`, `fix-fzeichenkette`).
+    slug = "fix-importe"
     titel = "Tote Importe entfernen"
     tut = "Entfernt importierte Namen, die in der Datei nirgends vorkommen."
     warum = ("Tote Importe kosten Ladezeit, halten Abhaengigkeiten kuenstlich am "
@@ -41,6 +52,17 @@ class ImportFixer(Fixer):
                "Mehrfach-Importe (import os, sys) bleiben, wenn nur einer tot ist.")
     kriterium = 5
     dauer = "3-8 s"
+
+    anlassfall = Anlassfall(
+        {"laden.py": "import json\n"
+                     "import os\n"
+                     "import sys  # noqa: F401\n"
+                     "\n\n"
+                     "def lesen(pfad):\n"
+                     "    return json.loads(open(pfad).read())\n"},
+        mindestens=1, hoechstens=1, erwartet_in="laden.py",
+        warum="`os` ist tot und faellt; `json` wird gebraucht und `sys` traegt "
+              "ein noqa — beide muessen stehenbleiben")
 
     #: Modul-Endungen, deren blosser Import etwas bewirkt - nie entfernen.
     SEITENEFFEKT = {"signals", "admin", "receivers", "tasks", "checks", "apps"}

@@ -82,7 +82,11 @@ class CodeQualitaet(BefundWerkzeug):
     def pruefen(self, **_argumente):
         from ..umbau.codequalitaet import Codequalitaet
 
-        messung = Codequalitaet(self.wurzel()).messen()
+        # Denselben Git-Filter wie jedes andere Werkzeug — sonst
+        # misst dieses hier eine andere Menge als `tote-importe`
+        # daneben, und die Zahlen sind nicht vergleichbar.
+        messung = Codequalitaet(self.wurzel(),
+                                gitfilter=self.gitfilter()).messen()
         befunde, kopf = [], ['%d Python-Dateien' % len(messung.dateien)]
         fehlend = []
 
@@ -156,9 +160,28 @@ class CodeQualitaet(BefundWerkzeug):
             return (Befund.FEHLER
                     if any(treffer.name.startswith(w) for w in schwer)
                     else Befund.WARNUNG)
-        # radon: Rang E und F sind ein anderer Fall als Rang C.
+        # radon: Rang C ist nicht dasselbe wie Rang F.
+        #
+        # DIE VERTEILUNG ENTSCHEIDET (25.08.2026)
+        # =======================================
+        # Alles unter 40 stand als `warnung` — und damit 195 Funktionen,
+        # die radon selbst nur „leicht verwickelt" nennt. Gemessen an
+        # CamTrack::
+        #
+        #     A 5826   B 772   C 195   D 13   E 3   F 4
+        #
+        # 195 gleich dringend gemeldete Warnungen decken die 20 zu, auf
+        # die es ankommt. Gemeldet wird weiterhin JEDE — die Zahl 215
+        # steht unverändert im Kopf, und die Verteilung A–F daneben. Nur
+        # das GEWICHT folgt jetzt radons eigener Skala:
+        #
+        #     C (11-20)   hinweis   „leicht verwickelt"
+        #     D (21-30)   warnung   wird Arbeit
+        #     E/F (>30)   fehler    niemand fasst das mehr an
         if 'Komplex' in verfahren.name:
-            return (Befund.FEHLER if treffer.wert >= 40 else Befund.WARNUNG)
+            if treffer.wert > 30:
+                return Befund.FEHLER
+            return (Befund.WARNUNG if treffer.wert > 20 else Befund.HINWEIS)
         return Befund.WARNUNG if treffer.wert < 10 else Befund.HINWEIS
 
 

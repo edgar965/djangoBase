@@ -36,7 +36,7 @@ eine Konfigurationsdatei je Projekt braucht. Solange das nicht steht, sagt
 die Seite lieber nichts, als etwas Halbes zu behaupten.
 """
 import ast
-from collections import Counter
+from collections import Counter, defaultdict
 from pathlib import Path
 
 from .klassenmodell import AUS
@@ -148,8 +148,21 @@ class Verfahren:
 class Codequalitaet:
     u"""Misst ein Projektverzeichnis mit allen vorhandenen Verfahren."""
 
-    def __init__(self, wurzel):
+    def __init__(self, wurzel, gitfilter=None):
         self.wurzel = Path(wurzel)
+        #: Was ``.gitignore`` ausnimmt, ist nicht der Code des Projekts.
+        #:
+        #: DEN FILTER GAB ES SCHON (25.08.2026)
+        #: ====================================
+        #: `djangobase.skills.gitfilter.GitFilter` beantwortet genau diese
+        #: Frage, und `Werkzeug.pfade()` geht seit dem 18.08. darüber —
+        #: „der eine Weg ins Dateisystem". Dieses Modul hatte eine eigene
+        #: Meinung und maß deshalb auch `_build_yolo_704.py`, ein
+        #: ad-hoc-Skript, das git gar nicht kennt.
+        #:
+        #: Bleibt ``None``, wenn niemand einen mitgibt — dann misst es wie
+        #: bisher alles. Ein Werkzeug ohne git soll nicht stehenbleiben.
+        self.gitfilter = gitfilter
         self.dateien = []
         self.verfahren = []
         #: Was beim MESSEN schiefging — ``[(datei, verfahren, grund)]``.
@@ -187,6 +200,11 @@ class Codequalitaet:
             if any(t in AUS for t in teile):
                 continue
             if any(t.lower() in DATEN for t in teile[:-1]):
+                continue
+            # Was git nicht kennt, ist nicht der Code des Projekts.
+            # `erlaubt()` prüft selbst, ob git geantwortet hat, und lässt
+            # ohne Antwort alles durch — hier also kein zweiter Wächter.
+            if self.gitfilter is not None and not self.gitfilter.erlaubt(pfad):
                 continue
             try:
                 if pfad.stat().st_size > GROESSTE_QUELLDATEI:
@@ -341,6 +359,7 @@ class Codequalitaet:
 
         gezaehlt = Counter()
         stellen = {}
+        je_datei = defaultdict(Counter)
         wurzel = str(self.wurzel).replace('\\', '/').rstrip('/') + '/'
 
         class _Sammler(pycodestyle.BaseReport):
@@ -352,11 +371,13 @@ class Codequalitaet:
                 if schluessel:
                     code = text[:4]
                     gezaehlt[code] += 1
+                    kurz = str(self.filename).replace('\\', '/')
+                    if kurz.startswith(wurzel):
+                        kurz = kurz[len(wurzel):]
                     if code not in stellen:
-                        kurz = str(self.filename).replace('\\', '/')
-                        if kurz.startswith(wurzel):
-                            kurz = kurz[len(wurzel):]
                         stellen[code] = (kurz, zeilennummer, text)
+                    # Je Regel zaehlen, IN WIE VIELEN Dateien sie steht.
+                    je_datei[code][kurz] += 1
                 return schluessel
 
         # DER DOKUMENTIERTE WEG (24.08.2026). Vorher stand hier
@@ -377,10 +398,25 @@ class Codequalitaet:
             v.fehlt = u'pycodestyle brach ab: %s' % exc
             return v
 
+        # WIE VIELE DATEIEN, NICHT NUR WIE OFT (25.08.2026)
+        # =================================================
+        # Hier stand die Fundstelle des ERSTEN Vorkommens neben der
+        # GESAMTZAHL. Der Bericht las sich damit als
+        # „_build_yolo_704.py:45 — 2841x" — bei einer Datei mit 47 Zeilen.
+        # Tatsaechlich verteilten sich die 2841 auf 513 Dateien.
+        #
+        # Eine Zahl neben einem Dateinamen wird als Zahl DIESER Datei
+        # gelesen. Jetzt steht die Zahl der Dateien dabei, und der Ort ist
+        # die Datei mit den MEISTEN Treffern statt der zufaellig ersten.
         for code, zahl in gezaehlt.most_common():
-            datei, zeile, text = stellen[code]
-            v.treffer.append(Treffer(datei, zeile, code, zahl,
-                                     u'%dx — %s' % (zahl, text[5:])))
+            wo = je_datei[code]
+            schlimmste, dort = wo.most_common(1)[0] if wo else stellen[code][:1] + (0,)
+            zeile = stellen[code][1] if schlimmste == stellen[code][0] else 0
+            text = stellen[code][2]
+            v.treffer.append(Treffer(
+                schlimmste, zeile, code, zahl,
+                u'%dx in %d Datei(en) — %s (hier %dx)'
+                % (zahl, len(wo), text[5:], dort)))
         # NICHT `arten` nennen (24.08.2026): Bei „Echte Fehler" ist das eine
         # LISTE von Paaren, hier waere es eine Zahl. Die Vorlage lief mit
         # `{% for art, zahl in v.zahlen.arten %}` in ein

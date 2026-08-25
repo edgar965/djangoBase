@@ -32,6 +32,7 @@ man nicht uebersehen kann.
 import re
 from collections import Counter
 
+from .anlassfall import Anlassfall
 from .fixer import Aenderung, Fixer, Vorschau
 
 #: Namen, die eine Seite mitbringt. Ein Zugriff darauf auf Modulebene ist Falle 6.
@@ -252,6 +253,17 @@ class FixJsSchnitt(Fixer):
                "weiß nur ein Mensch.")
     kriterium = 3
     dauer = "5–15 s"
+
+    anlassfall = Anlassfall(
+        # Über GRENZE (200) Zeilen, mit sauberen Funktionsgrenzen zum Teilen.
+        {"gross.js": "".join(
+            "export function teil%02d() {\n"
+            "    const wert = %d;\n"
+            "    return wert * 2;\n"
+            "}\n\n" % (i, i) for i in range(60))},
+        mindestens=1, hoechstens=1, erwartet_in="gross.js",
+        warum="Dreihundert Zeilen in einer Datei liest niemand am Stück — und "
+              "der Schnitt braucht eine Funktionsgrenze, an der er ansetzen kann")
 
     GRENZE = 200
     RAND = 40

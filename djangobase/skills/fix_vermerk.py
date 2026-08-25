@@ -28,6 +28,7 @@ import ast
 import re
 from collections import Counter
 
+from .anlassfall import Anlassfall
 from .fixer import Aenderung, Fixer, Vorschau
 
 MARKER = "Dictionary gewollt"
@@ -155,6 +156,37 @@ class FixVermerk(Fixer):
                "gelesen wird.")
     kriterium = 11
     dauer = "5–15 s"
+
+    anlassfall = Anlassfall(
+        # DREI Bedingungen muessen zugleich gelten, sonst schweigt der Fixer
+        # mit gutem Grund:
+        #   1. vier feste Schluessel im Rueckgabe-Dictionary,
+        #   2. die Schluessel stehen woertlich in ZWEI Frontend-Dateien,
+        #   3. die Funktion muendet nachweislich in `JsonResponse`.
+        # Punkt 3 kam am 17.08.2026 dazu: Namensgleichheit allein hatte
+        # einem Skript ohne jede Antwort „geht als JSON an audio.html"
+        # in den Code geschrieben.
+        {"kennzahlen.py":
+            "from django.http import JsonResponse\n"
+            "\n\n"
+            "def kennzahlen(x):\n"
+            "    return {'tagesquote': x, 'restposten': 0,\n"
+            "            'laufzeitmittel': 0, 'fehlerquote': 0.0}\n"
+            "\n\n"
+            "def api_kennzahlen(request):\n"
+            "    return JsonResponse(kennzahlen(1))\n",
+         "tafel.html":
+            "<div data-feld=\"tagesquote\"></div>\n"
+            "<div data-feld=\"restposten\"></div>\n"
+            "<div data-feld=\"laufzeitmittel\"></div>\n",
+         "tafel.js":
+            "export function zeichnen(d) {\n"
+            "    return [d.tagesquote, d.restposten, d.fehlerquote];\n"
+            "}\n"},
+        mindestens=1, hoechstens=1, erwartet_in="kennzahlen.py",
+        warum="Ein Rueckgabe-Dictionary, dessen Schluessel woertlich in der "
+              "Oberflaeche stehen und das nachweislich als JSON hinausgeht — "
+              "genau der Fall, den der Auftrag ausdruecklich ausnimmt")
 
     MIN_SCHLUESSEL = 4
     SCHWELLE = 0.7
