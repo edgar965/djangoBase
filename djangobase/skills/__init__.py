@@ -90,6 +90,7 @@ from .rueckgabetupel import RueckgabeTupel
 from .schleifenarbeit import Schleifenarbeit
 from .schreibrouten import Schreibrouten
 from .seitenzeiten import Seitenzeiten
+from .uebersprungen import Uebersprungen
 from .vorlagenblock import Vorlagenblock
 from .wachstum import Wachstum
 
@@ -174,6 +175,10 @@ NEUE = [
     Frontendadressen,
     # Datenverlust auf ein GET hin - vorn, weil es der teuerste Ausgang ist.
     Schreibrouten,
+    # Direkt dahinter (26.08.2026): Eine Pruefung, die sich selbst
+    # ueberspringt, meldet gruen. Das ist billiger zu uebersehen als
+    # jeder andere Befund — es sieht ja aus wie bestanden.
+    Uebersprungen,
     Seitenzeiten,
     Vorlagenblock,
     Doppelrumpf,
