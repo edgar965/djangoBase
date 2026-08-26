@@ -272,9 +272,13 @@ UEBERSPRINGEN = {"grossdateien"}
 #: nie mit, wenn jemand „Logging & Tests pruefen" drueckte.
 #:
 #: Der Block zu Kriterium 18 fragte laengst die Registrierung; sein
-#: Kommentar sagte auch warum („Hier wird gefragt statt aufgezaehlt"). Der
-#: aeltere Block daneben tat es nicht. Jetzt beide ueber
-#: ``SkillsView._zu_kriterien(...)``.
+#: Kommentar sagte auch warum („Hier wird gefragt statt aufgezaehlt").
+#:
+#: Am selben Tag ging es einen Schritt weiter: Die zwei Kaesten unter
+#: der Tabelle sind ganz weg. Ihre Werkzeuge standen dort ein ZWEITES
+#: Mal — in der Tabelle koennen sie mehr. Der Sammellauf-Knopf sitzt
+#: jetzt in der Abschnitts-Zeile und gilt fuer jeden Bereich
+#: (``SkillsView._gruppenkopf``).
 
 #: ALLE Werkzeuge, EINE Liste (Ansage 18.08.2026: „ich brauche keine AlteBasis,
 #: merge alles"). Bis dahin standen sie in zwei Listen mit zwei Basisklassen,

@@ -22,7 +22,7 @@ from django.views import View
 
 from ..mixins import ZugriffMixin
 from ..skills import (Bericht, Umbaunetz, fixer, fixer_finden,
-                       kriterien, werkzeuge)
+                       werkzeuge)
 from ..skills.lehren_review import BEREICHE, LEHREN, Lehrenstand
 from ..skills.rangliste import rangliste
 from ..skills.werkzeug import Ergebnis
@@ -68,14 +68,14 @@ class SkillsView(ZugriffMixin, View):
         # Die Textbox schickt ihren bisherigen Inhalt mit und bekommt ihn
         # ergaenzt zurueck - so haengt ein zweiter Lauf an, statt zu ueberschreiben.
         bericht = Bericht(request.POST.get("ausgabe", ""))
-        # „Logging + Tests pruefen": der Sammellauf ueber die Kriterien 16/17.
-        # Eigener Knopf statt eines weiteren Hakens in der Tabelle - es ist die
-        # Frage, die man am Ende eines Umbaus stellt, nicht zwischendurch.
+        # Entweder die angehakten Werkzeuge — oder der Knopf in einer
+        # Abschnitts-Zeile, der den ganzen Bereich in einem Lauf faehrt.
+        #
+        # Bis zum 26.08.2026 standen hier zwei weitere Sonderwege
+        # (``k1617``, ``k18``) fuer zwei Kaesten unter der Tabelle. Die
+        # Kaesten sind weg, der Knopf gilt jetzt fuer JEDEN Bereich.
         gewaehlt = (request.POST.getlist("werkzeug")
-                    or (self._k1617_slugs() if request.POST.get("k1617") else [])
-                    # Kriterium 18 (19.08.2026): derselbe Gedanke wie 16/17 -
-                    # eine Frage, die man am Ende eines Umbaus stellt.
-                    or (self._k18_slugs() if request.POST.get("k18") else []))
+                    or self._bereich_slugs(request.POST.get("bereich")))
         gelaufen = self._laufen(gewaehlt, request.POST, bericht)
         return self._seite(request, bericht.text(), gelaufen)
 
@@ -216,15 +216,6 @@ class SkillsView(ZugriffMixin, View):
             "fixer_da": [f.als_dict() for f in fixer()],
             "netz": {"titel": Umbaunetz.titel, "tut": Umbaunetz.tut,
                      "warum": Umbaunetz.warum, "grenzen": Umbaunetz.grenzen},
-            # Kriterium 16/17 als eigener Sammellauf.
-            "k1617": [{"titel": w.titel, "zweck": w.zweck,
-                       "kriterium": getattr(w, "kriterium", 0)}
-                      for w in self._zu_kriterien(16, 17)],
-            "k1617_texte": [(nr, kriterien()[nr]) for nr in (16, 17)],
-            # Kriterium 18: Klassen und Zustand - eigener Sammellauf.
-            "k18": [{"titel": w.titel, "zweck": w.zweck, "slug": w.slug}
-                    for w in self._k18_werkzeuge()],
-            "k18_text": kriterien().get(18, ""),
             "fix": fix,      # nach einer Vorschau: {slug, bereich, n, modus} -> Anwenden-Knopf
             # Die Lehren aus den Code-Reviews - Ankreuzliste mit Auftragstext.
             "lehren_bereiche": self._lehren(),
@@ -232,69 +223,9 @@ class SkillsView(ZugriffMixin, View):
             "anzahl_aktiv": sum(1 for an in Lehrenstand.laden().values() if an),
         })
 
-    @staticmethod
-    def _zu_kriterien(*nummern):
-        u"""Die Werkzeuge zu diesen Kriterien — aus der Registrierung.
 
-        WARUM ABGELEITET (19.08.2026): Der Block fuer 16/17 fuehrte seine
-        Werkzeuge als feste Liste. Als Kriterium 18 dazukam, erschien es
-        deshalb NIRGENDS auf der Seite — die Werkzeuge liefen, aber der
-        Auftrag, zu dem sie gehoeren, stand nicht da.
 
-        DERSELBE FEHLER STECKTE NOCH IM BLOCK 16/17 (26.08.2026)
-        ========================================================
-            „warum ist Logging & Tests auf /hilfe/skills/ noch anders, mit
-             anderen Nummern usw?"
 
-        Er lief ueber ``EIGENE`` — drei von Hand eingetragene Werkzeuge.
-        Nachgemessen trugen aber FUENF das Kriterium 16 oder 17::
-
-            Kr 16  jsstumm          Stille Rueckmeldung        FEHLTE
-            Kr 16  schreibrouten    Ansicht schreibt auf GET    FEHLTE
-            Kr 16  protokoll        Logging                     dabei
-            Kr 17  testaufbau       Tests gegliedert            dabei
-            Kr 17  testdeckung      Tests: was hat gar keinen?  dabei
-
-        Zwei Werkzeuge liefen also nie mit, wenn jemand „Logging & Tests
-        pruefen" drueckte — und niemand sah es, weil die Karte ihre eigene
-        Liste zeigte statt der Registrierung.
-
-        Jetzt fragt BEIDES dieselbe Stelle: Ein neues Werkzeug mit
-        ``kriterium = 16`` steht ohne Zutun im Block und laeuft im
-        Sammellauf mit.
-
-        NACH NUMMER SORTIERT (26.08.2026)
-        =================================
-            „immer noch die alte fassung??"
-
-        War sie nicht — aber sie sah so aus. Die Registrierung ist nach
-        Dringlichkeit geordnet, nicht nach Kriterium, und der Block zeigte
-        sie in dieser Reihenfolge::
-
-            Kr. 16  Kr. 16  Kr. 17  Kr. 16  Kr. 17  Kr. 17
-
-        Unter einer Ueberschrift „Kriterium 16 und 17" liest sich das wie
-        ein Versehen. Der Block ist nach Kriterien gruppiert, also wird er
-        auch danach sortiert — Nummer zuerst, dann Titel, damit die
-        Reihenfolge zwischen zwei Aufrufen gleich bleibt.
-        """
-        gesucht = set(nummern)
-        passend = [w for w in werkzeuge()
-                   if getattr(w, "kriterium", 0) in gesucht]
-        return sorted(passend,
-                      key=lambda w: (getattr(w, "kriterium", 0), w.titel))
-
-    @classmethod
-    def _k18_werkzeuge(cls):
-        return cls._zu_kriterien(18)
-
-    @classmethod
-    def _k18_slugs(cls):
-        return [w.slug for w in cls._k18_werkzeuge()]
-
-    @classmethod
-    def _k1617_slugs(cls):
-        return [w.slug for w in cls._zu_kriterien(16, 17)]
 
     @staticmethod
     def _lehren():
@@ -312,6 +243,53 @@ class SkillsView(ZugriffMixin, View):
                             "anzahl": len(eintraege)})
         return aus
 
+    @staticmethod
+    def _gruppenkopf(nummer, bereich, anzahl):
+        u"""Abschnitts-Zeile der Tabelle — mit eigenem Sammellauf-Knopf.
+
+        JEDER ABSCHNITT, NICHT ZWEI AUSGEWAEHLTE (26.08.2026)
+        =====================================================
+            „ich will keine neuen Bereich ohne tabelle die mit 17 anfangen,
+             gliedere diese Bereiche ein in der Art und weise der Tabellen
+             wie die vorherigen Bereiche"
+
+        Unter der Tabelle standen zwei Kaesten — „Logging & Tests" und
+        „Klassen & Zustand" — mit je einem Knopf, der alle Werkzeuge eines
+        Kriteriums in einem Lauf faehrt. Die zehn Werkzeuge darin standen
+        aber laengst in der Tabelle, verteilt auf drei Abschnitte:
+
+            Stille Fehler                    jsstumm, protokoll, schreibrouten
+            Objektorientierung und Struktur  klassenreif, globaler-zustand, …
+            Tests und Werkzeuge selbst       testaufbau, testdeckung, …
+
+        Zwei Darstellungen derselben Sache also, und die zweite fing mit
+        „17." und „18." an — als waeren es neue Bereiche. Das waren sie nie.
+
+        Der Knopf war das einzig Eigene daran. Er sitzt jetzt in der
+        Abschnitts-Zeile und gilt fuer ALLE Abschnitte, nicht fuer zwei
+        ausgewaehlte.
+        """
+        return (
+            '<b>%s</b> <span class="sk1-leise">%s</span>'
+            '<button type="submit" name="bereich" value="%d" formnovalidate'
+            ' class="sk1-knopf" style="float:right;"'
+            ' title="Alle %d Werkzeuge dieses Bereichs in einem Lauf">'
+            '<i class="bi bi-play-circle"></i> Bereich pruefen</button>'
+            % (escape(bereich["name"]), escape(bereich["warum"]),
+               nummer, anzahl))
+
+    @classmethod
+    def _bereich_slugs(cls, nummer):
+        u"""Die Werkzeuge EINES Abschnitts — fuer den Knopf in seiner Zeile."""
+        try:
+            nummer = int(nummer)
+        except (TypeError, ValueError):
+            return []
+        abschnitte = rangliste().abschnitte(list(werkzeuge()))
+        if not 0 <= nummer < len(abschnitte):
+            return []
+        return [w.slug for _rang, w in abschnitte[nummer]["eintraege"]]
+
     def _tabelle(self, gelaufen):
         """Struktur fuer djangobase/_tabelle.html. Die Zellen enthalten die
         Formularfelder; die Tabelle steht innerhalb des Formulars."""
@@ -322,14 +300,13 @@ class SkillsView(ZugriffMixin, View):
         # Eintraegen in Kriteriums-Reihenfolge - man sah nicht, was zusammen
         # gehoert. Die Abschnittszeile kann _tabelle.html von sich aus
         # (``gruppe``), es musste nichts an der Vorlage geaendert werden.
-        for abschnitt in rang.abschnitte(alle):
+        for nummer, abschnitt in enumerate(rang.abschnitte(alle)):
             eintraege = abschnitt["eintraege"]
             if not eintraege:
                 continue
             b = abschnitt["bereich"]
             zeilen.append({"gruppe": True, "zellen": [
-                {"html": '<b>%s</b> <span class="sk1-leise">%s</span>'
-                         % (escape(b["name"]), escape(b["warum"])),
+                {"html": self._gruppenkopf(nummer, b, len(eintraege)),
                  "colspan": 6}]})
             for nr, w in eintraege:
                 zeilen.append(self._zeile(w, nr, gelaufen))

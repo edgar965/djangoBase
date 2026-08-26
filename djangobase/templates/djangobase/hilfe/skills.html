@@ -48,65 +48,31 @@ nur Zeilen.
             {% include "djangobase/_tabelle.html" with tabelle=tabelle %}
         </div>
 
-        {# ============ Kriterium 16 + 17: Logging und Tests ============ #}
-        <div class="sk1-card">
-            <h3><i class="bi bi-journal-check"></i> Logging &amp; Tests
-                <span class="sk1-meta">· Kriterium 16 und 17</span></h3>
-            <p class="sk1-intro">
-                {% for nr, text in k1617_texte %}
-                <b>{{ nr }}.</b> {{ text }}<br>
-                {% endfor %}
-            </p>
-            <div class="sk1-stapel">
-                <button type="submit" name="k1617" value="1" class="sk1-batch">
-                    <i class="bi bi-play-circle"></i> Logging &amp; Tests prüfen</button>
-                <span class="sk1-leise">fährt die {{ k1617|length }} Werkzeuge
-                    aus der Tabelle oben in einem Lauf — Bericht landet in der
-                    Ausgabe</span>
-            </div>
-            {% comment %}
-            HIER STAND DIESELBE LISTE EIN ZWEITES MAL (26.08.2026)
-            ======================================================
-                „was ist das, sind das Tools, werkzeuge, tests, verstehe das
-                 nicht"
+        {% comment %}
+        HIER STANDEN ZWEI EIGENE KAESTEN (26.08.2026)
+        =============================================
+            „ich will keine neuen Bereich ohne tabelle die mit 17 anfangen,
+             gliedere diese Bereiche ein in der Art und weise der Tabellen
+             wie die vorherigen Bereiche"
 
-            Die Frage war berechtigt: Die sechs Werkzeuge standen doppelt auf
-            der Seite. Oben in der Tabelle mit Häkchen, eigenem Knopf, Rang
-            und Ergebnis-Spalte — und hier noch einmal als reine Textzeilen,
-            die nichts können. Zwei Darstellungen derselben Sache, eine davon
-            verkrüppelt; kein Wunder, dass unklar war, was das sein soll.
+        Unter der Tabelle standen „Logging & Tests · Kriterium 16 und 17"
+        und „Klassen & Zustand · Kriterium 18" — zwei Kästen, die mit „16.",
+        „17." und „18." anfingen und damit aussahen wie neue Bereiche.
 
-            Die Karte behält, was sie als einzige kann: den Sammellauf über
-            ein ganzes Kriterium. Die Werkzeuge selbst stehen dort, wo man
-            sie anhaken und einzeln fahren kann.
-            {% endcomment %}
-        </div>
+        Sie waren keine. Die zehn Werkzeuge darin standen längst IN der
+        Tabelle, verteilt auf drei Abschnitte:
 
-        {# ============ Kriterium 18: Klassen und Zustand ============ #}
-        {% if k18 %}
-        <div class="sk1-card">
-            <h3><i class="bi bi-box-seam"></i> Klassen &amp; Zustand
-                <span class="sk1-meta">· Kriterium 18</span></h3>
-            <p class="sk1-intro">
-                <b>18.</b> {{ k18_text }}<br>
-                <span class="sk1-leise">Zwei Fragen, ein Umbau: Wo ist Verhalten
-                    heimatlos (freie Funktionen) — und wo sind es die Daten
-                    (Modulvariablen)? Beides zusammen ergibt die Klasse, die noch
-                    niemand geschrieben hat. Veränderlicher Zustand wird zum
-                    Attribut, Konstanten-Bündel zur Kontext-Klasse, zustandslose
-                    Bündel zur Utility-Klasse mit statischen Methoden.</span>
-            </p>
-            <div class="sk1-stapel">
-                <button type="submit" name="k18" value="1" class="sk1-batch">
-                    <i class="bi bi-play-circle"></i> Klassen &amp; Zustand prüfen</button>
-                <span class="sk1-leise">fährt die {{ k18|length }} Werkzeuge
-                    aus der Tabelle oben in einem Lauf — Bericht landet in der
-                    Ausgabe</span>
-            </div>
-            {% comment %}Auch hier stand die Liste ein zweites Mal — siehe den
-            Kommentar im Block darüber.{% endcomment %}
-        </div>
-        {% endif %}
+            Stille Fehler                    jsstumm, protokoll, schreibrouten
+            Objektorientierung und Struktur  klassenreif, globaler-zustand, …
+            Tests und Werkzeuge selbst       testaufbau, testdeckung, …
+
+        Zwei Darstellungen derselben Sache also — und die zweite konnte
+        weniger: kein Häkchen, kein Rang, kein Ergebnis.
+
+        Das einzig Eigene war der Sammellauf-Knopf. Der sitzt jetzt in der
+        Abschnitts-Zeile der Tabelle und gilt für JEDEN Bereich, nicht für
+        zwei ausgewählte (siehe ``SkillsView._gruppenkopf``).
+        {% endcomment %}
 
         <div class="sk1-card" id="ausgabe">
             <h3><i class="bi bi-clipboard-data"></i> Ausgabe
