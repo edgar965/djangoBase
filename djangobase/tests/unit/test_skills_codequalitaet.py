@@ -22,6 +22,7 @@ Testmethode, die in derselben Klasse zweimal denselben Namen trug und
 deshalb **nie lief**. Ein Bericht, in dem 211 gewollte Zeilen 19 echte
 zudecken, wird weggeklickt — und findet dann gar nichts mehr.
 """
+import unittest
 import tempfile
 from pathlib import Path
 
@@ -31,6 +32,36 @@ from djangobase.skills.befund import Befund
 from ..base import BasisTest
 
 
+#: DREI ZUSTAENDE STATT ZWEI (27.08.2026)
+#: ======================================
+#: Diese Faelle brauchen ``radon``, ``pyflakes`` und ``pycodestyle``. Fehlen
+#: sie, lieferte der Lauf bisher 29 rote Faelle mit Meldungen wie
+#: ``KeyError: 'arten'`` - also 29 Meldungen, die aussehen wie ein kaputtes
+#: Projekt und in Wahrheit „pip install fehlt" heissen. Genau so ist es am
+#: 27.08.2026 in shortlongx passiert.
+#:
+#: Die PRODUKTIVSEITE macht es schon richtig: ``umbau/codequalitaet.py``
+#: setzt ``v.fehlt = 'radon'`` und zeigt „nicht gelaufen" statt einer leeren
+#: Liste. Nur die Pruefungen kannten diesen dritten Zustand nicht.
+#:
+#: djangoBase haengt in rund sechs Projekten; keines davon muss die
+#: Werkzeuge haben (sie sind ein optionales Extra, siehe pyproject.toml).
+#: Ein uebersprungener Fall sagt die Wahrheit, ein roter luegt.
+def _fehlendes_werkzeug(*module):
+    u"""Name des ersten fehlenden Moduls - oder '' wenn alle da sind."""
+    import importlib.util
+    for m in module:
+        if importlib.util.find_spec(m) is None:
+            return m
+    return ''
+
+
+FEHLT = _fehlendes_werkzeug('radon', 'pyflakes', 'pycodestyle')
+BRAUCHT_WERKZEUGE = unittest.skipIf(
+    FEHLT, u'%s ist nicht installiert - siehe Extra „codequalitaet"' % FEHLT)
+
+
+@BRAUCHT_WERKZEUGE
 class DasWerkzeugIstAngemeldet(BasisTest):
 
     def test_es_ist_ueber_den_slug_zu_finden(self):
@@ -51,6 +82,7 @@ class DasWerkzeugIstAngemeldet(BasisTest):
         self.assertIsNotNone(werkzeug_finden('code-qualitaet').anlassfall)
 
 
+@BRAUCHT_WERKZEUGE
 class WasEsMeldet(BasisTest):
 
     QUELLE = (
@@ -96,6 +128,7 @@ class WasEsMeldet(BasisTest):
             self.assertIn(teil, kopf)
 
 
+@BRAUCHT_WERKZEUGE
 class NichtAllesIstGleichDringend(BasisTest):
     u"""Ein undefinierter Name ist ein Fehler, eine lange Zeile eine
     Formsache. Beides gleich zu gewichten ist der Grund, warum solche
@@ -129,6 +162,7 @@ class NichtAllesIstGleichDringend(BasisTest):
         self.assertEqual(set(fehler), {Befund.FEHLER})
 
 
+@BRAUCHT_WERKZEUGE
 class NoqaZaehltNichtAlsFund(BasisTest):
     u"""DER FUND VOM 24.08.2026: 211 von 245 waren ausdrücklich gewollt."""
 
@@ -170,6 +204,7 @@ class NoqaZaehltNichtAlsFund(BasisTest):
         self.assertTrue([b for b in satz.befunde if 'Echte Fehler' in b.was])
 
 
+@BRAUCHT_WERKZEUGE
 class GarKeineKappung(BasisTest):
     u"""DIE ANSAGE (Edgar, 24.08.2026)
 
@@ -221,6 +256,7 @@ class GarKeineKappung(BasisTest):
                                      Befund.HINWEIS: 2}.get(g, 3)))
 
 
+@BRAUCHT_WERKZEUGE
 class EineGescheiterteMessungIstEinFund(BasisTest):
     u"""DER STUMME ZWEIG (24.08.2026)
 

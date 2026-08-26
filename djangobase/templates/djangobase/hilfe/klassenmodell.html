@@ -95,6 +95,13 @@ jede `.py` des Projekts.
 .km-liste code { color: #9ecbff; font-size: 0.82rem; }
 .km-liste tr:hover td { background: #171d24; }
 .km-warn { color: #ffd479; }
+/* Werkzeug-Legende: Die beiden Textspalten tragen den Inhalt, die beiden
+   linken sind Etiketten - ohne feste Breiten zerreisst der Satzbau. */
+.km-werkzeugtabelle td { vertical-align: top; line-height: 1.45; }
+.km-werkzeugtabelle td:nth-child(1) { width: 16%; }
+.km-werkzeugtabelle td:nth-child(2) { width: 13%; white-space: nowrap; }
+.km-werkzeugtabelle td:nth-child(3) { width: 35%; }
+.km-werkzeugtabelle th { position: static; }
 .km-js { color: #8b98a5; font-size: 0.78rem; }
 .km-kategorien { display: grid; gap: 0.6rem; margin-bottom: 1rem;
     grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr)); }
@@ -173,16 +180,84 @@ Bildes — auf „Globale Variablen" also eine Auskunft über Vielfachheiten.
     {% elif reiter == 'qualitaet' %}
     Zwei Fragen, zwei Knöpfe. <b>Statistik</b> zählt aus, wie groß das
     Projekt ist — Dateien, Zeilen und Klassen nach Art getrennt.
-    <b>Qualität prüfen</b> lässt vier etablierte Werkzeuge darüberlaufen
-    (<code>radon</code>, <code>pyflakes</code>, <code>pycodestyle</code>)
-    und zeigt, was sie finden. Laufzeitdaten zählen nicht mit: Was in
-    <code>media/</code> oder <code>logs/</code> liegt, ist kein Quelltext.
+    <b>Qualität prüfen</b> lässt <b>vier Verfahren</b> aus <b>drei
+    etablierten Werkzeugen</b> darüberlaufen — <code>radon</code> liefert
+    zwei davon. Hier ist nichts selbst gebaut; welche Aussage von welchem
+    Werkzeug stammt, steht in der Tabelle darunter. Laufzeitdaten zählen
+    nicht mit: Was in <code>media/</code> oder <code>logs/</code> liegt,
+    ist kein Quelltext.
     {% else %}
     Jede Vorlage mit den Skripten, die sie zieht, und dem, was diese
     ihrerseits importieren — eine Stufe tief. Zwei wären schon ein Netz
     statt eines Baums.
     {% endif %}
 </p>
+
+{% if reiter == 'qualitaet' %}
+{% comment %}
+WELCHE AUSSAGE VON WELCHEM WERKZEUG (27.08.2026, auf Ansage)
+============================================================
+    „schreibe auf der Code-Qualität-Seite hinein, welche Tools (radon usw.)
+     genutzt werden, und welche Aussage von welchem Tool kommt"
+
+Die Werkzeugnamen standen bisher nur im Fließtext der Einleitung und als
+kleine Marke am Ergebnis-Kopf. Wer die Befundliste las, sah eine Zahl und
+einen Satz — aber nicht, WER das behauptet. Das ist der Unterschied
+zwischen „Rang F" und „radon sagt Rang F": Nur das zweite lässt sich
+nachschlagen, bestreiten und gegen die Schwelle halten.
+
+Die Tabelle steht bewusst VOR dem Knopf und nicht erst im Ergebnis: Sie
+sagt, was der Lauf überhaupt beantworten kann, bevor man ihn startet.
+{% endcomment %}
+<div class="km-rahmen">
+    <table class="km-liste km-werkzeugtabelle">
+        <tr>
+            <th>Verfahren</th><th>Werkzeug</th><th>Was es misst</th>
+            <th>Was ein Fund bedeutet</th>
+        </tr>
+        <tr>
+            <td><b>Zyklomatische Komplexität</b></td>
+            <td><code>radon</code> <span class="km-js">(cc)</span></td>
+            <td>Verzweigungen je Funktion — jedes <code>if</code>, jede
+                Schleife, jedes <code>except</code> zählt eins.</td>
+            <td>Eine Funktion, die zu viele Wege hat. Sie ist nicht kaputt,
+                aber kaum vollständig zu prüfen.</td>
+        </tr>
+        <tr>
+            <td><b>Wartbarkeitsindex</b></td>
+            <td><code>radon</code> <span class="km-js">(mi)</span></td>
+            <td>Umfang, Verzweigung und Kommentaranteil einer Datei, zu
+                einer Zahl von 0 bis 100 verrechnet.</td>
+            <td>Eine Datei, in die sich niemand mehr hineintraut — auch
+                wenn jede einzelne Funktion darin harmlos ist.</td>
+        </tr>
+        <tr>
+            <td><b>Echte Fehler</b></td>
+            <td><code>pyflakes</code></td>
+            <td>Namen, die es nicht gibt. Importe, die niemand benutzt.
+                Zweimal dasselbe definiert.</td>
+            <td class="km-warn">Der einzige Block, in dem ein Fund wirklich
+                ein Fehler ist. Alles andere hier ist ein Hinweis.</td>
+        </tr>
+        <tr>
+            <td><b>Stil</b></td>
+            <td><code>pycodestyle</code></td>
+            <td>Abweichungen von PEP 8 — Zeilenlänge, Leerzeichen,
+                Einrückung.</td>
+            <td>Formsache. Zählt im Bericht am wenigsten und darf einen
+                Umbau nie auslösen.</td>
+        </tr>
+    </table>
+    <p class="km-js" style="margin:.5rem 0 0">
+        Die vier widersprechen einander regelmäßig — und genau das ist der
+        Nutzen: Eine Datei kann nach <code>pyflakes</code> fehlerfrei sein
+        und trotzdem einen Wartbarkeitsindex im Keller haben. Dann ist
+        nichts kaputt, aber niemand traut sich hinein. Fehlt ein Werkzeug
+        im Python-Umfeld, meldet sein Block <b>„nicht gelaufen"</b> statt
+        einer leeren Liste, die wie „nichts gefunden" aussähe.
+    </p>
+</div>
+{% endif %}
 
 {% comment %}
 Fünf Sichten auf denselben Bereich (24.08.2026, auf Ansage). Das Klassen-
@@ -494,7 +569,14 @@ hinter einem stummen `except: continue`, also aus Statistik UND Bericht.
 
     {% if v.treffer %}
     <table class="km-liste">
-        <tr><th>Wert</th><th>Stelle</th><th>Datei</th><th>Befund</th></tr>
+        {% comment %}
+        Das Werkzeug steht im KOPF, nicht in jeder Zeile: Innerhalb eines
+        Blocks ist es fuer alle Treffer dasselbe, und eine Spalte, die
+        200 Mal denselben Wert traegt, ist Rauschen. Im Kopf beantwortet es
+        die Frage, die beim Lesen einer langen Liste aufkommt - wer sagt das?
+        {% endcomment %}
+        <tr><th>Wert</th><th>Stelle</th><th>Datei</th>
+            <th>Befund <span class="km-js">— laut {{ v.werkzeug }}</span></th></tr>
         {% for t in v.treffer %}
         <tr>
             <td class="km-wert">{{ t.wert }}</td>
