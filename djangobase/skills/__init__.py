@@ -262,10 +262,19 @@ BEFUNDBASIERT = [
 #: damit der Vergleich nachvollziehbar ist.
 UEBERSPRINGEN = {"grossdateien"}
 
-#: Die Werkzeuge zu den Kriterien 16 und 17 - die Seite bietet dafuer einen
-#: eigenen Knopf an („Logging und Tests"), deshalb stehen sie zusaetzlich als
-#: eigene Gruppe hier.
-EIGENE = [Protokoll, Testaufbau, Testdeckung]
+#: ENTFERNT am 26.08.2026 — die Liste war der Fehler.
+#:
+#:     „warum ist Logging & Tests auf /hilfe/skills/ noch anders, mit
+#:      anderen Nummern usw?"
+#:
+#: Hier standen drei von Hand eingetragene Werkzeuge. Nachgemessen trugen
+#: FUENF das Kriterium 16 oder 17 — `jsstumm` und `schreibrouten` liefen
+#: nie mit, wenn jemand „Logging & Tests pruefen" drueckte.
+#:
+#: Der Block zu Kriterium 18 fragte laengst die Registrierung; sein
+#: Kommentar sagte auch warum („Hier wird gefragt statt aufgezaehlt"). Der
+#: aeltere Block daneben tat es nicht. Jetzt beide ueber
+#: ``SkillsView._zu_kriterien(...)``.
 
 #: ALLE Werkzeuge, EINE Liste (Ansage 18.08.2026: „ich brauche keine AlteBasis,
 #: merge alles"). Bis dahin standen sie in zwei Listen mit zwei Basisklassen,
@@ -339,7 +348,7 @@ __all__ = [
     "Fixer", "Vorschau", "Aenderung", "ImportFixer",
     "Bericht", "Umbaunetz", "Abnahme",
     "KRITERIEN", "KRITERIEN_ZUSATZ", "OHNE_WERKZEUG", "kriterien",
-    "ALT_KRITERIUM", "UEBERSPRINGEN", "EIGENE",
+    "ALT_KRITERIUM", "UEBERSPRINGEN",
     "LEHREN", "BEREICHE", "gruppen", "als_zeilen", "Lehre", "Lehrenstand",
     "Anlassfall", "Protokoll", "Testaufbau", "Testdeckung",
 ]

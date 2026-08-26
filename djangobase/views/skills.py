@@ -21,7 +21,7 @@ from django.utils.html import escape
 from django.views import View
 
 from ..mixins import ZugriffMixin
-from ..skills import (EIGENE, Bericht, Umbaunetz, fixer, fixer_finden,
+from ..skills import (Bericht, Umbaunetz, fixer, fixer_finden,
                        kriterien, werkzeuge)
 from ..skills.lehren_review import BEREICHE, LEHREN, Lehrenstand
 from ..skills.rangliste import rangliste
@@ -72,7 +72,7 @@ class SkillsView(ZugriffMixin, View):
         # Eigener Knopf statt eines weiteren Hakens in der Tabelle - es ist die
         # Frage, die man am Ende eines Umbaus stellt, nicht zwischendurch.
         gewaehlt = (request.POST.getlist("werkzeug")
-                    or ([k.slug for k in EIGENE] if request.POST.get("k1617") else [])
+                    or (self._k1617_slugs() if request.POST.get("k1617") else [])
                     # Kriterium 18 (19.08.2026): derselbe Gedanke wie 16/17 -
                     # eine Frage, die man am Ende eines Umbaus stellt.
                     or (self._k18_slugs() if request.POST.get("k18") else []))
@@ -217,8 +217,9 @@ class SkillsView(ZugriffMixin, View):
             "netz": {"titel": Umbaunetz.titel, "tut": Umbaunetz.tut,
                      "warum": Umbaunetz.warum, "grenzen": Umbaunetz.grenzen},
             # Kriterium 16/17 als eigener Sammellauf.
-            "k1617": [{"titel": k.titel, "zweck": k.zweck, "kriterium": k.kriterium}
-                      for k in EIGENE],
+            "k1617": [{"titel": w.titel, "zweck": w.zweck,
+                       "kriterium": getattr(w, "kriterium", 0)}
+                      for w in self._zu_kriterien(16, 17)],
             "k1617_texte": [(nr, kriterien()[nr]) for nr in (16, 17)],
             # Kriterium 18: Klassen und Zustand - eigener Sammellauf.
             "k18": [{"titel": w.titel, "zweck": w.zweck, "slug": w.slug}
@@ -232,20 +233,51 @@ class SkillsView(ZugriffMixin, View):
         })
 
     @staticmethod
-    def _k18_werkzeuge():
-        u"""Die Werkzeuge zu Kriterium 18 — aus der Registrierung, nicht von Hand.
+    def _zu_kriterien(*nummern):
+        u"""Die Werkzeuge zu diesen Kriterien — aus der Registrierung.
 
-        WARUM ABGELEITET (19.08.2026): Der Block darueber fuehrt seine Kriterien
-        als feste Liste ``(16, 17)``. Als Kriterium 18 dazukam, erschien es
-        deshalb NIRGENDS auf der Seite — die Werkzeuge liefen, aber der Auftrag,
-        zu dem sie gehoeren, stand nicht da. Hier wird gefragt statt aufgezaehlt:
-        Ein weiteres Werkzeug mit ``kriterium = 18`` steht ohne Zutun im Block.
+        WARUM ABGELEITET (19.08.2026): Der Block fuer 16/17 fuehrte seine
+        Werkzeuge als feste Liste. Als Kriterium 18 dazukam, erschien es
+        deshalb NIRGENDS auf der Seite — die Werkzeuge liefen, aber der
+        Auftrag, zu dem sie gehoeren, stand nicht da.
+
+        DERSELBE FEHLER STECKTE NOCH IM BLOCK 16/17 (26.08.2026)
+        ========================================================
+            „warum ist Logging & Tests auf /hilfe/skills/ noch anders, mit
+             anderen Nummern usw?"
+
+        Er lief ueber ``EIGENE`` — drei von Hand eingetragene Werkzeuge.
+        Nachgemessen trugen aber FUENF das Kriterium 16 oder 17::
+
+            Kr 16  jsstumm          Stille Rueckmeldung        FEHLTE
+            Kr 16  schreibrouten    Ansicht schreibt auf GET    FEHLTE
+            Kr 16  protokoll        Logging                     dabei
+            Kr 17  testaufbau       Tests gegliedert            dabei
+            Kr 17  testdeckung      Tests: was hat gar keinen?  dabei
+
+        Zwei Werkzeuge liefen also nie mit, wenn jemand „Logging & Tests
+        pruefen" drueckte — und niemand sah es, weil die Karte ihre eigene
+        Liste zeigte statt der Registrierung.
+
+        Jetzt fragt BEIDES dieselbe Stelle: Ein neues Werkzeug mit
+        ``kriterium = 16`` steht ohne Zutun im Block und laeuft im
+        Sammellauf mit.
         """
-        return [w for w in werkzeuge() if getattr(w, "kriterium", 0) == 18]
+        gesucht = set(nummern)
+        return [w for w in werkzeuge()
+                if getattr(w, "kriterium", 0) in gesucht]
+
+    @classmethod
+    def _k18_werkzeuge(cls):
+        return cls._zu_kriterien(18)
 
     @classmethod
     def _k18_slugs(cls):
         return [w.slug for w in cls._k18_werkzeuge()]
+
+    @classmethod
+    def _k1617_slugs(cls):
+        return [w.slug for w in cls._zu_kriterien(16, 17)]
 
     @staticmethod
     def _lehren():

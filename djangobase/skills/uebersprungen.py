@@ -219,6 +219,12 @@ class Sprungsucher(ast.NodeVisitor):
 
 class Uebersprungen(BefundWerkzeug):
 
+    #: Kriterium 17 — „Testcases sauber erzeugen für alle wichtigen
+    #: Funktionen". Eine Prüfung, die sich selbst überspringt, ist keine
+    #: sauber erzeugte Prüfung. Ohne diese Zeile stünde das Werkzeug nur in
+    #: der großen Tabelle und liefe beim Sammellauf „Logging & Tests" nicht
+    #: mit — genau der Fehler, den dieser Block gerade hatte.
+    kriterium = 17
     slug = 'uebersprungen'
     titel = u'Übersprungene Prüfungen'
     zweck = (u'Findet jede Stelle, an der eine Prüfung abgekürzt wird — '
