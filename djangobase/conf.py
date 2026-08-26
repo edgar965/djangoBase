@@ -11,6 +11,16 @@ DEFAULTS = {
     # Optionales Favicon (Static-Pfad, z. B. "img/favicon.svg").
     # Leer = kein <link rel="icon"> (Default, bestehende Projekte unberuehrt).
     "favicon": "",
+    # MEHRERE Zeichen, mit Cache-Kennung (26.08.2026, aus CamTrack).
+    # `favicon` nimmt genau eines und haengt keine Kennung an; CamTrack
+    # braucht zwei — eine SVG, die scharf skaliert, und eine .ico als
+    # Rueckfall — und die Kennung, weil ein zwischengespeichertes Zeichen
+    # genau so hartnaeckig ist wie ein altes Stilblatt.
+    #
+    # Eintrag = Static-Pfad-String, oder Dict {static: "...", typ: "..."},
+    # oder Dict {roh: "/favicon.ico", typ: "..."} fuer Adressen, die nicht
+    # ueber die Statik laufen. Gesetzt gewinnt es gegen `favicon`.
+    "favicons": (),
     "farben": {
         "sidebar_bg": "#003153",
         "sidebar_light": "#004a7c",
@@ -194,6 +204,11 @@ DEFAULTS = {
     # werden, fuer Projekte deren CSS auf eigene Variablen-Namen schaut
     # (z.B. CamTrack: --ct-sidebar-width). Komma-separiert.
     "sidebar_extra_css_vars": "",
+    # Zusaetzliche CSS-Klasse am Ziehgriff, fuer Projekte die ihn ueber
+    # einen eigenen Selektor stylen (CamTrack: ct-sidebar-resizer).
+    # 26.08.2026 — ohne das musste CamTrack den ganzen Griff samt seiner
+    # neun Datenattribute von Hand im eigenen Grundgeruest nachbauen.
+    "sidebar_extra_class": "",
     # Optional: Server-Persistenz der Sidebar-Breite. Wenn `sidebar_save_url`
     # gesetzt ist, POSTet der Resizer nach jeder Aenderung an diesen
     # Endpoint — zusaetzlich zum localStorage-Cache. Damit ist die Breite

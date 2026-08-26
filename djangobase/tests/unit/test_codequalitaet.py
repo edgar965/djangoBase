@@ -152,6 +152,61 @@ class DieZahlenHabenUeberallDieselbeBauart(BasisTest):
                 self.assertEqual(len(eintrag), 2)
 
 
+class DasProjektSagtWieLangEineZeileSeinDarf(BasisTest):
+    u"""``setup.cfg`` schlägt pycodestyles Vorgabe von 79 Zeichen.
+
+    GEMESSEN AN CamTrack (26.08.2026)
+    =================================
+    3320 Stil-Abweichungen — davon **3009 ein und dieselbe Regel**: E501,
+    Zeilen über 79 Zeichen. Das Projekt schreibt aber auf 100; nur 438
+    Zeilen sind länger.
+
+    Ein Bericht, der zu 91 % aus einer Regel besteht, die niemand
+    angenommen hat, verdeckt die 311 echten Befunde daneben. Nach dem
+    Anlegen einer ``setup.cfg`` mit ``max_line_length = 100`` blieben 775.
+
+    Das ist dieselbe Sorte Fehler wie ein Prüfer, der Kommentare anmahnt:
+    Er misst etwas, wonach niemand gefragt hat — und wird deshalb
+    ignoriert, samt allem Richtigen darin.
+    """
+
+    #: 90 Zeichen: über pycodestyles Vorgabe (79), unter unserer (100).
+    MITTELLANG = u'x = "%s"\n' % ('y' * 84)
+
+    def test_ohne_konfiguration_gilt_die_vorgabe(self):
+        werte = _messen({'m.py': self.MITTELLANG})
+        stil = [v for v in werte.als_liste() if 'PEP 8' in v['name']][0]
+        self.assertGreaterEqual(stil['zahlen']['gesamt'], 1,
+                                'Ohne setup.cfg muss die 90-Zeichen-Zeile '
+                                'als E501 auffallen.')
+
+    def test_setup_cfg_hebt_die_grenze(self):
+        werte = _messen({
+            'm.py': self.MITTELLANG,
+            'setup.cfg': u'[pycodestyle]\nmax_line_length = 100\n'})
+        stil = [v for v in werte.als_liste() if 'PEP 8' in v['name']][0]
+        self.assertEqual(stil['zahlen']['gesamt'], 0,
+                         'Mit max_line_length = 100 darf die 90-Zeichen-Zeile '
+                         'nicht mehr gemeldet werden — sonst misst das '
+                         'Werkzeug gegen eine Regel, die das Projekt nicht '
+                         'hat.')
+
+    def test_tox_ini_geht_auch(self):
+        werte = _messen({
+            'm.py': self.MITTELLANG,
+            'tox.ini': u'[pycodestyle]\nmax_line_length = 100\n'})
+        stil = [v for v in werte.als_liste() if 'PEP 8' in v['name']][0]
+        self.assertEqual(stil['zahlen']['gesamt'], 0)
+
+    def test_eine_wirklich_zu_lange_zeile_faellt_weiter_auf(self):
+        u"""Die Gegenprobe: Die Grenze heben heisst nicht abschalten."""
+        werte = _messen({
+            'm.py': ZU_LANG,
+            'setup.cfg': u'[pycodestyle]\nmax_line_length = 100\n'})
+        stil = [v for v in werte.als_liste() if 'PEP 8' in v['name']][0]
+        self.assertGreaterEqual(stil['zahlen']['gesamt'], 1)
+
+
 class WasNichtGemessenWird(BasisTest):
 
     def test_laufzeitdaten_bleiben_draussen(self):

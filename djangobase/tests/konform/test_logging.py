@@ -125,6 +125,40 @@ class LoggingKonformTest(SimpleTestCase):
 class LogFormatTest(SimpleTestCase):
     u"""Das Format, das ``LogFenster`` lesen kann."""
 
+    @staticmethod
+    def _filter_laufen_lassen(satz):
+        u"""Die konfigurierten Filter über einen Satz laufen lassen.
+
+        WARUM DAS DAZUGEHOERT (26.08.2026)
+        ==================================
+        Die Prüfung baute einen nackten ``LogRecord`` und schickte ihn
+        durch den Formatierer — an CamTrack scheiterte sie mit::
+
+            KeyError: 'job_str'
+
+        Das Format ist djangoBase' eigenes::
+
+            {asctime} [{levelname}] {name}: {job_str}{message}
+
+        und ``{job_str}`` füllt :class:`djangobase.jobctx.JobContextFilter`,
+        der in ``LOGGING['filters']`` steht. Im Betrieb läuft er vor jedem
+        Formatieren; in der Prüfung lief er nicht. Sie prüfte also einen
+        Weg, den es so nirgends gibt, und meldete einen Fehler, den kein
+        Nutzer je sehen konnte.
+
+        Ein Filter, der wirft, wird NICHT verschluckt: Er wirft im
+        Betrieb genauso, und dann soll es hier auffallen.
+        """
+        from django.utils.module_loading import import_string
+        for name, bau in ((settings.LOGGING or {}).get("filters", {})).items():
+            if not isinstance(bau, dict) or "()" not in bau:
+                continue          # z. B. django.utils.log.RequireDebugFalse
+            klasse = bau["()"]
+            if isinstance(klasse, str):
+                klasse = import_string(klasse)
+            argumente = {k: v for k, v in bau.items() if k != "()"}
+            klasse(**argumente).filter(satz)
+
     def test_formatter_passt_zum_leser(self):
         u"""``LogFenster.KOPF`` erwartet „JJJJ-MM-TT HH:MM:SS [STUFE] name: text".
 
@@ -141,6 +175,7 @@ class LogFormatTest(SimpleTestCase):
                               style=formatter.get("style", "%"))
         satz = logging.LogRecord("mein.modul", logging.INFO, "x", 1,
                                  "Testzeile", None, None)
+        self._filter_laufen_lassen(satz)
         zeile = f.format(satz)
         self.assertRegex(zeile, LogFenster.KOPF,
                          u"Die erzeugte Zeile %r passt nicht zu "

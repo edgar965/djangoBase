@@ -181,13 +181,22 @@ class IconsTest(SimpleTestCase):
                         u"Kästchen." % wo.name)
 
     def test_fontawesome_geladen_wenn_benutzt(self):
+        u"""Kein Skip: „nicht benutzt" ist ein ERGEBNIS, kein Ausfall.
+
+        Hier stand ``skipTest("keine fa-*-Icons im Projekt")``. Ein
+        übersprungener Test meldet grün, ohne etwas geprüft zu haben —
+        und dann sieht niemand, ob die Bedingung noch stimmt oder ob der
+        Sucher kaputt ist. Die Frage ist eine einzige Zusicherung: Wer
+        ``fa-*`` benutzt, muss die Schrift einbinden. Wer sie nicht
+        benutzt, erfüllt das ebenfalls.
+        """
         wo = self._benutzt("fa-")
-        if wo is None:
-            self.skipTest("keine fa-*-Icons im Projekt")
         self.assertTrue(
-            self._eingebunden("fontawesome") or self._eingebunden("font-awesome"),
+            wo is None
+            or self._eingebunden("fontawesome")
+            or self._eingebunden("font-awesome"),
             u"%s nutzt fa-*-Icons, aber FontAwesome ist nirgends eingebunden — "
-            u"dort stehen leere Kästchen." % wo.name)
+            u"dort stehen leere Kästchen." % (wo.name if wo else "?"))
 
 
 class KontrastTest(SimpleTestCase):

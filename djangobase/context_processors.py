@@ -98,6 +98,8 @@ def djangobase(request):
         "untertitel": c["untertitel"],
         "logo_icon": c["logo_icon"],
         "favicon": c.get("favicon", ""),
+        # Mehrere Zeichen mit Cache-Kennung (26.08.2026, aus CamTrack).
+        "favicons": c.get("favicons", ()),
         "farben": c["farben"],
         "base_template": c["base_template"],
         "menu": c["menu"],
@@ -115,6 +117,7 @@ def djangobase(request):
         "sidebar_max": c["sidebar_max"],
         "sidebar_storage_key": c.get("sidebar_storage_key", ""),
         "sidebar_extra_css_vars": c.get("sidebar_extra_css_vars", ""),
+        "sidebar_extra_class": c.get("sidebar_extra_class", ""),
         "einstellungen_menu": c["einstellungen_menu"],
         "hilfe_menu": c["hilfe_menu"],
         # Profil-Umschalter (Combobox + Anlegen/Loeschen) auf der

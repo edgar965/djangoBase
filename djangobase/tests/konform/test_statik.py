@@ -51,16 +51,48 @@ _EINBINDUNG_RE = re.compile(
     re.IGNORECASE)
 
 
+#: ``{% comment %}…{% endcomment %}`` und ``{# … #}``.
+_KOMMENTAR_RE = re.compile(
+    r"\{%\s*comment\s*%\}.*?\{%\s*endcomment\s*%\}|\{#.*?#\}",
+    re.DOTALL)
+
+
+def ohne_kommentare(text):
+    u"""Vorlagentext ohne Django-Kommentare.
+
+    WARUM DER PRUEFER DAS BRAUCHT (26.08.2026)
+    ==========================================
+    Er meldete neun Einbindungen ohne Kennung. Sechs waren echt — drei
+    standen in einem ``{% comment %}``-Block, der genau diesen Fehler
+    ERKLAERT::
+
+        {% comment %}
+            <link href="{% static 'app/css/theme.css' %}" rel="stylesheet">   ohne ?v=
+        {% endcomment %}
+
+    Das ist Dokumentation, kein Mangel. Ein Pruefer, der die eigene
+    Erklaerung anmahnt, wird nicht ernst genommen — und dann uebersieht
+    man auch die sechs echten daneben.
+
+    Die Laenge bleibt erhalten, damit Zeilennummern stimmen: Ersetzt wird
+    durch Leerzeichen und Zeilenumbrueche, nicht geloescht.
+    """
+    def leeren(treffer):
+        return re.sub(r"[^\n]", " ", treffer.group(0))
+    return _KOMMENTAR_RE.sub(leeren, text)
+
+
 class _Einbindung(object):
     u"""``findall``/``search`` wie ein Muster — liefert aber nur die Adresse."""
 
     @staticmethod
     def findall(text):
-        return [m.group("adr") for m in _EINBINDUNG_RE.finditer(text)]
+        return [m.group("adr")
+                for m in _EINBINDUNG_RE.finditer(ohne_kommentare(text))]
 
     @staticmethod
     def search(text):
-        return _EINBINDUNG_RE.search(text)
+        return _EINBINDUNG_RE.search(ohne_kommentare(text))
 
 
 _EINBINDUNG = _Einbindung()
@@ -149,6 +181,41 @@ class CacheBustingTest(SimpleTestCase):
         self.assertTrue(gesamt,
                         u"Keine einzige eigene Statik-Einbindung gefunden — das "
                         u"Suchmuster passt nicht mehr.")
+
+
+class KommentareZaehlenNichtTest(SimpleTestCase):
+    u"""Was in einem Kommentar steht, ist Dokumentation, kein Mangel.
+
+    Am 26.08.2026 meldete `CacheBustingTest` neun Einbindungen ohne
+    Kennung. Drei standen in ``{% comment %}``-Bloecken, die genau diesen
+    Fehler ERKLAEREN — in `login.html` sogar mit dem Vermerk „ohne ?v=".
+    """
+
+    VORLAGE = (
+        "{% comment %}\n"
+        "    <link href=\"{% static 'app/css/alt.css' %}\" rel=\"stylesheet\">\n"
+        "{% endcomment %}\n"
+        "<link href=\"{% static 'app/css/echt.css' %}\" rel=\"stylesheet\">\n")
+
+    def test_einbindung_im_kommentar_wird_nicht_gefunden(self):
+        adressen = _EINBINDUNG.findall(self.VORLAGE)
+        self.assertEqual(len(adressen), 1, adressen)
+        self.assertIn('echt.css', adressen[0])
+
+    def test_einzeiliger_kommentar_zaehlt_auch_nicht(self):
+        adressen = _EINBINDUNG.findall(
+            "{# <link href=\"{% static 'app/css/alt.css' %}\"> #}\n")
+        self.assertEqual(adressen, [])
+
+    def test_die_zeilennummern_bleiben_stehen(self):
+        u"""Geleert, nicht geloescht — sonst zeigt jede Meldung daneben."""
+        raus = ohne_kommentare(self.VORLAGE)
+        self.assertEqual(raus.count('\n'), self.VORLAGE.count('\n'))
+        self.assertEqual(len(raus), len(self.VORLAGE))
+
+    def test_ohne_kommentar_bleibt_alles_stehen(self):
+        text = "<link href=\"{% static 'a.css' %}\">"
+        self.assertEqual(ohne_kommentare(text), text)
 
 
 class ModulUrlTest(SimpleTestCase):

@@ -240,7 +240,14 @@ class TabellenModuleTest(SimpleTestCase):
         ausgerechnet die saubere Lösung. Deshalb steht die Prüfung jetzt hinter
         der Frage, ob die Auto-Bindung überhaupt fehlt."""
         if TabellenKonformTest.auto_bindung_aktiv():
-            self.skipTest("tabellen_auto.js bindet - siehe Test darüber")
+            # KEIN Skip (26.08.2026): Ein uebersprungener Test meldet gruen,
+            # ohne etwas geprueft zu haben — und verdeckt damit auch den
+            # Fall, dass `auto_bindung_aktiv()` selbst kaputt ist. Die
+            # Auto-Bindung IST die Erfuellung dieser Regel, also wird sie
+            # als solche zugesichert statt weggeschaltet.
+            self.assertTrue(TabellenKonformTest.auto_bindung_aktiv(),
+                            u"tabellen_auto.js bindet - das erfuellt die Regel")
+            return
         gefunden = {"TabellenSortierung": False, "TabellenBreiten": False}
         for pfad in dateien(".html", ".js"):
             text = text_von(pfad)

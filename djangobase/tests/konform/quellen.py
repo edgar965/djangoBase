@@ -51,9 +51,17 @@ __all__ = ["TABU", "dateien", "wurzel", "ausnahmen"]
 #: eigene Dateien — und meldeten prompt „Sortier-Schlüssel mehrfach vergeben",
 #: weil Original und Sicherung denselben tragen. Ein Werkzeug, das die Spuren
 #: seines eigenen Netzes anmeckert, ist eine Fehlalarm-Maschine.
+#: ``_anlassfall`` kam am 26.08.2026 dazu. Der Anlassfall-Check legt seine
+#: Beispieldateien unter ``BASE_DIR/_anlassfall/`` an — bewusst im Projekt,
+#: weil der Vorlagen-Lader dieselbe Umgebung braucht — und raeumt sie danach
+#: wieder weg. In diesem Fenster sah der Sammler ``eltern.html`` und
+#: ``seite.html`` und schrieb sie in seinen Zwischenspeicher. Ergebnis: Zwei
+#: Konformitaetspruefungen fielen im GESAMTLAUF durch und liefen einzeln
+#: gruen — der teuerste Fehlerbericht, den es gibt, weil er beim Nachstellen
+#: verschwindet.
 TABU = {"node_modules", "__pycache__", "venv", ".venv", "pythonVENV", ".git",
         "site-packages", "migrations", ".mypy_cache", ".pytest_cache", ".tox",
-        "sicherung", "backup"}
+        "sicherung", "backup", "_anlassfall"}
 
 #: Wurzel des djangoBase-Pakets — Konsumenten-Regeln gelten nicht für es selbst.
 PAKET = Path(__file__).resolve().parents[2]
@@ -120,8 +128,16 @@ def dateien(*endungen):
     endungen = tuple(e.lower() if e.startswith(".") else "." + e.lower()
                      for e in endungen)
     media = _media()
-    return _gesammelt(endungen, str(wurzel()), ausnahmen(),
-                      str(media) if media else "")
+    gefunden = _gesammelt(endungen, str(wurzel()), ausnahmen(),
+                          str(media) if media else "")
+    # ZWEITER RIEGEL gegen fluechtige Dateien (26.08.2026): Der
+    # Zwischenspeicher haelt eine Liste, die einmal je Prozess entsteht.
+    # Legt IRGENDEINE Pruefung waehrenddessen kurz Dateien unter BASE_DIR
+    # an, stehen sie bis zum Prozessende drin — auch lange nachdem sie
+    # geloescht wurden. `TABU` deckt den bekannten Fall ab; das hier deckt
+    # den naechsten ab, den noch niemand kennt. Ein `exists()` je Datei
+    # kostet nichts gegen die 81 s, die der Zwischenspeicher spart.
+    return tuple(p for p in gefunden if p.exists())
 
 
 def text_von(pfad):

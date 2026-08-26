@@ -171,12 +171,26 @@ class DasWerkzeugAmEchtenProjekt(BasisTest):
                         [b.was for b in satz.befunde])
 
     def test_ein_gelesener_name_den_niemand_liefert_ist_FEHLEND(self):
+        u"""Der Name muss einer sein, den KEIN Kontextprozessor liefert.
+
+        Hier stand ``titel``. In CamTrack liefert ein Kontextprozessor
+        genau diesen Namen an jede Vorlage — das Werkzeug zog ihn also zu
+        Recht ab, und die Pruefung fiel durch, obwohl das Werkzeug richtig
+        lag. Sie haette in jedem Projekt mit einem ``titel``-Prozessor
+        rot gemeldet.
+
+        Eine Pruefung, die vom Wirtsprojekt abhaengt, prueft nicht das
+        Werkzeug. Der Name traegt deshalb jetzt ein Praefix, das in
+        keinem Projekt vorkommt.
+        """
         satz = self._lauf(
             "def x(request):\n"
             "    return render(request, 'a.html', {})\n",
-            {'a.html': '<h1>{{ titel }}</h1>'})
-        self.assertTrue(any('FEHLEND: titel' in b.was for b in satz.befunde),
-                        [b.was for b in satz.befunde])
+            {'a.html': '<h1>{{ pruefname_ohne_lieferant }}</h1>'})
+        self.assertTrue(
+            any('FEHLEND: pruefname_ohne_lieferant' in b.was
+                for b in satz.befunde),
+            [b.was for b in satz.befunde])
 
     def test_ein_name_hinter_einer_bedingung_ist_kein_befund(self):
         u"""Der Fall, der am 23.08.2026 siebenmal falsch gemeldet wurde."""

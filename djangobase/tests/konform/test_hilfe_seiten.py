@@ -148,19 +148,41 @@ class KonfigurationTest(SimpleTestCase):
                          u"Diese Log-Quellen zeigen ins Leere: %s"
                          % ", ".join(fehlend[:5]))
 
+    @staticmethod
+    def _befehle():
+        u"""Was die Seite WIRKLICH anzeigt: Konfiguration oder Ableitung.
+
+        DER PRUEFLING WAR UEBERHOLT (26.08.2026)
+        ========================================
+        Hier stand nur ``DJANGOBASE['test_befehle']``. Seit dem 17.08.2026
+        („aktiviere das per default für alle in djangoBase!") leitet
+        :meth:`TestsView._befehle_abgeleitet` die Liste aus dem
+        Dateibestand ab, wenn ein Projekt keine pflegt — CamTrack bekommt
+        so sechs Suiten, ohne einen Schluessel zu setzen.
+
+        Die Pruefung meldete also „Hilfe → Tests zeigt keinen Startknopf"
+        fuer eine Seite, die sechs davon zeigt. Sie fragt jetzt dieselbe
+        Stelle wie die Ansicht.
+        """
+        (aus_konfig,) = _djangobase("test_befehle")
+        if aus_konfig:
+            return aus_konfig
+        from djangobase.views.tests import TestsView
+        return TestsView._befehle_abgeleitet()
+
     def test_tests_seite_hat_befehle(self):
-        u"""Ohne ``test_befehle`` gibt es im UI nichts zu starten — die
+        u"""Ohne Befehle gibt es im UI nichts zu starten — die
         Konvention „Suite aus dem UI startbar" ist dann still unerfüllt."""
-        (befehle,) = _djangobase("test_befehle")
-        self.assertTrue(befehle,
-                        u"DJANGOBASE['test_befehle'] ist leer. Hilfe → Tests "
-                        u"zeigt dann keinen Startknopf für eine Suite.")
+        self.assertTrue(
+            self._befehle(),
+            u"Weder DJANGOBASE['test_befehle'] noch die Ableitung aus dem "
+            u"Dateibestand liefern etwas. Hilfe → Tests zeigt dann keinen "
+            u"Startknopf für eine Suite.")
 
     def test_testbefehle_sind_vollstaendig(self):
         u"""Ein Eintrag ohne ``cmd`` ist ein Knopf, der nichts tut."""
-        (befehle,) = _djangobase("test_befehle")
-        if not befehle:
-            self.skipTest("keine Befehle - siehe Test darüber")
+        befehle = self._befehle()
+        self.assertTrue(befehle, u"keine Befehle - siehe Test darüber")
         luecken = []
         for b in befehle:
             if not isinstance(b, dict):

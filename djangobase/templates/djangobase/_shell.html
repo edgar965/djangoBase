@@ -4,7 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{{ djangobase.titel }}{% endblock %}{% block title_extra %}{% endblock %}</title>
-    {% if djangobase.favicon %}<link rel="icon" href="{% static djangobase.favicon %}">{% endif %}
+    {% comment %}Favicon: ein Pfad ODER eine Liste. Aus CamTrack uebernommen
+    (26.08.2026) — dort stehen ZWEI: eine SVG, die scharf skaliert, und eine
+    .ico als Rueckfall fuer alte Browser. Mit einem einzelnen Schluessel liess
+    sich das nicht ausdruecken, also stand es dort von Hand im eigenen
+    Grundgeruest.
+
+    Die Kennung ``?v=`` haengt mit dran: Ein Zeichen, das der Browser
+    zwischengespeichert hat, ist genau so hartnaeckig wie ein Stilblatt.
+    {% endcomment %}
+    {% for pfad in djangobase.favicons %}
+        <link rel="icon"{% if pfad.typ %} type="{{ pfad.typ }}"{% endif %}
+              href="{% if pfad.roh %}{{ pfad.roh }}{% else %}{% static pfad.static|default:pfad %}{% endif %}?v={{ JS_VERSION|default:STATIC_V|default:djangobase.statik_v }}">
+    {% empty %}
+        {% if djangobase.favicon %}<link rel="icon" href="{% static djangobase.favicon %}">{% endif %}
+    {% endfor %}
     {% block head_meta %}{% endblock %}
 
     {% comment %}Default-CSS: Bootstrap + Icons (CDN) + djangoBase-
@@ -45,18 +59,33 @@
     {% endif %}
 
     {% comment %}extra_css: Liste von Static-Pfaden, die hinter den
-    Defaults eingehaengt werden (Cascade-Override). ?v=JS_VERSION bricht den
-    (Service-Worker-/Browser-)Cache bei Aenderungen; JS_VERSION ist optional
-    (Projekte ohne diese Variable bekommen ?v=1).{% endcomment %}
+    Defaults eingehaengt werden (Cascade-Override). ``?v=`` bricht den
+    (Service-Worker-/Browser-)Cache bei Aenderungen.
+
+    DREI NAMEN FUER DIESELBE KENNUNG (26.08.2026)
+    =============================================
+    Hier stand nur ``JS_VERSION|default:1``. CamTrack nennt seine Kennung
+    ``STATIC_V`` — und bekam damit ``?v=1``, eine KONSTANTE. Ausgerechnet
+    fuer `theme.css` und `camtrack.css`, die sich am haeufigsten aendern.
+
+    Genau dieser Fehler hat dort schon zweimal zugeschlagen (das
+    Lautsprecher-Symbol am 21.08.2026, die Anmeldeseite am selben Tag).
+    Beim dritten Mal waere er durch die Bibliothek hereingekommen.
+
+    Die Kette faellt jetzt der Reihe nach zurueck: die Projektvariable,
+    wie sie auch immer heisst, und zuletzt djangoBases eigene Kennung —
+    die ist immer da und immer echt.
+    {% endcomment %}
     {% for path in djangobase.extra_css %}
-        <link rel="stylesheet" href="{% static path %}?v={{ JS_VERSION|default:1 }}">
+        <link rel="stylesheet" href="{% static path %}?v={{ JS_VERSION|default:STATIC_V|default:djangobase.statik_v }}">
     {% endfor %}
 
     {% comment %}extra_js_head: Frueh-im-Head-Scripts (htmx, importmap-
     Snippets). Eintrag = String (Static-Pfad) ODER Dict mit static-Key
     bzw. raw-Key fuer beliebigen Script-Tag.{% endcomment %}
     {% for item in djangobase.extra_js_head %}
-        {% if item.raw %}{{ item.raw|safe }}
+        {% if item.include %}{% include item.include %}
+        {% elif item.raw %}{{ item.raw|safe }}
         {% elif item.static %}<script src="{% static item.static %}"></script>
         {% else %}<script src="{% static item %}"></script>{% endif %}
     {% endfor %}
@@ -76,10 +105,52 @@
     konfiguration` — der Test heisst „ohne Konfiguration" und prueft genau
     diesen Fall. Er war rot, seit es ihn gibt.
     {% endcomment %}
-    {% block sidebar %}{% include djangobase.sidebar_template|default:"djangobase/_sidebar.html" with inside_shell=True %}{% endblock %}
+    {% comment %}
+    KOPFBEREICH — die volle Breite ueber allem (26.08.2026)
+    ======================================================
+    Aus CamTrack uebernommen. Dort steht ueber dem Gestell dreierlei, das
+    die GANZE Breite braucht und deshalb weder in die Seitenleiste noch in
+    die Topbar des Inhaltsbereichs passt:
+
+        * die Kopfzeile fuers Handy
+        * ein Warnband „settings.json weicht vom eingecheckten Stand ab"
+        * ein Warnband „der Aufnahme-Dienst laeuft nicht — es wird gerade
+          NICHT aufgezeichnet"
+
+    Das Zweite ist der Grund, warum es diesen Platz geben muss: Eine
+    Warnung, die neben dem Menue steht, sieht man nicht. Diese steht ueber
+    allem, auf jeder Seite.
+
+    Ohne diesen Block hatte CamTrack keine Wahl, als ein eigenes ``<html>``
+    zu pflegen — und damit alles daneben gleich mit.
+    {% endcomment %}
+    {% block kopfbereich %}{% endblock %}
+
+    {% comment %}
+    RAHMEN — damit ein Projekt sein eigenes Gestell drumherum legen kann.
+    ====================================================================
+    Seitenleiste, Ziehgriff und Inhalt sind hier Geschwister direkt unter
+    ``<body>``. CamTrack braucht sie in EINEM ``<div class="ct-layout">``
+    (Rasterlayout: Menuebreite als Spalte, Inhalt als zweite). Ueber diesen
+    Block genuegt dafuer::
+
+        {% verbatim %}{% block rahmen %}<div class="ct-layout">{{ block.super }}</div>{% endblock %}{% endverbatim %}
+
+    Ohne ihn muesste jedes Projekt mit eigenem Gestell die drei Bloecke
+    einzeln nachbauen — und dabei den Ziehgriff mit all seinen Attributen
+    abschreiben.
+    {% endcomment %}
+    {% block rahmen %}
+    {% comment %}Der Ziehgriff liegt IM Block (26.08.2026, aus CamTrack).
+    Vorher stand er daneben — wer die Seitenleiste leerte (Anmeldeseite:
+    kein Menue vor der Anmeldung), behielt einen Griff, der nichts mehr
+    zu ziehen hatte. „Keine Seitenleiste" heisst jetzt auch „kein Griff".
+    Die Stelle im DOM bleibt dieselbe.{% endcomment %}
+    {% block sidebar %}{% include djangobase.sidebar_template|default:"djangobase/_sidebar.html" with inside_shell=True %}
 
     {% if djangobase.resizable_sidebar %}
-    <div id="db-sidebar-resizer" class="db-sidebar-resizer"
+    <div id="db-sidebar-resizer"
+         class="db-sidebar-resizer{% if djangobase.sidebar_extra_class %} {{ djangobase.sidebar_extra_class }}{% endif %}"
          data-min="{{ djangobase.sidebar_min }}" data-max="{{ djangobase.sidebar_max }}"
          data-default="{{ djangobase.sidebar_default }}"
          {% if djangobase.sidebar_storage_key %}data-key="{{ djangobase.sidebar_storage_key }}"{% endif %}
@@ -91,6 +162,7 @@
          {% if djangobase.sidebar_save_debounce_ms %}data-save-debounce="{{ djangobase.sidebar_save_debounce_ms }}"{% endif %}
          title="Ziehen zum Verschieben · Doppelklick: Standardbreite"></div>
     {% endif %}
+    {% endblock %}{# sidebar #}
 
     {% block main %}
     <div class="main-wrapper">
@@ -114,6 +186,7 @@
         {% block content_wrapper %}<div class="db-content">{% block content %}{% endblock %}</div>{% endblock %}
     </div>
     {% endblock %}
+    {% endblock %}{# rahmen #}
 
     {% block toast_stack %}{% endblock %}
 
@@ -140,11 +213,27 @@
     {% endcomment %}
     {% endblock %}
     {% comment %}extra_body_js: Projekt-spezifische Scripts am Body-Ende.
-    Eintrag = Static-Pfad-String, oder Dict {static:"..."} oder Dict
-    {raw:"<script type=module>...</script>"} fuer beliebige inline-Tags.
+    Eintrag = Static-Pfad-String, Dict {static:"..."}, Dict {raw:"<script…>"}
+    oder Dict {include:"app/_schale_js.html"}.
+
+    ``include`` kam am 26.08.2026 aus CamTrack dazu. Der Grund ist handfest:
+    Dessen Modulblock braucht ``{% verbatim %}{% url %}{% endverbatim %}``
+    und ``{% verbatim %}{% static %}{% endverbatim %}`` — Adressen fuer
+    zehn Module und drei Endpunkte. In einer Zeichenkette in den
+    Einstellungen expandiert davon nichts, also standen dort
+    ``/static/…``-Pfade von Hand.
+
+    Was daraus wurde, ist der eigentliche Befund: Die Einstellung trug
+    ZWEI der zehn Module, das Grundgeruest alle zehn. Zwei Listen fuer
+    dieselbe Sache, und die kuerzere galt auf allen ``/hilfe/``-Seiten —
+    dort fehlten acht Module, ohne dass es jemandem auffiel.
+
+    Mit ``include`` gibt es wieder eine Liste, und sie steht in einer
+    Vorlage, wo die Adressen aufloesen.
     {% endcomment %}
     {% for item in djangobase.extra_body_js %}
-        {% if item.raw %}{{ item.raw|safe }}
+        {% if item.include %}{% include item.include %}
+        {% elif item.raw %}{{ item.raw|safe }}
         {% elif item.static %}<script src="{% static item.static %}"></script>
         {% else %}<script src="{% static item %}"></script>{% endif %}
     {% endfor %}

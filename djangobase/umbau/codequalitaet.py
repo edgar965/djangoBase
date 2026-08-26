@@ -346,6 +346,18 @@ class Codequalitaet:
             v.satz += u'; %d führt `%s`' % (zahl, werkzeug)
         return v
 
+    #: Dateien, in denen ein Projekt seinen Stil festlegt — in der
+    #: Reihenfolge, in der pycodestyle selbst sie liest.
+    STILDATEIEN = ('setup.cfg', 'tox.ini', '.pycodestyle')
+
+    def _stilkonfig(self):
+        u"""Pfad zur Stil-Konfiguration des Projekts, oder ``None``."""
+        for name in self.STILDATEIEN:
+            pfad = self.wurzel / name
+            if pfad.is_file():
+                return str(pfad)
+        return None
+
     # ── 4. Stil ─────────────────────────────────────────────────
     def _stil(self):
         v = Verfahren(u'Stil (PEP 8)', 'pycodestyle',
@@ -388,7 +400,23 @@ class Codequalitaet:
         # Quelltext mit reichlich langen Zeilen. Ein Verfahren, das bei
         # jedem Fehlschlag „alles gut" sagt, ist schlimmer als keines —
         # deshalb werden Fehlschlaege jetzt GEZAEHLT und angezeigt.
-        wache = pycodestyle.StyleGuide(quiet=True)
+        # DAS PROJEKT SAGT, WIE LANG EINE ZEILE SEIN DARF (26.08.2026)
+        # ============================================================
+        # Hier stand `StyleGuide(quiet=True)` — also pycodestyles Vorgabe
+        # von 79 Zeichen. Gemessen an CamTrack: von 3320 Abweichungen waren
+        # **3009 genau diese eine Regel**. Das Projekt schreibt erkennbar
+        # auf 100 (nur 438 Zeilen sind laenger, 233 ueber 120).
+        #
+        # Ein Bericht, der zu 91 % aus einer Regel besteht, die das Projekt
+        # nie angenommen hat, ist unbrauchbar: Die 311 echten Befunde
+        # daneben sieht niemand mehr. Dieselbe Sorte Fehler wie die
+        # Fehlalarme aus `{% comment %}`-Bloecken — das Werkzeug misst
+        # etwas, wonach niemand gefragt hat.
+        #
+        # `setup.cfg` / `tox.ini` im Projekt entscheiden jetzt. Ohne solche
+        # Datei bleibt es bei pycodestyles Vorgabe.
+        wache = pycodestyle.StyleGuide(quiet=True,
+                                       config_file=self._stilkonfig())
         wache.init_report(_Sammler)
         gescheitert = 0
         try:

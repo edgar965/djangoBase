@@ -80,6 +80,7 @@ from .jssyntax import JsSyntax
 from .jsvererbung import JsVererbung
 from .jswaisen import JsWaisen
 from .kapselung import Kapselung
+from .klassenreif import Klassenreif
 from .klassenplan import Klassenplan
 from .leserzahl import LeserzahlWerkzeug
 from .modulzustand import ModulZustand
@@ -202,6 +203,13 @@ NEUE = [
 #: dieselbe Basis wie alle anderen — dieselbe Projektwurzel, dieselbe
 #: Ausschlussliste. Frueher war das eine eigene Welt mit eigener Basisklasse.
 BEFUNDBASIERT = [
+    # Direkt vor FreieFunktionen (26.08.2026): dieselbe Frage, aber
+    # die richtige. `FreieFunktionen` zaehlt Funktionen; dieses hier
+    # fragt nach ZUSTAND. Gemessen an CamTrack: 806 Funktionen auf
+    # Modulebene, aber nur fuenf Stellen mit veraenderlichem
+    # Modulzustand — und der eine echte Fehler, den ein Umbau an dem
+    # Tag fand, steckte in einem geteilten Lock.
+    Klassenreif,
     # Ganz vorn (24.08.2026): das EINZIGE Werkzeug hier, das nicht
     # selbst misst. Komplexitaet, Wartbarkeit, tote Namen und PEP 8
     # sind seit Jahren geloest — radon, pyflakes und pycodestyle
