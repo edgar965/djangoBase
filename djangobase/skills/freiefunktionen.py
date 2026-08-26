@@ -160,8 +160,7 @@ class FreieFunktionen(BefundWerkzeug):
                 '%d freie Funktionen, %d Klassen' % (len(sicht.funktionen),
                                                      sicht.klassen),
                 hinweis,
-                Befund.WARNUNG if len(sicht.funktionen) >= grenze * 2
-                else Befund.HINWEIS))
+                self._gewicht(sicht, grenze)))
 
         gesamt = sum(len(s.funktionen) for s in sichten)
         gebuendelt = sum(len(g[1]) for s in sichten for g in s.gruppen())
@@ -177,6 +176,45 @@ class FreieFunktionen(BefundWerkzeug):
     #: BESITZT ihn nicht — der erste Lauf schlug `ComputeAcceptThresholdTests`
     #: als Halter fuer drei Schwellen-Funktionen vor.
     KEIN_HALTER = ('Test', 'Tests', 'TestCase', 'Mixin')
+
+    #: Rollen, in denen eine Funktion auf Modulebene die UEBLICHE Schreibweise
+    #: ist — nicht eine Klasse, die niemand geschrieben hat.
+    #:
+    #: WARUM DIE UNTERSCHEIDUNG (Edgar, 26.08.2026)
+    #: ===========================================
+    #:     „wie kann es sein, dass die Code-Review-Tests alles gruen melden,
+    #:      und du noch hunderte freier Funktionen hast usw??"
+    #:
+    #: Gemessen an CamTrack, 285 gemeldete Module::
+    #:
+    #:     Ansichten  101 Module / 348 Funktionen
+    #:     Tests       67 /  123
+    #:     Dienste     57 /  173   <- die eigentlichen Kandidaten
+    #:     Erkennung   21 /   51
+    #:     uebrige     39 /   58
+    #:
+    #: `def meine_ansicht(request)` auf Modulebene IST die Django-Schreibweise,
+    #: und eine Testhilfe daneben ebenso. **59 % der Liste** waren damit
+    #: Dinge, die so gehoeren — und eine Liste, die zu 59 % aus Richtigem
+    #: besteht, arbeitet niemand durch. Genau deshalb hat sie niemand
+    #: durchgearbeitet.
+    #:
+    #: Gemeldet wird weiter JEDES Modul; nur das Gewicht folgt der Rolle.
+    #: Wer die echten Kandidaten will, filtert auf `warnung`.
+    UEBLICH = ('Ansichten', 'Tests')
+
+    def _gewicht(self, sicht, grenze):
+        u"""Wie schwer wiegt dieser Fund?
+
+        Eine Ansicht oder eine Testhilfe ist ein HINWEIS — sie steht dort
+        richtig. Alles andere mit genuegend Funktionen ist eine WARNUNG.
+        """
+        from ..umbau.gliederung import rolle
+
+        if rolle(sicht.pfad) in self.UEBLICH:
+            return Befund.HINWEIS
+        return (Befund.WARNUNG if len(sicht.funktionen) >= grenze * 2
+                else Befund.HINWEIS)
 
     def _rufer_sammeln(self, baum, hinein, datei=None):
         u"""Welche KLASSE ruft welche Funktion beim Namen?

@@ -29,6 +29,7 @@ import tempfile
 from pathlib import Path
 
 from djangobase.skills import werkzeug_finden
+from djangobase.skills.befund import Befund
 
 from ..base import BasisTest
 
@@ -142,6 +143,42 @@ class FreieFunktionenTest(BasisTest):
         satz = self._lauf({})
         self.assertFalse(satz.befunde)
         self.assertTrue(satz.kopf)
+
+    # ── das Gewicht folgt der Rolle ──────────────────────────────
+    VIELE = ''.join('def teil_%d(x):\n    return %d\n\n\n' % (i, i)
+                    for i in range(8))
+
+    def _gewicht(self, pfad):
+        satz = self._lauf({pfad: self.VIELE}, ab='2')
+        return satz.befunde[0].gewicht if satz.befunde else None
+
+    def test_ein_dienst_ist_eine_warnung(self):
+        self.assertEqual(self._gewicht('services/rechnen.py'),
+                         Befund.WARNUNG)
+
+    def test_eine_ansicht_ist_nur_ein_hinweis(self):
+        u"""DIE FRAGE (Edgar, 26.08.2026)
+
+            „wie kann es sein, dass die Code-Review-Tests alles grün
+             melden, und du noch hunderte freier Funktionen hast usw??"
+
+        Weil 59 % der Liste Dinge waren, die so gehören: `def
+        meine_ansicht(request)` auf Modulebene IST die Django-Schreibweise.
+        Gemessen an CamTrack: 101 der 285 Module sind Ansichten, 67 sind
+        Prüfungen. Eine Liste, die zu 59 % aus Richtigem besteht, arbeitet
+        niemand durch — und genau das ist passiert.
+        """
+        self.assertEqual(self._gewicht('views/seiten.py'), Befund.HINWEIS)
+
+    def test_eine_testhilfe_ebenso(self):
+        self.assertEqual(self._gewicht('tests/unit/test_hilfe.py'),
+                         Befund.HINWEIS)
+
+    def test_gemeldet_werden_sie_trotzdem(self):
+        u"""Weglassen wäre schlimmer: Dann sähe niemand mehr, wie viele
+        es sind."""
+        satz = self._lauf({'views/seiten.py': self.VIELE}, ab='2')
+        self.assertEqual(len(satz.befunde), 1)
 
     # ── der Name des Vorschlags ──────────────────────────────────
     def test_ein_verb_ist_kein_gegenstand(self):
