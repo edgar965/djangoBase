@@ -92,7 +92,7 @@ class Szenarienpruefer(ast.NodeVisitor):
 
     def _beurteilen(self, knoten):
         wo = '.'.join(self._klasse + [knoten.name])
-        if not self._sagt_etwas(knoten.name):
+        if not self._sagt_etwas(wo):
             self.befunde.append(Befund(
                 '%s:%d' % (self.datei, knoten.lineno),
                 u'Name nennt kein Verhalten: %s' % wo,
@@ -109,10 +109,29 @@ class Szenarienpruefer(ast.NodeVisitor):
                 u'weil sie Sicherheit vortäuscht.', Befund.FEHLER))
 
     @staticmethod
-    def _sagt_etwas(name):
-        if name in NICHTSSAGEND:
+    def _sagt_etwas(voll):
+        u"""Der GANZE Name — Klasse UND Methode (berichtigt 26.08.2026).
+
+        Der erste Wurf sah nur die Methode und meldete 52 Prüfungen an.
+        Nachgesehen sind die meisten davon im Zusammenhang tadellos::
+
+            KameraUndPerson.test_nur_bekannte
+            CosineSimilarityTests.test_identical_vectors
+            PointInPolygonTests.test_inside_square
+
+        Der Satz steht dort verteilt: Die Klasse nennt den Gegenstand, die
+        Methode den Fall. Genau so meldet unittest sie auch, wenn eine rot
+        wird — als ``Klasse.methode``. Wer nur die Methode beurteilt,
+        verlangt, dass der Gegenstand zweimal dasteht.
+
+        Was damit trotzdem auffällt, ist der echte Fall: ``A.test_basic``
+        sagt auch mit Klasse nichts, und ``test_yolo`` ohne Klasse erst
+        recht.
+        """
+        methode = voll.rsplit('.', 1)[-1]
+        if methode in NICHTSSAGEND:
             return False
-        return name.count('_') >= WOERTER_MINDESTENS
+        return voll.replace('.', '_').count('_') >= WOERTER_MINDESTENS
 
     @staticmethod
     def _sichert_zu(knoten):

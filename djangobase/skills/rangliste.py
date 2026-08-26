@@ -89,11 +89,14 @@ BEREICHE = (
     # Werkzeug ohne Kriterium ist selbst ein Fall für diesen Bereich — es
     # sagt nicht, wozu es da ist.
     {"name": "Abnahme und Beispiele (BDD)", "kriterien": (19,),
-     "warum": "Nicht Gherkin, sondern die drei Zusicherungen dahinter: jede "
-              "Regel hat ein Beispiel, jede Seite eine Abnahme, jeder "
-              "Prüfungsname nennt das erwartete Verhalten. Gemessen waren "
-              "88 % der Prüfungen schon so benannt — was fehlte, waren die "
-              "Lücken."},
+     "warum": "Eine rote Prüfung soll schon durch ihren Namen sagen, was "
+              "kaputt ist — ohne dass man ihren Code liest. Geprüft wird "
+              "dreierlei: Nennt der Name das erwartete Ergebnis "
+              "(„test_person_bleibt_nach_dem_merge_erhalten\" statt "
+              "„test_merge\")? Behauptet die Prüfung überhaupt etwas, oder "
+              "läuft sie nur durch und meldet immer grün? Und führt jedes "
+              "Werkzeug einen Beispielfall mit, an dem es beweist, dass es "
+              "seinen Befund noch findet?"},
 )
 
 

@@ -151,19 +151,24 @@ KRITERIEN_ZUSATZ = {
     # =================================================
     #     „Macht es sinn, dass ich die anwende?"
     #
-    # Gemessen statt geraten: 88 % der 1538 Pruefungen tragen schon einen
-    # Satz als Namen (`test_ausgeblendete_person_bleibt_ausgeblendet`), und
-    # 50 von 60 Werkzeugen haben einen `Anlassfall` — woertlich
-    # Given/When/Then. Was fehlte, war nicht die Schreibweise, sondern die
-    # LUECKEN: 179 Seiten und Endpunkte ohne jede Abnahme, ein Werkzeug
-    # ohne Beispiel.
+    # BDD verspricht: Erst das Verhalten beschreiben, dann den Code — und
+    # jede Beschreibung an einem Beispiel nachweisen. Gherkin schreibt das
+    # in eigene `.feature`-Dateien; das kostet ein zweites Rahmenwerk,
+    # einen zweiten Testlaeufer und eine zweite Liste, die auseinanderlaufen
+    # kann.
     #
-    # Deshalb ein Kriterium statt eines Rahmenwerks: Es prueft die drei
-    # Zusicherungen, die BDD wirklich gibt — jede Regel hat ein Beispiel,
-    # jede Seite eine Abnahme, jeder Pruefungsname sagt das Verhalten.
-    19: "BDD ohne Gherkin: jede Regel hat ein Beispiel (Anlassfall), jede "
-        "Seite und jeder Endpunkt eine Abnahme, jeder Pruefungsname nennt "
-        "das erwartete Verhalten",
+    # Dieses Kriterium prueft dieselben drei Zusagen dort, wo die Pruefungen
+    # ohnehin stehen: im Namen, im Rumpf, im Anlassfall.
+    #
+    # Was NICHT geprueft wird — und von Gherkin ebenso wenig: ob die
+    # Zusicherung die richtige ist. Dafuer gibt es den Anlassfall, der den
+    # Fall vorfuehrt, statt ihn zu behaupten.
+    19: "Jede Prüfung sagt durch ihren Namen, was herauskommen soll, und "
+        "behauptet es auch — keine, die nur durchläuft und immer grün "
+        "meldet. Jedes Werkzeug führt einen Beispielfall mit, an dem es "
+        "beweist, dass es seinen Befund noch findet. Jede Seite und jeder "
+        "Endpunkt wird einmal aufgerufen, damit ein Absturz auffällt, "
+        "bevor ihn jemand im Betrieb findet",
 }
 KRITERIEN = dict(_KRITERIEN_BASIS)
 KRITERIEN.update(KRITERIEN_ZUSATZ)
