@@ -60,18 +60,26 @@ nur Zeilen.
             <div class="sk1-stapel">
                 <button type="submit" name="k1617" value="1" class="sk1-batch">
                     <i class="bi bi-play-circle"></i> Logging &amp; Tests prüfen</button>
-                <span class="sk1-leise">fährt die {{ k1617|length }} Werkzeuge unten
-                    in einem Lauf — Bericht landet in der Ausgabe</span>
+                <span class="sk1-leise">fährt die {{ k1617|length }} Werkzeuge
+                    aus der Tabelle oben in einem Lauf — Bericht landet in der
+                    Ausgabe</span>
             </div>
-            {% for w in k1617 %}
-            <div class="sk1-fixzeile">
-                <span class="sk1-fixtext">
-                    <span class="sk1-name">{{ w.titel }}
-                        <span class="sk1-leise">· Kr. {{ w.kriterium }}</span></span>
-                    <span class="sk1-fixtut">{{ w.zweck }}</span>
-                </span>
-            </div>
-            {% endfor %}
+            {% comment %}
+            HIER STAND DIESELBE LISTE EIN ZWEITES MAL (26.08.2026)
+            ======================================================
+                „was ist das, sind das Tools, werkzeuge, tests, verstehe das
+                 nicht"
+
+            Die Frage war berechtigt: Die sechs Werkzeuge standen doppelt auf
+            der Seite. Oben in der Tabelle mit Häkchen, eigenem Knopf, Rang
+            und Ergebnis-Spalte — und hier noch einmal als reine Textzeilen,
+            die nichts können. Zwei Darstellungen derselben Sache, eine davon
+            verkrüppelt; kein Wunder, dass unklar war, was das sein soll.
+
+            Die Karte behält, was sie als einzige kann: den Sammellauf über
+            ein ganzes Kriterium. Die Werkzeuge selbst stehen dort, wo man
+            sie anhaken und einzeln fahren kann.
+            {% endcomment %}
         </div>
 
         {# ============ Kriterium 18: Klassen und Zustand ============ #}
@@ -91,18 +99,12 @@ nur Zeilen.
             <div class="sk1-stapel">
                 <button type="submit" name="k18" value="1" class="sk1-batch">
                     <i class="bi bi-play-circle"></i> Klassen &amp; Zustand prüfen</button>
-                <span class="sk1-leise">fährt die {{ k18|length }} Werkzeuge unten
-                    in einem Lauf — Bericht landet in der Ausgabe</span>
+                <span class="sk1-leise">fährt die {{ k18|length }} Werkzeuge
+                    aus der Tabelle oben in einem Lauf — Bericht landet in der
+                    Ausgabe</span>
             </div>
-            {% for w in k18 %}
-            <div class="sk1-fixzeile">
-                <span class="sk1-fixtext">
-                    <span class="sk1-name">{{ w.titel }}
-                        <span class="sk1-leise">· Kr. 18</span></span>
-                    <span class="sk1-fixtut">{{ w.zweck }}</span>
-                </span>
-            </div>
-            {% endfor %}
+            {% comment %}Auch hier stand die Liste ein zweites Mal — siehe den
+            Kommentar im Block darüber.{% endcomment %}
         </div>
         {% endif %}
 
