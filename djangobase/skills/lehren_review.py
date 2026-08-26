@@ -133,7 +133,8 @@ LEHREN = [
           'statt auf das Feld allein.',
           'Ein Auswahlfeld bekam 7.110 Eintraege statt zwei: einen je Datei, '
           'alle mit demselben Wert.',
-          'Django'),
+          'Django',
+          werkzeuge=('lehren-treue',)),
     Lehre('values-list-statt-objekte',
           'values_list statt Modellobjekte, wenn nur gelesen wird',
           'Werden aus einer Abfrage nur ein paar Felder gebraucht, `values_list` '
@@ -193,7 +194,8 @@ LEHREN = [
           'Zweimal erlebt: einmal brachte die Vektorisierung ohne diesen Kniff '
           'gar nichts (391 statt 380 ms), einmal kostete das Sortieren allein '
           '200 ms.',
-          'numpy'),
+          'numpy',
+          werkzeuge=('lehren-treue',)),
     Lehre('bincount-statt-add-at',
           'np.bincount statt np.add.at',
           'Streuende Summen (Werte auf Indizes addieren) mit `np.bincount` '
@@ -202,14 +204,16 @@ LEHREN = [
           'getroffene Ziele richtig summiert werden — das ist korrekt, aber '
           'sehr langsam. `np.bincount` leistet dasselbe in kompiliertem Code.',
           '82 ms wurden 9,6 ms, Ergebnis Bit fuer Bit gleich.',
-          'numpy'),
+          'numpy',
+          werkzeuge=('lehren-treue',)),
     Lehre('kdtree-workers',
           'cKDTree.query mit workers=-1 aufrufen',
           'Bei jeder Nachbarsuche `workers=-1` setzen.',
           'Ohne das Argument sucht scipy einkernig. Die Suche ist punktweise '
           'unabhaengig, das Ergebnis daher Index fuer Index identisch.',
           '3,8-fach schneller auf zwoelf Kernen — ein Argument, kein Umbau.',
-          'numpy'),
+          'numpy',
+          werkzeuge=('lehren-treue',)),
     Lehre('feld-oder-skalar',
           '& und ~ nur auf Feldern, nie auf einzelnen Wahrheitswerten',
           'Beim Vektorisieren von Bedingungen `np.logical_and` und '
@@ -257,7 +261,8 @@ LEHREN = [
           'System-Temp-Verzeichnisse werden nicht aufgeraeumt und liegen oft '
           'auf der Systemplatte.',
           'Vorgeschichte: rund 100 GB Datenmuell auf C:.',
-          'Vorgehen'),
+          'Vorgehen',
+          werkzeuge=('lehren-treue',)),
     Lehre('kein-globaler-zustand',
           'Veränderlicher Zustand gehört in eine Klasse, nicht auf Modulebene',
           'Eine Modulvariable, die sich nach dem Import noch ändert '

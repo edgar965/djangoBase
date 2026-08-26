@@ -82,6 +82,7 @@ from .jswaisen import JsWaisen
 from .kapselung import Kapselung
 from .klassenreif import Klassenreif
 from .klassenplan import Klassenplan
+from .lehrentreue import Lehrentreue
 from .leserzahl import LeserzahlWerkzeug
 from .modulzustand import ModulZustand
 from .namensvarianten import Namensvarianten
@@ -179,6 +180,11 @@ NEUE = [
     # ueberspringt, meldet gruen. Das ist billiger zu uebersehen als
     # jeder andere Befund — es sieht ja aus wie bestanden.
     Uebersprungen,
+    # Die fuenf Lehren, die sich am Quelltext ablesen lassen
+    # (26.08.2026). Zehn der 22 hingen vorher an gar keiner
+    # Pruefung — es sind die Fehler, die man beim zweiten Mal
+    # genauso macht wie beim ersten.
+    Lehrentreue,
     Seitenzeiten,
     Vorlagenblock,
     Doppelrumpf,
