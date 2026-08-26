@@ -271,6 +271,41 @@ def rangliste():
                      or (c["log_verzeichnis"] / "skills_rang.json"))
 
 
+class Lehrenrangliste(Rangliste):
+    u"""Rangliste fuer die Lehren — mit der ERKLAERTEN Reihenfolge als Grund.
+
+    `Rangliste.grundordnung` sortiert nach Bereich, Kriterium und Kennung.
+    Fuer Werkzeuge stimmt das; fuer die Lehren nicht: Sie haben kein
+    Kriterium, und nach Kennung sortiert stuende `aequivalenz-beweisen`
+    vor `bincount-statt-add-at` — eine Reihenfolge nach Alphabet, die
+    niemand so gemeint hat.
+
+    Die Grundordnung ist deshalb die Reihenfolge, in der sie in
+    ``lehren_review.py`` stehen: nach Bereichen gruppiert und innerhalb
+    davon so, wie sie beim Review entstanden sind. Wer verschiebt,
+    ueberschreibt das — aber der Ausgangspunkt ist nicht das Alphabet.
+    """
+
+    @classmethod
+    def grundordnung(cls, werkzeuge):
+        return [getattr(w, "slug", "") for w in werkzeuge]
+
+
+def lehrenrangliste():
+    u"""Die Rangliste der Lehren — dritte Ablage neben Pruefern und Fixern.
+
+        „mach die Lehren auch in einer veraenderbaren Tabelle mit
+         veraenderbaren Nummern" (26.08.2026)
+
+    Eigene Datei aus demselben Grund wie bei den Fixern: Ein Rang ist die
+    Position in SEINER Liste. Drei Listen, drei Ablagen, eine Klasse.
+    """
+    from ..conf import conf
+    c = conf()
+    return Lehrenrangliste(c.get("lehren_rang_datei")
+                           or (c["log_verzeichnis"] / "lehren_rang.json"))
+
+
 def fixerrangliste():
     u"""Die Rangliste der FIX-Werkzeuge — eigene Ablage, gleiche Klasse.
 

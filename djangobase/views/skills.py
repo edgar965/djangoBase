@@ -24,7 +24,8 @@ from ..mixins import ZugriffMixin
 from ..skills import (Bericht, Umbaunetz, fixer, fixer_finden,
                        werkzeuge)
 from ..skills.lehren_review import BEREICHE, LEHREN, Lehrenstand
-from ..skills.rangliste import fixerrangliste, rangliste
+from ..skills.rangliste import (fixerrangliste, lehrenrangliste,
+                                rangliste)
 from ..skills.werkzeug import Ergebnis
 
 
@@ -68,6 +69,12 @@ class SkillsView(ZugriffMixin, View):
             ok = fixerrangliste().verschieben(slug, ziel, list(fixer()))
             return redirect("%s?verschoben=%s#fixer" % (request.path,
                                                         slug if ok else ""))
+        if request.POST.get("aktion") == "lehrenrang":
+            slug = request.POST.get("rang_slug", "")
+            ziel = request.POST.get("rang_ziel", "")
+            ok = lehrenrangliste().verschieben(slug, ziel, list(LEHREN))
+            return redirect("%s?verschoben=%s#lehren" % (request.path,
+                                                         slug if ok else ""))
         if request.POST.get("aktion") == "lehren":
             # Die Ankreuzliste der Review-Lehren (bis 18.08.2026 auf der
             # eigenen Seite „Skills3"). Sie gehoert hierher: Es ist derselbe
@@ -230,6 +237,7 @@ class SkillsView(ZugriffMixin, View):
             "fix": fix,      # nach einer Vorschau: {slug, bereich, n, modus} -> Anwenden-Knopf
             # Die Lehren aus den Code-Reviews - Ankreuzliste mit Auftragstext.
             "lehren_bereiche": self._lehren(),
+            "lehrentabelle": self._lehrentabelle(),
             "anzahl_lehren": len(LEHREN),
             "anzahl_aktiv": sum(1 for an in Lehrenstand.laden().values() if an),
         })
@@ -448,6 +456,95 @@ class SkillsView(ZugriffMixin, View):
                 {"html": '<span class="sk1-leise">%s</span>'
                          % escape(d["grenzen"])},
                 {"html": knoepfe, "klasse": "sk1-mitte"},
+            ],
+        }
+
+    # ------------------------------------------------------------- Lehren
+
+    def _lehrentabelle(self):
+        u"""Die Lehren in derselben Tabelle wie Pruefer und Fixer.
+
+            „mach die Lehren auch in einer veraenderbaren Tabelle mit
+             veraenderbaren Nummern"
+
+        Vorher eine Liste von ``sk-lehre``-Bloecken, nach Bereichen
+        gruppiert: kein Rang, keine Sortierung, keine Spalten. Der Bereich
+        geht dabei nicht verloren — er wird eine SPALTE und laesst sich
+        damit sogar sortieren, was er als Zwischenueberschrift nicht
+        konnte.
+
+        Das Haekchen bleibt, was es war: „gilt fuer dieses Projekt".
+        """
+        stand = Lehrenstand.laden()
+        rang = lehrenrangliste()
+        alle = list(LEHREN)
+        da = {l.slug: l for l in alle}
+        zeilen = []
+        for nr, slug in enumerate(rang.reihenfolge(alle), start=1):
+            lehre = da.get(slug)
+            if lehre is not None:
+                zeilen.append(self._lehrezeile(lehre, nr,
+                                               stand.get(slug, True)))
+        return {
+            "key": "db-lehren",
+            "spalten": [
+                {"label": ('<input type="checkbox" id="sk-lehre-alle"'
+                           ' title="Alle aus- oder abwaehlen">'),
+                 "key": "wahl", "sortAus": True},
+                {"label": "Rang", "key": "rang", "sortAus": True,
+                 "titel": "Eindeutige Nummer. Aendern verschiebt den Eintrag."},
+                {"label": "Bereich", "key": "bereich"},
+                {"label": "Lehre", "key": "name"},
+                {"label": "Regel und Begruendung", "key": "regel"},
+                {"label": "Pruefung", "key": "pruefung",
+                 "titel": "Welches Werkzeug haelt diese Regel?"},
+            ],
+            "zeilen": zeilen,
+            "leer": "keine Lehren hinterlegt",
+        }
+
+    @staticmethod
+    def _lehrezeile(lehre, nr, an):
+        nummern = lehre.nummern()
+        if nummern:
+            pruefung = ' · '.join('Nr. %d<span class="sk1-dauer">%s</span>'
+                                  % (r, escape(titel))
+                                  for r, titel in nummern)
+        else:
+            # KEINE PRUEFUNG IST EINE AUSSAGE, keine fehlende Angabe: Diese
+            # Regel haengt allein an der Sorgfalt dessen, der schreibt.
+            pruefung = ('<span class="sk1-leise">keine — diese Regel prueft '
+                        'kein Werkzeug</span>')
+        text = '<span class="sk1-fixtut">%s</span>' % escape(lehre.regel)
+        text += ('<span class="sk1-dauer"><b>Warum:</b> %s</span>'
+                 % escape(lehre.warum))
+        if lehre.beleg:
+            text += ('<span class="sk1-dauer"><b>Beleg:</b> %s</span>'
+                     % escape(lehre.beleg))
+        return {
+            "klasse": "" if an else "db-aus",
+            "zellen": [
+                {"html": ('<input type="checkbox" name="lehre" value="%s"'
+                          ' class="sk-lehre-wahl"%s>'
+                          % (escape(lehre.slug), " checked" if an else "")),
+                 "sort": 1 if an else 0, "klasse": "sk1-mitte"},
+                {"html": ('<input type="number" name="rang_ziel" value="%d"'
+                          ' min="1" max="999" class="sk1-rang"'
+                          ' aria-label="Rang">'
+                          '<button type="submit" name="aktion"'
+                          ' value="lehrenrang" class="sk1-rang-los"'
+                          ' formnovalidate title="Auf diese Nummer'
+                          ' verschieben">'
+                          '<i class="bi bi-arrow-right-short"></i></button>'
+                          '<input type="hidden" name="rang_slug" value="%s">'
+                          % (nr, escape(lehre.slug))),
+                 "sort": nr, "klasse": "sk1-mitte"},
+                {"html": escape(lehre.bereich), "sort": lehre.bereich},
+                {"html": '<span class="sk1-name">%s</span>' % escape(lehre.titel),
+                 "sort": lehre.titel},
+                {"html": text},
+                {"html": pruefung,
+                 "sort": nummern[0][0] if nummern else 999},
             ],
         }
 

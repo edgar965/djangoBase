@@ -168,51 +168,26 @@ nur Zeilen.
         <form method="post">
             {% csrf_token %}
             <input type="hidden" name="aktion" value="lehren">
-            {% for bereich in lehren_bereiche %}
-            <div class="sk-bereich">
-                <div class="sk-bereich-kopf">{{ bereich.name }}
-                    <span class="sk-count">{{ bereich.anzahl }}</span></div>
-                {% for eintrag in bereich.lehren %}
-                <label class="sk-lehre">
-                    <input type="checkbox" name="lehre" value="{{ eintrag.lehre.slug }}"
-                           {% if eintrag.an %}checked{% endif %}>
-                    <span class="sk-lehre-text">
-                        <span class="sk-lehre-titel">{{ eintrag.lehre.titel }}</span>
-                        <span class="sk-lehre-regel">{{ eintrag.lehre.regel }}</span>
-                        <span class="sk-lehre-warum"><b>Warum:</b> {{ eintrag.lehre.warum }}</span>
-                        {% if eintrag.lehre.beleg %}
-                        <span class="sk-lehre-beleg"><b>Beleg:</b> {{ eintrag.lehre.beleg }}</span>
-                        {% endif %}
-                        {% comment %}
-                        WELCHE PRUEFUNG HAELT DIESE REGEL? (26.08.2026)
-                        ===============================================
-                            „auch die lehren sollen die testcases erwähnen
-                             (nummer)"
+            {% comment %}
+            ALS TABELLE, WIE PRUEFER UND FIXER (26.08.2026)
+            ===============================================
+                „mach die Lehren auch in einer veränderbaren Tabelle mit
+                 veränderbaren Nummern"
 
-                        Die Nummer ist die aus der Werkzeug-Tabelle oben,
-                        nicht die eines Kriteriums — sie steht dort wirklich
-                        und verschiebt sich mit, wenn jemand den Rang ändert.
+            Hier stand eine Liste von ``sk-lehre``-Blöcken, gruppiert nach
+            Bereichen: kein Rang, keine Sortierung, keine Spalten. Die
+            dritte Stelle auf dieser Seite mit derselben Schwäche — nach
+            den zwei Kriterien-Kästen und den Fix-Werkzeugen.
 
-                        „prüft niemand" ist keine fehlende Angabe, sondern
-                        eine Aussage: Zehn der 22 Regeln hängen allein an der
-                        Sorgfalt dessen, der gerade schreibt. Das sieht man
-                        jetzt, statt es zu vermuten.
-                        {% endcomment %}
-                        {% with nummern=eintrag.lehre.nummern %}
-                        {% if nummern %}
-                        <span class="sk-lehre-beleg"><b>Prüfung:</b>
-                            {% for nr, titel in nummern %}Nr. {{ nr }}
-                            „{{ titel }}"{% if not forloop.last %} · {% endif %}{% endfor %}</span>
-                        {% else %}
-                        <span class="sk-lehre-beleg"><b>Prüfung:</b>
-                            <em>keine — diese Regel prüft kein Werkzeug</em></span>
-                        {% endif %}
-                        {% endwith %}
-                    </span>
-                </label>
-                {% endfor %}
-            </div>
-            {% endfor %}
+            Der Bereich geht nicht verloren, er wird eine SPALTE — und ist
+            damit sortierbar, was er als Zwischenüberschrift nicht war.
+
+            Das Häkchen bleibt, was es war: „gilt für dieses Projekt".
+            Die Ränge liegen in ``lehren_rang.json``, der dritten Ablage:
+            Ein Rang ist die Position in SEINER Liste.
+            {% endcomment %}
+            {% include "djangobase/_tabelle.html" with tabelle=lehrentabelle %}
+
             <div class="sk-stapel">
                 <button type="submit" class="sk-batch">
                     <i class="bi bi-save"></i> Stand speichern</button>
