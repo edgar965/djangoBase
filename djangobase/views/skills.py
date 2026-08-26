@@ -24,7 +24,7 @@ from ..mixins import ZugriffMixin
 from ..skills import (Bericht, Umbaunetz, fixer, fixer_finden,
                        werkzeuge)
 from ..skills.lehren_review import BEREICHE, LEHREN, Lehrenstand
-from ..skills.rangliste import rangliste
+from ..skills.rangliste import fixerrangliste, rangliste
 from ..skills.werkzeug import Ergebnis
 
 
@@ -58,6 +58,16 @@ class SkillsView(ZugriffMixin, View):
             ziel = request.POST.get("rang_ziel", "")
             ok = rangliste().verschieben(slug, ziel, list(werkzeuge()))
             return redirect("%s?verschoben=%s" % (request.path, slug if ok else ""))
+        if request.POST.get("aktion") == "fixrang":
+            # Dieselbe Bauart wie „rang", nur die andere Liste. Getrennt,
+            # weil ein Rang die POSITION in SEINER Liste ist: 52 Pruefer und
+            # 7 Fixer gemeinsam zu nummerieren hiesse, dass das Verschieben
+            # eines Fixers die Nummer eines Pruefers aendert.
+            slug = request.POST.get("rang_slug", "")
+            ziel = request.POST.get("rang_ziel", "")
+            ok = fixerrangliste().verschieben(slug, ziel, list(fixer()))
+            return redirect("%s?verschoben=%s#fixer" % (request.path,
+                                                        slug if ok else ""))
         if request.POST.get("aktion") == "lehren":
             # Die Ankreuzliste der Review-Lehren (bis 18.08.2026 auf der
             # eigenen Seite „Skills3"). Sie gehoert hierher: Es ist derselbe
@@ -214,6 +224,7 @@ class SkillsView(ZugriffMixin, View):
             "anzahl_werkzeuge": len(werkzeuge()),
             # Die Fixer aus skills2 (Sicherung + Netz) plus die hiesigen.
             "fixer_da": [f.als_dict() for f in fixer()],
+            "fixtabelle": self._fixtabelle(fix),
             "netz": {"titel": Umbaunetz.titel, "tut": Umbaunetz.tut,
                      "warum": Umbaunetz.warum, "grenzen": Umbaunetz.grenzen},
             "fix": fix,      # nach einer Vorschau: {slug, bereich, n, modus} -> Anwenden-Knopf
@@ -353,6 +364,90 @@ class SkillsView(ZugriffMixin, View):
                           ' class="sk1-run"><i class="bi bi-play-fill"></i>'
                           ' Start</button>' % escape(w.slug)),
                  "klasse": "sk1-mitte"},
+            ],
+        }
+
+    # ------------------------------------------------------ Fix-Werkzeuge
+
+    def _fixtabelle(self, fix):
+        u"""Die Fix-Werkzeuge in derselben Tabelle wie die Pruefer.
+
+            „ordne den Bereich Fix-Werkzeuge · schreiben Code — Diff-Vorschau
+             zuerst auch in einer tabelle, mit veraenderbaren nummern"
+
+        Vorher war es eine Liste von ``sk1-fixzeile``-Bloecken: keine
+        Nummer, keine Sortierung, keine Spalten. Dieselbe Sorte Sonderfall
+        wie die zwei Kaesten, die heute schon weggefallen sind — was
+        nebeneinander gehoert, gehoert in dieselbe Tabelle.
+
+        Der Anwenden-Knopf erscheint NUR fuer den Fixer, dessen Vorschau
+        gerade gelaufen ist und etwas gefunden hat. Ein Knopf, der ohne
+        Vorschau schreibt, waere die Falle, gegen die es die Vorschau gibt.
+        """
+        rang = fixerrangliste()
+        alle = list(fixer())
+        folge = rang.reihenfolge(alle)
+        da = {f.slug: f for f in alle}
+        zeilen = []
+        for nr, slug in enumerate(folge, start=1):
+            f = da.get(slug)
+            if f is not None:
+                zeilen.append(self._fixzeile(f, nr, fix))
+        return {
+            "key": "db-fixer",
+            "spalten": [
+                {"label": "Rang", "key": "rang", "sortAus": True,
+                 "titel": "Eindeutige Nummer. Aendern verschiebt den Eintrag."},
+                {"label": "Fix-Werkzeug", "key": "name"},
+                {"label": "Behebt", "key": "behebt",
+                 "titel": "Die Pruefung, deren Befund dieser Fixer behebt"},
+                {"label": "Was es tut", "key": "zweck"},
+                {"label": "Grenzen", "key": "grenzen"},
+                {"label": "Aktion", "key": "start", "sortAus": True},
+            ],
+            "zeilen": zeilen,
+            "leer": "kein Fixer registriert",
+        }
+
+    def _fixzeile(self, f, nr, fix):
+        d = f.als_dict()
+        p = d.get("pruefung")
+        behebt = ('Nr. %d<span class="sk1-dauer">%s</span>'
+                  % (p["nr"], escape(p["titel"]))) if p else \
+            '<span class="sk1-leise">—</span>'
+        offen = (fix and fix.get("modus") == "vorschau"
+                 and fix.get("slug") == f.slug and fix.get("n"))
+        knoepfe = ('<button type="submit" name="fix" value="vorschau:%s"'
+                   ' class="sk1-knopf" formnovalidate>'
+                   '<i class="bi bi-search"></i> Vorschau</button>'
+                   % escape(f.slug))
+        if offen:
+            knoepfe += ('<button type="submit" name="fix" value="anwenden:%s"'
+                        ' class="sk1-batch" formnovalidate>'
+                        '<i class="bi bi-check2-circle"></i> Anwenden (%s)'
+                        '</button>' % (escape(f.slug), escape(str(fix["n"]))))
+        return {
+            "klasse": "db-hervor" if offen else "",
+            "zellen": [
+                {"html": ('<input type="number" name="rang_ziel" value="%d"'
+                          ' min="1" max="999" class="sk1-rang"'
+                          ' aria-label="Rang">'
+                          '<button type="submit" name="aktion" value="fixrang"'
+                          ' class="sk1-rang-los" formnovalidate'
+                          ' title="Auf diese Nummer verschieben">'
+                          '<i class="bi bi-arrow-right-short"></i></button>'
+                          '<input type="hidden" name="rang_slug" value="%s">'
+                          % (nr, escape(f.slug))),
+                 "sort": nr, "klasse": "sk1-mitte"},
+                {"html": ('<span class="sk1-name">%s</span>'
+                          '<span class="sk1-dauer">%s</span>'
+                          % (escape(f.titel), escape(d["dauer"]))),
+                 "sort": f.titel},
+                {"html": behebt, "sort": p["nr"] if p else 999},
+                {"html": escape(d["tut"])},
+                {"html": '<span class="sk1-leise">%s</span>'
+                         % escape(d["grenzen"])},
+                {"html": knoepfe, "klasse": "sk1-mitte"},
             ],
         }
 

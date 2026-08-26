@@ -269,3 +269,24 @@ def rangliste():
     c = conf()
     return Rangliste(c.get("skills_rang_datei")
                      or (c["log_verzeichnis"] / "skills_rang.json"))
+
+
+def fixerrangliste():
+    u"""Die Rangliste der FIX-Werkzeuge — eigene Ablage, gleiche Klasse.
+
+        „ordne den Bereich Fix-Werkzeuge auch in einer tabelle, mit
+         veraenderbaren nummern" (26.08.2026)
+
+    Getrennt von den Pruef-Werkzeugen, weil es zwei Listen sind: Ein Rang
+    ist die POSITION in seiner Liste, und 52 Pruefer und 7 Fixer in einer
+    Nummerierung zu fuehren hiesse, dass das Verschieben eines Fixers die
+    Nummer eines Pruefers aendert.
+
+    Dieselbe Klasse, nur ein anderer Pfad — der ganze Umgang mit
+    Reihenfolge, Verschieben und neuen Eintraegen steht damit an EINER
+    Stelle.
+    """
+    from ..conf import conf
+    c = conf()
+    return Rangliste(c.get("fixer_rang_datei")
+                     or (c["log_verzeichnis"] / "fixer_rang.json"))

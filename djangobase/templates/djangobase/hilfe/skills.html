@@ -96,7 +96,7 @@ nur Zeilen.
     </form>
 
     {# ===================== Fix-Werkzeuge (schreiben Code) ===================== #}
-    <form method="post" class="sk1-card" id="sk1-fix-form">
+    <form method="post" class="sk1-card" id="fixer" name="sk1-fix-form">
         {% csrf_token %}
         <h3><i class="bi bi-tools"></i> Fix-Werkzeuge
             <span class="sk1-meta">· schreiben Code — Diff-Vorschau zuerst</span></h3>
@@ -115,43 +115,26 @@ nur Zeilen.
                 <input type="text" name="fix_bereich" value="{{ fix.bereich|default:'' }}"
                        placeholder="z. B. search" class="sk1-arg" style="width:12rem"></label>
         </div>
-        {% for f in fixer_da %}
-        <div class="sk1-fixzeile">
-            <button type="submit" name="fix" value="vorschau:{{ f.slug }}" class="sk1-knopf">
-                <i class="bi bi-search"></i> Vorschau</button>
-            {% if fix and fix.modus == 'vorschau' and fix.slug == f.slug and fix.n %}
-            <button type="submit" name="fix" value="anwenden:{{ f.slug }}" class="sk1-batch">
-                <i class="bi bi-check2-circle"></i> Anwenden ({{ fix.n }}) — schreibt</button>
-            {% endif %}
-            <span class="sk1-fixtext">
-                {% comment %}
-                DIE NUMMER DER PRUEFUNG, NICHT DES KRITERIUMS (26.08.2026)
-                ==========================================================
-                    „passe noch an die Fix Werkzeuge, die erwähnen kriterien
-                     die es nicht gibt. sie sollen sich auf die Nummer der
-                     testcases beziehen"
+        {% comment %}
+        ALS TABELLE, WIE DIE PRUEFER (26.08.2026)
+        =========================================
+            „ordne den Bereich Fix-Werkzeuge · schreiben Code — Diff-Vorschau
+             zuerst auch in einer tabelle, mit veränderbaren nummern"
 
-                Hier stand `· Kr. {{ f.kriterium }}` — also `Kr. 11`,
-                `Kr. 16`, `Kr. 3`. Diese Kriterien gibt es, aber NICHT auf
-                dieser Seite: Die Tabelle darüber ist nach Rängen und
-                Bereichen geordnet, nicht nach Kriterien. Wer `Kr. 11` las,
-                suchte eine 11, die nirgends stand.
+        Hier stand eine Liste von ``sk1-fixzeile``-Blöcken: keine Nummer,
+        keine Sortierung, keine Spalten. Dieselbe Sorte Sonderfall wie die
+        zwei Kästen, die heute schon weggefallen sind — was nebeneinander
+        gehört, gehört in dieselbe Tabelle.
 
-                Jetzt steht die Nummer da, unter der die zugehörige Prüfung
-                wirklich in der Tabelle steht — und die sich mitverschiebt,
-                wenn jemand den Rang ändert.
-                {% endcomment %}
-                <span class="sk1-name">{{ f.titel }}
-                    <span class="sk1-leise">{% if f.pruefung %}· behebt Nr.
-                        {{ f.pruefung.nr }} „{{ f.pruefung.titel }}"{% endif %}
-                        · {{ f.dauer }}</span></span>
-                <span class="sk1-fixtut">{{ f.tut }}</span>
-                <span class="sk1-leise">Grenzen: {{ f.grenzen }}</span>
-            </span>
-        </div>
-        {% empty %}
-        <span class="sk1-leise">Noch kein Fixer registriert.</span>
-        {% endfor %}
+        Die Ränge liegen in einer EIGENEN Ablage (``fixer_rang.json``): Ein
+        Rang ist die Position in SEINER Liste, und 52 Prüfer mit 7 Fixern
+        gemeinsam zu nummerieren hieße, dass das Verschieben eines Fixers
+        die Nummer eines Prüfers ändert.
+
+        Die Spalte „Behebt" trägt die Nummer der Prüfung aus der Tabelle
+        oben — nicht die eines Kriteriums, das dort nirgends steht.
+        {% endcomment %}
+        {% include "djangobase/_tabelle.html" with tabelle=fixtabelle %}
 
         {# --------- Umbau-Netz: für Umbauten, die kein Knopf machen kann --------- #}
         <div class="sk1-fixzeile">
