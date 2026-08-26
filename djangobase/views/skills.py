@@ -262,10 +262,27 @@ class SkillsView(ZugriffMixin, View):
         Jetzt fragt BEIDES dieselbe Stelle: Ein neues Werkzeug mit
         ``kriterium = 16`` steht ohne Zutun im Block und laeuft im
         Sammellauf mit.
+
+        NACH NUMMER SORTIERT (26.08.2026)
+        =================================
+            „immer noch die alte fassung??"
+
+        War sie nicht — aber sie sah so aus. Die Registrierung ist nach
+        Dringlichkeit geordnet, nicht nach Kriterium, und der Block zeigte
+        sie in dieser Reihenfolge::
+
+            Kr. 16  Kr. 16  Kr. 17  Kr. 16  Kr. 17  Kr. 17
+
+        Unter einer Ueberschrift „Kriterium 16 und 17" liest sich das wie
+        ein Versehen. Der Block ist nach Kriterien gruppiert, also wird er
+        auch danach sortiert — Nummer zuerst, dann Titel, damit die
+        Reihenfolge zwischen zwei Aufrufen gleich bleibt.
         """
         gesucht = set(nummern)
-        return [w for w in werkzeuge()
-                if getattr(w, "kriterium", 0) in gesucht]
+        passend = [w for w in werkzeuge()
+                   if getattr(w, "kriterium", 0) in gesucht]
+        return sorted(passend,
+                      key=lambda w: (getattr(w, "kriterium", 0), w.titel))
 
     @classmethod
     def _k18_werkzeuge(cls):
