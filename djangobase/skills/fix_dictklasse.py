@@ -187,6 +187,11 @@ class Klassentext:
 
 class FixDictKlasse(Fixer):
     slug = "fix-dictklasse"
+    #: Der Befund, den dieser Fixer behebt — als Kennung des
+    #: Werkzeugs, das ihn meldet. Die Oberflaeche zeigt daraus die
+    #: NUMMER der Pruefung in der Tabelle statt einer
+    #: Kriteriums-Nummer, die dort nirgends steht.
+    behebt = 'rueckgabedict'
     titel = "Rückgabe-Dictionary in eine Klasse überführen"
     tut = ("Legt für jedes Rückgabe-Dictionary mit >3 festen Schlüsseln eine "
            "Klasse in eigener Datei an und gibt sie statt des Dictionaries "

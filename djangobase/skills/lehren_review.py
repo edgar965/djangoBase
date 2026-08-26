@@ -18,11 +18,13 @@ from django.conf import settings
 
 
 class Lehre:
-    """Eine Regel mit Begruendung und Beleg."""
+    """Eine Regel mit Begruendung, Beleg — und der Pruefung, die sie haelt."""
 
-    __slots__ = ('slug', 'titel', 'regel', 'warum', 'beleg', 'bereich')
+    __slots__ = ('slug', 'titel', 'regel', 'warum', 'beleg', 'bereich',
+                 'werkzeuge')
 
-    def __init__(self, slug, titel, regel, warum, beleg='', bereich='Allgemein'):
+    def __init__(self, slug, titel, regel, warum, beleg='', bereich='Allgemein',
+                 werkzeuge=()):
         self.slug = slug
         self.titel = titel
         #: Was zu tun ist — eine Zeile, im Imperativ.
@@ -33,6 +35,31 @@ class Lehre:
         #: Was es konkret gebracht hat. Zahlen ueberzeugen, Behauptungen nicht.
         self.beleg = beleg
         self.bereich = bereich
+        #: WELCHE PRUEFUNG HAELT DIESE REGEL? (26.08.2026)
+        #:
+        #:     „auch die lehren sollen die testcases erwähnen (nummer)"
+        #:
+        #: Kennungen der Werkzeuge, die den Verstoss melden. Leer heisst:
+        #: Diese Regel prueft NIEMAND — sie haengt an der Sorgfalt dessen,
+        #: der gerade schreibt. Das ist keine Luecke im Datensatz, sondern
+        #: eine Aussage, und sie steht auf der Seite.
+        self.werkzeuge = tuple(werkzeuge)
+
+    def nummern(self):
+        """[(Nr., Titel)] der zugehoerigen Pruefungen — aus der Tabelle.
+
+        Die NUMMER, nicht das Kriterium: Die Werkzeug-Tabelle ist nach
+        Raengen geordnet, und genau die Zahl sucht man dort.
+        """
+        if not self.werkzeuge:
+            return []
+        from .rangliste import rangliste
+        from . import werkzeuge as alle
+        raenge = {}
+        for abschnitt in rangliste().abschnitte(list(alle())):
+            for rang, w in abschnitt["eintraege"]:
+                raenge[w.slug] = (rang, w.titel)
+        return [raenge[s] for s in self.werkzeuge if s in raenge]
 
 
 BEREICHE = ['Struktur', 'Datenmodell', 'Django', 'Performance', 'numpy',
@@ -53,7 +80,8 @@ LEHREN = [
           'Dictionary, sonst baut man zweimal dasselbe.',
           'Aus dieser Regel entstanden u. a. Befund, Ergebnis, Messwert und '
           'Bvhdatei — Letztere mit __slots__, weil es 7.067 davon gibt.',
-          'Datenmodell'),
+          'Datenmodell',
+          werkzeuge=('rueckgabedict', 'leserzahl', 'rueckgabetupel')),
     Lehre('eine-klasse-eine-datei',
           'Eine Klasse je Datei, 200–300 Zeilen',
           'Waechst eine Datei ueber ~300 Zeilen, wird sie nach Aufgaben '
@@ -62,7 +90,8 @@ LEHREN = [
           'zweimal in derselben Datei, 80 Zeilen auseinander, und ist niemandem '
           'aufgefallen.',
           'Ausgangslage: 6.495 Zeilen mit 110 Endpunkten in einer Datei.',
-          'Struktur'),
+          'Struktur',
+          werkzeuge=('klassen-je-datei', 'dateigroesse')),
     Lehre('doppelte-logik-zusammenfuehren',
           'Gleiche Logik an mehreren Stellen zusammenfuehren',
           'Bevor eine Funktion geaendert wird: nach Kopien suchen. Gefundene '
@@ -71,7 +100,8 @@ LEHREN = [
           'faellt nicht auf, weil beide Seiten fuer sich funktionieren.',
           'Die Aufklapp-Logik eines Auswahlfeldes stand Zeile fuer Zeile in '
           'vier Vorlagen, das Fuellen eines Modell-Feldes in fuenf.',
-          'Struktur'),
+          'Struktur',
+          werkzeuge=('doppelcode', 'doppelrumpf')),
     Lehre('kein-legacy-als-backup',
           'Keinen toten Code "zur Sicherheit" behalten',
           'Unerreichbaren Code, verwaiste Vorlagen und ungenutzte '
@@ -81,7 +111,8 @@ LEHREN = [
           'Gefunden: zwei unerreichbare Vorlagen, ein try/except, in dem nichts '
           'werfen konnte, und ein COUNT(*) je Seitenaufruf fuer eine Zahl, die '
           'die Vorlage nie anzeigte.',
-          'Struktur'),
+          'Struktur',
+          werkzeuge=('altlast', 'tote-importe')),
     Lehre('gleiche-namen',
           'Ein Begriff, ein Name',
           'Dieselbe Sache heisst ueberall gleich — in Ansicht, Vorlage, '
@@ -91,7 +122,8 @@ LEHREN = [
           'dafuer kommentarlos einen Leerstring.',
           'Eine if-Bedingung zeigte vier Monate lang auf einen nie gelieferten '
           'Namen — das Datei-Feld war dadurch immer Pflicht.',
-          'Django'),
+          'Django',
+          werkzeuge=('namensvarianten', 'namens-dubletten')),
     Lehre('meta-ordering-distinct',
           'Meta.ordering hebelt values_list(...).distinct() aus',
           'Vor `.values_list(...).distinct()` immer ein argumentloses '
@@ -120,7 +152,8 @@ LEHREN = [
           'Eine Einstellungsseite lieferte 7.067 Eintraege in 4,7 MB HTML, von '
           'denen beim Aufruf keiner sichtbar war. Danach: 28 KB, 27 statt '
           '408 ms.',
-          'Frontend'),
+          'Frontend',
+          werkzeuge=('seitenzeiten',)),
     Lehre('seitenweise-listen',
           'Lange Listen seitenweise ausgeben',
           'Uebersichtsseiten mit Suche, Filter und Seitenaufteilung bauen, '
@@ -130,7 +163,8 @@ LEHREN = [
           'einmal.',
           'Eine Bibliotheksseite rendete 7.110 Karten in 10,5 MB HTML '
           '(2.082 ms). Mit 60 je Seite: 98 KB, 21 ms.',
-          'Frontend'),
+          'Frontend',
+          werkzeuge=('endpunkt-zeiten',)),
     Lehre('fertige-antwort-zwischenspeichern',
           'Die fertige Antwort zwischenspeichern, nicht das Objekt',
           'Wird ein grosses Ergebnis unveraendert immer wieder ausgeliefert, '
@@ -147,7 +181,8 @@ LEHREN = [
           'Verzeichniseintrag; ein eigener stat-Aufruf je Datei ist ein '
           'Systemaufruf fuer nichts.',
           '7.067 stat-Aufrufe mit 110 ms wurden zu 9 ms.',
-          'Performance'),
+          'Performance',
+          werkzeuge=('schleifenarbeit',)),
     Lehre('unique-axis-vermeiden',
           'np.unique(..., axis=0) meiden — Paare als eine Ganzzahl kodieren',
           'Statt Paaren `a * n + b` als int64 bilden und darauf `np.unique` '
@@ -205,7 +240,8 @@ LEHREN = [
           'wurde.',
           'Der groesste Posten einer Seite war am Ende kein Rechenschritt, '
           'sondern 71.000 Variablenaufloesungen in einer Vorlagenschleife.',
-          'Vorgehen'),
+          'Vorgehen',
+          werkzeuge=('endpunkt-zeiten', 'seitenzeiten', 'wachstum')),
     Lehre('regressionsnetz-vorher',
           'Vor dem Umbau ein Sicherheitsnetz aufnehmen',
           'Alle GET-Routen einmal abfahren und die Statuscodes als Referenz '
@@ -237,7 +273,8 @@ LEHREN = [
           'Werkzeuge: „Globale Variablen und Konstanten" findet den Zustand, '
           '„Klassen-Kandidaten aus geteiltem Zustand" nennt die Klasse, die '
           'daraus wird — samt der Funktionen, die zu ihren Methoden werden.',
-          'Struktur'),
+          'Struktur',
+          werkzeuge=('globaler-zustand', 'modulzustand', 'klassenreif')),
     Lehre('utility-statt-leerer-klasse',
           'Ohne Zustand: Utility-Klasse mit statischen Methoden',
           'Funktionsbündel, die keinen gemeinsamen Zustand anfassen, kommen in '
@@ -249,7 +286,8 @@ LEHREN = [
           'kein Zustand → Utility-Klasse.',
           'Beide Fälle meldet „Klassen-Kandidaten aus geteiltem Zustand" '
           'getrennt, weil sie zu verschiedenen Umbauten führen.',
-          'Struktur'),
+          'Struktur',
+          werkzeuge=('kapselung', 'klassenplan', 'freie-funktionen')),
     Lehre('testbaum-statt-vererbung',
           'Testdaten als Beimischung, nicht als Basis-TestCase',
           'Gemeinsame Testvorbereitung in eine Mixin-Klasse OHNE TestCase '
@@ -257,7 +295,8 @@ LEHREN = [
           'Aus 15 Tests werden sonst unbemerkt 44 — die Suite wird langsamer '
           'und die Zahlen im Bericht sind falsch.',
           'Genau so passiert, aufgefallen an der Testzahl.',
-          'Vorgehen'),
+          'Vorgehen',
+          werkzeuge=('testaufbau', 'uebersprungen')),
 ]
 
 

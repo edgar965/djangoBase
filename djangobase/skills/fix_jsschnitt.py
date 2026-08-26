@@ -242,6 +242,11 @@ class Schnitt:
 
 class FixJsSchnitt(Fixer):
     slug = "fix-jsschnitt"
+    #: Der Befund, den dieser Fixer behebt — als Kennung des
+    #: Werkzeugs, das ihn meldet. Die Oberflaeche zeigt daraus die
+    #: NUMMER der Pruefung in der Tabelle statt einer
+    #: Kriteriums-Nummer, die dort nirgends steht.
+    behebt = 'jsschnitt'
     titel = "JS-Datei teilen (mit Fallen-Prüfung)"
     tut = ("Teilt jede zu große JS-Datei an ihrer besten Funktionsgrenze — aber "
            "nur, wenn keine der acht bekannten Fallen zuschlägt.")

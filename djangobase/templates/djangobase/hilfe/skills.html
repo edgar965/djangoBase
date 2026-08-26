@@ -124,8 +124,27 @@ nur Zeilen.
                 <i class="bi bi-check2-circle"></i> Anwenden ({{ fix.n }}) — schreibt</button>
             {% endif %}
             <span class="sk1-fixtext">
+                {% comment %}
+                DIE NUMMER DER PRUEFUNG, NICHT DES KRITERIUMS (26.08.2026)
+                ==========================================================
+                    „passe noch an die Fix Werkzeuge, die erwähnen kriterien
+                     die es nicht gibt. sie sollen sich auf die Nummer der
+                     testcases beziehen"
+
+                Hier stand `· Kr. {{ f.kriterium }}` — also `Kr. 11`,
+                `Kr. 16`, `Kr. 3`. Diese Kriterien gibt es, aber NICHT auf
+                dieser Seite: Die Tabelle darüber ist nach Rängen und
+                Bereichen geordnet, nicht nach Kriterien. Wer `Kr. 11` las,
+                suchte eine 11, die nirgends stand.
+
+                Jetzt steht die Nummer da, unter der die zugehörige Prüfung
+                wirklich in der Tabelle steht — und die sich mitverschiebt,
+                wenn jemand den Rang ändert.
+                {% endcomment %}
                 <span class="sk1-name">{{ f.titel }}
-                    <span class="sk1-leise">· Kr. {{ f.kriterium }} · {{ f.dauer }}</span></span>
+                    <span class="sk1-leise">{% if f.pruefung %}· behebt Nr.
+                        {{ f.pruefung.nr }} „{{ f.pruefung.titel }}"{% endif %}
+                        · {{ f.dauer }}</span></span>
                 <span class="sk1-fixtut">{{ f.tut }}</span>
                 <span class="sk1-leise">Grenzen: {{ f.grenzen }}</span>
             </span>
@@ -181,6 +200,31 @@ nur Zeilen.
                         {% if eintrag.lehre.beleg %}
                         <span class="sk-lehre-beleg"><b>Beleg:</b> {{ eintrag.lehre.beleg }}</span>
                         {% endif %}
+                        {% comment %}
+                        WELCHE PRUEFUNG HAELT DIESE REGEL? (26.08.2026)
+                        ===============================================
+                            „auch die lehren sollen die testcases erwähnen
+                             (nummer)"
+
+                        Die Nummer ist die aus der Werkzeug-Tabelle oben,
+                        nicht die eines Kriteriums — sie steht dort wirklich
+                        und verschiebt sich mit, wenn jemand den Rang ändert.
+
+                        „prüft niemand" ist keine fehlende Angabe, sondern
+                        eine Aussage: Zehn der 22 Regeln hängen allein an der
+                        Sorgfalt dessen, der gerade schreibt. Das sieht man
+                        jetzt, statt es zu vermuten.
+                        {% endcomment %}
+                        {% with nummern=eintrag.lehre.nummern %}
+                        {% if nummern %}
+                        <span class="sk-lehre-beleg"><b>Prüfung:</b>
+                            {% for nr, titel in nummern %}Nr. {{ nr }}
+                            „{{ titel }}"{% if not forloop.last %} · {% endif %}{% endfor %}</span>
+                        {% else %}
+                        <span class="sk-lehre-beleg"><b>Prüfung:</b>
+                            <em>keine — diese Regel prüft kein Werkzeug</em></span>
+                        {% endif %}
+                        {% endwith %}
                     </span>
                 </label>
                 {% endfor %}

@@ -252,7 +252,38 @@ class Fixer:
         # Dictionary gewollt: geht unveraendert als JSON an die Seite.
         return aus
 
+    #: Kennung des Werkzeugs, dessen Befund dieser Fixer behebt.
+    #: Leer = keines (dann steht auf der Karte nichts).
+    behebt = ''
+
+    def nummer(self):
+        u"""Die NUMMER der zugehoerigen Pruefung in der Tabelle.
+
+            „passe noch an die Fix Werkzeuge, die erwaehnen kriterien die es
+             nicht gibt. sie sollen sich auf die Nummer der testcases
+             beziehen"
+
+        Die Karten zeigten `Kr. 11`, `Kr. 16`, `Kr. 3`. Diese Nummern gibt
+        es — aber NICHT auf dieser Seite: Die Tabelle darueber ist nach
+        Raengen (1, 2, 3 …) und Bereichen geordnet, nicht nach Kriterien.
+        Wer `Kr. 11` las, suchte eine 11, die nirgends stand.
+
+        Jetzt steht die Nummer da, unter der die Pruefung wirklich in der
+        Tabelle zu finden ist — und die sich mitverschiebt, wenn jemand den
+        Rang aendert.
+        """
+        if not self.behebt:
+            return None
+        from .rangliste import rangliste
+        from . import werkzeuge
+        for abschnitt in rangliste().abschnitte(list(werkzeuge())):
+            for rang, w in abschnitt["eintraege"]:
+                if w.slug == self.behebt:
+                    return {"nr": rang, "slug": w.slug, "titel": w.titel}
+        return None
+
     def als_dict(self):
         return {"slug": self.slug, "titel": self.titel, "tut": self.tut,
                 "warum": self.warum, "grenzen": self.grenzen,
-                "kriterium": self.kriterium, "dauer": self.dauer}
+                "kriterium": self.kriterium, "dauer": self.dauer,
+                "behebt": self.behebt, "pruefung": self.nummer()}

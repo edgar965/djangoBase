@@ -481,6 +481,11 @@ class Erbteilung:
 
 class FixJsErbe(Fixer):
     slug = "fix-jserbe"
+    #: Der Befund, den dieser Fixer behebt — als Kennung des
+    #: Werkzeugs, das ihn meldet. Die Oberflaeche zeigt daraus die
+    #: NUMMER der Pruefung in der Tabelle statt einer
+    #: Kriteriums-Nummer, die dort nirgends steht.
+    behebt = 'js-vererbung'
     titel = "Große JS-Klasse über Vererbung teilen"
     tut = ("Löst die hintere Hälfte der Methoden als Basisklasse in eine eigene "
            "Datei — die Klasse selbst behält Namen, Konstruktor und Aufrufer.")

@@ -47,6 +47,11 @@ __all__ = ['FixFZeichenkette']
 class FixFZeichenkette(Fixer):
 
     slug = 'fix-fzeichenkette'
+    #: Der Befund, den dieser Fixer behebt — als Kennung des
+    #: Werkzeugs, das ihn meldet. Die Oberflaeche zeigt daraus die
+    #: NUMMER der Pruefung in der Tabelle statt einer
+    #: Kriteriums-Nummer, die dort nirgends steht.
+    behebt = 'code-qualitaet'
     titel = 'Leere f-Zeichenketten entschärfen'
     tut = ('Streicht das ``f`` vor Zeichenketten, die keinen Platzhalter '
            'enthalten.')

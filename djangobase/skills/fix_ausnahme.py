@@ -47,6 +47,11 @@ __all__ = ["FixAusnahme"]
 
 class FixAusnahme(Fixer):
     slug = "fix-ausnahme"
+    #: Der Befund, den dieser Fixer behebt — als Kennung des
+    #: Werkzeugs, das ihn meldet. Die Oberflaeche zeigt daraus die
+    #: NUMMER der Pruefung in der Tabelle statt einer
+    #: Kriteriums-Nummer, die dort nirgends steht.
+    behebt = 'protokoll'
     titel = "Verschluckte Ausnahmen protokollieren"
     tut = ("Setzt in jeden stummen except-Block einen `logger.exception(…)` mit "
            "Funktionsname und gefangenem Typ — und dort, wo Schweigen richtig "

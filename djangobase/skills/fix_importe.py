@@ -45,6 +45,11 @@ class ImportFixer(Fixer):
     #: `fix-importe` heisst jetzt wie die Datei und passt zu den uebrigen
     #: Fixern (`fix-vermerk`, `fix-jsschnitt`, `fix-fzeichenkette`).
     slug = "fix-importe"
+    #: Der Befund, den dieser Fixer behebt — als Kennung des
+    #: Werkzeugs, das ihn meldet. Die Oberflaeche zeigt daraus die
+    #: NUMMER der Pruefung in der Tabelle statt einer
+    #: Kriteriums-Nummer, die dort nirgends steht.
+    behebt = 'tote-importe'
     titel = "Tote Importe entfernen"
     tut = "Entfernt importierte Namen, die in der Datei nirgends vorkommen."
 

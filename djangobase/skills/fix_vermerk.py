@@ -145,6 +145,11 @@ class Serialisierungsweg:
 
 class FixVermerk(Fixer):
     slug = "fix-vermerk"
+    #: Der Befund, den dieser Fixer behebt — als Kennung des
+    #: Werkzeugs, das ihn meldet. Die Oberflaeche zeigt daraus die
+    #: NUMMER der Pruefung in der Tabelle statt einer
+    #: Kriteriums-Nummer, die dort nirgends steht.
+    behebt = 'anzeigeformat'
     titel = "Anzeigeformate mit Vermerk versehen"
     tut = ("Setzt „# Dictionary gewollt: …“ über jede Rückgabe, deren Schlüssel "
            "nachweislich im Frontend stehen — mit Angabe der JS-Datei.")
