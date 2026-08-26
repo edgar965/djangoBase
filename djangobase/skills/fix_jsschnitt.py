@@ -41,7 +41,7 @@ SEITEN_GLOBALS = ("SeitenDaten", "OptZustand", "ErgSpalten", "LaufKopf", "ErgTab
 
 
 class Haelfte:
-    """Ein Stueck JavaScript und was darin steht.
+    """Ein Stück JavaScript und was darin steht.
 
     ALLES HIER WIRD EINMAL GERECHNET UND GEMERKT (16.08.2026). ``_bester_schnitt``
     legt je Datei rund zwanzig Haelften-Paare an und fragt jedes mehrfach; als die
@@ -70,7 +70,7 @@ class Haelfte:
     def bezeichner(self):
         """Jeder freistehende Name im Text - EINMAL gelesen.
 
-        Der Ersatz fuer „je Name einmal den ganzen Text durchsuchen": Ein
+        Der Ersatz für „je Name einmal den ganzen Text durchsuchen": Ein
         Durchlauf, danach beantwortet ein Mengenschnitt dieselbe Frage.
         """
         return self._gemerkt(
@@ -120,9 +120,9 @@ class Haelfte:
 
     @property
     def zuweisungsziele(self):
-        """Namen, die hier GESCHRIEBEN werden - fuer Falle 7 (read-only Import).
+        """Namen, die hier GESCHRIEBEN werden - für Falle 7 (read-only Import).
 
-        Auch das lief vorher je Name einzeln ueber den ganzen Text.
+        Auch das lief vorher je Name einzeln über den ganzen Text.
         """
         return self._gemerkt("ziele", lambda: set(re.findall(
             r"(?<![.\w])([A-Za-z_$][\w$]*)\s*(?:=[^=]|\+\+|--|\+=)", self.text)))
@@ -130,7 +130,7 @@ class Haelfte:
     def benutzt(self, namen):
         """Welche dieser Namen kommen hier freistehend vor?
 
-        Frueher eine Regex JE NAME ueber den ganzen Text - der Loewenanteil der
+        Frueher eine Regex JE NAME über den ganzen Text - der Loewenanteil der
         73 Sekunden. Jetzt ein Mengenschnitt gegen die einmal gelesene
         Bezeichnerliste; dieselbe Antwort, ein Textdurchlauf statt N.
         """
@@ -283,10 +283,10 @@ class FixJsSchnitt(Fixer):
 
     @property
     def versionierte(self):
-        """Alle JS-Dateien, die eine Vorlage mit ``?v=`` laedt - EINMAL gesucht.
+        """Alle JS-Dateien, die eine Vorlage mit ``?v=`` lädt - EINMAL gesucht.
 
         Die erste Fassung durchsuchte je JS-Datei alle Vorlagen: 35 mal denselben
-        Text, 73 Sekunden fuer einen Knopfdruck. Genau der Fehler, den das
+        Text, 73 Sekunden für einen Knopfdruck. Genau der Fehler, den das
         Nachbarwerkzeug „Arbeit in Schleifen" meldet - hier im Fixer selbst
         (16.08.2026)."""
         if self._versionierte is None:
@@ -309,10 +309,10 @@ class FixJsSchnitt(Fixer):
     def _bester_schnitt(self, pfad):
         """Die mittigste fallenfreie Trennlinie - oder ``None`` und WARUM keine.
 
-        Rueckgabe ist immer ein Paar ``(schnitt, diagnose)``. Der Diagnosesatz war
-        anfangs fuer alle 35 Dateien derselbe („keine Trennlinie ohne Falle") und
+        Rückgabe ist immer ein Paar ``(schnitt, diagnose)``. Der Diagnosesatz war
+        anfangs für alle 35 Dateien derselbe („keine Trennlinie ohne Falle") und
         damit wertlos: Er verdeckte, dass 16 dieser Dateien gar keine
-        Trennlinie HABEN - sie sind je EINE Klasse und gehoeren ueber Vererbung
+        Trennlinie HABEN - sie sind je EINE Klasse und gehören über Vererbung
         geteilt, nicht an einer Zeilennummer (16.08.2026).
         """
         zeilen = pfad.read_text(encoding="utf-8", errors="replace").split("\n")

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""JsSchnitt - wo laesst sich eine zu grosse JS-Datei ohne Zirkel teilen?
+u"""JsSchnitt - wo lässt sich eine zu große JS-Datei ohne Zirkel teilen?
 
 DIE FRAGE, DIE VOR DEM UMBAU KOMMT (16.08.2026)
 ===============================================
@@ -13,8 +13,8 @@ zurueckrufen, was ihn selbst braucht.
 
 Dieses Werkzeug probiert je Datei JEDE Funktionsgrenze durch und meldet die
 beste: die, bei der beide Haelften unter der Grenze bleiben und hoechstens EINE
-Richtung Abhaengigkeit besteht. Von 44 zu grossen Dateien im shortlongx-Review
-waren 13 so schneidbar - die uebrigen 31 brauchen einen anderen Zugriff
+Richtung Abhaengigkeit besteht. Von 44 zu großen Dateien im shortlongx-Review
+waren 13 so schneidbar - die übrigen 31 brauchen einen anderen Zugriff
 (Vererbung, oder gar keinen).
 
 WAS ES NICHT SAGT

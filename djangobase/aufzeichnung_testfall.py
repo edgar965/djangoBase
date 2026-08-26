@@ -87,7 +87,7 @@ class Testfall:
 
     # ---------------------------------------------------------------- Bausteine
     def abrufe(self):
-        u"""Die GET-Abrufe, die nachgefahren werden koennen - ohne Doppelte."""
+        u"""Die GET-Abrufe, die nachgefahren werden können - ohne Doppelte."""
         gesehen, aus = set(), []
         for s in self.a.schritte:
             if s.get("art") != "abruf" or (s.get("methode") or "GET") != "GET":
@@ -163,7 +163,7 @@ class Testfall:
             "Die aufgezeichneten GET-Abrufe werden nachgefahren und ihr Status",
             "gegen den von damals gehalten. Was der Nutzer dabei GEMEINT hat,",
             "steht als Bedienung darunter - diese Zusicherungen muss ein Mensch",
-            "ergaenzen; eine Aufnahme kann sie nicht kennen.",
+            "ergänzen; eine Aufnahme kann sie nicht kennen.",
             "",
             "AUFGEZEICHNETE BEDIENUNG",
             "-" * 24,
@@ -173,7 +173,7 @@ class Testfall:
         if fehler:
             zeilen += ["", "IM ZEITRAUM PROTOKOLLIERTE FEHLER", "-" * 33,
                        "Diese Zeilen standen WAEHREND der Aufnahme im Log. Sie sind",
-                       "kein gruener Zustand - erst pruefen, dann den Test uebernehmen:"]
+                       "kein gruener Zustand - erst prüfen, dann den Test uebernehmen:"]
             zeilen += ["    [%s] %s: %s" % (f.get("stufe"), f.get("logger"),
                                             str(f.get("text"))[:90]) for f in fehler[:10]]
         zeilen += ['"""', "from django.test import TestCase", ""]
@@ -186,9 +186,9 @@ class Testfall:
             zeilen += ["    def test_platzhalter(self):",
                        '        u"""Die Aufnahme enthielt keinen nachfahrbaren GET-Abruf."""',
                        "        self.skipTest('Aufzeichnung ohne GET-Abrufe - "
-                       "Zusicherungen von Hand ergaenzen')"]
+                       "Zusicherungen von Hand ergänzen')"]
             return zeilen
-        zeilen += ["    #: Pfad -> Status, wie er waehrend der Aufnahme geantwortet hat.",
+        zeilen += ["    #: Pfad -> Status, wie er während der Aufnahme geantwortet hat.",
                    "    ABRUFE = ["]
         zeilen += ["        (%r, %d)," % (a["pfad"], a["status"]) for a in abrufe]
         zeilen += ["    ]", "",

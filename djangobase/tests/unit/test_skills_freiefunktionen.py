@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Freie Funktionen — und wohin die Klasse gehoert, die aus ihnen wird.
+u"""Freie Funktionen — und wohin die Klasse gehört, die aus ihnen wird.
 
 DIE FRAGE (Edgar, 24.08.2026)
 =============================
@@ -8,8 +8,8 @@ DIE FRAGE (Edgar, 24.08.2026)
      Baum der sie braucht."
 
 Erfasst hatte das Werkzeug sie sehr wohl — an CamTrack **820 Funktionen
-auf Modulebene in 283 Modulen**, davon 45 Module ueber der Schwelle. Was
-fehlte, war die zweite Haelfte: WIE die Klasse heisst und WO sie haengt.
+auf Modulebene in 283 Modulen**, davon 45 Module über der Schwelle. Was
+fehlte, war die zweite Haelfte: WIE die Klasse heißt und WO sie hängt.
 
 Ohne diese Auskunft scheitert der Umbau an derselben Stelle wie vorher:
 Eine neue Klasse ohne Platz im Baum ist wieder eine Wurzel, und davon gibt
@@ -17,13 +17,13 @@ es schon zu viele (gemessen: 1023 Klassen, 72 gehalten).
 
 DREI ANTWORTEN, NICHT EINE
 ==========================
-    ruft eine Klasse sie?      -> dorthin haengen
+    ruft eine Klasse sie?      -> dorthin hängen
     sind es Django-Ansichten?  -> klassenbasierte Ansicht (`View`)
     keins von beidem?          -> neue Wurzel, sparsam einsetzen
 
 Die zweite ist der haeufigste Fall in einem Django-Projekt: Ansichten
 werden vom URL-Router gerufen, nicht von einer Klasse. „Niemand ruft sie"
-waere dort die falsche Auskunft.
+wäre dort die falsche Auskunft.
 """
 import tempfile
 from pathlib import Path
@@ -80,7 +80,7 @@ class FreieFunktionenTest(BasisTest):
                      '        person_rename(1)\n'
                      '        person_ignore(2)\n'),
         }, ab='3')
-        self.assertIn('Personenpflege', self._warum(satz, 'Haengt an'))
+        self.assertIn('Personenpflege', self._warum(satz, 'Hängt an'))
 
     def test_django_ansichten_gehoeren_in_eine_view_klasse(self):
         u"""Der haeufigste Fall: Der URL-Router ruft sie, keine Klasse."""
@@ -109,7 +109,7 @@ class FreieFunktionenTest(BasisTest):
     def test_eine_testklasse_haelt_keinen_produktionscode(self):
         u"""DER FEHLER AUS DEM ERSTEN LAUF (24.08.2026).
 
-        Das Werkzeug schlug `ComputeAcceptThresholdTests` als Halter fuer
+        Das Werkzeug schlug `ComputeAcceptThresholdTests` als Halter für
         drei Schwellen-Funktionen vor. Ein Test RUFT den Code, er BESITZT
         ihn nicht.
         """

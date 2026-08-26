@@ -91,7 +91,7 @@ class PflichtseitenTest(BasisTest):
 
 
 class NavVorlageTest(BasisTest):
-    """Die Vorlage darf die Liste nicht ein zweites Mal fuehren."""
+    """Die Vorlage darf die Liste nicht ein zweites Mal führen."""
 
     VORLAGE = "djangobase/_nav_skills.html"
 

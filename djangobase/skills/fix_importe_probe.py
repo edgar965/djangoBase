@@ -85,10 +85,10 @@ WIRKLICH_TOT = {
 
 
 class FixImporteProbe(SimpleTestCase):
-    u"""Der Fixer laesst Durchgangstore stehen - und schneidet sonst weiter."""
+    u"""Der Fixer lässt Durchgangstore stehen - und schneidet sonst weiter."""
 
     def _vorschlag(self, dateien):
-        u"""``{Datei: entfernte Zeilen}`` fuer ein gebautes Paket."""
+        u"""``{Datei: entfernte Zeilen}`` für ein gebautes Paket."""
         from .fix_importe import ImportFixer
 
         with tempfile.TemporaryDirectory() as ordner:
@@ -125,5 +125,5 @@ class FixImporteProbe(SimpleTestCase):
         self.assertIn(
             'from .basis import SyncFolderResult', geschnitten,
             "Hier holt NIEMAND den Namen aus kern.py - er ist wirklich "
-            "tot und muss fallen. Faellt er nicht, ist die fuenfte "
+            "tot und muss fallen. Fällt er nicht, ist die fuenfte "
             "Sicherung zu grob und der Fixer tut nichts mehr.")

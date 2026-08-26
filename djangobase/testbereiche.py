@@ -201,12 +201,12 @@ class Bereiche:
         return slug[:1].upper() + slug[1:]
 
     def zu(self, test_id):
-        """``(slug, name)`` eines Falls - fuer die Spalte „Bereich"."""
+        """``(slug, name)`` eines Falls - für die Spalte „Bereich"."""
         slug = self.slug_von(test_id)
         return (slug or self.REST[0]), self.name_von(slug)
 
     def liste(self):
-        u"""Die Bereiche in der ANGEGEBENEN Reihenfolge - fuer Navigationen."""
+        u"""Die Bereiche in der ANGEGEBENEN Reihenfolge - für Navigationen."""
         return list(self.angaben)
 
     def mit_ordner(self):

@@ -40,7 +40,7 @@ class EinstellungenTabsTest(StoreIsolationMixin, BasisTest):
         u"""Die Gegenprobe: ``profile_switcher=False`` blendet sie wirklich aus.
 
         Ohne diesen Fall koennte der Schalter unwirksam werden, ohne dass es
-        auffaellt — und der Test oben wuerde weiter gruen sein."""
+        auffällt — und der Test oben wuerde weiter grün sein."""
         with override_settings(DJANGOBASE=_mit_schalter(False)):
             r = self.c.get(self.url)
         self.assertEqual(r.status_code, 200)

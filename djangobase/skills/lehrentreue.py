@@ -112,7 +112,7 @@ class Regelsucher(ast.NodeVisitor):
             self._dazu(knoten, 'keine-temp-dateien-im-system',
                        u'%s() ohne dir=' % name,
                        u'Schreibt in den System-Temp. Ein abgebrochener Lauf '
-                       u'laesst die Dateien dort liegen, und niemand findet '
+                       u'lässt die Dateien dort liegen, und niemand findet '
                        u'sie wieder — `dir=` auf ein Projektverzeichnis '
                        u'setzen.')
 
@@ -134,14 +134,14 @@ class Regelsucher(ast.NodeVisitor):
         if (self.hat_kdtree and name == 'query'
                 and 'workers' not in schluessel):
             self._dazu(knoten, 'kdtree-workers', u'.query(...) ohne workers=',
-                       u'Laeuft auf EINEM Kern. `workers=-1` nutzt alle, '
-                       u'ohne dass sich am Ergebnis etwas aendert.')
+                       u'Läuft auf EINEM Kern. `workers=-1` nutzt alle, '
+                       u'ohne dass sich am Ergebnis etwas ändert.')
 
         # 5. values_list(...).distinct() ohne argumentloses order_by().
         if name == 'distinct' and self._ohne_ordnung(knoten.func):
             self._dazu(knoten, 'meta-ordering-distinct',
                        u'values_list(...).distinct() ohne order_by()',
-                       u'`Meta.ordering` haengt die Sortierspalten an die '
+                       u'`Meta.ordering` hängt die Sortierspalten an die '
                        u'Auswahl an — distinct sieht dann Zeilen, die sich '
                        u'nur dort unterscheiden, und liefert Duplikate. Ein '
                        u'argumentloses `.order_by()` davor hebt das auf.',
@@ -227,10 +227,10 @@ class Lehrentreue(BefundWerkzeug):
             lehre = v.was.rsplit(u'„', 1)[-1].rstrip(u'")')
             je_lehre[lehre] = je_lehre.get(lehre, 0) + 1
         kopf = ['%d Dateien gelesen' % gelesen,
-                '%d Verstoss/Verstoesse gegen die fuenf pruefbaren Lehren'
+                '%d Verstoß/Verstöße gegen die fünf prüfbaren Lehren'
                 % len(befunde)]
         for lehre, zahl in sorted(je_lehre.items(), key=lambda p: -p[1]):
             kopf.append('  %-32s %d' % (lehre, zahl))
         if not befunde:
-            kopf.append('Keiner — die pruefbaren Lehren werden gehalten.')
+            kopf.append('Keiner — die prüfbaren Lehren werden gehalten.')
         return Befundsatz(self.titel, kopf, befunde)

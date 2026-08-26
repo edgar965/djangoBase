@@ -71,10 +71,10 @@ class Command(BaseCommand):
         if pfad.exists():
             # NICHT ueberschreiben: Die Datei kann von Hand ergaenzte
             # Zusicherungen tragen - genau die, die eine Aufnahme nicht kennt.
-            raise CommandError("Es gibt schon %s - erst umbenennen oder loeschen."
+            raise CommandError("Es gibt schon %s - erst umbenennen oder löschen."
                                % pfad)
         pfad.write_text(quelltext, encoding="utf-8")
         self.stdout.write(self.style.SUCCESS(
-            "%s geschrieben (%d Abrufe geprueft)" % (pfad, len(fall.abrufe()))))
+            "%s geschrieben (%d Abrufe geprüft)" % (pfad, len(fall.abrufe()))))
         self.stdout.write("Fahren mit:  manage.py test %s" %
                           str(pfad.with_suffix("")).replace("\\", ".").replace("/", "."))

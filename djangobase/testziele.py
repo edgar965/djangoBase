@@ -31,7 +31,7 @@ __all__ = ["Testziele"]
 
 
 class Testziele:
-    """Prueft angeforderte Kennungen und baut daraus Testlabels."""
+    """Prüft angeforderte Kennungen und baut daraus Testlabels."""
 
     FORM = re.compile(r"^[\w.\-]+$")
     #: Laenge einer Kennung - alles darueber ist keine Test-ID mehr.

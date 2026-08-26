@@ -102,7 +102,7 @@ class ObjektwurzelnTest(BasisTest):
             'b.py': 'from a import Ding\n\n\nZWEI = Ding()\n',
             'c.py': 'from a import Ding\n\n\nDREI = Ding()\n'}, ab='0')
         self.assertEqual(len(satz.befunde), 1,
-                         'eine Klasse gehoert einmal in den Bericht')
+                         'eine Klasse gehört einmal in den Bericht')
         self.assertIn('weitere', satz.befunde[0].was)
 
     def test_wer_schon_einen_platz_im_baum_hat_ist_eine_warnung(self):

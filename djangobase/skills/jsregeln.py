@@ -47,7 +47,7 @@ class Fund:
 
 
 class Regel:
-    """Eine Pruefung ueber die Zeilen einer Datei."""
+    """Eine Prüfung über die Zeilen einer Datei."""
 
     art = ""
     warum = ""
@@ -70,7 +70,7 @@ class Regel:
 class InlineStil(Regel):
     nur_javascript = False   # style="" gilt auch im Markup
     art = "Inline-Stil"
-    warum = ("Aussehen gehoert ins CSS. Im JavaScript ist es weder ueber ein "
+    warum = ("Aussehen gehört ins CSS. Im JavaScript ist es weder über ein "
              "Theme aenderbar noch im Browser auffindbar.")
     muster = re.compile(r"""\.style\.cssText\s*=|style\s*=\s*['"][^'"]*:""")
     nicht = re.compile(r"^\s*(//|\*|/\*)")
@@ -78,8 +78,8 @@ class InlineStil(Regel):
 
 class StilZuweisung(Regel):
     art = "Einzelne Stilzuweisung im JavaScript"
-    warum = ("Ein Wert, der das Aussehen bestimmt (Farbe, Groesse, Abstand), "
-             "gehoert in eine CSS-Klasse; display/visibility zum Ein- und "
+    warum = ("Ein Wert, der das Aussehen bestimmt (Farbe, Größe, Abstand), "
+             "gehört in eine CSS-Klasse; display/visibility zum Ein- und "
              "Ausblenden sind ausgenommen.")
     muster = re.compile(r"\.style\.(color|background\w*|width|height|fontSize"
                         r"|margin\w*|padding\w*|border\w*|opacity)\s*=")
@@ -88,7 +88,7 @@ class StilZuweisung(Regel):
 
 class Dauerlaeufer(Regel):
     art = "setInterval ohne Abbruch in derselben Datei"
-    warum = ("Ein Intervall ohne `clearInterval` laeuft, solange die Seite "
+    warum = ("Ein Intervall ohne `clearInterval` läuft, solange die Seite "
              "offen ist. Absichtliche Dauerlaeufer (Zwischenspeichern gegen "
              "Absturz) werden mit dem Kommentar \"dauerhaft gewollt\" im "
              "Kommentarblock darueber ausgenommen.")
@@ -106,7 +106,7 @@ class Dauerlaeufer(Regel):
     def _gewollt(zeilen, nummer):
         """Steht "dauerhaft gewollt" im Kommentarblock direkt oberhalb?
 
-        Nur die EINE Zeile darueber zu pruefen war zu eng: Die Begruendung
+        Nur die EINE Zeile darueber zu prüfen war zu eng: Die Begründung
         stand als dreizeiliger Block, das Schluesselwort in der ersten Zeile.
         """
         for i in range(nummer - 1, max(-1, nummer - 6), -1):
@@ -119,7 +119,7 @@ class Dauerlaeufer(Regel):
 
 class LauteAusgabe(Regel):
     art = "console.log im Betrieb"
-    warum = ("Meldungen ohne Not fuellen die Konsole und verdecken echte "
+    warum = ("Meldungen ohne Not füllen die Konsole und verdecken echte "
              "Fehler. `console.warn`/`console.error` bleiben. Eine Klasse, die "
              "das Protokollieren kapselt, ist ausgenommen.")
     muster = re.compile(r"\bconsole\.log\s*\(")
@@ -131,7 +131,7 @@ class LauteAusgabe(Regel):
         Dort, weil ``protokoll`` dieselbe Frage stellt und sie ohne diese
         Ausnahmen beantwortete: 189 ``console.*``-Stellen gegen die hier
         gezaehlten, darunter 24 aus einem Playwright-Laeufer, dessen Ausgabe das
-        Ergebnis IST. Zwei Werkzeuge, die dasselbe zaehlen, brauchen EINEN
+        Ergebnis IST. Zwei Werkzeuge, die dasselbe zählen, brauchen EINEN
         Massstab (17.08.2026).
         """
         if Frontendquellen.ausgabe_gewollt(datei, zeilen):
@@ -141,7 +141,7 @@ class LauteAusgabe(Regel):
 
 class AltesVar(Regel):
     art = "var statt let/const"
-    warum = ("`var` gilt fuer die ganze Funktion und laesst sich neu "
+    warum = ("`var` gilt für die ganze Funktion und lässt sich neu "
              "deklarieren - eine Fehlerquelle, die let/const nicht haben.")
     muster = re.compile(r"^\s*var\s+\w")
     nicht = re.compile(r"^\s*(//|\*|/\*)")
@@ -150,25 +150,25 @@ class AltesVar(Regel):
 class LoseGleichheit(Regel):
     art = "Vergleich mit == statt ==="
     warum = ("`==` wandelt Typen um: \"\" == 0 und \"0\" == 0 sind wahr. "
-             "AUSGENOMMEN `== null`: die uebliche Pruefung auf null ODER "
+             "AUSGENOMMEN `== null`: die uebliche Prüfung auf null ODER "
              "undefined, mit `===` gerade falsch.")
     muster = re.compile(r"[^=!<>]==[^=]")
     nicht = re.compile(r"^\s*(//|\*|/\*)|===|!==|[=!]=\s*null")
 
 
 class FetchOhneOkPruefung(Regel):
-    u"""Antwort wird verwendet, ohne `response.ok` zu pruefen.
+    u"""Antwort wird verwendet, ohne `response.ok` zu prüfen.
 
-    Objektiv pruefbar, anders als „hat einen try-Block": Der Aufrufer kann in
+    Objektiv prüfbar, anders als „hat einen try-Block": Der Aufrufer kann in
     einer anderen Datei fangen, das sieht diese Datei nicht. Ob aber `.ok`
-    geprueft wird, steht hier - und ohne diese Pruefung wird bei einer
+    geprüft wird, steht hier - und ohne diese Prüfung wird bei einer
     500er-Antwort die Fehlerseite als JSON gelesen und scheitert mit
     "Unexpected token '<'": einer Meldung, die nichts mit der Ursache zu tun hat.
     """
 
-    art = "Antwort ohne .ok-Pruefung verwendet"
+    art = "Antwort ohne .ok-Prüfung verwendet"
     warum = ("Ohne `antwort.ok` wird die Fehlerseite des Servers als JSON "
-             "gelesen - die Meldung sagt dann nichts ueber die Ursache.")
+             "gelesen - die Meldung sagt dann nichts über die Ursache.")
     muster = re.compile(r"\bawait\s+fetch\s*\(")
     nicht = re.compile(r"^\s*(//|\*|/\*)")
 
@@ -194,17 +194,17 @@ class FetchOhneOkPruefung(Regel):
     def _fensterende(self, zeilen, ende, nummer):
         u"""Bis wohin nach dem ``fetch`` noch nach ``.ok`` gesucht wird.
 
-        FENSTER zaehlt CODE-Zeilen, nicht rohe. Grund (assistant, 22.08.2026):
-        Fuenf von zwoelf Befunden waren Fehlalarme - die Pruefung stand da, nur
-        hinter einem Kommentarblock, der begruendet, warum der Fehler still
+        FENSTER zählt CODE-Zeilen, nicht rohe. Grund (assistant, 22.08.2026):
+        Fünf von zwölf Befunden waren Fehlalarme - die Prüfung stand da, nur
+        hinter einem Kommentarblock, der begründet, warum der Fehler still
         bleiben darf::
 
             const r = await fetch('/mail/api/sidebar-counts/', {...});
-            // stumm gewollt: Das ist ein Taktgeber, ...   <- fuenf Zeilen
+            // stumm gewollt: Das ist ein Taktgeber, ...   <- fünf Zeilen
             // ... Seitenaufruf auf, weil die dann serverseitig gerendert werden.
-            if (!r.ok) return;                             <- ausserhalb des Fensters
+            if (!r.ok) return;                             <- außerhalb des Fensters
 
-        Wer seine Entscheidung begruendet, wird sonst dafuer gemeldet."""
+        Wer seine Entscheidung begründet, wird sonst dafür gemeldet."""
         i = (ende if ende is not None else nummer - 1) + 1
         rest = self.FENSTER
         while i < len(zeilen) and rest > 0:
@@ -216,8 +216,8 @@ class FetchOhneOkPruefung(Regel):
 
 class MagischeZahl(Regel):
     art = "Zahl ohne Namen im Code"
-    warum = ("Eine Zahl mit Bedeutung (Grenze, Zeit, Faktor) gehoert in eine "
-             "benannte Konstante - sonst weiss niemand, was sie bedeutet oder "
+    warum = ("Eine Zahl mit Bedeutung (Grenze, Zeit, Faktor) gehört in eine "
+             "benannte Konstante - sonst weiß niemand, was sie bedeutet oder "
              "ob sie an zwei Stellen dieselbe ist.")
     muster = re.compile(r"set(?:Timeout|Interval)\s*\([^,]+,\s*\d{2,}\s*\)")
     nicht = re.compile(r"^\s*(//|\*|/\*)")
@@ -225,9 +225,9 @@ class MagischeZahl(Regel):
 
 class LangeZeile(Regel):
     nur_javascript = False   # gilt fuer Markup genauso
-    art = "Zeile ueber 120 Zeichen"
+    art = "Zeile über 120 Zeichen"
     warum = ("Lange Zeilen verstecken mehrere Anweisungen hintereinander; im "
-             "Vergleich zweier Staende ist nicht zu sehen, was sich geaendert "
+             "Vergleich zweier Staende ist nicht zu sehen, was sich geändert "
              "hat.")
     muster = re.compile(r"^.{121,}$")
     nicht = re.compile(r"^\s*(//|\*|/\*)|https?://")

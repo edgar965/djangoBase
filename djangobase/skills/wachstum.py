@@ -31,7 +31,7 @@ from .werkzeug import Ergebnis, Werkzeug
 
 
 class Bauform:
-    """Eine Schreibweise und wie sie sich bei vervierfachter Groesse verhaelt."""
+    """Eine Schreibweise und wie sie sich bei vervierfachter Größe verhält."""
 
     #: Linear waere dieser Faktor, quadratisch sein Quadrat.
     FAKTOR = 4
@@ -50,7 +50,7 @@ class Bauform:
 
     @staticmethod
     def urteil(faktor):
-        """Linear waere 4, quadratisch 16 - die Schwellen liegen dazwischen.
+        """Linear wäre 4, quadratisch 16 - die Schwellen liegen dazwischen.
 
         SIE MUESSEN WEIT GENUG AUSEINANDER: Mit einer Grenze bei 6 fiel die
         Textform mit zweiter Referenz (gemessen 5,9 bis 6,8 je nach Lauf) mal
@@ -132,7 +132,7 @@ class Wachstum(Werkzeug):
 
     #: Kein Anlassfall - und das ist in Ordnung:
     ohne_anlassfall_weil = ("misst nur (wie viel Code dazugekommen ist) - "
-                            "dafuer gibt es keinen Beispielcode")
+                            "dafür gibt es keinen Beispielcode")
 
     def laufen(self):
         zeilen, abweichungen = [], 0

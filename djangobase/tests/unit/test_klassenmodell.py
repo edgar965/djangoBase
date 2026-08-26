@@ -202,9 +202,9 @@ class JedeKlasseInGenauEinenTopf(BasisTest):
          aufzähle die gelistet sind, komme ich auf unter 50. Wo ist der
          Rest? Kategorisiere sie alle"
 
-    Das Bild zeigt eine Nachbarschaft — am groessten Ast von CamTrack
-    siebzehn Kaesten, und tiefer wird es nicht. Der Rest fehlt nicht im
-    Bild, er haengt an nichts::
+    Das Bild zeigt eine Nachbarschaft — am größten Ast von CamTrack
+    siebzehn Kästen, und tiefer wird es nicht. Der Rest fehlt nicht im
+    Bild, er hängt an nichts::
 
         Klassen gesamt   1004      Test              465
         gehalten           71      Freistehend       274
@@ -212,7 +212,7 @@ class JedeKlasseInGenauEinenTopf(BasisTest):
 
     Die Einteilung trennt, was SYSTEMBEDINGT frei steht (Model, Ansicht,
     Ausnahme, Test), von dem, was frei steht, weil es niemand eingehaengt
-    hat. Ohne diese Trennung liest sich „908 haengen an nichts" wie ein
+    hat. Ohne diese Trennung liest sich „908 hängen an nichts" wie ein
     Vorwurf — die Haelfte davon sind Tests.
     """
 
@@ -221,7 +221,7 @@ class JedeKlasseInGenauEinenTopf(BasisTest):
         return {k['key']: k['namen'] for k in m.kategorien()}
 
     def test_die_summe_stimmt(self):
-        u"""Kein Doppel, keine Luecke — sonst taugt die Zahl nichts."""
+        u"""Kein Doppel, keine Lücke — sonst taugt die Zahl nichts."""
         m = _projekt({'a.py': (
             'from django.db import models\n\n\n'
             'class Kamera(models.Model):\n    pass\n\n\n'
@@ -291,7 +291,7 @@ class JedeKlasseInGenauEinenTopf(BasisTest):
         self.assertEqual(toepfe['frei'], ['Einsam'])
 
     def test_jede_kategorie_erklaert_sich(self):
-        u"""Eine Zahl ohne Erklaerung ist eine Behauptung."""
+        u"""Eine Zahl ohne Erklärung ist eine Behauptung."""
         for k in _projekt({'a.py': 'class A:\n    pass\n'}).kategorien():
             self.assertTrue(k['label'] and k['erklaerung'], k)
 
@@ -359,7 +359,7 @@ class EinTestIstKeinAst(BasisTest):
         self.assertTrue(m.klassen['VollbildZeigt'].ist_test)
 
     def test_produktionscode_ist_kein_test(self):
-        u"""`VideoCodecProbe` in `views/` heisst nur so."""
+        u"""`VideoCodecProbe` in `views/` heißt nur so."""
         m = _projekt({'codec_probe.py': 'class VideoCodecProbe:\n    pass\n'})
         self.assertFalse(m.klassen['VideoCodecProbe'].ist_test)
 
@@ -444,7 +444,7 @@ class DerSteckbriefZeigtBeideRichtungen(BasisTest):
 
     Die Linien im Bild zeigen nur nach unten. Bei 71 gehaltenen von 1004
     ist „wer hält mich" die interessantere Frage — und der Halter liegt oft
-    ausserhalb der gezeigten Nachbarschaft.
+    außerhalb der gezeigten Nachbarschaft.
     """
 
     def _modell(self):
@@ -530,7 +530,7 @@ class EinSicherungsordnerIstKeineQuelle(BasisTest):
     doppelt im Bestand.
 
     Gemeldet hatte es `altlast`, und zwar als allererste Zeile. Gesehen
-    habe ich es erst, nachdem der Läufer `tools/wartung/pruefen.py` nicht
+    habe ich es erst, nachdem der Läufer `tools/wartung/prüfen.py` nicht
     mehr an der Bauart des Werkzeugs abstürzte — ein Werkzeug, dessen
     Befunde niemand zu Gesicht bekommt, ist so gut wie keines.
     """

@@ -136,7 +136,7 @@ class LaufzeitdatenZaehlenNicht(BasisTest):
         self.assertEqual(sorted(z.ausgelassen_wo), ['logs', 'media', 'tmp'])
 
     def test_zu_grosse_dateien_sind_kein_quelltext(self):
-        u"""Ein Modell mit 174 MB heisst `.pt`, ein Video `.mp4` — aber
+        u"""Ein Modell mit 174 MB heißt `.pt`, ein Video `.mp4` — aber
         auch eine `.py` mit 3 MB ist nichts, was jemand geschrieben hat."""
         ordner = Path(tempfile.mkdtemp(prefix='cz_'))
         (ordner / 'riesig.py').write_text(u'# x\n' * 700000,

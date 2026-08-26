@@ -8,13 +8,13 @@ Drei Betriebsarten, drei Knoepfe:
     Mehrere Bereiche  mehrere Bereiche gleichzeitig, je ein eigener Verlauf
 
 Die Runden laufen im Hintergrund; die Seite fragt ``status/`` ab. Das ist keine
-Bequemlichkeit: Eine Runde dauert je nach Modell und Paketgroesse eine bis fuenf
+Bequemlichkeit: Eine Runde dauert je nach Modell und Paketgroesse eine bis fünf
 Minuten, und so lange darf keine Anfrage offen stehen.
 
 Sicherheit: Gesendet werden NUR die Dateien der konfigurierten Bereiche, und nur
-solche unterhalb von ``review_wurzel`` (Pruefung in ReviewLauf._datei_lesen).
+solche unterhalb von ``review_wurzel`` (Prüfung in ReviewLauf._datei_lesen).
 Freitext-Pfade nimmt diese Seite bewusst nicht entgegen — bei einem
-Online-Partner verlaesst der Inhalt den Rechner.
+Online-Partner verlässt der Inhalt den Rechner.
 """
 import json
 
@@ -50,10 +50,10 @@ class ReviewView(ZugriffMixin, View):
 
     @staticmethod
     def _bereiche_anzeigen(bereiche):
-        """Bereiche fuer die Anzeige aufbereiten.
+        """Bereiche für die Anzeige aufbereiten.
 
         Ein Datei-Eintrag darf ein Pfad ODER {"pfad", "funktionen"} sein — das
-        Template soll das nicht auseinandernehmen muessen, sonst rendert es
+        Template soll das nicht auseinandernehmen müssen, sonst rendert es
         Python-Dicts in ein `title`-Attribut."""
         aufbereitet = []
         for b in bereiche:
@@ -146,7 +146,7 @@ class ReviewNachfassenView(ZugriffMixin, View):
 
         gestartet = lauf.nachfassen(text, slug=daten.get("faden") or None)
         if not gestartet:
-            return JsonResponse({"fehler": "Es laeuft noch eine Runde"}, status=409)
+            return JsonResponse({"fehler": "Es läuft noch eine Runde"}, status=409)
         return JsonResponse({"gestartet": gestartet})
 
 

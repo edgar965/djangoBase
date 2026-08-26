@@ -6,7 +6,7 @@ u"""Namensvarianten - dasselbe Ding, zwei Schreibweisen.
 WO DAS WEHTUT
 =============
 Zwischen Python und JavaScript liegen in einer Django-Anwendung mehrere
-Uebersetzungen: Formularfeld -> JSON-Schluessel -> Modellfeld. Heisst dasselbe
+Uebersetzungen: Formularfeld -> JSON-Schlüssel -> Modellfeld. Heißt dasselbe
 Ding dort ``fill_delay``, ``fillDelay`` und ``filldelay``, dann funktioniert
 alles - bis jemand eine der drei Stellen umbenennt. Danach ist nichts rot, es
 wird nur still ein anderer Wert gerechnet.
@@ -17,13 +17,13 @@ beim Laden nie durch. Beide Male stimmten die Namen bis auf eine Schreibweise.
 
 WAS DAS WERKZEUG TUT
 ====================
-Es sammelt Bezeichner aus Python (Zuweisungen, Dict-Schluessel, Argumente) und
+Es sammelt Bezeichner aus Python (Zuweisungen, Dict-Schlüssel, Argumente) und
 aus JS/Vorlagen (Objektschluessel, ``data-``-Attribute, ``id=``) und meldet
 Namen, die sich NUR in Schreibweise oder Trennzeichen unterscheiden.
 
 Nicht jeder Treffer ist ein Fehler - ``max_tage`` als Python-Feld und
-``maxTage`` als JS-Variable koennen absichtlich verschieden heissen. Der Befund
-sagt: Diese beiden gehoeren zusammen, sieh nach, ob sie es auch tun.
+``maxTage`` als JS-Variable können absichtlich verschieden heißen. Der Befund
+sagt: Diese beiden gehören zusammen, sieh nach, ob sie es auch tun.
 """
 import ast
 import re
@@ -129,8 +129,8 @@ def pruefen(daten_basis):
         u"""Stehen beide Schreibweisen in DERSELBEN Welt?
 
         Der Unterschied entscheidet alles. In 3DTools waren von 147 Befunden die
-        allermeisten Uebersetzungen ueber eine Grenze — ``job_id`` als
-        Python-Bezeichner, ``"jobId"`` als Drahtname fuer JavaScript,
+        allermeisten Uebersetzungen über eine Grenze — ``job_id`` als
+        Python-Bezeichner, ``"jobId"`` als Drahtname für JavaScript,
         ``data-job-id`` im Markup. Das ist keine Abweichung, das ist die
         Konvention der jeweiligen Seite; sie anzugleichen hiesse, gegen sie zu
         schreiben (17.08.2026).
@@ -216,7 +216,7 @@ def pruefen(daten_basis):
         schreibt bewusst so, wie der Empfaenger es liest. Beides in denselben
         Topf zu werfen liess ``job_id · jobId · job-id`` als Bruch „in einer
         Sprache" dastehen, obwohl alle drei Vorkommen in Python-Dateien lagen —
-        zwei davon als Drahtnamen fuer JavaScript (17.08.2026).
+        zwei davon als Drahtnamen für JavaScript (17.08.2026).
         """
         module = Namensvarianten._modulnamen(d.baum)
         aus = set()

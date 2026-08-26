@@ -126,7 +126,7 @@ class Testhistorie:
         return reihe[0]["dauer"] if reihe else None
 
     def schnitt(self, test_id):
-        """Mittel ueber die vorhandenen Laeufe - oder None."""
+        """Mittel über die vorhandenen Laeufe - oder None."""
         reihe = self.laeufe(test_id)
         if not reihe:
             return None

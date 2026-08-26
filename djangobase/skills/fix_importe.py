@@ -57,7 +57,7 @@ class ImportFixer(Fixer):
     #: Ein Name, den es als Python-Bezeichner nicht geben kann - so kann er
     #: nie mit einem echten Import kollidieren.
     STERN = "*stern*"
-    warum = ("Tote Importe kosten Ladezeit, halten Abhaengigkeiten kuenstlich am "
+    warum = ("Tote Importe kosten Ladezeit, halten Abhängigkeiten kuenstlich am "
              "Leben und verwischen, welches Modul wirklich wovon abhaengt.")
     grenzen = ("Seiteneffekt-Importe (signals, admin) und __init__.py bleiben. "
                "Mehrfach-Importe (import os, sys) bleiben, wenn nur einer tot ist.")
@@ -72,8 +72,8 @@ class ImportFixer(Fixer):
                      "def lesen(pfad):\n"
                      "    return json.loads(open(pfad).read())\n"},
         mindestens=1, hoechstens=1, erwartet_in="laden.py",
-        warum="`os` ist tot und faellt; `json` wird gebraucht und `sys` traegt "
-              "ein noqa — beide muessen stehenbleiben")
+        warum="`os` ist tot und fällt; `json` wird gebraucht und `sys` trägt "
+              "ein noqa — beide müssen stehenbleiben")
 
     #: Modul-Endungen, deren blosser Import etwas bewirkt - nie entfernen.
     SEITENEFFEKT = {"signals", "admin", "receivers", "tasks", "checks", "apps"}
@@ -113,7 +113,7 @@ class ImportFixer(Fixer):
         """Netz: kompiliert die Datei nach dem Schnitt noch?
 
         DAS REICHT NICHT ALLEIN, und das ist wichtig zu wissen: Ein
-        gebrochener Re-Export kompiliert tadellos. Er faellt erst auf,
+        gebrochener Re-Export kompiliert tadellos. Er fällt erst auf,
         wenn ein ANDERES Modul den Namen holen will - im Zweifel erst
         beim Start der Anwendung. Deshalb liegt die eigentliche
         Sicherung in `_wird_weitergereicht`, VOR dem Schnitt.

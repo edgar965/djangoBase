@@ -35,14 +35,14 @@ __all__ = ["JsSyntax"]
 
 class JsSyntax(Werkzeug):
     slug = "jssyntax"
-    titel = "ES-Module: Syntax pruefen"
-    zweck = ("Kopiert jede .js-Datei als .mjs und laesst `node --check` darauf "
+    titel = "ES-Module: Syntax prüfen"
+    zweck = ("Kopiert jede .js-Datei als .mjs und lässt `node --check` darauf "
              "laufen - findet kaputte Importe, die als CommonJS durchgehen.")
     befund = ("3DTools: drei Dateien hatten eine Import-Zeile mitten in einem "
-              "mehrzeiligen Import. `node --check` auf der .js-Datei war gruen, "
-              "als .mjs rot. Die Seiten blieben weiss.")
+              "mehrzeiligen Import. `node --check` auf der .js-Datei war grün, "
+              "als .mjs rot. Die Seiten blieben weiß.")
     abhilfe = ("Die gemeldete Zeile ansehen. Meist steht dort eine Zeile in "
-               "einer Anweisung, die sich ueber mehrere Zeilen zieht.")
+               "einer Anweisung, die sich über mehrere Zeilen zieht.")
     dauer = "2-10 s (je Datei ein node-Aufruf)"
     kriterium = 3
 
@@ -69,8 +69,8 @@ class JsSyntax(Werkzeug):
         if not node:
             return Ergebnis(["ort", "meldung"], [],
                             zusammenfassung="node nicht gefunden",
-                            hinweis="Ohne Node ist diese Pruefung nicht "
-                                    "moeglich. Sie gilt NICHT als gruen.")
+                            hinweis="Ohne Node ist diese Prüfung nicht "
+                                    "möglich. Sie gilt NICHT als grün.")
         dateien = list(self._quellen())
         kaputt = []
         with tempfile.TemporaryDirectory(prefix="jssyntax_") as ordner:
@@ -83,7 +83,7 @@ class JsSyntax(Werkzeug):
                         "meldung": meldung})
         return Ergebnis(
             ["ort", "meldung"], kaputt,
-            zusammenfassung="%d Dateien als ES-Modul geprueft, %d mit Fehler"
+            zusammenfassung="%d Dateien als ES-Modul geprüft, %d mit Fehler"
                             % (len(dateien), len(kaputt)))
 
     def _pruefen(self, node, pfad, ziel):

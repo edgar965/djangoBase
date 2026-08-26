@@ -196,7 +196,7 @@ class SystemStats:
 
     @classmethod
     def _messen(cls):
-        """Eine echte Messung (kostet ~0,22 s) - laeuft im Hintergrund-Thread."""
+        """Eine echte Messung (kostet ~0,22 s) - läuft im Hintergrund-Thread."""
         jetzt = time.time()
         _gpu = cls.gpu()
         if _gpu:                                   # Momentwert -> Fenster-Mittel

@@ -1,30 +1,30 @@
 # -*- coding: utf-8 -*-
 u"""Testaufbau - sind die Tests gegliedert und aus der Oberflaeche startbar?
 
-    Kriterium 17: Testcases sauber unter Hilfe -> Tests, ueber djangoBase.
-    Untermenues fuer Unit-, Component-, UI-Tests und Longrunner; bei grossen
+    Kriterium 17: Testcases sauber unter Hilfe -> Tests, über djangoBase.
+    Untermenues für Unit-, Component-, UI-Tests und Longrunner; bei großen
     Projekten mehrere Unterseiten (wie im Projekt assistant).
 
 ZWEI FRAGEN, NICHT EINE
 =======================
-1. Sind die Tests nach ihrer ART gegliedert? ``unit`` laeuft in Sekunden,
-   ``longrunner`` in Minuten - liegen sie im selben Topf, laesst man entweder
+1. Sind die Tests nach ihrer ART gegliedert? ``unit`` läuft in Sekunden,
+   ``longrunner`` in Minuten - liegen sie im selben Topf, lässt man entweder
    die schnellen ungenutzt oder wartet jedes Mal auf die langsamen.
-2. Kommt man ohne Kommandozeile daran? Die Hilfe-Tests-Seite faehrt, was in
+2. Kommt man ohne Kommandozeile daran? Die Hilfe-Tests-Seite fährt, was in
    ``DJANGOBASE["test_befehle"]`` steht. Ein Bereich, der dort fehlt, existiert
-   fuer die Oberflaeche nicht - und wird deshalb selten gefahren.
+   für die Oberflaeche nicht - und wird deshalb selten gefahren.
 
 ZWEI ANERKANNTE BAUFORMEN (beide im Projekt assistant zu sehen)
 ===============================================================
     mail/tests/{unit,component,ui}/…                  nach Art
     search/tests/<bereich>/{unit,component,ui,longrunner}/…   Bereich x Art
 
-Die zweite ist die Antwort auf „grosses Projekt": je Bereich eine eigene
-Gruppe, damit die Seite nicht zu einer Liste aus hundert Eintraegen wird.
+Die zweite ist die Antwort auf „großes Projekt": je Bereich eine eigene
+Gruppe, damit die Seite nicht zu einer Liste aus hundert Einträgen wird.
 
 DER TEUERSTE BEFUND IST DER PLATZHALTER
 =======================================
-Eine Testdatei ohne einzige Zusicherung meldet „gruen" und prueft nichts. Im
+Eine Testdatei ohne einzige Zusicherung meldet „grün" und prüft nichts. Im
 Ursprungsprojekt lagen 24 gleichnamige ``test_placeholder.py`` mit identischem
 Rumpf - eine Gliederung, die es nur dem Namen nach gab.
 """
@@ -78,10 +78,10 @@ class Testaufbau(EigenesWerkzeug):
         Im Projektbaum liegen oft eigenstaendige Programme (bei assistant etwa
         ``diktator/`` — ein Windows-Diktiergeraet mit eigenen Prüfskripten). Von
         denen ``tests/unit/`` zu verlangen oder sie in ``test_befehle``
-        einzutragen ist Unsinn: Der Django-Testlaeufer faehrt sie nie
+        einzutragen ist Unsinn: Der Django-Testlaeufer fährt sie nie
         (17.08.2026).
 
-        JEDES Segment pruefen, nicht nur das erste (18.08.2026): Die alte Zeile
+        JEDES Segment prüfen, nicht nur das erste (18.08.2026): Die alte Zeile
         las ``d.name.split("/")[0]``. Das trifft nur Projekte, in denen die Apps
         direkt unter der Wurzel liegen. Wo das Django-Projekt in einem
         Unterordner steht - bei shortlongx ``shortlongxWeb/`` neben ``brain/``,
@@ -89,10 +89,10 @@ class Testaufbau(EigenesWerkzeug):
         ``shortlongxWeb`` und steht in keiner ``INSTALLED_APPS``. Folge: KEINE
         einzige Testdatei kam durch, und das Werkzeug meldete „keine
         Testdateien gefunden" samt aller vier Arten als fehlend - bei 121
-        vorhandenen Testfaellen. Ein Pruefer, der nichts sieht, meldet lauter
+        vorhandenen Testfaellen. Ein Prüfer, der nichts sieht, meldet lauter
         Fehlendes und wirkt dabei gruendlich.
 
-        ``diktator/`` und Geschwister bleiben draussen: Dort ist KEIN Segment
+        ``diktator/`` und Geschwister bleiben draußen: Dort ist KEIN Segment
         eine installierte App."""
         from django.conf import settings
         installiert = {a.split(".")[0] for a in settings.INSTALLED_APPS}
@@ -221,7 +221,7 @@ class Testaufbau(EigenesWerkzeug):
     # ---------------------------------------------------------------- startbar
 
     def _startbar(self, dateien):
-        """Ist jeder Test-Bereich ueber Hilfe -> Tests zu starten?"""
+        """Ist jeder Test-Bereich über Hilfe -> Tests zu starten?"""
         from django.conf import settings
         cfg = (getattr(settings, "DJANGOBASE", {}) or {})
         befehle = cfg.get("test_befehle") or []

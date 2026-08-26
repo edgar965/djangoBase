@@ -15,7 +15,7 @@ DER FEHLALARM AUS DEM ERSTEN WURF
 Er nahm auch ``*_test.py`` als Prüf-Code und meldete prompt zwei
 Verstösse in ``app/views/cameras/connection_test.py`` — einer ANSICHT.
 ``ConnectionTester.test_http_snapshot(ip, port, …)`` probiert
-Schnappschuss-Pfade an einer Kamera durch; sie heisst nur so.
+Schnappschuss-Pfade an einer Kamera durch; sie heißt nur so.
 """
 import tempfile
 from pathlib import Path
@@ -60,7 +60,7 @@ class EineStummePruefungIstEinFehler(BasisTest):
                       '    def test_person_bleibt_erhalten(self):\n'
                       '        x = 1\n'
                       '        print(x)\n'})
-        self.assertIn('gruen', satz.befunde[0].warum)
+        self.assertIn('grün', satz.befunde[0].warum)
 
     def test_ein_nacktes_assert_zaehlt(self):
         satz = _lauf({'tests/test_a.py': KOPF +
@@ -124,8 +124,8 @@ class ProduktivcodeIstKeinePruefung(BasisTest):
     def test_eine_ansicht_namens_connection_test_zaehlt_nicht(self):
         satz = _lauf({'app/views/connection_test.py': self.ANSICHT})
         self.assertEqual(satz.befunde, [],
-                         'Eine Ansicht, deren Methoden test_ heissen, ist '
-                         'keine Pruefung — sie heisst nur so.')
+                         'Eine Ansicht, deren Methoden test_ heißen, ist '
+                         'keine Prüfung — sie heißt nur so.')
 
     def test_dieselbe_datei_unter_tests_zaehlt_schon(self):
         u"""Gegenprobe: Sonst prüft der Test darüber nur den Dateinamen."""

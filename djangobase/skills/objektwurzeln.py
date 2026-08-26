@@ -31,7 +31,7 @@ NACHGEMESSEN AN CAMTRACK (23.08.2026)
 
 Neunundzwanzig Wurzeln statt einer. Darunter ``LaufzeitRegister``, an
 demselben Tag von mir gebaut — das Muster ist so bequem, dass es beim
-Schreiben nicht auffaellt.
+Schreiben nicht auffällt.
 
 WAS DAS PRAKTISCH KOSTET
 ========================
@@ -66,7 +66,7 @@ from .befund import Befund, Befundsatz, BefundWerkzeug
 
 
 class Wurzel:
-    u"""Eine Klasse, die ausserhalb jeder Klasse erzeugt wird."""
+    u"""Eine Klasse, die außerhalb jeder Klasse erzeugt wird."""
 
     __slots__ = ('name', 'stellen', 'besitzer')
 
@@ -139,7 +139,7 @@ class Baumsicht:
             % (len(self.nur_lokal), self.anteil(self.nur_lokal)),
             'nirgends erzeugt: %d (%.0f %%)'
             % (len(self.nie), self.anteil(self.nie)),
-            'groesste Aeste: %s' % (', '.join(
+            'größte Aeste: %s' % (', '.join(
                 '%s (%d)' % (n, z) for n, z in
                 sorted(self.haelt.items(), key=lambda p: -p[1])[:5]) or "—"),
         ]
@@ -150,17 +150,17 @@ class Objektwurzeln(BefundWerkzeug):
     slug = 'objektwurzeln'
     kriterium = 4
     titel = 'Wurzeln des Objektmodells'
-    zweck = ('Zaehlt die Klassen, die auf Modulebene erzeugt werden. Ein '
-             'Objektmodell hat idealerweise EINE Wurzel; alles andere haengt '
+    zweck = ('Zählt die Klassen, die auf Modulebene erzeugt werden. Ein '
+             'Objektmodell hat idealerweise EINE Wurzel; alles andere hängt '
              'als Instanz daran.')
     abhilfe = ('Die Instanz dorthin verschieben, wo sie gebraucht wird — als '
                'Attribut der Klasse, die sie benutzt. Wird sie an mehreren '
-               'Stellen gebraucht, gehoert sie der gemeinsamen Oberklasse '
-               'bzw. dem Dienst, der beide haelt.')
+               'Stellen gebraucht, gehört sie der gemeinsamen Oberklasse '
+               'bzw. dem Dienst, der beide hält.')
     befund = ('CamTrack: 29 eigene Klassen entstehen auf Modulebene statt '
-              'einer. Eine davon war eine Stillstands-Wache fuer elf '
-              'Kameras — jede laufende Kamera setzte den Zaehler der blinden '
-              'zurueck, vier liefen zehn Stunden blind.')
+              'einer. Eine davon war eine Stillstands-Wache für elf '
+              'Kameras — jede laufende Kamera setzte den Zähler der blinden '
+              'zurück, vier liefen zehn Stunden blind.')
     dauer = 'Sekunden'
     eingabe = ('ab', 'Ab wie vielen Wurzeln melden? (0 = jede)', '1')
 
@@ -215,10 +215,10 @@ class Objektwurzeln(BefundWerkzeug):
             "    def __init__(self):\n"
             "        self.wache = Wache()\n")},
         mindestens=1, erwartet_in="Wache",
-        warum="Eine Stillstands-Wache fuer elf Kameras (CamTrack, "
+        warum="Eine Stillstands-Wache für elf Kameras (CamTrack, "
               "09.05.2026): Weil sie niemandem gehoerte, setzte jede "
-              "laufende Kamera den Zaehler der blinden zurueck. `Kamera` "
-              "haelt daneben schon eine eigene — der Platz im Baum ist da. "
+              "laufende Kamera den Zähler der blinden zurück. `Kamera` "
+              "hält daneben schon eine eigene — der Platz im Baum ist da. "
               "ZWEI Wurzeln, denn EINE ist per Vorgabe kein Fehler: Der "
               "erste Wurf hatte nur eine und war damit blind, was der "
               "`anlassfall-check` sofort meldete")
@@ -261,7 +261,7 @@ class Objektwurzeln(BefundWerkzeug):
                                     -len(w.stellen), w.name))
 
         kopf = ['%d Dateien' % dateien] + sicht.zeilen()
-        kopf.append('Idealwert: EINE Wurzel, alles andere haengt daran')
+        kopf.append('Idealwert: EINE Wurzel, alles andere hängt daran')
 
         befunde = []
         if len(wurzeln) > grenze:
@@ -272,7 +272,7 @@ class Objektwurzeln(BefundWerkzeug):
         return Befundsatz(self.titel, kopf, befunde)
 
     def _baumsicht(self, eigene, besitz, stellen, erzeugt, basen, geerbt):
-        u"""Die vier Toepfe — und wer beim "nirgends erzeugt" nicht zaehlt."""
+        u"""Die vier Toepfe — und wer beim "nirgends erzeugt" nicht zählt."""
         haelt = {}
         for kind, eltern in besitz.items():
             if kind not in eigene:
@@ -323,12 +323,12 @@ class Objektwurzeln(BefundWerkzeug):
                 if len(w.stellen) > 1 else '')
         was = '%s wird auf Modulebene erzeugt%s' % (w.name, mehr)
         if w.besitzer:
-            warum = ('%s haelt dieselbe Klasse schon als Instanz-Attribut — '
+            warum = ('%s hält dieselbe Klasse schon als Instanz-Attribut — '
                      'der Platz im Baum ist da, die globale Instanz ist der '
                      'Umweg.' % ', '.join(w.besitzer[:3]))
         else:
-            warum = ('Sie gehoert niemandem: entsteht beim Import, lebt bis '
-                     'zum Prozessende, ist von ueberall erreichbar. Wer sie '
+            warum = ('Sie gehört niemandem: entsteht beim Import, lebt bis '
+                     'zum Prozessende, ist von überall erreichbar. Wer sie '
                      'benutzt, sollte sie halten.')
         return Befund(ort, was, warum, w.gewicht)
 
@@ -389,11 +389,11 @@ class Objektwurzeln(BefundWerkzeug):
 
     @classmethod
     def _ressourcen(cls, baum, hinein: dict) -> None:
-        u"""Was haelt eine Klasse, das einen Aufruf ueberleben muss?
+        u"""Was hält eine Klasse, das einen Aufruf ueberleben muss?
 
         Ein ``Thread``, ein ``Popen``, eine ``Lock``, ein Zwischenspeicher.
         Solche Dinge haben nur einen Sinn, wenn sie bleiben — wer sie in
-        jeder Funktion neu anlegt, hat sie beim naechsten Aufruf nicht mehr.
+        jeder Funktion neu anlegt, hat sie beim nächsten Aufruf nicht mehr.
         """
         for knoten in ast.walk(baum):
             if not isinstance(knoten, ast.ClassDef):
@@ -434,13 +434,13 @@ class Objektwurzeln(BefundWerkzeug):
 
     @staticmethod
     def _benutzt(baum, hinein: set) -> None:
-        u"""Jeder Zugriff auf einen Klassennamen zaehlt als Verwendung.
+        u"""Jeder Zugriff auf einen Klassennamen zählt als Verwendung.
 
         DER FEHLER, DEN DER NUTZER GEFUNDEN HAT (23.08.2026)
         ====================================================
         Auf die Meldung „23 % der Klassen werden nirgends erzeugt" fragte
         er: „sicher?" — Stichprobe von achtzehn: **null davon waren tot**.
-        Die groesste Gruppe waren Utility-Klassen mit statischen Methoden::
+        Die größte Gruppe waren Utility-Klassen mit statischen Methoden::
 
             JpegProbe.resolution(head)
             RtspUrlBuilder.build(self)
@@ -449,10 +449,10 @@ class Objektwurzeln(BefundWerkzeug):
         Genau die Bauform, die Kriterium 18 ausdruecklich EMPFIEHLT
         („ggf. in Utility-Klassen, statische Funktionen"). Das Werkzeug
         meldete guten Entwurf als toten Bestand — die teuerste Sorte
-        Fehlalarm, weil sie zum Loeschen verleitet.
+        Fehlalarm, weil sie zum Löschen verleitet.
 
         Gezaehlt wird deshalb JEDE Erwaehnung des Namens: als Attribut
-        (``Klasse.methode``), als Wert (an eine Funktion uebergeben), als
+        (``Klasse.methode``), als Wert (an eine Funktion übergeben), als
         Oberklasse. Nur wer nirgends vorkommt, gilt noch als tot.
         """
         for knoten in ast.walk(baum):
@@ -473,7 +473,7 @@ class Objektwurzeln(BefundWerkzeug):
                 hinein.add(name)
 
     def _fluechtig_mit_ressource(self, sicht, ressourcen, orte, besitz):
-        u"""Klassen, die etwas Bleibendes halten und trotzdem ueberall
+        u"""Klassen, die etwas Bleibendes halten und trotzdem überall
         frisch entstehen.
 
         DIE FRAGE DAHINTER (Edgar, 23.08.2026)
@@ -483,7 +483,7 @@ class Objektwurzeln(BefundWerkzeug):
         in einer Funktion.** Das ist nicht per se falsch — ein Wertobjekt
         soll entstehen und vergehen.
 
-        Falsch wird es, wenn die Klasse etwas haelt, das den Aufruf
+        Falsch wird es, wenn die Klasse etwas hält, das den Aufruf
         UEBERLEBEN muss: einen Faden, einen Prozess, eine Sperre, einen
         Zwischenspeicher. Wer so etwas in zwanzig verschiedenen Funktionen
         neu anlegt, hat zwanzig Sperren, die nichts sperren, oder wirft
@@ -491,8 +491,8 @@ class Objektwurzeln(BefundWerkzeug):
 
         Nachgemessen an CamTrack: 139 Klassen halten so etwas, 99 entstehen
         an drei oder mehr Stellen — **18 beides**. Darunter
-        ``FrameProducer`` (20 Stellen, haelt Event/Popen/Thread) und
-        ``LiveDetectorWorker`` (21 Stellen, haelt Event/Lock/Thread).
+        ``FrameProducer`` (20 Stellen, hält Event/Popen/Thread) und
+        ``LiveDetectorWorker`` (21 Stellen, hält Event/Lock/Thread).
         """
         raus = []
         for name in sorted(sicht.alle):
@@ -502,12 +502,12 @@ class Objektwurzeln(BefundWerkzeug):
                 continue
             gehalten = besitz.get(name)
             raus.append(Befund(
-                name, '%s haelt %s, entsteht aber an %d Stellen neu'
+                name, '%s hält %s, entsteht aber an %d Stellen neu'
                 % (name, ', '.join(sorted(haelt)[:3]), len(stellen)),
-                ('%s haelt sie schon als Instanz — dort gehoert sie hin.'
+                ('%s hält sie schon als Instanz — dort gehört sie hin.'
                  % ', '.join(sorted(gehalten)[:2]) if gehalten else
-                 'Was sie haelt, muss den Aufruf ueberleben. Wer es in jeder'
-                 ' Funktion neu anlegt, hat es beim naechsten Aufruf nicht'
+                 'Was sie hält, muss den Aufruf ueberleben. Wer es in jeder'
+                 ' Funktion neu anlegt, hat es beim nächsten Aufruf nicht'
                  ' mehr — oder doppelt.'),
                 Befund.WARNUNG if gehalten else Befund.HINWEIS))
         return raus
@@ -518,8 +518,8 @@ class Objektwurzeln(BefundWerkzeug):
             name, '%s wird nirgends erzeugt' % name,
             'Keine Oberklasse, kein Model, keine Ansicht — und ihr Name '
             'kommt im ganzen Projekt nirgends vor: weder `%s(...)` noch '
-            '`%s.etwas`. Vor dem Loeschen trotzdem von Hand '
-            'nachsehen — Namen koennen als Zeichenkette stehen.'
+            '`%s.etwas`. Vor dem Löschen trotzdem von Hand '
+            'nachsehen — Namen können als Zeichenkette stehen.'
             % (name, name), Befund.HINWEIS)
 
     def _modulebene(self, baum, kurz: str, hinein: dict) -> None:
@@ -569,7 +569,7 @@ class Objektwurzeln(BefundWerkzeug):
 
         Erkannt an der Grossschreibung. Das ist eine Uebereinkunft, keine
         Regel der Sprache — aber sie gilt in jedem Python-Projekt, und die
-        Alternative (jeden Namen aufloesen) faende bei Importen ueber
+        Alternative (jeden Namen auflösen) faende bei Importen über
         mehrere Ebenen ohnehin nicht mehr.
         """
         if not isinstance(wert, ast.Call):

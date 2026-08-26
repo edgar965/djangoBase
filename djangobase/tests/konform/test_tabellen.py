@@ -246,7 +246,7 @@ class TabellenModuleTest(SimpleTestCase):
             # Auto-Bindung IST die Erfuellung dieser Regel, also wird sie
             # als solche zugesichert statt weggeschaltet.
             self.assertTrue(TabellenKonformTest.auto_bindung_aktiv(),
-                            u"tabellen_auto.js bindet - das erfuellt die Regel")
+                            u"tabellen_auto.js bindet - das erfüllt die Regel")
             return
         gefunden = {"TabellenSortierung": False, "TabellenBreiten": False}
         for pfad in dateien(".html", ".js"):

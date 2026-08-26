@@ -4,13 +4,13 @@ u"""Frontendadressen - ruft das Frontend eine Adresse, die es nicht gibt?
 DER BEFUND (3DTools, 17.08.2026)
 ================================
 Die Kontextmenues der Kleider- und der MakeHuman-Liste bieten Umbenennen,
-Verschieben, Kopieren und Loeschen an und riefen dafuer
+Verschieben, Kopieren und Löschen an und riefen dafür
 ``/api/character/garment/manage/``. **Diesen Endpunkt gab es nicht.** Acht
 Aufrufstellen in zwei Modulen liefen in eine 404; der umgebende ``catch``
-schrieb die Meldung in die Konsole, und fuer den Benutzer passierte beim Klick
+schrieb die Meldung in die Konsole, und für den Benutzer passierte beim Klick
 gar nichts.
 
-Kein Test sieht das: Die Seite laedt mit 200, das Modul ist syntaktisch heil,
+Kein Test sieht das: Die Seite lädt mit 200, das Modul ist syntaktisch heil,
 der Import stimmt. Erst der Abgleich der Adressen gegen Djangos
 URL-Konfiguration bringt es heraus — von 94 Adress-Literalen war genau eines
 unbekannt.
@@ -26,8 +26,8 @@ Meldungen, davon 12 falsch. Denn
 * ``* @param {string} config.apiPrefix  z.B. '/api/character-test'`` steht in
   einem Kommentar.
 
-Zwoelf Fehlalarme verdecken den einen echten Fall — genau die Falle aus
-``~/.claude/rules/analysewerkzeuge.md``. Deshalb zaehlt hier nur, was
+Zwölf Fehlalarme verdecken den einen echten Fall — genau die Falle aus
+``~/.claude/rules/analysewerkzeuge.md``. Deshalb zählt hier nur, was
 DIREKT ALS ERSTES ARGUMENT eines Abrufs steht: dort ist das Literal die ganze
 Adresse, und wenn sie nicht aufloest, ist der Aufruf tot.
 
@@ -78,9 +78,9 @@ class Frontendadressen(Werkzeug):
              "steht, mit Djangos URL-Konfiguration.")
     befund = ("3DTools: `/api/character/garment/manage/` gab es nicht — acht "
               "Aufrufstellen, vier tote Menuepunkte in zwei Listen, ohne "
-              "Hinweis fuer den Benutzer. Die Seite lud mit 200.")
-    abhilfe = ("Route ergaenzen oder die Adresse im Frontend berichtigen. Die "
-               "Spalte „Stellen\" zeigt, wie viele Aufrufe daran haengen.")
+              "Hinweis für den Benutzer. Die Seite lud mit 200.")
+    abhilfe = ("Route ergänzen oder die Adresse im Frontend berichtigen. Die "
+               "Spalte „Stellen\" zeigt, wie viele Aufrufe daran hängen.")
     dauer = "1-3 s"
     kriterium = 5
 
@@ -136,8 +136,8 @@ export async function umbenennen(name) {
                             % (len(gefunden), len(zeilen_aus)),
             hinweis="Gezaehlt wird nur, was DIREKT als erstes Argument eines "
                     "Abrufs steht. Eine Adresse, die als Konstante liegt und "
-                    "spaeter zusammengesetzt wird, ist kein vollstaendiger Weg "
-                    "— sie zu melden waere ein Fehlalarm.")
+                    "später zusammengesetzt wird, ist kein vollstaendiger Weg "
+                    "— sie zu melden wäre ein Fehlalarm.")
 
     @staticmethod
     def _bekannt(adresse):

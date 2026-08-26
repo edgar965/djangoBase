@@ -46,13 +46,13 @@ ALS_TEXT = re.compile(r"""['"](\w+)['"]""")
 class JsRegistrierung(Werkzeug):
     slug = "jsregistrierung"
     titel = "Funktionsregister: Anmeldung vs. Aufruf"
-    zweck = ("Vergleicht `fn.name = …` mit `fn.name(…)` ueber alle .js-Dateien "
+    zweck = ("Vergleicht `fn.name = …` mit `fn.name(…)` über alle .js-Dateien "
              "und Vorlagen: Wird jeder gerufene Name auch angemeldet?")
     befund = ("3DTools: vier Namen wurden gerufen, aber nie angemeldet - drei "
               "Zweige der Foto-Seite und die Lichtsteuerung der Szene waren "
               "still ohne Wirkung.")
-    abhilfe = ("Fehlende Anmeldung ergaenzen oder - besser - den Namen direkt "
-               "importieren statt ueber das Register zu gehen.")
+    abhilfe = ("Fehlende Anmeldung ergänzen oder - besser - den Namen direkt "
+               "importieren statt über das Register zu gehen.")
     dauer = "unter 1 s"
     kriterium = 9
 

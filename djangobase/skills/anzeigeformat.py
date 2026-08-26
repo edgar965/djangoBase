@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Anzeigeformat - wohin gehen die Schluessel eines Rueckgabe-Woerterbuchs?
+u"""Anzeigeformat - wohin gehen die Schlüssel eines Rückgabe-Woerterbuchs?
 
 DIE FRAGE, DIE ZWEI DRITTEL DER BEFUNDE ENTSCHEIDET (16.08.2026)
 ================================================================
@@ -9,18 +9,18 @@ drei Ebenen weitergereicht werden und am Ende trotzdem im Browser landen.
 
 Also wird von der anderen Seite gefragt: Stehen die SCHLUESSEL woertlich im
 JavaScript oder in einer Vorlage? Dann sind sie der Vertrag mit der Oberflaeche,
-und eine Klasse davor muesste dieselben Namen ein zweites Mal fuehren.
+und eine Klasse davor muesste dieselben Namen ein zweites Mal führen.
 
-    gap_fill_analyse.py:135    15 von 15 Schluesseln in gap_fill.js  -> Anzeige
-    korrelation_gauss.py:74     0 von  6 Schluesseln im Frontend     -> Kette
+    gap_fill_analyse.py:135    15 von 15 Schlüsseln in gap_fill.js  -> Anzeige
+    korrelation_gauss.py:74     0 von  6 Schlüsseln im Frontend     -> Kette
 
 Gemessen: 134 von 204 Befunden waren Anzeigeformate - nach dem Auftrag also gar
-keine. Ohne diese Frage besteht die Liste zu zwei Dritteln aus Faellen, die der
+keine. Ohne diese Frage besteht die Liste zu zwei Dritteln aus Fällen, die der
 Auftrag selbst ausnimmt.
 
 WAS ES NICHT ENTSCHEIDET
 ========================
-Ein Treffer im Frontend heisst „geht dorthin", nicht „geht NUR dorthin". Ein
+Ein Treffer im Frontend heißt „geht dorthin", nicht „geht NUR dorthin". Ein
 Woerterbuch kann unterwegs gelesen werden und am Ende hinausgehen - dann steht
 die Klasse trotzdem zur Debatte. Deshalb wird die Trefferquote ausgewiesen und
 kein Urteil gefaellt: Ab welchem Anteil man umbaut, entscheidet der Mensch.
@@ -36,9 +36,9 @@ from .werkzeug import Ergebnis, Werkzeug
 class FrontendNamen:
     """Alle Bezeichner, die im Frontend vorkommen - einmal gelesen, dann Nachschlag.
 
-    EINMAL ZAEHLEN, DANN NACHSCHLAGEN: je Schluessel einmal durch alle
-    Frontend-Dateien zu suchen waeren bei 200 Befunden mit je bis zu 17
-    Schluesseln ueber tausend Volltextsuchen - genau der Fehler, den „Arbeit in
+    EINMAL ZAEHLEN, DANN NACHSCHLAGEN: je Schlüssel einmal durch alle
+    Frontend-Dateien zu suchen wären bei 200 Befunden mit je bis zu 17
+    Schlüsseln über tausend Volltextsuchen - genau der Fehler, den „Arbeit in
     Schleifen" nebenan meldet.
     """
 

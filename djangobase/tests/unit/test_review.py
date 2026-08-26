@@ -73,7 +73,7 @@ class ReviewPaketTest(BasisTest):
         paket = self._lauf()._paket(
             {"slug": "a", "name": "A", "dateien": ["../%s" % self.geheim.name]}, "")
         self.assertNotIn("APIKEY", paket)
-        self.assertIn("ausserhalb", paket.lower())
+        self.assertIn("außerhalb", paket.lower())
 
     def test_fehlende_datei_meldet_sich_statt_zu_schweigen(self):
         paket = self._lauf()._paket(
@@ -103,8 +103,8 @@ class ReviewPaketTest(BasisTest):
         self.assertIn('class Drei', paket)
         self.assertNotIn('return 1', paket, 'nicht angeforderte Funktion mitgeschickt')
         self.assertIn('NICHT gefunden: gibtesnicht', paket,
-                      'ein fehlender Name muss im Paket stehen — sonst haelt das '
-                      'Modell den Ausschnitt fuer vollstaendig')
+                      'ein fehlender Name muss im Paket stehen — sonst hält das '
+                      'Modell den Ausschnitt für vollständig')
         self.assertIn('Zeile 8', paket, 'Zeilennummer als Anker in die ECHTE Datei fehlt')
 
     def test_funktionsauswahl_schneidet_vor_dem_kuerzen(self):
@@ -143,7 +143,7 @@ class ReviewPaketTest(BasisTest):
         paket = self._lauf()._paket(
             {"slug": "g", "name": "Geteilt", "wurzel": str(fremd),
              "dateien": ["../geheim.txt"]}, "")
-        self.assertIn("ausserhalb", paket.lower())
+        self.assertIn("außerhalb", paket.lower())
 
     def test_eigene_frage_ersetzt_die_bereichsfragen(self):
         paket = self._lauf()._paket(
@@ -232,7 +232,7 @@ class LaufRegisterTest(BasisTest):
             laeufe.append(l)
             r.hinzu(l)
         self.assertEqual(len(r.liste()), r.MAX_LAEUFE)
-        self.assertIsNone(r.holen(laeufe[0].id), "ältester Lauf haengt noch fest")
+        self.assertIsNone(r.holen(laeufe[0].id), "ältester Lauf hängt noch fest")
         self.assertIsNotNone(r.holen(laeufe[-1].id))
 
 

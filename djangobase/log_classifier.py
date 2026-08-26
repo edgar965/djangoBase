@@ -87,7 +87,7 @@ class LogClassifier:
 
     @classmethod
     def severity(cls, line: str) -> Severity:
-        """Klassifiziert eine einzelne Zeile fuer die Faerbung in der UI."""
+        """Klassifiziert eine einzelne Zeile für die Faerbung in der UI."""
         if '[CRITICAL]' in line or ' CRITICAL ' in line:
             return 'critical'
         if '[ERROR]' in line or ' ERROR ' in line:

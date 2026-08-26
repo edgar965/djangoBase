@@ -196,7 +196,7 @@ def _context(form=None, modal_offen=False):
 
 
 def _zurueck(request):
-    """Ziel nach einer Aktion: die aufrufende Seite (Hidden-Feld „zurueck“),
+    """Ziel nach einer Aktion: die aufrufende Seite (Hidden-Feld „zurück“),
     sonst die Standard-Benutzerseite. Nur same-host-Pfade (Open-Redirect-
     Schutz via Djangos url_has_allowed_host_and_scheme)."""
     from django.utils.http import url_has_allowed_host_and_scheme

@@ -1,7 +1,7 @@
 """Routen — alle GET-Routen des Projekts auflisten und aufrufbar machen.
 
 Gemeinsame Grundlage der drei Endpunkt-Werkzeuge (Zeiten, Probe, Profil).
-Bewusst eine eigene Datei: Ohne sie haetten alle drei denselben Resolver-Code —
+Bewusst eine eigene Datei: Ohne sie hätten alle drei denselben Resolver-Code —
 genau die Art Duplikat, die dieser Werkzeugkasten aufspueren soll.
 """
 
@@ -86,7 +86,7 @@ def klient():
 
     ACHTUNG: Er ruft die eigenen Ansichten im selben Prozess und auf der
     ECHTEN Datenbank auf — nicht auf einer Testdatenbank. Deshalb nur GET,
-    niemals POST: Ein POST auf eine Loeschroute waere kein Test, sondern ein
+    niemals POST: Ein POST auf eine Loeschroute wäre kein Test, sondern ein
     Schaden.
     """
     from django.conf import settings

@@ -81,7 +81,7 @@ class Kriterium18Test(BasisTest):
             'def text_saeubern(s):\n    return s.strip()\n\n\n'
             'def text_fuellen(s):\n    return s.ljust(10)\n')})
         treffer = [b for b in satz.befunde if 'Utility' in b.was]
-        self.assertTrue(treffer, 'Funktionsbuendel ohne Zustand nicht gemeldet')
+        self.assertTrue(treffer, 'Funktionsbündel ohne Zustand nicht gemeldet')
         self.assertIn('staticmethod', treffer[0].warum)
 
     # --------------------------------------------- erfindet ihn NICHT (4×)
@@ -123,7 +123,7 @@ class Kriterium18Test(BasisTest):
         u"""In einem Skript IST die Modulebene das Programm.
 
         Erkannt am CODE (laufende Anweisungen auf Modulebene), nicht am Ordner:
-        Eine Ordnerliste raet und liegt beim naechsten Verzeichnis daneben."""
+        Eine Ordnerliste raet und liegt beim nächsten Verzeichnis daneben."""
         satz = self._lauf('globaler-zustand', {'auswertung.py': (
             'daten = [1, 2, 3]\n'
             'summe = 0\n'
@@ -135,7 +135,7 @@ class Kriterium18Test(BasisTest):
             'print(summe)\n')}, ab='1')
         self.assertFalse(satz.befunde, 'Ablaufskript darf nicht gemeldet werden')
         self.assertTrue(any('skript' in z.lower() for z in satz.kopf),
-                        'die uebersprungenen Skripte muessen im Kopf stehen')
+                        'die uebersprungenen Skripte müssen im Kopf stehen')
 
     def test_framework_funktionen_sind_keine_utility_kandidaten(self):
         u"""Wer vom RAHMENWERK gerufen wird, kann nicht in eine Klasse wandern.
@@ -166,18 +166,18 @@ class Kriterium18Test(BasisTest):
             'def test_zwei():\n    assert 2\n\n\n'
             'def test_drei():\n    assert 3\n')})
         self.assertFalse([b for b in satz3.befunde if 'Utility' in b.was],
-                         'test_*-Funktionen sammelt unittest ueber den Namen')
+                         'test_*-Funktionen sammelt unittest über den Namen')
 
     def test_echtes_utility_buendel_wird_weiter_gemeldet(self):
         u"""Die Gegenprobe: Ohne Rahmenwerk bleibt der Befund bestehen.
 
-        Sonst haette die Schaerfung oben das Werkzeug einfach stumm gemacht."""
+        Sonst hätte die Schaerfung oben das Werkzeug einfach stumm gemacht."""
         satz = self._lauf('klassen-kandidat', {'texte.py': (
             'def text_kuerzen(s):\n    return s[:10]\n\n\n'
             'def text_saeubern(s):\n    return s.strip()\n\n\n'
             'def text_fuellen(s):\n    return s.ljust(10)\n')})
         self.assertTrue([b for b in satz.befunde if 'Utility' in b.was],
-                        'ein echtes Buendel muss weiterhin gemeldet werden')
+                        'ein echtes Bündel muss weiterhin gemeldet werden')
 
     def test_klassenvorschlag_kollidiert_nicht_mit_bekanntem_typ(self):
         u"""``_thread`` ergaebe „Klasse Thread" - die gibt es schon.

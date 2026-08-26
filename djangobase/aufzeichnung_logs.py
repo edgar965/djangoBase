@@ -76,7 +76,7 @@ class LogFenster:
         try:
             roh = self._schwanz()
         except OSError:
-            log.warning("Log-Datei fuer die Aufzeichnung nicht lesbar: %s", self.pfad)
+            log.warning("Log-Datei für die Aufzeichnung nicht lesbar: %s", self.pfad)
             return []
         aus = []
         for zeile in roh:

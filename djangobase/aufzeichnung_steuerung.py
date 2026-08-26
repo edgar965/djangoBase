@@ -37,7 +37,7 @@ class Steuerung:
         u"""Neue Aufzeichnung beginnen. Laeuft schon eine, wird SIE geliefert.
 
         Kein zweiter Start neben einer laufenden: Zwei gleichzeitige Aufnahmen
-        haetten dieselben Ereignisse in beiden - und keine waere ein Testfall."""
+        hätten dieselben Ereignisse in beiden - und keine wäre ein Testfall."""
         with self.bestand._sperre:
             liste = self.bestand._lesen()
             offen = [a for a in liste if a.laeuft]
@@ -156,7 +156,7 @@ class Steuerung:
 
         Was aus dem Browser kommt, ist Eingabe von aussen. Hier wird sie auf
         bekannte Schluessel und Laengen begrenzt, bevor sie in einer Datei
-        landet, die spaeter Testcode erzeugt."""
+        landet, die später Testcode erzeugt."""
         if not isinstance(s, dict) or s.get("art") not in cls.ARTEN:
             return None
         def text(k, n=300):
@@ -235,5 +235,5 @@ class Steuerung:
             if len(rest) == len(liste):
                 return False
             self.bestand._schreiben(rest)
-        log.info("Aufzeichnung %s geloescht", kennung)
+        log.info("Aufzeichnung %s gelöscht", kennung)
         return True

@@ -2,12 +2,12 @@
 u"""Bericht - der Klartext-Stapelbericht der Skills1-Seite.
 
 Das ist das skills-Element, das die reine skills2-Welt nicht hat: Mehrere
-Werkzeuge laufen server-seitig als Stapel, und JEDER haengt seinen Bericht als
-Klartext unten an - je Werkzeug mit Trennlinie und Ueberschrift. Von dort laesst
-sich alles in eine Sitzung kopieren und Datei-fuer-Zeile abarbeiten.
+Werkzeuge laufen server-seitig als Stapel, und JEDER hängt seinen Bericht als
+Klartext unten an - je Werkzeug mit Trennlinie und Überschrift. Von dort lässt
+sich alles in eine Sitzung kopieren und Datei-für-Zeile abarbeiten.
 
 Die skills2-Werkzeuge liefern eine Tabelle (Spalten + Zeilen-Dicts); dieselbe
-Struktur bekommen die skills-Werkzeuge ueber den Adapter. Der Bericht richtet die
+Struktur bekommen die skills-Werkzeuge über den Adapter. Der Bericht richtet die
 Spalten zu festen Breiten aus, damit die Textbox lesbar bleibt.
 """
 

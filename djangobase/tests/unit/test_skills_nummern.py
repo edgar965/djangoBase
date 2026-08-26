@@ -99,7 +99,7 @@ class DieLehrenNennenIhrePruefung(BasisTest):
         dann „prüft kein Werkzeug" hin."""
         ohne = [l for l in LEHREN if not l.werkzeuge]
         self.assertTrue(ohne, 'Wenn jede Lehre ein Werkzeug hat, ist dieser '
-                              'Test ueberfluessig — dann bitte loeschen.')
+                              'Test ueberfluessig — dann bitte löschen.')
         for l in ohne:
             with self.subTest(lehre=l.slug):
                 self.assertEqual(l.nummern(), [])
@@ -107,13 +107,13 @@ class DieLehrenNennenIhrePruefung(BasisTest):
     def test_mindestens_die_haelfte_ist_gedeckt(self):
         u"""Ein Deckel gegen Verfall: Heute haben 12 von 22 ein Werkzeug.
 
-        Faellt das unter die Haelfte, ist entweder eine Zuordnung verloren
-        gegangen oder es sind Regeln dazugekommen, die niemand prueft.
+        Fällt das unter die Haelfte, ist entweder eine Zuordnung verloren
+        gegangen oder es sind Regeln dazugekommen, die niemand prüft.
         """
         mit = sum(1 for l in LEHREN if l.werkzeuge)
         self.assertGreaterEqual(
             mit * 2, len(LEHREN),
-            'Nur %d von %d Lehren haben eine Pruefung.' % (mit, len(LEHREN)))
+            'Nur %d von %d Lehren haben eine Prüfung.' % (mit, len(LEHREN)))
 
 
 class KeineKriteriumsNummernMehrAufDenKarten(BasisTest):

@@ -41,7 +41,7 @@ class Exportlisten:
         return namen
 
     def bereinigen(self, ergaenzen=()):
-        """Liste an den Inhalt anpassen. Gibt (gestrichen, ergaenzt) zurueck."""
+        """Liste an den Inhalt anpassen. Gibt (gestrichen, ergänzt) zurück."""
         da = self.definiert()
         treffer = self.LISTE.search(self.quelle)
         vorhanden = []
@@ -74,7 +74,7 @@ def main():
         raise SystemExit(__doc__)
     for d in dateien:
         weg, dazu = Exportlisten(d).bereinigen(ergaenzen)
-        print('%-46s gestrichen: %-28s ergaenzt: %s'
+        print('%-46s gestrichen: %-28s ergänzt: %s'
               % (Path(d).name, ', '.join(weg) or '—', ', '.join(dazu) or '—'))
 
 

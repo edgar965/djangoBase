@@ -17,12 +17,12 @@ class ToteImporte(BefundWerkzeug):
     kriterium = 5
     titel = 'Tote Importe'
     zweck = ('Findet importierte Namen, die in der Datei nirgends benutzt werden '
-             '— inklusive der Faelle, die beim Herausloesen von Modulen '
-             'zurueckbleiben.')
+             '— inklusive der Fälle, die beim Herauslösen von Modulen '
+             'zurückbleiben.')
     abhilfe = ('Direkt nach jedem Modulschnitt. Ein toter Import kostet Ladezeit, '
-            'haelt Abhaengigkeiten kuenstlich am Leben und verwischt, welches '
+            'hält Abhängigkeiten kuenstlich am Leben und verwischt, welches '
             'Modul wirklich wovon abhaengt.')
-    befund = ('Beim Zerlegen der grossen API-Datei blieben reihenweise Importe '
+    befund = ('Beim Zerlegen der großen API-Datei blieben reihenweise Importe '
              'stehen; zuletzt zwei in einer Datei, deren Funktion auf drei '
              'Zeilen geschrumpft war.')
     dauer = 'Sekunden'
@@ -82,7 +82,7 @@ class ToteImporte(BefundWerkzeug):
                         '%s:%d' % (self.kurz(datei), knoten.lineno),
                         'unbenutzt: %s' % kurzname,
                         gewicht=Befund.HINWEIS))
-        return Befundsatz(self.titel, ['%d Dateien geprueft' % geprueft], befunde)
+        return Befundsatz(self.titel, ['%d Dateien geprüft' % geprueft], befunde)
 
     def _gewollt(self, kurzname, modul, knoten, zeilen, in_tests, von_aussen):
         u"""Steht der Name absichtlich da, obwohl ihn die Datei nicht benutzt?

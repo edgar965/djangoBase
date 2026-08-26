@@ -43,7 +43,7 @@ from .befund import Befund, Befundsatz, BefundWerkzeug
 
 
 class Modulzustaende:
-    u"""Was ein Modul auf oberster Ebene an Zustand haelt."""
+    u"""Was ein Modul auf oberster Ebene an Zustand hält."""
 
     __slots__ = ('pfad', 'veraenderlich', 'konstanten', 'global_stellen',
                  'klassen', 'ist_skript')
@@ -70,7 +70,7 @@ class Modulzustaende:
 
     @property
     def gewicht(self):
-        """Sortierschluessel: geschriebener Zustand zaehlt am schwersten."""
+        """Sortierschluessel: geschriebener Zustand zählt am schwersten."""
         return (len(self.global_stellen) * 10 + len(self.veraenderlich) * 3
                 + len(self.konstanten))
 
@@ -80,15 +80,15 @@ class GlobalerZustand(BefundWerkzeug):
     slug = 'globaler-zustand'
     kriterium = 18
     titel = 'Globale Variablen und Konstanten'
-    zweck = ('Findet veraenderlichen Zustand auf Modulebene (Zwischenspeicher, '
-             'Zaehler, Listen) und Buendel globaler Konstanten — beides '
-             'Kandidaten fuer eine Klasse bzw. eine Kontext-Klasse.')
+    zweck = ('Findet veränderlichen Zustand auf Modulebene (Zwischenspeicher, '
+             'Zähler, Listen) und Bündel globaler Konstanten — beides '
+             'Kandidaten für eine Klasse bzw. eine Kontext-Klasse.')
     abhilfe = ('Veraenderlichen Zustand in die Klasse verschieben, die ihn '
                'benutzt (als Attribut, nicht als Klassenvariable, sonst teilen '
-               'sich alle Instanzen denselben). Konstanten-Buendel in eine '
+               'sich alle Instanzen denselben). Konstanten-Bündel in eine '
                'Kontext- oder Konfigurationsklasse mit sprechenden Namen.')
-    befund = ('Modulweiter Zustand ueberlebt den Aufruf und gehoert niemandem: '
-              'Im Testlauf traegt die zweite Pruefung noch, was die erste '
+    befund = ('Modulweiter Zustand ueberlebt den Aufruf und gehört niemandem: '
+              'Im Testlauf trägt die zweite Prüfung noch, was die erste '
               'hineingeschrieben hat, und in einem Server-Prozess teilen sich '
               'alle Anfragen denselben Wert.')
     dauer = 'Sekunden'
@@ -120,11 +120,11 @@ class GlobalerZustand(BefundWerkzeug):
             "def merken(schluessel, wert):\n"
             "    global _zaehler\n"
             "    _zaehler += 1\n"
-            "    _cache[schluessel] = wert\n")},
+            "    _cache[schlüssel] = wert\n")},
         mindestens=1, erwartet_in="speicher.py",
         warum="Drei veraenderliche Modulvariablen, davon eine per `global` "
               "beschrieben: Der Zwischenspeicher ueberlebt jeden Aufruf und "
-              "gehoert keiner Klasse")
+              "gehört keiner Klasse")
 
     def pruefen(self, ab='4', **_argumente):
         try:
@@ -157,13 +157,13 @@ class GlobalerZustand(BefundWerkzeug):
                                   else Befund.HINWEIS))
 
         kopf = [
-            '%d Module geprueft, %d mit globalem Zustand' % (len(sichten),
+            '%d Module geprüft, %d mit globalem Zustand' % (len(sichten),
                                                              len(befunde)),
             '%d veraenderliche Modulvariablen, %d davon per "global" beschrieben'
             % (sum(len(s.veraenderlich) for s in sichten),
                sum(len(s.global_stellen) for s in sichten)),
             '%d globale Konstanten' % sum(len(s.konstanten) for s in sichten),
-            '%d Ablaufskripte uebersprungen (dort IST die Modulebene das Programm)'
+            '%d Ablaufskripte übersprungen (dort IST die Modulebene das Programm)'
             % skripte,
         ]
         return Befundsatz(self.titel, kopf, befunde)
@@ -177,7 +177,7 @@ class GlobalerZustand(BefundWerkzeug):
                          % (len(sicht.global_stellen),
                             ', '.join(n for n, _z in sicht.global_stellen[:4])))
         if sicht.veraenderlich:
-            teile.append('%d veraenderlich (%s)'
+            teile.append('%d veränderlich (%s)'
                          % (len(sicht.veraenderlich),
                             ', '.join(n for n, _z, _a in sicht.veraenderlich[:4])))
         if sicht.konstanten:
@@ -186,7 +186,7 @@ class GlobalerZustand(BefundWerkzeug):
 
     @staticmethod
     def _rat(sicht):
-        u"""Der konkrete naechste Schritt - je nachdem, was gefunden wurde."""
+        u"""Der konkrete nächste Schritt - je nachdem, was gefunden wurde."""
         if sicht.global_stellen:
             return ('Wird beschrieben: in eine Klasse als Instanz-Attribut. '
                     'Als Klassenvariable teilen sich alle Instanzen denselben '
@@ -195,7 +195,7 @@ class GlobalerZustand(BefundWerkzeug):
             return ('Veraenderlicher Zustand ohne Eigentuemer: in die Klasse, '
                     'die ihn benutzt. Gibt es sie noch nicht, ist sie der '
                     'eigentliche Befund.')
-        return ('Konstanten-Buendel: in eine Kontext- oder Konfigurationsklasse '
+        return ('Konstanten-Bündel: in eine Kontext- oder Konfigurationsklasse '
                 '(%d Namen). Dann steht an einer Stelle, was zusammengehoert.'
                 % len(sicht.konstanten))
 

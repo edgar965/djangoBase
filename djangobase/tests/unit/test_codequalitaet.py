@@ -113,7 +113,7 @@ class JedesVerfahrenFindetSeinen(BasisTest):
         self.assertEqual(dict(v['zahlen']['anderswo'])['tote-importe'], 2)
 
     def test_der_befund_verschwindet_aber_nicht(self):
-        u"""Weglassen waere schlimmer als doppelt melden."""
+        u"""Weglassen wäre schlimmer als doppelt melden."""
         v = self._eines(_messen({'a.py': FEHLERHAFT}), u'Echte Fehler')
         self.assertIn('tote-importe', v['satz'])
 
@@ -199,7 +199,7 @@ class DasProjektSagtWieLangEineZeileSeinDarf(BasisTest):
         self.assertEqual(stil['zahlen']['gesamt'], 0)
 
     def test_eine_wirklich_zu_lange_zeile_faellt_weiter_auf(self):
-        u"""Die Gegenprobe: Die Grenze heben heisst nicht abschalten."""
+        u"""Die Gegenprobe: Die Grenze heben heißt nicht abschalten."""
         werte = _messen({
             'm.py': ZU_LANG,
             'setup.cfg': u'[pycodestyle]\nmax_line_length = 100\n'})

@@ -13,7 +13,7 @@ shortlongx waren sie deshalb nur ueber ihre URL erreichbar; gemeldet hat es der
 Nutzer, nicht ein Test.
 
 DERSELBE FEHLER NOCHMAL, mit einer Seite mehr (17.08.2026): ``Skills1`` - die
-Zusammenfuehrung beider Kaesten - war gebaut, lieferte HTTP 200 und stand in
+Zusammenfuehrung beider Kästen - war gebaut, lieferte HTTP 200 und stand in
 KEINER der beiden Menue-Quellen. Sie war damit nur zu finden, wer die URL kannte.
 Eine Seite ohne Menueeintrag ist keine Seite. Wer hier eine Route ergaenzt,
 traegt sie in DIESE Liste ein - ``_nav_skills.html`` liest dieselbe Quelle.

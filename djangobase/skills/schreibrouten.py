@@ -144,7 +144,7 @@ def zwischenspeicher_leeren(request):
         mindestens=1, hoechstens=1, erwartet_in="auftrag_loeschen",
         warum=("`delete_job` in 3DTools loeschte Auftrag und Dateien auf ein GET "
                "hin; der Schutz bestand aus einem JavaScript-`confirm`. Die zwei "
-               "letzten Faelle sind die Fehlalarme des ersten Laufs — ohne sie "
+               "letzten Fälle sind die Fehlalarme des ersten Laufs — ohne sie "
                "meldete das Werkzeug 3 statt 1."))
 
     def laufen(self):
@@ -204,7 +204,7 @@ def zwischenspeicher_leeren(request):
         """Erstes Argument ``request`` - so sieht eine Django-Ansicht aus.
 
         Bei einer Klasse ist es ``self, request`` (``dispatch``, ``get``) oder
-        gar kein ``request`` (``get_context_data``). Deshalb zaehlt dort auch
+        gar kein ``request`` (``get_context_data``). Deshalb zählt dort auch
         der Methodenname."""
         namen = [a.arg for a in knoten.args.args]
         if namen[:1] == ["request"]:
@@ -215,7 +215,7 @@ def zwischenspeicher_leeren(request):
 
     @classmethod
     def _geschuetzt(cls, knoten, in_klasse):
-        """Dekorator, Methodenname oder eine Pruefung auf ``request.method``."""
+        """Dekorator, Methodenname oder eine Prüfung auf ``request.method``."""
         for d in knoten.decorator_list:
             if cls._dekoratorname(d) in SCHUTZ:
                 return True
@@ -240,7 +240,7 @@ def zwischenspeicher_leeren(request):
     def _schreibt(cls, knoten):
         """(Name, Zweck, ist_verlust) des ersten schreibenden Aufrufs, sonst None.
 
-        Verlust zaehlt vor blossem Schreiben: Wer beides tut, soll oben stehen.
+        Verlust zählt vor blossem Schreiben: Wer beides tut, soll oben stehen.
         """
         gefunden = None
         for k in ast.walk(knoten):
@@ -268,7 +268,7 @@ def zwischenspeicher_leeren(request):
 
     @classmethod
     def _passt(cls, aufruf, traeger, ohne_args):
-        """Traegt der Aufruf den verlangten Empfaenger, und die Argumentform?"""
+        """Trägt der Aufruf den verlangten Empfaenger, und die Argumentform?"""
         if ohne_args and (aufruf.args or aufruf.keywords):
             return False
         if traeger is None:
@@ -279,7 +279,7 @@ def zwischenspeicher_leeren(request):
     def _empfaenger(func):
         """Der WURZELNAME links vom Punkt: ``sys.path.remove`` -> ``sys``.
 
-        Genau so fallen die beiden Fehlalarme heraus: ``sys.path.remove`` traegt
+        Genau so fallen die beiden Fehlalarme heraus: ``sys.path.remove`` trägt
         ``sys``, verlangt ist ``os``.
         """
         if not isinstance(func, ast.Attribute):

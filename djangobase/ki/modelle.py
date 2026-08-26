@@ -186,7 +186,7 @@ class ModellKatalog:
         auch bei den lokalen"), sondern nur in ``/api/show`` unter
         ``model_info.<architektur>.context_length``. Der Praefix wechselt je
         Modell (``qwen35.``, ``gemma4.``), deshalb wird nach der Endung gesucht
-        statt nach einem festen Schluessel."""
+        statt nach einem festen Schlüssel."""
         if kennung in self._kontext_cache:
             return self._kontext_cache[kennung]
         wert = None

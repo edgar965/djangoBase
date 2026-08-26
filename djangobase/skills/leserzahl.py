@@ -89,7 +89,7 @@ class Leserzaehlung:
 
     @staticmethod
     def _traeger(baum):
-        """Jede Funktion PLUS die Modulebene - beide koennen Leser sein."""
+        """Jede Funktion PLUS die Modulebene - beide können Leser sein."""
         aus = [k for k in ast.walk(baum)
                if isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef))]
         aus.append(ast.Module(

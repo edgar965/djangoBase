@@ -218,7 +218,7 @@ class GrundtestLadezeiten(TestCase):
                              "Über der Grenze von %s ms: %s" % (grenze, ueber_grenze))
 
     def test_keine_seite_stellt_uebermaessig_viele_abfragen(self):
-        """Die stabilere Groesse: Abfragen haengen nicht an der Tageslast."""
+        """Die stabilere Größe: Abfragen hängen nicht an der Tageslast."""
         grenze = int(_cfg("grenze_abfragen", 120))
         viele = []
         for pfad in self._pfade():

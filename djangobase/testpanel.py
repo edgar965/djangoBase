@@ -66,7 +66,7 @@ class Panel:
     # --------------------------------------------------------------- Bauen
 
     def bauen(self, name):
-        u"""Der Inhalt des Reiters ``name`` - fuer ``_testpanel.html``."""
+        u"""Der Inhalt des Reiters ``name`` - für ``_testpanel.html``."""
         if name == "Alle":
             return {"alles": self.kat.alles, "arten": self._arten()}
         if name == "UI":

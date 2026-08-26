@@ -1,4 +1,4 @@
-"""Grossdateien — Dateien ueber der vereinbarten Zeilengrenze."""
+"""Grossdateien — Dateien über der vereinbarten Zeilengrenze."""
 
 import ast
 import re
@@ -34,7 +34,7 @@ class Grossdateien(BefundWerkzeug):
 
     slug = 'grossdateien'
     titel = 'Grosse Dateien'
-    zweck = ('Listet Python- und JavaScript-Dateien ueber der Zeilengrenze, mit '
+    zweck = ('Listet Python- und JavaScript-Dateien über der Zeilengrenze, mit '
              'Anzahl Klassen und Funktionen und der laengsten Funktion je Datei.')
     abhilfe = ('Zu Beginn eines Umbaus, um die Schnittkandidaten zu finden — und '
             'danach als Nachweis, dass keine neue Monsterdatei entstanden ist.')
@@ -68,10 +68,10 @@ class Grossdateien(BefundWerkzeug):
         gesamt = sum(m.zeilen for m in masse)
         kopf = [
             '%d Quelldateien, %d Zeilen insgesamt' % (len(masse), gesamt),
-            '%d ueber %d Zeilen' % (len(ueber), schwelle),
+            '%d über %d Zeilen' % (len(ueber), schwelle),
         ]
         if ueber:
-            kopf.append('groesste: %s mit %d Zeilen' % (ueber[0].pfad, ueber[0].zeilen))
+            kopf.append('größte: %s mit %d Zeilen' % (ueber[0].pfad, ueber[0].zeilen))
         return Befundsatz(self.titel, kopf, befunde)
 
     def _python(self, datei):
@@ -96,10 +96,10 @@ class Grossdateien(BefundWerkzeug):
                          laengste, laengste_name)
 
     def _javascript(self, datei):
-        """Grobzaehlung ohne Parser — fuer eine Groessenordnung genuegt das.
+        """Grobzaehlung ohne Parser — für eine Groessenordnung genügt das.
 
-        Bewusst keine JS-Syntaxanalyse: Die haette Abhaengigkeiten gebraucht,
-        und fuer die Frage "welche Datei ist zu gross" reicht das Zaehlen von
+        Bewusst keine JS-Syntaxanalyse: Die hätte Abhängigkeiten gebraucht,
+        und für die Frage "welche Datei ist zu groß" reicht das Zaehlen von
         `class`- und Funktionsschluesselwoertern.
         """
         quelle = datei.read_text(encoding='utf-8', errors='replace')

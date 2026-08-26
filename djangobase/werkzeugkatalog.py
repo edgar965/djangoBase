@@ -129,7 +129,7 @@ def nachbauten(wurzel=None):
 
 
 def _ausnahmen():
-    u"""Dateinamen mit Begruendung - ohne Begruendung zaehlen sie nicht."""
+    u"""Dateinamen mit Begründung - ohne Begründung zählen sie nicht."""
     cfg = (getattr(settings, "DJANGOBASE", {}) or {}).get("werkzeugkatalog") or {}
     eigen = cfg.get("eigene") or {}
     return {name for name, grund in eigen.items() if str(grund).strip()}
@@ -160,13 +160,13 @@ class GrundtestWerkzeugkatalog(SimpleTestCase):
         """
         alles = katalog()
         self.assertTrue(alles, "Der Werkzeugkasten ist leer - das kann nicht "
-                               "stimmen; laeuft djangobase.skills?")
-        print("Werkzeugkasten: %d Eintraege (Hilfe -> Werkzeug Code Review). "
+                               "stimmen; läuft djangobase.skills?")
+        print("Werkzeugkasten: %d Einträge (Hilfe -> Werkzeug Code Review). "
               "Bei einem Fehlschlag wird das passende genannt." % len(alles))
 
 
     def test_projekt_baut_nichts_nach(self):
-        u"""Eine Projektdatei, die heisst wie ein Werkzeug, IST meist eins."""
+        u"""Eine Projektdatei, die heißt wie ein Werkzeug, IST meist eins."""
         doppelt = nachbauten()
         if not doppelt:
             return
@@ -180,7 +180,7 @@ class GrundtestWerkzeugkatalog(SimpleTestCase):
             "",
             "Pruefe, ob das vorhandene Werkzeug reicht - meist tut es das,",
             "und es bringt Sicherung und Netz schon mit. Ist die eigene",
-            "Fassung noetig, trage sie MIT BEGRUENDUNG ein:",
+            "Fassung nötig, trage sie MIT BEGRUENDUNG ein:",
             "",
             '    DJANGOBASE["werkzeugkatalog"] = {"eigene": {',
             '        "<dateiname>.py": "<warum das vorhandene nicht reicht>",',

@@ -1,4 +1,4 @@
-"""Doppelcode — gleiche Codebloecke an mehreren Stellen."""
+"""Doppelcode — gleiche Codeblöcke an mehreren Stellen."""
 
 import hashlib
 import re
@@ -18,7 +18,7 @@ class Fundstelle:
                    "    if betrag < 0:\n"
                    "        raise ValueError('negativ')\n"
                    "    if betrag > 1000:\n"
-                   "        raise ValueError('zu gross')\n"
+                   "        raise ValueError('zu groß')\n"
                    "    return round(betrag, 2)\n")
 
     def __init__(self, datei, zeile):
@@ -39,15 +39,15 @@ class Doppelcode(BefundWerkzeug):
 
     kriterium = 6
     titel = 'Doppelter Code'
-    zweck = ('Sucht identische Codebloecke (Vorgabe: ab 6 Zeilen) in Python-, '
+    zweck = ('Sucht identische Codeblöcke (Vorgabe: ab 6 Zeilen) in Python-, '
              'JavaScript- und HTML-Dateien und zeigt alle Fundstellen.')
-    abhilfe = ('Vor dem Zusammenfassen von Modulen. Doppelter Code faellt im '
+    abhilfe = ('Vor dem Zusammenfassen von Modulen. Doppelter Code fällt im '
             'Alltag nicht auf, weil die Kopien in verschiedenen Dateien liegen '
-            '— und wird bei Aenderungen genau deshalb nur an einer Stelle '
+            '— und wird bei Änderungen genau deshalb nur an einer Stelle '
             'nachgezogen.')
     befund = ('Im Ursprungsprojekt stand die Aufklapp- und Auswahllogik eines '
-             'Auswahlfeldes Zeile fuer Zeile in VIER Vorlagen, das Fuellen '
-             'eines Modell-Feldes in fuenf. Beides jetzt je ein ES-Modul.')
+             'Auswahlfeldes Zeile für Zeile in VIER Vorlagen, das Füllen '
+             'eines Modell-Feldes in fünf. Beides jetzt je ein ES-Modul.')
     dauer = 'Sekunden bis eine Minute'
     eingabe = ('mindestens', 'Ab wie vielen gleichen Zeilen melden?', '6')
 
@@ -61,7 +61,7 @@ class Doppelcode(BefundWerkzeug):
                    "    if betrag < 0:\n"
                    "        raise ValueError('negativ')\n"
                    "    if betrag > 1000:\n"
-                   "        raise ValueError('zu gross')\n"
+                   "        raise ValueError('zu groß')\n"
                    "    return round(betrag, 2)\n")
 
     anlassfall = Anlassfall(
@@ -102,7 +102,7 @@ class Doppelcode(BefundWerkzeug):
                 'auch: ' + ', '.join(orte[1:6]) + (' …' if len(orte) > 6 else ''),
                 Befund.WARNUNG if len(orte) > 2 else Befund.HINWEIS))
         befunde.sort(key=lambda b: b.was, reverse=True)
-        kopf = ['%d Dateien geprueft, Blockgroesse %d Zeilen' % (dateien, fenster),
+        kopf = ['%d Dateien geprüft, Blockgroesse %d Zeilen' % (dateien, fenster),
                 '%d Stellen mit mehrfach vorkommenden Bloecken' % len(befunde)]
         if len(befunde) > self.ZEILEN:
             # Kappung benennen, nicht verschweigen: Sonst liest sich die Liste

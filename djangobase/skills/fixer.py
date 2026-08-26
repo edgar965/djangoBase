@@ -3,15 +3,15 @@ u"""Fixer - Werkzeuge, die einen Befund nicht nur finden, sondern BEHEBEN.
 
 DER UNTERSCHIED ZU EINEM PRUEFWERKZEUG (16.08.2026)
 ===================================================
-Ein Pruefwerkzeug liest. Ein Fixer SCHREIBT - und das aendert alles:
+Ein Pruefwerkzeug liest. Ein Fixer SCHREIBT - und das ändert alles:
 
-    * Er braucht eine VORSCHAU. Niemand loest eine Codeaenderung aus, ohne zu
+    * Er braucht eine VORSCHAU. Niemand löst eine Codeaenderung aus, ohne zu
       sehen, welche Dateien sie trifft.
     * Er braucht eine SICHERUNG. Jede geaenderte Datei liegt vorher im
       Sicherungsordner, mit Zeitstempel.
-    * Er braucht ein NETZ. Nach dem Schreiben pruefen: kompiliert die Datei
-      noch, ist nichts verloren gegangen, zeigt kein Aufruf ins Leere. Faellt
-      eine Pruefung, wird zurueckgespielt - nicht gemeldet und liegengelassen.
+    * Er braucht ein NETZ. Nach dem Schreiben prüfen: kompiliert die Datei
+      noch, ist nichts verloren gegangen, zeigt kein Aufruf ins Leere. Fällt
+      eine Prüfung, wird zurueckgespielt - nicht gemeldet und liegengelassen.
 
 WARUM DAS NETZ NICHT VERHANDELBAR IST
 =====================================
@@ -26,7 +26,7 @@ WAS EIN FIXER NICHT TUT
 Er entscheidet nicht, OB umgebaut werden soll. Diese Frage - ist das Dictionary
 ein Anzeigeformat? ist das Argument ein Feld oder ein Zwischenergebnis? - stellt
 das zugehoerige Pruefwerkzeug, und beantworten muss sie ein Mensch. Der Fixer
-fuehrt aus, was schon entschieden ist.
+führt aus, was schon entschieden ist.
 """
 import shutil
 import time
@@ -97,7 +97,7 @@ class Vorschau:
 
 
 class Fixer:
-    """Basis fuer alles, was einen Befund behebt statt ihn nur zu melden."""
+    """Basis für alles, was einen Befund behebt statt ihn nur zu melden."""
 
     #: Kennung in der URL und in der Tabelle.
     slug = ""
@@ -153,7 +153,7 @@ class Fixer:
         ``shortlongxWeb/werkzeug/sicherung/`` statt ``werkzeug/sicherung/``. Der
         Ausnahme-Filter des Pruefwerks greift dort nicht, jede gesicherte Datei
         zaehlte als Duplikat ihres Originals - K6 sprang von 10 auf 214, ohne
-        dass sich am Code etwas verschlechtert haette."""
+        dass sich am Code etwas verschlechtert hätte."""
         basis = Path(getattr(settings, "BASE_DIR", "."))
         eltern = basis.parent
         if (eltern / ".git").exists() and not (basis / ".git").exists():
@@ -189,7 +189,7 @@ class Fixer:
 
     # ---- von den Unterklassen zu fuellen ------------------------------------
     def vorschau(self):
-        """Welche Dateien wie geaendert wuerden - ohne zu schreiben."""
+        """Welche Dateien wie geändert wuerden - ohne zu schreiben."""
         raise NotImplementedError
 
     def pruefen(self, aenderung):
@@ -198,9 +198,9 @@ class Fixer:
 
     # ---- der gemeinsame Ablauf ---------------------------------------------
     def anwenden(self, nur=None):
-        """Die machbaren Aenderungen schreiben - mit Sicherung und Netz.
+        """Die machbaren Änderungen schreiben - mit Sicherung und Netz.
 
-        ``nur``: Liste von Dateinamen; leer heisst alle machbaren. Faellt das
+        ``nur``: Liste von Dateinamen; leer heißt alle machbaren. Fällt das
         Netz bei einer Datei, wird GENAU DIESE zurueckgespielt - die anderen
         bleiben. Ein halb angewandter Umbau ist unangenehm, ein stillschweigend
         kaputter schlimmer.
@@ -257,7 +257,7 @@ class Fixer:
     behebt = ''
 
     def nummer(self):
-        u"""Die NUMMER der zugehoerigen Pruefung in der Tabelle.
+        u"""Die NUMMER der zugehoerigen Prüfung in der Tabelle.
 
             „passe noch an die Fix Werkzeuge, die erwaehnen kriterien die es
              nicht gibt. sie sollen sich auf die Nummer der testcases
@@ -268,9 +268,9 @@ class Fixer:
         Raengen (1, 2, 3 …) und Bereichen geordnet, nicht nach Kriterien.
         Wer `Kr. 11` las, suchte eine 11, die nirgends stand.
 
-        Jetzt steht die Nummer da, unter der die Pruefung wirklich in der
+        Jetzt steht die Nummer da, unter der die Prüfung wirklich in der
         Tabelle zu finden ist — und die sich mitverschiebt, wenn jemand den
-        Rang aendert.
+        Rang ändert.
         """
         if not self.behebt:
             return None

@@ -1,6 +1,6 @@
 """Lehren — die Regeln, die aus einem Review-/Umbaudurchgang haengengeblieben sind.
 
-Jede Lehre ist ankreuzbar (Vorgabe: an) und gilt dann als Regel fuer dieses
+Jede Lehre ist ankreuzbar (Vorgabe: an) und gilt dann als Regel für dieses
 Projekt. Die Seite baut daraus einen fertigen Auftragstext, den man einem
 Modell oder einem Menschen als Arbeitsgrundlage geben kann — darum geht es:
 nicht bei null anfangen.
@@ -18,7 +18,7 @@ from django.conf import settings
 
 
 class Lehre:
-    """Eine Regel mit Begruendung, Beleg — und der Pruefung, die sie haelt."""
+    """Eine Regel mit Begründung, Beleg — und der Prüfung, die sie hält."""
 
     __slots__ = ('slug', 'titel', 'regel', 'warum', 'beleg', 'bereich',
                  'werkzeuge')
@@ -46,7 +46,7 @@ class Lehre:
         self.werkzeuge = tuple(werkzeuge)
 
     def nummern(self):
-        """[(Nr., Titel)] der zugehoerigen Pruefungen — aus der Tabelle.
+        """[(Nr., Titel)] der zugehoerigen Prüfungen — aus der Tabelle.
 
         Die NUMMER, nicht das Kriterium: Die Werkzeug-Tabelle ist nach
         Raengen geordnet, und genau die Zahl sucht man dort.
@@ -70,13 +70,13 @@ BEREICHE = ['Struktur', 'Datenmodell', 'Django', 'Performance', 'numpy',
 LEHREN = [
     Lehre('klassen-statt-dicts',
           'Datensatz mit mehr als drei Feldern → eigene Klasse',
-          'Verlaesst ein Dictionary mit mehr als drei festen Schluesseln seine '
-          'Ursprungsfunktion und wird anderswo per ["schluessel"] gelesen, wird '
+          'Verlässt ein Dictionary mit mehr als drei festen Schlüsseln seine '
+          'Ursprungsfunktion und wird anderswo per ["schlüssel"] gelesen, wird '
           'daraus eine Klasse.',
-          'Als Dictionary faellt ein Tippfehler im Schluesselnamen erst zur '
+          'Als Dictionary fällt ein Tippfehler im Schlüsselnamen erst zur '
           'Laufzeit auf, und der Uebergabe sieht niemand an, welche Felder '
-          'erwartet werden. Ausnahme: Der Datensatz geht unveraendert als JSON '
-          'nach draussen oder liegt so in der Datenbank — dann bleibt er ein '
+          'erwartet werden. Ausnahme: Der Datensatz geht unverändert als JSON '
+          'nach draußen oder liegt so in der Datenbank — dann bleibt er ein '
           'Dictionary, sonst baut man zweimal dasselbe.',
           'Aus dieser Regel entstanden u. a. Befund, Ergebnis, Messwert und '
           'Bvhdatei — Letztere mit __slots__, weil es 7.067 davon gibt.',
@@ -84,42 +84,42 @@ LEHREN = [
           werkzeuge=('rueckgabedict', 'leserzahl', 'rueckgabetupel')),
     Lehre('eine-klasse-eine-datei',
           'Eine Klasse je Datei, 200–300 Zeilen',
-          'Waechst eine Datei ueber ~300 Zeilen, wird sie nach Aufgaben '
+          'Wächst eine Datei über ~300 Zeilen, wird sie nach Aufgaben '
           'getrennt: Endpunkte, Fachlogik, Datenzugriff.',
-          'Eine grosse Datei versteckt Duplikate: Dieselbe Schleife stand '
+          'Eine große Datei versteckt Duplikate: Dieselbe Schleife stand '
           'zweimal in derselben Datei, 80 Zeilen auseinander, und ist niemandem '
           'aufgefallen.',
           'Ausgangslage: 6.495 Zeilen mit 110 Endpunkten in einer Datei.',
           'Struktur',
           werkzeuge=('klassen-je-datei', 'dateigroesse')),
     Lehre('doppelte-logik-zusammenfuehren',
-          'Gleiche Logik an mehreren Stellen zusammenfuehren',
-          'Bevor eine Funktion geaendert wird: nach Kopien suchen. Gefundene '
-          'Kopien zuerst zusammenfuehren, dann aendern.',
-          'Kopien werden bei Aenderungen nur an einer Stelle nachgezogen. Das '
-          'faellt nicht auf, weil beide Seiten fuer sich funktionieren.',
-          'Die Aufklapp-Logik eines Auswahlfeldes stand Zeile fuer Zeile in '
-          'vier Vorlagen, das Fuellen eines Modell-Feldes in fuenf.',
+          'Gleiche Logik an mehreren Stellen zusammenführen',
+          'Bevor eine Funktion geändert wird: nach Kopien suchen. Gefundene '
+          'Kopien zuerst zusammenführen, dann ändern.',
+          'Kopien werden bei Änderungen nur an einer Stelle nachgezogen. Das '
+          'fällt nicht auf, weil beide Seiten für sich funktionieren.',
+          'Die Aufklapp-Logik eines Auswahlfeldes stand Zeile für Zeile in '
+          'vier Vorlagen, das Füllen eines Modell-Feldes in fünf.',
           'Struktur',
           werkzeuge=('doppelcode', 'doppelrumpf')),
     Lehre('kein-legacy-als-backup',
           'Keinen toten Code "zur Sicherheit" behalten',
           'Unerreichbaren Code, verwaiste Vorlagen und ungenutzte '
-          'Kontextvariablen loeschen, nicht auskommentieren.',
+          'Kontextvariablen löschen, nicht auskommentieren.',
           'Die Versionsverwaltung ist das Backup. Toter Code kostet bei jeder '
-          'Suche Zeit und taeuscht Abhaengigkeiten vor, die es nicht gibt.',
+          'Suche Zeit und täuscht Abhängigkeiten vor, die es nicht gibt.',
           'Gefunden: zwei unerreichbare Vorlagen, ein try/except, in dem nichts '
-          'werfen konnte, und ein COUNT(*) je Seitenaufruf fuer eine Zahl, die '
+          'werfen konnte, und ein COUNT(*) je Seitenaufruf für eine Zahl, die '
           'die Vorlage nie anzeigte.',
           'Struktur',
           werkzeuge=('altlast', 'tote-importe')),
     Lehre('gleiche-namen',
           'Ein Begriff, ein Name',
-          'Dieselbe Sache heisst ueberall gleich — in Ansicht, Vorlage, '
+          'Dieselbe Sache heißt überall gleich — in Ansicht, Vorlage, '
           'JavaScript und Datenbank.',
-          'Unterschiedliche Namen fuer dasselbe erzeugen stille Fehler: Die '
+          'Unterschiedliche Namen für dasselbe erzeugen stille Fehler: Die '
           'Vorlage liest einen Namen, den niemand liefert, und Django rendert '
-          'dafuer kommentarlos einen Leerstring.',
+          'dafür kommentarlos einen Leerstring.',
           'Eine if-Bedingung zeigte vier Monate lang auf einen nie gelieferten '
           'Namen — das Datei-Feld war dadurch immer Pflicht.',
           'Django',
@@ -128,10 +128,10 @@ LEHREN = [
           'Meta.ordering hebelt values_list(...).distinct() aus',
           'Vor `.values_list(...).distinct()` immer ein argumentloses '
           '`.order_by()` setzen.',
-          'Hat das Modell eine Standardsortierung, haengt Django deren Felder '
+          'Hat das Modell eine Standardsortierung, hängt Django deren Felder '
           'an die Auswahl an — `distinct()` wirkt dann auf (feld, sortierfeld) '
           'statt auf das Feld allein.',
-          'Ein Auswahlfeld bekam 7.110 Eintraege statt zwei: einen je Datei, '
+          'Ein Auswahlfeld bekam 7.110 Einträge statt zwei: einen je Datei, '
           'alle mit demselben Wert.',
           'Django',
           werkzeuge=('lehren-treue',)),
@@ -140,17 +140,17 @@ LEHREN = [
           'Werden aus einer Abfrage nur ein paar Felder gebraucht, `values_list` '
           'nehmen — Modellobjekte nur, wo auch gespeichert wird.',
           'Jedes Modellobjekt kostet Aufbauzeit; bei tausenden Zeilen ist das '
-          'der groesste Posten der Anfrage, ohne dass eine einzelne Funktion '
-          'auffaellt.',
+          'der größte Posten der Anfrage, ohne dass eine einzelne Funktion '
+          'auffällt.',
           '7.110 Objekte kosteten 105 ms, nur um drei Felder zu lesen.',
           'Django'),
     Lehre('nur-sichtbares-rendern',
           'Serverseitig nur rendern, was sichtbar ist',
           'Zugeklappte oder gefilterte Listen nicht mitliefern, sondern beim '
-          'Aufklappen ueber einen eigenen Endpunkt nachladen.',
+          'Aufklappen über einen eigenen Endpunkt nachladen.',
           'Was zugeklappt startet, sieht niemand — der Server baut es trotzdem, '
           'der Browser baut daraus DOM-Knoten, und beides kostet.',
-          'Eine Einstellungsseite lieferte 7.067 Eintraege in 4,7 MB HTML, von '
+          'Eine Einstellungsseite lieferte 7.067 Einträge in 4,7 MB HTML, von '
           'denen beim Aufruf keiner sichtbar war. Danach: 28 KB, 27 statt '
           '408 ms.',
           'Frontend',
@@ -158,9 +158,9 @@ LEHREN = [
     Lehre('seitenweise-listen',
           'Lange Listen seitenweise ausgeben',
           'Uebersichtsseiten mit Suche, Filter und Seitenaufteilung bauen, '
-          'sobald die Liste mit den Daten mitwaechst.',
-          'Eine Liste mit tausenden Eintraegen ist ohne Suche ohnehin nicht '
-          'benutzbar — die Seitenaufteilung loest damit zwei Probleme auf '
+          'sobald die Liste mit den Daten mitwächst.',
+          'Eine Liste mit tausenden Einträgen ist ohne Suche ohnehin nicht '
+          'benutzbar — die Seitenaufteilung löst damit zwei Probleme auf '
           'einmal.',
           'Eine Bibliotheksseite rendete 7.110 Karten in 10,5 MB HTML '
           '(2.082 ms). Mit 60 je Seite: 98 KB, 21 ms.',
@@ -168,19 +168,19 @@ LEHREN = [
           werkzeuge=('endpunkt-zeiten',)),
     Lehre('fertige-antwort-zwischenspeichern',
           'Die fertige Antwort zwischenspeichern, nicht das Objekt',
-          'Wird ein grosses Ergebnis unveraendert immer wieder ausgeliefert, '
+          'Wird ein großes Ergebnis unverändert immer wieder ausgeliefert, '
           'die fertig kodierte Zeichenkette speichern.',
           'Sonst wird bei jeder Anfrage neu kodiert, obwohl sich nichts '
-          'geaendert hat. Die Zeichenkette braucht ausserdem einen Bruchteil '
+          'geändert hat. Die Zeichenkette braucht außerdem einen Bruchteil '
           'des Arbeitsspeichers der Objektstruktur.',
           '144 ms reines JSON-Kodieren je Anfrage — danach 2 ms.',
           'Performance'),
     Lehre('scandir-statt-stat',
           'os.scandir statt listdir + stat je Datei',
           'Verzeichnisse mit `os.scandir` lesen und `DirEntry.stat()` benutzen.',
-          'Groesse und Zeitstempel liefert das Betriebssystem schon mit dem '
+          'Größe und Zeitstempel liefert das Betriebssystem schon mit dem '
           'Verzeichniseintrag; ein eigener stat-Aufruf je Datei ist ein '
-          'Systemaufruf fuer nichts.',
+          'Systemaufruf für nichts.',
           '7.067 stat-Aufrufe mit 110 ms wurden zu 9 ms.',
           'Performance',
           werkzeuge=('schleifenarbeit',)),
@@ -188,8 +188,8 @@ LEHREN = [
           'np.unique(..., axis=0) meiden — Paare als eine Ganzzahl kodieren',
           'Statt Paaren `a * n + b` als int64 bilden und darauf `np.unique` '
           'anwenden.',
-          '`axis=0` sortiert zeilenweise und faellt dabei auf einen langsamen '
-          'Weg zurueck. Der Ganzzahl-Schluessel ist dieselbe Rechnung, nur '
+          '`axis=0` sortiert zeilenweise und fällt dabei auf einen langsamen '
+          'Weg zurück. Der Ganzzahl-Schlüssel ist dieselbe Rechnung, nur '
           'eindimensional.',
           'Zweimal erlebt: einmal brachte die Vektorisierung ohne diesen Kniff '
           'gar nichts (391 statt 380 ms), einmal kostete das Sortieren allein '
@@ -203,15 +203,15 @@ LEHREN = [
           '`np.add.at` arbeitet elementweise und ohne Puffer, damit mehrfach '
           'getroffene Ziele richtig summiert werden — das ist korrekt, aber '
           'sehr langsam. `np.bincount` leistet dasselbe in kompiliertem Code.',
-          '82 ms wurden 9,6 ms, Ergebnis Bit fuer Bit gleich.',
+          '82 ms wurden 9,6 ms, Ergebnis Bit für Bit gleich.',
           'numpy',
           werkzeuge=('lehren-treue',)),
     Lehre('kdtree-workers',
           'cKDTree.query mit workers=-1 aufrufen',
           'Bei jeder Nachbarsuche `workers=-1` setzen.',
           'Ohne das Argument sucht scipy einkernig. Die Suche ist punktweise '
-          'unabhaengig, das Ergebnis daher Index fuer Index identisch.',
-          '3,8-fach schneller auf zwoelf Kernen — ein Argument, kein Umbau.',
+          'unabhängig, das Ergebnis daher Index für Index identisch.',
+          '3,8-fach schneller auf zwölf Kernen — ein Argument, kein Umbau.',
           'numpy',
           werkzeuge=('lehren-treue',)),
     Lehre('feld-oder-skalar',
@@ -220,47 +220,47 @@ LEHREN = [
           '`np.logical_not` benutzen, wenn die Funktion auch mit Einzelwerten '
           'aufgerufen werden kann.',
           '`~True` ist in Python die Zahl -2 und damit wahr. Eine so '
-          'umgeschriebene Bedingung laesst dann alles durch — ohne Fehlermeldung.',
+          'umgeschriebene Bedingung lässt dann alles durch — ohne Fehlermeldung.',
           'Beim Umbau genau so passiert; aufgefallen erst im Vergleich mit der '
-          'Vorgaengerfassung (16.784 statt 16.388 ausgewaehlte Flaechen).',
+          'Vorgängerfassung (16.784 statt 16.388 ausgewählte Flächen).',
           'numpy'),
     Lehre('aequivalenz-beweisen',
           'Jede Optimierung gegen die alte Fassung beweisen',
           'Die alte Fassung aufheben und beide auf echten Daten vergleichen — '
-          'groesste Abweichung und Beschleunigung ausgeben, nicht nur '
+          'größte Abweichung und Beschleunigung ausgeben, nicht nur '
           '"sieht gut aus".',
           'Eine schnellere Funktion, die etwas anderes rechnet, ist kein '
-          'Fortschritt. Bei Fliesskomma ist "gleich" ausserdem eine Zahl '
+          'Fortschritt. Bei Fliesskomma ist "gleich" außerdem eine Zahl '
           '(1e-16), keine Meinung.',
           'Der Vergleich hat zwei echte Fehler gefunden, die kein Test bemerkt '
-          'haette — und einmal gezeigt, dass eine "Optimierung" gar keine war.',
+          'hätte — und einmal gezeigt, dass eine "Optimierung" gar keine war.',
           'Vorgehen'),
     Lehre('messen-nicht-raten',
           'Erst messen, dann optimieren',
-          'Mit cProfile beide Sichten ansehen: tottime fuer die eigene Zeit, '
-          'cumulative fuer die Aufrufer.',
+          'Mit cProfile beide Sichten ansehen: tottime für die eigene Zeit, '
+          'cumulative für die Aufrufer.',
           'Die teuerste Stelle liegt fast nie dort, wo man sie vermutet — und '
           'ohne Ausgangsmessung ist hinterher nicht belegbar, ob es besser '
           'wurde.',
-          'Der groesste Posten einer Seite war am Ende kein Rechenschritt, '
-          'sondern 71.000 Variablenaufloesungen in einer Vorlagenschleife.',
+          'Der größte Posten einer Seite war am Ende kein Rechenschritt, '
+          'sondern 71.000 Variablenauflösungen in einer Vorlagenschleife.',
           'Vorgehen',
           werkzeuge=('endpunkt-zeiten', 'seitenzeiten', 'wachstum')),
     Lehre('regressionsnetz-vorher',
           'Vor dem Umbau ein Sicherheitsnetz aufnehmen',
           'Alle GET-Routen einmal abfahren und die Statuscodes als Referenz '
-          'ablegen, solange die Anwendung nachweislich laeuft.',
-          'Tests decken selten alle Routen ab. Wer eine grosse Datei zerlegt, '
+          'ablegen, solange die Anwendung nachweislich läuft.',
+          'Tests decken selten alle Routen ab. Wer eine große Datei zerlegt, '
           'merkt einen kaputten Endpunkt sonst erst, wenn jemand die Seite '
-          'oeffnet.',
+          'öffnet.',
           'Hat den Umbau von 110 Endpunkten abgesichert.',
           'Vorgehen'),
     Lehre('keine-temp-dateien-im-system',
           'Zwischendateien ins Projekt, nicht in den System-Temp',
           'Werkzeuge und Tests schreiben in ein Projektverzeichnis.',
-          'System-Temp-Verzeichnisse werden nicht aufgeraeumt und liegen oft '
+          'System-Temp-Verzeichnisse werden nicht aufgeräumt und liegen oft '
           'auf der Systemplatte.',
-          'Vorgeschichte: rund 100 GB Datenmuell auf C:.',
+          'Vorgeschichte: rund 100 GB Datenmüll auf C:.',
           'Vorgehen',
           werkzeuge=('lehren-treue',)),
     Lehre('kein-globaler-zustand',
@@ -344,7 +344,7 @@ class Lehrenstand:
     @classmethod
     def auftragstext(cls):
         """Die aktiven Lehren als Arbeitsgrundlage — zum Kopieren."""
-        zeilen = ['Regeln fuer diesen Umbau (aus Hilfe -> Skills):', '']
+        zeilen = ['Regeln für diesen Umbau (aus Hilfe -> Skills):', '']
         for bereich in BEREICHE:
             teil = [lehre for lehre in cls.aktive() if lehre.bereich == bereich]
             if not teil:

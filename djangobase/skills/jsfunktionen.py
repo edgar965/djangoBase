@@ -6,7 +6,7 @@ DER BEFUND (3DTools, 16.08.2026)
 Der Auftrag verlangte ES-Module von etwa 200 Zeilen. Die Dateigroesse allein
 trifft aber nicht den Kern: ``viewer/cloth.js`` hatte 339 Zeilen, davon 245 in
 EINER Funktion (``loadClothUI``), die vier Bedienbereiche hintereinander
-aufbaute. Nach der Aufteilung waren es fuenf Klassen mit je unter 120 Zeilen -
+aufbaute. Nach der Aufteilung waren es fünf Klassen mit je unter 120 Zeilen -
 und dabei fielen drei doppelte Bloecke auf, die in der langen Funktion niemand
 gesehen hatte.
 
@@ -14,8 +14,8 @@ Verlauf im Ursprungsprojekt: 46 Funktionen ab 90 Zeilen zu Beginn, 12 am Ende.
 
 WIE GEZAEHLT WIRD
 =================
-Ueber die Klammerbilanz ab der Funktionszeile - kein JS-Parser. Klammern in
-Zeichenketten zaehlen mit; fuer die Frage „welche Funktion ist zu lang" reicht
+Über die Klammerbilanz ab der Funktionszeile - kein JS-Parser. Klammern in
+Zeichenketten zählen mit; für die Frage „welche Funktion ist zu lang" reicht
 das und es braucht keine Abhaengigkeit. Die Zahl kann bei Dateien mit vielen
 Template-Strings etwas zu hoch liegen.
 
@@ -84,7 +84,7 @@ class JsFunktionen(Werkzeug):
             ["zeilen", "ort", "name"], zeilen_aus,
             zusammenfassung="%d Funktionen ab %d Zeilen"
                             % (len(gefunden), grenze),
-            hinweis="Gezaehlt ueber die Klammerbilanz; bei vielen "
+            hinweis="Gezaehlt über die Klammerbilanz; bei vielen "
                     "Template-Strings kann die Zahl etwas zu hoch liegen.")
 
     @staticmethod

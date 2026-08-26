@@ -20,9 +20,9 @@ class KlassenJeDatei(BefundWerkzeug):
              'Klasse, damit man sieht, ob es sich um eine Sammlung oder um eine '
              'Hauptklasse mit kleinen Helfern handelt.')
     abhilfe = ('Wenn die Regel "eine Klasse je Datei" gilt. Kleine Datentraeger '
-            'direkt neben ihrer Hauptklasse sind dabei kein Verstoss, sondern '
-            'meist genau richtig — deshalb zeigt das Werkzeug die Groessen '
-            'mit an, statt nur zu zaehlen.')
+            'direkt neben ihrer Hauptklasse sind dabei kein Verstoß, sondern '
+            'meist genau richtig — deshalb zeigt das Werkzeug die Größen '
+            'mit an, statt nur zu zählen.')
     befund = ('Im Ursprungsprojekt lagen 110 Endpunkte und ein Dutzend Klassen '
              'in einer Datei; nach dem Schnitt: eine Aufgabe je Modul, '
              'Datentraeger bei ihrer Klasse.')
@@ -55,8 +55,8 @@ class KlassenJeDatei(BefundWerkzeug):
                 len(klassen),
                 ', '.join('%s (%d)' % (name, laenge) for name, laenge in klassen[:8]))
             if len(grosse) <= 1:
-                warum = ('nur %d davon groesser als %d Zeilen — das sind '
-                         'Datentraeger bei ihrer Klasse, kein Verstoss'
+                warum = ('nur %d davon größer als %d Zeilen — das sind '
+                         'Datentraeger bei ihrer Klasse, kein Verstoß'
                          % (len(grosse), self.KLEIN))
                 gewicht = Befund.HINWEIS
             else:
@@ -74,7 +74,7 @@ class KlassenJeDatei(BefundWerkzeug):
         verstoesse = sum(1 for b in befunde if b.gewicht == Befund.WARNUNG)
         kopf = ['%d Klassen insgesamt' % gesamt,
                 '%d Dateien mit mindestens %d Klassen — davon %d mit mehr als '
-                'EINER eigenstaendigen Klasse (die Verstoesse)'
+                'EINER eigenstaendigen Klasse (die Verstöße)'
                 % (len(befunde), grenze, verstoesse)]
         return Befundsatz(self.titel, kopf, befunde)
 

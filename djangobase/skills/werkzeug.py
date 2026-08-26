@@ -7,7 +7,7 @@ KEINE davon etwas ueber das Projekt weiss: Gesucht wird immer unter
 ``settings.BASE_DIR``, gelesen wird der Syntaxbaum.
 
 Die Klasse hiess bis zum 18.08.2026 ``Werkzeug2`` - ein Name aus der Zeit, als
-es zwei Kaesten mit zwei Basisklassen gab. Beide sind zusammengefuehrt (Ansage:
+es zwei Kästen mit zwei Basisklassen gab. Beide sind zusammengefuehrt (Ansage:
 „benenne um werkzeug2 in werkzeug, merge alles"); die befundbasierte Bauform
 liegt in ``befund.py`` und erbt von hier.
 
@@ -124,7 +124,7 @@ class Ergebnis:
     """Was ein Werkzeug gefunden hat.
 
     ``zeilen`` sind Dictionaries mit den Spalten, die ``spalten`` nennt - hier
-    ist das Dictionary richtig: Es geht unveraendert als JSON an die Seite
+    ist das Dictionary richtig: Es geht unverändert als JSON an die Seite
     (siehe die Lehre „Dictionary oder Klasse?")."""
 
     def __init__(self, spalten, zeilen, zusammenfassung="", hinweis=""):
@@ -209,7 +209,7 @@ class Werkzeug:
 
         Anlass (18.08.2026): ``jswaisen`` meldete in shortlongx 21 „verwaiste"
         Dateien, die alle ignoriert sind - der Arbeitsordner des JS-Testlaeufers
-        und ein heruntergeladenes Chrome-Profil. Einzelheiten und der Rueckfall
+        und ein heruntergeladenes Chrome-Profil. Einzelheiten und der Rückfall
         ohne git stehen im Kopf von ``gitfilter.py``.
         """
         from .gitfilter import GitFilter

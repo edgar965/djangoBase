@@ -47,7 +47,7 @@ class AnlassfallGrundlagenTest(BasisTest):
 
 
 class AnlassfallCheckTest(BasisTest):
-    """Der Sammellauf ueber alle Werkzeuge."""
+    """Der Sammellauf über alle Werkzeuge."""
 
     def setUp(self):
         super().setUp()

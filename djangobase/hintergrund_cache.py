@@ -107,7 +107,7 @@ class HintergrundCache:
         return self._bauen_jetzt()
 
     def zustand(self) -> dict:
-        """Fuer Diagnose/Tests: Alter, Zahl der Neuberechnungen, letzter Fehler."""
+        """Für Diagnose/Tests: Alter, Zahl der Neuberechnungen, letzter Fehler."""
         with self._lock:
             return {"name": self.name, "hat_wert": self._wert is not None,
                     "alter_s": round(time.time() - self._ts, 2) if self._ts else None,

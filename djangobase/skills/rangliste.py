@@ -287,18 +287,18 @@ def rangliste():
 
 
 class Lehrenrangliste(Rangliste):
-    u"""Rangliste fuer die Lehren — mit der ERKLAERTEN Reihenfolge als Grund.
+    u"""Rangliste für die Lehren — mit der ERKLAERTEN Reihenfolge als Grund.
 
     `Rangliste.grundordnung` sortiert nach Bereich, Kriterium und Kennung.
-    Fuer Werkzeuge stimmt das; fuer die Lehren nicht: Sie haben kein
-    Kriterium, und nach Kennung sortiert stuende `aequivalenz-beweisen`
+    Für Werkzeuge stimmt das; für die Lehren nicht: Sie haben kein
+    Kriterium, und nach Kennung sortiert stünde `aequivalenz-beweisen`
     vor `bincount-statt-add-at` — eine Reihenfolge nach Alphabet, die
     niemand so gemeint hat.
 
     Die Grundordnung ist deshalb die Reihenfolge, in der sie in
     ``lehren_review.py`` stehen: nach Bereichen gruppiert und innerhalb
     davon so, wie sie beim Review entstanden sind. Wer verschiebt,
-    ueberschreibt das — aber der Ausgangspunkt ist nicht das Alphabet.
+    überschreibt das — aber der Ausgangspunkt ist nicht das Alphabet.
     """
 
     @classmethod
@@ -328,12 +328,12 @@ def fixerrangliste():
          veraenderbaren nummern" (26.08.2026)
 
     Getrennt von den Pruef-Werkzeugen, weil es zwei Listen sind: Ein Rang
-    ist die POSITION in seiner Liste, und 52 Pruefer und 7 Fixer in einer
-    Nummerierung zu fuehren hiesse, dass das Verschieben eines Fixers die
-    Nummer eines Pruefers aendert.
+    ist die POSITION in seiner Liste, und 52 Prüfer und 7 Fixer in einer
+    Nummerierung zu führen hiesse, dass das Verschieben eines Fixers die
+    Nummer eines Pruefers ändert.
 
     Dieselbe Klasse, nur ein anderer Pfad — der ganze Umgang mit
-    Reihenfolge, Verschieben und neuen Eintraegen steht damit an EINER
+    Reihenfolge, Verschieben und neuen Einträgen steht damit an EINER
     Stelle.
     """
     from ..conf import conf

@@ -139,7 +139,7 @@ class GrundtestSeiten(TestCase):
 
 
 class GrundtestModule(SimpleTestCase):
-    """Jedes Modul der eigenen Apps laesst sich importieren."""
+    """Jedes Modul der eigenen Apps lässt sich importieren."""
 
     def test_alle_module_importierbar(self):
         fehler = []
@@ -180,7 +180,7 @@ class GrundtestMigrationen(TestCase):
 
 
 class GrundtestVorlagen(SimpleTestCase):
-    """Jede Vorlage laesst sich uebersetzen (kein TemplateSyntaxError)."""
+    """Jede Vorlage lässt sich uebersetzen (kein TemplateSyntaxError)."""
 
     def test_alle_vorlagen_kompilieren(self):
         from django.template import TemplateSyntaxError
@@ -220,7 +220,7 @@ class GrundtestLogging(SimpleTestCase):
         handler = list((cfg.get("handlers") or {}).values())
         self.assertTrue(
             any("Rotating" in str(h.get("class", "")) for h in handler),
-            "Kein rotierender Handler — die Logdatei waechst unbegrenzt")
+            "Kein rotierender Handler — die Logdatei wächst unbegrenzt")
 
     def test_zeitstempel_im_format(self):
         cfg = getattr(settings, "LOGGING", None) or {}

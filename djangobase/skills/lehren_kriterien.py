@@ -3,11 +3,11 @@ u"""Lehren - was der Review-Durchgang gekostet hat, in Saetzen.
 
 Jede Lehre steht hier mit dem FALL, aus dem sie stammt. Ohne den Fall ist eine
 Regel eine Meinung; mit ihm kann man entscheiden, ob sie im eigenen Projekt
-gilt. Die Haken auf der Seite sind eine Arbeitsliste - ab damit durchs naechste
+gilt. Die Haken auf der Seite sind eine Arbeitsliste - ab damit durchs nächste
 Projekt.
 
 Reihenfolge: erst die, die Fehler VERHINDERN, dann die, die beim Aufraeumen
-helfen, dann die ueber Werkzeuge und Messungen.
+helfen, dann die über Werkzeuge und Messungen.
 """
 
 __all__ = ["LEHREN", "gruppen"]

@@ -8,18 +8,18 @@ Fassungen. Eine davon stand 78-mal da, eine weitere 61-mal. Das ist der
 Unterschied zwischen „viele Inline-Stile" (Meinung) und „78-mal dieselbe Zeile"
 (Arbeitsauftrag).
 
-Diese Pruefung gruppiert nach Fassung statt nach Vorkommen. Damit sieht man in
-einer Zeile, was sich zusammenfassen laesst — und `djangobase.umbau.stilklassen`
+Diese Prüfung gruppiert nach Fassung statt nach Vorkommen. Damit sieht man in
+einer Zeile, was sich zusammenfassen lässt — und `djangobase.umbau.stilklassen`
 macht daraus Klassen.
 
 WAS SIE NICHT MELDET: Werte mit `{{ }}`, `{% %}` oder `${ }`. Die stehen erst
-zur Laufzeit fest und koennen keine Klasse werden.
+zur Laufzeit fest und können keine Klasse werden.
 
 ACHTUNG BEIM UMSTELLEN: Eine CSS-Klasse (0,0,1,0) hat eine niedrigere
 Spezifitaet als ein Inline-Stil. Zwei Regressionen sind auf genau diesem Weg
-entstanden — Abschnittstitel verloren ihre Akzentfarbe, Farbfelder ihre Groesse.
+entstanden — Abschnittstitel verloren ihre Akzentfarbe, Farbfelder ihre Größe.
 Deshalb schreibt das Umbau-Werkzeug den Klassennamen dreifach in den Selektor
-und die Aenderung wird im Browser gegengemessen
+und die Änderung wird im Browser gegengemessen
 (`static/djangobase/js/stilmessung.js`).
 """
 import re

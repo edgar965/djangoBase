@@ -35,7 +35,7 @@ def _klinke():
     u"""Die Sperrklinke als Exemplar — NICHT als Modulname.
 
     Auch ``X = modul.Grundtest...`` legt die Klasse wieder in diesen
-    Namensraum, und der Sammler nimmt sie. Erst der Aufruf hier haelt sie
+    Namensraum, und der Sammler nimmt sie. Erst der Aufruf hier hält sie
     heraus.
     """
     return _grenzen.GrundtestBefundgrenzen(
@@ -89,7 +89,7 @@ def _lauf(grenzen, werkzeuge):
 
 
 class BeideBauartenWerdenGezaehlt(SimpleTestCase):
-    u"""Ein Fixer heisst nicht ``laufen`` — dieselbe Falle wie zweimal zuvor."""
+    u"""Ein Fixer heißt nicht ``laufen`` — dieselbe Falle wie zweimal zuvor."""
 
     def test_ein_befundwerkzeug_ueber_pruefen(self):
         gesamt, je = _zahl(_NeuesWerkzeug(['fehler', 'warnung', 'warnung']))
@@ -123,7 +123,7 @@ class SieWirdRot(SimpleTestCase):
 
 
 class GrenzenJeGewicht(SimpleTestCase):
-    u"""219 Hinweise sind bei `code-qualitaet` fast alle Rang C — rot
+    u"""219 Hinweise sind bei `code-qualität` fast alle Rang C — rot
     werden soll es bei den schweren."""
 
     WERKZEUG = {'q': _NeuesWerkzeug(['fehler'] * 2 + ['warnung'] * 5
@@ -146,7 +146,7 @@ class GrenzenJeGewicht(SimpleTestCase):
 class WasSchiefgehenKann(SimpleTestCase):
 
     def test_ein_verschwundenes_werkzeug_ist_rot(self):
-        u"""Sonst faellt eine Grenze still weg, sobald jemand ein Werkzeug
+        u"""Sonst fällt eine Grenze still weg, sobald jemand ein Werkzeug
         umbenennt — und niemand merkt, dass nichts mehr geprüft wird."""
         meldung = _lauf({'gibtsnicht': 0}, {})
         self.assertIn('gibt es nicht', meldung)

@@ -42,7 +42,7 @@ class Testlauf:
         self.historie = historie or Testhistorie()
 
     def fahren(self, cmd, name, frist=None, slug=""):
-        u"""Fahren und Ergebnis liefern (dieselben Schluessel wie bisher)."""
+        u"""Fahren und Ergebnis liefern (dieselben Schlüssel wie bisher)."""
         cmd = Dauern.option_setzen(cmd)
         t0 = time.time()
         try:

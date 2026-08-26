@@ -81,30 +81,30 @@ class AbhaengigkeitenProbe(SimpleTestCase):
         u"""Der echte Fall - muss weiter gefunden werden."""
         self.assertIn(
             'paket.b', self._ziele(ECHTER_ZYKLUS),
-            "Ein Import auf Modulebene laeuft beim Laden und bildet einen "
+            "Ein Import auf Modulebene läuft beim Laden und bildet einen "
             "echten Zyklus. Wird er nicht mehr gesehen, meldet das Werkzeug "
             "gar keine Zyklen mehr - dann ist es abgeschaltet, nicht "
             "geschaerft.")
 
     def test_im_try_auf_oberster_ebene_zaehlt_auch(self):
-        u"""``try: import`` im Modulrumpf laeuft ebenfalls beim Laden."""
+        u"""``try: import`` im Modulrumpf läuft ebenfalls beim Laden."""
         self.assertIn(
             'paket.b', self._ziele(IM_TRY_OBEN),
             "Ein Import in try/except auf oberster Ebene wird beim Laden "
-            "ausgefuehrt - er zaehlt wie jeder andere Modulebene-Import.")
+            "ausgefuehrt - er zählt wie jeder andere Modulebene-Import.")
 
     def test_import_in_funktion_zaehlt_nicht(self):
-        u"""Die uebliche Aufloesung eines Zirkels - kein Befund."""
+        u"""Die uebliche Auflösung eines Zirkels - kein Befund."""
         self.assertNotIn(
             'paket.b', self._ziele(IN_FUNKTION),
-            "Ein Import im Funktionsrumpf laeuft erst beim Aufruf, wenn "
-            "beide Module fertig geladen sind. Genau so loest man einen "
+            "Ein Import im Funktionsrumpf läuft erst beim Aufruf, wenn "
+            "beide Module fertig geladen sind. Genau so löst man einen "
             "Zirkel auf; als Zyklus gemeldet wird die Reparatur zum Befund.")
 
     def test_type_checking_zaehlt_nicht(self):
         u"""``if TYPE_CHECKING:`` wird zur Laufzeit nie ausgefuehrt."""
         self.assertNotIn(
             'paket.b', self._ziele(NUR_TYPPRUEFUNG),
-            "Der Block unter `if TYPE_CHECKING:` laeuft nie - er steht nur "
-            "fuer die Typpruefung da und ist die sauberste Art, einen "
+            "Der Block unter `if TYPE_CHECKING:` läuft nie - er steht nur "
+            "für die Typpruefung da und ist die sauberste Art, einen "
             "Zirkel zu vermeiden.")

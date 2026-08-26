@@ -68,7 +68,7 @@ class Toeter:
                 capture_output=True, text=True, timeout=Toeter.GEDULD,
                 creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         except Exception:  # noqa: BLE001
-            log.exception("taskkill fuer PID %s nicht ausfuehrbar", pid)
+            log.exception("taskkill für PID %s nicht ausfuehrbar", pid)
             return False
         if ergebnis.returncode not in (0, 128):
             # 128 = „Prozess nicht gefunden" — der Normalfall, wenn er schon weg

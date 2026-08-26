@@ -55,7 +55,7 @@ class TestzeilenTests(SimpleTestCase):
                          "skip")
 
     def test_auswertungsteil_zaehlt_nicht_mit(self):
-        u"""Im --durations-Block steht jeder Test nochmal; „OK" gehoert dem Lauf."""
+        u"""Im --durations-Block steht jeder Test nochmal; „OK" gehört dem Lauf."""
         self.leser.lesen("test_d (a.b.C.test_d) ... ok")
         self.assertIsNone(self.leser.lesen("Slowest test durations"))
         self.assertIsNone(self.leser.lesen("0.005s     test_d (a.b.C.test_d)"))
@@ -86,7 +86,7 @@ class TestzieleTests(SimpleTestCase):
         self.assertEqual(verworfen, 2)
 
     def test_form_wird_geprueft(self):
-        u"""Ein Eintrag mit Leerzeichen oder „-" waere ein zusaetzliches Argument."""
+        u"""Ein Eintrag mit Leerzeichen oder „-" wäre ein zusaetzliches Argument."""
         ziele, verworfen = self.ziele.pruefen(
             ["app.tests.unit.test_x.K.test_y --keepdb", "--noinput", "a b"])
         self.assertEqual(ziele, [])
@@ -227,7 +227,7 @@ class LaufsperreTests(SimpleTestCase):
         self.assertIsNone(Laufsperre(self.pfad).zustand())
 
     def test_lebt_erkennt_beendete_prozesse(self):
-        u"""Windows: OpenProcess allein genuegt nicht (Handle-Zombie)."""
+        u"""Windows: OpenProcess allein genügt nicht (Handle-Zombie)."""
         self.assertTrue(Laufsperre.lebt(os.getpid()))
         self.assertFalse(Laufsperre.lebt(999999))
         self.assertFalse(Laufsperre.lebt(0))

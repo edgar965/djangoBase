@@ -49,7 +49,7 @@ class MiniProjekt:
 
 
 class WerkzeugGrundlagenTest(BasisTest):
-    """Was fuer JEDES Werkzeug gelten muss."""
+    """Was für JEDES Werkzeug gelten muss."""
 
     def test_registrierung_vollstaendig(self):
         self.assertTrue(WERKZEUGE, "keine Werkzeuge registriert")
@@ -340,7 +340,7 @@ class DoppelrumpfTest(BasisTest):
 
 
 class LehrenTest(BasisTest):
-    """Die Arbeitsliste - Struktur und Vollstaendigkeit."""
+    """Die Arbeitsliste - Struktur und Vollständigkeit."""
 
     def test_struktur(self):
         """Seit dem Zusammenlegen (17.08.2026) ist eine Lehre ein Dictionary.

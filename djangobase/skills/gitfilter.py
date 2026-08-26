@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-u"""Gehoert eine Datei zum Projekt? Git weiss es besser als eine Namensliste.
+u"""Gehoert eine Datei zum Projekt? Git weiß es besser als eine Namensliste.
 
 DER ANLASS (Edgar, 18.08.2026)
 ==============================
-    „kannst du die skills anpassen, dass der den Code von gitignore nicht prueft?"
+    „kannst du die skills anpassen, dass der den Code von gitignore nicht prüft?"
 
 In shortlongx meldete ``jswaisen`` 63 verwaiste JS-Dateien. Ein Drittel davon
 war gar kein Projektcode:
@@ -13,7 +13,7 @@ war gar kein Projektcode:
      2  werkzeug/.chrome/WasmTtsEngine/…    heruntergeladenes Chrome-Profil
 
 Beides steht in der ``.gitignore`` des Projekts. „Verwaist" ist dort ohne
-Aussage: Eine Spiegelkopie laedt naturgemaess niemand, und fremder Code geht
+Aussage: Eine Spiegelkopie lädt naturgemaess niemand, und fremder Code geht
 das Projekt nichts an.
 
 WARUM GIT FRAGEN UND NICHT DIE DATEI LESEN
@@ -28,24 +28,24 @@ Deshalb wird git selbst gefragt::
     git ls-files --cached --others --exclude-standard
 
 Das listet alle Dateien, die git kennt ODER die nicht ignoriert werden - also
-exakt die Menge „gehoert zum Projekt". Ein Aufruf je Wurzel, gemerkt fuer die
+exakt die Menge „gehört zum Projekt". Ein Aufruf je Wurzel, gemerkt für die
 Laufzeit des Prozesses; 44 Werkzeuge teilen sich also EINE Abfrage.
 
 DIE LISTE WIRD EINMAL GEHOLT - UND DAS HAT EINE GRENZE
 ======================================================
-44 Werkzeuge teilen sich eine Abfrage; wer waehrend des Laufs eine Datei ANLEGT,
-steht nicht darin und gilt als ignoriert. Fuer die Werkzeuge selbst ist das
-richtig (sie lesen nur), fuer erzeugte Pruefdateien waere es falsch. Der
-``anlassfall-check`` ist davon nicht betroffen - er legt seine Faelle unter
+44 Werkzeuge teilen sich eine Abfrage; wer während des Laufs eine Datei ANLEGT,
+steht nicht darin und gilt als ignoriert. Für die Werkzeuge selbst ist das
+richtig (sie lesen nur), für erzeugte Prüfdateien wäre es falsch. Der
+``anlassfall-check`` ist davon nicht betroffen - er legt seine Fälle unter
 ``_anlassfall`` ab, das ohnehin in ``AUSGESCHLOSSEN`` steht, und meldet nach der
-Umstellung unveraendert „34 von 43 geprueft, alle bestanden". Wer ein Werkzeug
-baut, das frisch erzeugte Dateien pruefen soll, umgeht diesen Filter bewusst.
+Umstellung unverändert „34 von 43 geprüft, alle bestanden". Wer ein Werkzeug
+baut, das frisch erzeugte Dateien prüfen soll, umgeht diesen Filter bewusst.
 
 WAS PASSIERT, WENN ES KEIN GIT GIBT
 ===================================
 Kein Repo, kein ``git`` im Pfad, ein Fehler beim Aufruf - dann ist der Filter
-UNTAETIG und alles wird geprueft wie vorher. Ein Werkzeugkasten, der ohne git
-plötzlich die Haelfte des Projekts uebersieht, waere schlimmer als einer, der zu
+UNTAETIG und alles wird geprüft wie vorher. Ein Werkzeugkasten, der ohne git
+plötzlich die Haelfte des Projekts uebersieht, wäre schlimmer als einer, der zu
 viel meldet: Der Warnhinweis im Kopf von ``frontendquellen.py`` gilt auch hier -
 „Ein Massstab, der zu viel ausschliesst, macht aus einem sauberen Projekt ein
 kaputtes."
@@ -100,7 +100,7 @@ class GitFilter:
     def erlaubt(self, pfad):
         u"""Gehoert ``pfad`` zum Projekt?
 
-        Ohne git-Antwort IMMER ``True`` - siehe Modulkopf. Eine Datei ausserhalb
+        Ohne git-Antwort IMMER ``True`` - siehe Modulkopf. Eine Datei außerhalb
         der Wurzel wird ebenfalls durchgelassen: Sie kann git gar nicht kennen,
         und das ist die Entscheidung des Aufrufers, nicht dieses Filters.
         """
@@ -119,7 +119,7 @@ class GitFilter:
         return False
 
     def bericht(self):
-        """Eine Zeile fuer die Zusammenfassung eines Werkzeugs."""
+        """Eine Zeile für die Zusammenfassung eines Werkzeugs."""
         if not self.aktiv:
             return "ohne git-Filter (kein Repo oder git nicht erreichbar)"
         return "%d Dateien in git" % len(self.erlaubte)

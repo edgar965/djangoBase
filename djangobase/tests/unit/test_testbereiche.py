@@ -58,7 +58,7 @@ class BereicheTests(SimpleTestCase):
                          ["mail", "chat", "musik"])
 
     def test_elternordner_ist_kein_ziel(self):
-        u"""`search.tests` liegt ueber `search.tests.chat` — nicht waehlbar."""
+        u"""`search.tests` liegt über `search.tests.chat` — nicht waehlbar."""
         b = Bereiche(ANGABE)
         self.assertIn("chat", b.ziele())
         self.assertNotIn("suche", b.ziele())
@@ -129,7 +129,7 @@ class SpaltenDeckungTests(SimpleTestCase):
 class KartenLabelTests(SimpleTestCase):
 
     def test_label_nur_wenn_es_genau_passt(self):
-        u"""Ein Label, das mehr faehrt als die Tabelle zeigt, waere gelogen."""
+        u"""Ein Label, das mehr fährt als die Tabelle zeigt, wäre gelogen."""
         gleiche = [{"id": "mail.tests.unit.test_a.K.t"},
                    {"id": "mail.tests.unit.test_b.K.t"}]
         self.assertEqual(Karten.label(gleiche), "mail.tests.unit")
@@ -137,7 +137,7 @@ class KartenLabelTests(SimpleTestCase):
         self.assertEqual(Karten.label(gemischt), "")
 
     def test_kein_label_fuer_ganze_app(self):
-        u"""`mail.tests` faehrt auch Component und UI — kein Kategorie-Knopf."""
+        u"""`mail.tests` fährt auch Component und UI — kein Kategorie-Knopf."""
         self.assertEqual(Karten.label([{"id": "mail.tests.a.K.t"},
                                        {"id": "mail.tests.b.K.t"}]), "")
 
@@ -185,7 +185,7 @@ class BereichWechselTests(SimpleTestCase):
         self.assertTrue((self.quelle / "test_probe.py").exists())
 
     def test_historie_zieht_mit(self):
-        u"""Sonst stuende der Fall danach auf „noch nie gelaufen"."""
+        u"""Sonst stünde der Fall danach auf „noch nie gelaufen"."""
         from djangobase.testhistorie import Testhistorie
         ablage = self.wurzel / "historie.json"
         ablage.write_text(json.dumps({"tests": {self.tid: [{"zeit": "x", "dauer": 1}]},

@@ -104,7 +104,7 @@ class EinAusschalterIstKeinBefund(BasisTest):
                       '    def test_x(self):\n'
                       '        self.assertTrue(True)\n'})
         self.assertIsNone(_gewichte(satz).get(Befund.FEHLER),
-                          'Ein Ausschalter mit Vorgabe „an" laeuft von '
+                          'Ein Ausschalter mit Vorgabe „an" läuft von '
                           'selbst — das ist kein stillgelegter Test.')
 
     def test_gemeldet_wird_er_trotzdem(self):

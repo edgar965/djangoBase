@@ -117,13 +117,13 @@ class VerdichtungTest(SimpleTestCase):
     def test_wiederholter_poll_wird_gezaehlt(self):
         self.s.anhaengen(self.a.id, [self._abruf(t=i) for i in range(1, 21)])
         schritte = self._schritte()
-        self.assertEqual(len(schritte), 1, "20 gleiche Polls muessen EIN Schritt sein")
+        self.assertEqual(len(schritte), 1, "20 gleiche Polls müssen EIN Schritt sein")
         self.assertEqual(schritte[0]["n"], 20)
 
     def test_abwechselnde_endpunkte_bleiben_getrennt(self):
         u"""Der Grund, warum die Verdichtung auf dem Server sitzt: Im Browser
         wechseln sich die Endpunkte ab (A, B, C, A, B, C) - ein Vergleich mit dem
-        unmittelbaren Vorgaenger griffe nie."""
+        unmittelbaren Vorgänger griffe nie."""
         folge = []
         for i in range(4):
             for pfad in ("/api/a/", "/api/b/", "/api/c/"):
@@ -135,7 +135,7 @@ class VerdichtungTest(SimpleTestCase):
 
     def test_klick_bleibt_eigener_schritt(self):
         u"""Klicks sind der Inhalt der Aufnahme. Wuerden sie zusammengefasst,
-        waere zweimal Druecken nicht mehr von einmal zu unterscheiden."""
+        wäre zweimal Druecken nicht mehr von einmal zu unterscheiden."""
         self.s.anhaengen(self.a.id, [
             {"art": "klick", "ziel": "#los", "text": "Los", "t": 1.0},
             {"art": "klick", "ziel": "#los", "text": "Los", "t": 2.0},

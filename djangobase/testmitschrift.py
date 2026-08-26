@@ -27,14 +27,14 @@ __all__ = ["Mitschrift"]
 
 
 class Mitschrift:
-    """Nimmt die Ausgabe eines Testlaufs und traegt die Laufzeiten ein."""
+    """Nimmt die Ausgabe eines Testlaufs und trägt die Laufzeiten ein."""
 
     def __init__(self, historie=None):
         self.historie = historie or Testhistorie()
 
     @staticmethod
     def option_setzen(cmd):
-        u"""``--durations 0`` ergaenzen, wo der Interpreter es kann."""
+        u"""``--durations 0`` ergänzen, wo der Interpreter es kann."""
         return Dauern.option_setzen(cmd)
 
     def aufnehmen(self, ausgabe, suite=None, zeit=None):

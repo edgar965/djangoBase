@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 u"""Stelle - eine Zeile in einer JS-Datei und die Frage, ob sie im try steht.
 
-Aus ``jsfaenger.py`` herausgeloest (17.08.2026): Die Datei war beim Nachziehen
+Aus ``jsfaenger.py`` herausgelöst (17.08.2026): Die Datei war beim Nachziehen
 der Aufrufkette auf 402 Zeilen gewachsen und trug drei Aufgaben. Hier steht nur
 noch die eine Frage, die auch ``Aufrufkette`` braucht:
 
@@ -9,7 +9,7 @@ noch die eine Frage, die auch ``Aufrufkette`` braucht:
 
 Gesucht wird ab dem Aufruf rueckwaerts nach ``try {``; das Blockende kommt aus
 der Klammertiefe (`jsklammern`), nicht aus dem Abstand. Ein ``catch`` irgendwo
-unterhalb beweist nichts - es kann zu einem spaeteren try gehoeren.
+unterhalb beweist nichts - es kann zu einem spaeteren try gehören.
 """
 import re
 
@@ -70,8 +70,8 @@ class Stelle:
             }
             catch (e) { … }          <- eine Zeile tiefer
 
-        Die zweite fiel durch, solange nur ``zeilen[ende]`` geprueft wurde. Nur
-        LEERZEILEN werden uebersprungen; alles andere dazwischen hiesse, dass
+        Die zweite fiel durch, solange nur ``zeilen[ende]`` geprüft wurde. Nur
+        LEERZEILEN werden übersprungen; alles andere dazwischen hiesse, dass
         der Block ohne Faenger endet.
         """
         for i in range(ende, min(len(self.zeilen), ende + 3)):
@@ -87,7 +87,7 @@ class Stelle:
     def _try_bloecke(self):
         """Zeilennummern der try-Bloecke oberhalb, von innen nach aussen.
 
-        Die EIGENE Zeile zaehlt mit: Beim Einzeiler steht `try` davor und
+        Die EIGENE Zeile zählt mit: Beim Einzeiler steht `try` davor und
         `catch` dahinter, alles in derselben Zeile.
         """
         von = max(0, self.nummer - Stelle.REICHWEITE)

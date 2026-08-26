@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """Hilfe -> Aktuell: das rollierende Fenster mit den Ergebnissen der Claude-CLI.
 
-Die Seite liest nur. Geschrieben wird ueber ``manage.py aktuell`` (siehe
+Die Seite liest nur. Geschrieben wird über ``manage.py aktuell`` (siehe
 djangobase/management/commands/aktuell.py) — so gibt es keinen
-Schreib-Endpunkt, den eine fremde Webseite bedienen koennte, und die CLI
+Schreib-Endpunkt, den eine fremde Webseite bedienen könnte, und die CLI
 braucht weder Token noch laufenden Server.
 
 Anders als Hilfe -> Review ist diese Seite NICHT opt-in: Sie erscheint in jedem
@@ -22,7 +22,7 @@ from ..mixins import ZugriffMixin
 
 
 class AktuellView(ZugriffMixin, View):
-    """Die Seite: neueste Eintraege zuerst, nach Art filterbar."""
+    """Die Seite: neueste Einträge zuerst, nach Art filterbar."""
 
     #: So viele Eintraege zeigt die Seite auf einmal. Das Fenster selbst haelt
     #: mehr (AktuellFeed.MAX_EINTRAEGE); hier geht es nur um die Lesbarkeit.
@@ -48,9 +48,9 @@ class AktuellView(ZugriffMixin, View):
 
 
 class AktuellDatenView(ZugriffMixin, View):
-    """JSON fuer die Selbst-Aktualisierung der Seite.
+    """JSON für die Selbst-Aktualisierung der Seite.
 
-    Die Seite laedt sich nicht komplett neu, sondern fragt hier nach: Wer eine
+    Die Seite lädt sich nicht komplett neu, sondern fragt hier nach: Wer eine
     lange Ausgabe aufgeklappt hat, soll sie nicht alle 20 Sekunden verlieren."""
 
     def get(self, request):

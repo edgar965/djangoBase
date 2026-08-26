@@ -53,7 +53,7 @@ def _fragen(satz):
 
     Als MENGE, nicht als Text: Bei mehreren steht dort „Frage 1, 3 mit Ja
     beantwortet", und ein `'Frage 3' in ...` findet das nicht. Meine erste
-    Fassung dieser Pruefungen ist genau daran gescheitert — an der eigenen
+    Fassung dieser Prüfungen ist genau daran gescheitert — an der eigenen
     Zusicherung, nicht am Werkzeug.
     """
     import re
@@ -96,7 +96,7 @@ class Frage1Zustand(BasisTest):
         self.assertIn(1, _fragen(satz).get('ablage.py', set()))
 
     def test_eine_konstante_ist_kein_zustand(self):
-        u"""GROSS geschrieben heisst Vorgabe. Beides mitzuzählen macht aus
+        u"""GROSS geschrieben heißt Vorgabe. Beides mitzuzählen macht aus
         fünf echten Stellen 130 — und das sieht sich niemand an."""
         satz = _lauf({'vorgaben.py': 'GRENZEN = {"a": 1}\n\n\n'
                                      'def lesen():\n'
@@ -147,8 +147,8 @@ class NurWennDerAufruferDieWerteHaelt(BasisTest):
     Fehlalarm vom 26.08.2026: `app/services/config/parser.py` wurde
     gemeldet — vier Funktionen mit ``(key, default)``. Der Kopf stimmte,
     die Schlussfolgerung nicht. Jeder Aufruf lautet ``get_int('RETENTION_'
-    'DAYS', 30)``: die Werte stehen frisch da, der Aufrufer haelt nichts.
-    Ein Konstruktor haette dort bei jedem Aufruf etwas anderes bedeutet.
+    'DAYS', 30)``: die Werte stehen frisch da, der Aufrufer hält nichts.
+    Ein Konstruktor hätte dort bei jedem Aufruf etwas anderes bedeutet.
 
     Der Unterschied zu einem echten Fund ist mechanisch nachlesbar — nicht
     am Kopf der Funktion, sondern an der Aufrufstelle.
@@ -181,7 +181,7 @@ class NurWennDerAufruferDieWerteHaelt(BasisTest):
         self.assertIn(2, _fragen(satz).get('leser.py', set()))
 
     def test_ein_literal_unter_gehaltenen_reicht_nicht(self):
-        u"""``get_int('THUMB_FFMPEG_TIMEOUT', _GRENZE)`` — der Schluessel
+        u"""``get_int('THUMB_FFMPEG_TIMEOUT', _GRENZE)`` — der Schlüssel
         steht frisch da, nur der Vorgabewert ist gehalten. Genau daran ist
         meine erste Fassung mit ``any`` haengengeblieben."""
         satz = _lauf({'leser.py': self.VIER,
@@ -192,7 +192,7 @@ class NurWennDerAufruferDieWerteHaelt(BasisTest):
         self.assertEqual([b.ort for b in satz.befunde], [])
 
     def test_ohne_jeden_aufrufer_bleibt_der_fund_stehen(self):
-        u"""Was niemand aufruft, laesst sich nicht widerlegen."""
+        u"""Was niemand aufruft, lässt sich nicht widerlegen."""
         satz = _lauf({'leser.py': self.VIER})
         self.assertIn(2, _fragen(satz).get('leser.py', set()))
 

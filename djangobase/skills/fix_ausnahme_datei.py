@@ -12,7 +12,7 @@ Nur ZWEI Eingriffe, beide aus dem Code ableitbar:
    die umgebende Funktion und den gefangenen Typ - keine Variablen, keine
    Vermutungen. Damit kann nichts Geheimes ins Log geraten, und die Zeile sagt
    trotzdem, WO es passiert ist.
-2. ``# stumm gewollt: <Grund>`` fuer die Faelle, in denen Schweigen richtig IST
+2. ``# stumm gewollt: <Grund>`` für die Fälle, in denen Schweigen richtig IST
    und der Grund am gefangenen Typ ablesbar ist:
 
        except ImportError        -> optionale Abhaengigkeit
@@ -23,10 +23,10 @@ WAS ABSICHTLICH NICHT PASSIERT
 ==============================
 * Die ``except``-Zeile wird nicht um ``as e`` erweitert. ``logger.exception``
   braucht keinen Namen (es liest die laufende Ausnahme) - und ein neuer Name
-  koennte einen vorhandenen ueberdecken.
-* In einer Schleife, die den Eintrag ueberspringt (``continue``), wird
+  könnte einen vorhandenen ueberdecken.
+* In einer Schleife, die den Eintrag überspringt (``continue``), wird
   ``logger.debug`` statt ``logger.exception`` gesetzt. Sonst schreibt ein Lauf
-  ueber 100.000 Zeilen 100.000 Traceback-Bloecke - aus einem stummen Fehler
+  über 100.000 Zeilen 100.000 Traceback-Bloecke - aus einem stummen Fehler
   wuerde ein unlesbares Log.
 * Dateien unter ``tests`` bleiben unberuehrt: Dort ist ein geschluckter Fehler
   die Sache des Tests, nicht der Anwendung.
@@ -66,7 +66,7 @@ class Ausnahmedatei:
 
         Es wird der VORHANDENE Name benutzt (``log``, ``logger``, ``LOG`` …),
         nie ein neuer daneben gelegt: zwei Logger im selben Modul sind eine
-        zweite Quelle, und die laeuft auseinander.
+        zweite Quelle, und die läuft auseinander.
         """
         for zeile in self.zeilen:
             treffer = self.LOGGERZEILE.match(zeile)
@@ -153,12 +153,12 @@ class Ausnahmedatei:
 
     @classmethod
     def typname(cls, knoten):
-        """Erster gefangener Typ - fuer die Entscheidung „darf stumm bleiben"."""
+        """Erster gefangener Typ - für die Entscheidung „darf stumm bleiben"."""
         alle = cls.typen(knoten)
         return alle[0] if alle else ""
 
     def funktionsname(self, zeile):
-        """Name der Funktion, in der ``zeile`` steht - fuer die Meldung."""
+        """Name der Funktion, in der ``zeile`` steht - für die Meldung."""
         name = ""
         for k in ast.walk(self.baum):
             if isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef)):
@@ -168,7 +168,7 @@ class Ausnahmedatei:
         return name or "Modulebene"
 
     def vermerken(self, handler):
-        """``# stumm gewollt: <Grund>`` ueber den except-Block setzen."""
+        """``# stumm gewollt: <Grund>`` über den except-Block setzen."""
         typ = self.typname(handler)
         grund = self.STUMM_ERLAUBT.get(typ)
         if not grund:
@@ -193,7 +193,7 @@ class Ausnahmedatei:
         u"""Welche Log-Stufe passt - aus dem Code abgeleitet, nicht geraten.
 
         * ``continue`` im Rumpf: Der Block sitzt in einer Schleife und
-          ueberspringt einen Eintrag. ``debug`` — bei 100.000 Zeilen waere alles
+          überspringt einen Eintrag. ``debug`` — bei 100.000 Zeilen wäre alles
           andere unlesbar.
         * erwarteter Typ (siehe ``ERWARTET``): ``warning`` — die Meldung steht
           im Log, ohne Traceback.
@@ -210,13 +210,13 @@ class Ausnahmedatei:
     def protokollieren(self, handler, logger):
         u"""Log-Aufruf als erste Anweisung des Blocks einsetzen.
 
-        Drei Faelle, alle am Rumpf ablesbar:
+        Drei Fälle, alle am Rumpf ablesbar:
 
         * Der Block steht in EINER Zeile (``except X: pass``) - er wird auf zwei
           Zeilen gebracht, sonst liegt der Log-Aufruf hinter dem Doppelpunkt und
           der Rumpf verschwindet.
         * Der Rumpf ist genau ``pass`` - die Zeile wird ersetzt, ein ``pass``
-          neben einem Log-Aufruf waere Zierrat.
+          neben einem Log-Aufruf wäre Zierrat.
         * Sonst wird VOR die erste Anweisung eingesetzt.
         """
         typen = self.typen(handler) or ["Ausnahme"]
@@ -247,7 +247,7 @@ class Ausnahmedatei:
 
     @staticmethod
     def _doppelpunkt(zeile):
-        u"""Position des Doppelpunkts, der den Block oeffnet.
+        u"""Position des Doppelpunkts, der den Block öffnet.
 
         ``except (A, B):`` und ``except X as e:`` haben nur einen; ein
         Doppelpunkt in einer Zeichenkette dahinter darf nicht gewinnen, deshalb
@@ -270,9 +270,9 @@ class Ausnahmedatei:
 
         ALLE Eingriffe in EINER Liste, streng von unten nach oben. Der erste
         Wurf lief zweimal durch (erst Ersetzungen, dann Einschuebe) - und weil
-        eine Ersetzung die Zeilenzahl aendert (aus ``pass`` werden zwei Zeilen),
+        eine Ersetzung die Zeilenzahl ändert (aus ``pass`` werden zwei Zeilen),
         zeigten die danach angewandten Zeilennummern ins Verrutschte. Von unten
-        nach oben kann keine Aenderung die Nummern der noch offenen treffen.
+        nach oben kann keine Änderung die Nummern der noch offenen treffen.
         """
         eingriffe = ([(n, "ersetzen", z) for n, z in self._ersetzungen.items()]
                      + [(n, "einschub", z) for n, z in self._einschuebe])

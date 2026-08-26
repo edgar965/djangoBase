@@ -1,4 +1,4 @@
-"""Endpunktzeiten — Laufzeit und Antwortgroesse jeder GET-Route."""
+"""Endpunktzeiten — Laufzeit und Antwortgröße jeder GET-Route."""
 
 from statistics import median
 
@@ -7,7 +7,7 @@ from .befund import Befund, Befundsatz, BefundWerkzeug
 
 
 class Messwert:
-    """Messung einer Route: Bestzeit, Median, Groesse, Statuscode."""
+    """Messung einer Route: Bestzeit, Median, Größe, Statuscode."""
 
     __slots__ = ('weg', 'best_ms', 'median_ms', 'bytes', 'status')
 
@@ -28,15 +28,15 @@ class Endpunktzeiten(BefundWerkzeug):
     slug = 'endpunkt-zeiten'
     titel = 'Endpunkt-Zeiten'
     zweck = ('Ruft jede GET-Route mehrfach auf und listet Bestzeit, Median und '
-             'Antwortgroesse — die langsamsten zuerst.')
+             'Antwortgröße — die langsamsten zuerst.')
     abhilfe = ('Als erster Schritt jedes Performance-Durchgangs. Erst messen, dann '
             'optimieren: Die teuerste Stelle liegt fast nie dort, wo man sie '
             'vermutet.')
-    befund = ('Im Ursprungsprojekt standen so acht Endpunkte ueber 200 ms auf der '
+    befund = ('Im Ursprungsprojekt standen so acht Endpunkte über 200 ms auf der '
              'Liste — der langsamste mit 5.880 ms. Nach dem Durchgang war keiner '
-             'mehr ueber 250 ms; die Antwort einer Einstellungsseite schrumpfte '
+             'mehr über 250 ms; die Antwort einer Einstellungsseite schrumpfte '
              'von 4,7 MB auf 28 KB.')
-    dauer = ('mehrere Minuten — gemessen: 172 s fuer 188 Routen bei EINEM '
+    dauer = ('mehrere Minuten — gemessen: 172 s für 188 Routen bei EINEM '
              'Aufruf je Route')
     eingabe = ('laeufe', 'Aufrufe je Route', '3')
     ruft_endpunkte_auf = True
@@ -85,9 +85,9 @@ class Endpunktzeiten(BefundWerkzeug):
                    for m in messwerte[:self.ZEILEN]]
         kopf = [
             '%d Routen gemessen, %d Aufrufe je Route' % (len(messwerte), anzahl),
-            '%d ueber %d ms' % (len(auffaellig), self.GRENZE_MS),
+            '%d über %d ms' % (len(auffaellig), self.GRENZE_MS),
             'gemessen wird die Serverzeit im selben Prozess — ohne Netz und ohne '
-            'Browser; die Antwortgroesse zeigt, was zusaetzlich uebertragen wird',
+            'Browser; die Antwortgröße zeigt, was zusätzlich uebertragen wird',
         ]
         # Kappung benennen: Eine stillschweigend gekuerzte Liste liest sich wie
         # "mehr gibt es nicht" — und genau so entstehen uebersehene Ausreisser.

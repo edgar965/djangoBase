@@ -48,7 +48,7 @@ class WasAufModulebeneSteht(BasisTest):
         self.assertEqual(b.funktionen[0].zusatz, 'x, y')
 
     def test_eine_methode_ist_keine_freie_funktion(self):
-        u"""Nur die OBERSTE Ebene zaehlt — sonst waere jede Methode ein Fund."""
+        u"""Nur die OBERSTE Ebene zählt — sonst wäre jede Methode ein Fund."""
         b = _bestand({'a.py': (
             'class Gast:\n'
             '    def buchen(self):\n        pass\n')})
@@ -108,7 +108,7 @@ class WelcheSeiteWelchesSkript(BasisTest):
         self.assertEqual(skripte, ['app/js/start.js'])
 
     def test_die_abhaengigkeiten_stehen_daneben(self):
-        u"""Ein Skript zieht weitere — das gehoert zur Seite."""
+        u"""Ein Skript zieht weitere — das gehört zur Seite."""
         _js, abh = self._seiten().seiten[0].skripte[0]
         self.assertEqual(abh, ['teil_a.js', 'teil_b.js'])
 
@@ -212,7 +212,7 @@ class DieZahlenSagenDasselbe(BasisTest):
                          'Zahlen — dann glaubt man keiner von beiden.')
 
     def test_gleichnamige_klassen_zaehlen_einmal(self):
-        u"""In CamTrack heissen 82 Klassen doppelt: 1086 gegen 1004."""
+        u"""In CamTrack heißen 82 Klassen doppelt: 1086 gegen 1004."""
         quellen = {q['name']: q['klassen'] for q in hauptaeste(self._projekt())}
         self.assertEqual(quellen['echt'], 3, 'Eins, Zwei, DreiTest')
 

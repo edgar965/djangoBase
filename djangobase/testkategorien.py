@@ -104,7 +104,7 @@ class Kategorien:
                        + ["--noinput", "-v", "2"]}
 
     def sammelbefehle(self):
-        """Alle abgeleiteten Eintraege - fuer die Ausfuehrung per ``?run=``."""
+        """Alle abgeleiteten Einträge - für die Ausfuehrung per ``?run=``."""
         aus = [self.alles] if self.alles else []
         return aus + [a["sammel"] for a in self.arten if a.get("sammel")]
 
@@ -115,7 +115,7 @@ class Kategorien:
         Projekte, die ihre Liste von Hand pflegen, sehen die Seite damit
         unveraendert. Wer :class:`~.testbefehle.Testbefehle` benutzt, bekommt je
         Bereich eine eigene Karte (Kriterium 17: keine flache Liste aus hundert
-        Eintraegen)."""
+        Einträgen)."""
         aus, nach_name = [], {}
         for b in self.suiten:
             name = b.get("gruppe") or "Test-Suiten (Batch)"

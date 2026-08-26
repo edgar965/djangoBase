@@ -165,7 +165,7 @@ class Speicher:
     def holen(cls, wurzel, neu=False):
         u"""``(Wert, Alter in Sekunden oder None)``.
 
-        ``None`` als Alter heisst: gerade eben gerechnet.
+        ``None`` als Alter heißt: gerade eben gerechnet.
         """
         schluessel = str(wurzel)
         gemerkt = cls._gemerkt()

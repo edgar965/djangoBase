@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 u"""Hilfe -> Skills: DER Werkzeugkasten.
 
-Die Seite vereint skills2 (Engine) und skills (Import-Graph, Doppelcode ueber
+Die Seite vereint skills2 (Engine) und skills (Import-Graph, Doppelcode über
 HTML, tote Importe, Synonyme, Vorlagen-/Endpunkt-Analysen). Die skills-Werkzeuge
-laufen ueber einen Adapter in derselben Tabellen-Welt. Ausgefuehrt wird
-server-seitig als Stapel (Auswahl ankreuzen, EIN POST); jeder Lauf haengt seinen
+laufen über einen Adapter in derselben Tabellen-Welt. Ausgefuehrt wird
+server-seitig als Stapel (Auswahl ankreuzen, EIN POST); jeder Lauf hängt seinen
 Klartext-Bericht unten an - von dort in eine Sitzung kopierbar.
 
 Sicherheit: Gestartet wird nur, was in der Registry steht - die Kennungen aus der
-Anfrage werden dagegen geprueft, nicht ausgefuehrt.
+Anfrage werden dagegen geprüft, nicht ausgefuehrt.
 """
 import time
 from datetime import datetime
@@ -99,11 +99,11 @@ class SkillsView(ZugriffMixin, View):
     # --------------------------------------------------------------- Umbau-Netz
 
     def _netz(self, request):
-        """Abnahme vor dem Umbau, Vergleich danach - beides ueber die Repo-Wurzel.
+        """Abnahme vor dem Umbau, Vergleich danach - beides über die Repo-Wurzel.
 
         Bewusst NICHT auf den Fix-Bereich eingeschraenkt: Wandert eine Funktion
-        beim Schnitt in ein Modul ausserhalb des Bereichs, muesste sie als
-        verschwunden gelten - und das waere ein Fehlalarm auf genau dem Weg, den
+        beim Schnitt in ein Modul außerhalb des Bereichs, muesste sie als
+        verschwunden gelten - und das wäre ein Fehlalarm auf genau dem Weg, den
         ein Umbau nimmt."""
         netz = Umbaunetz()
         wurzel = Path(str(settings.BASE_DIR))
@@ -129,14 +129,14 @@ class SkillsView(ZugriffMixin, View):
         bereich = (request.POST.get("fix_bereich") or "").strip().strip("/\\")
         fixer = fixer_finden(slug)
         if fixer is None:
-            return self._seite(request, "Kein Fixer fuer '%s'." % escape(slug), [])
+            return self._seite(request, "Kein Fixer für '%s'." % escape(slug), [])
 
         basis = Path(str(settings.BASE_DIR))
         if bereich:
             ziel = (basis / bereich).resolve()
             if ziel != basis and basis not in ziel.parents:
                 return self._seite(
-                    request, "Bereich '%s' liegt ausserhalb des Projekts — abgelehnt."
+                    request, "Bereich '%s' liegt außerhalb des Projekts — abgelehnt."
                     % bereich, [], fix={"slug": slug, "bereich": bereich,
                                         "n": 0, "modus": "vorschau"})
             # Die Fixer leiten ihre Wurzel selbst ab; fuer den Bereichslauf wird
@@ -176,7 +176,7 @@ class SkillsView(ZugriffMixin, View):
     @staticmethod
     def _fix_bericht(fixer, erg):
         zeilen = ["ANGEWENDET: %s" % fixer.titel,
-                  "%d geschrieben, %d zurueckgespielt, %d uebersprungen."
+                  "%d geschrieben, %d zurueckgespielt, %d übersprungen."
                   % (len(erg["geschrieben"]), len(erg["zurueckgespielt"]),
                      len(erg["uebersprungen"])), ""]
         for e in erg["geschrieben"]:
@@ -212,7 +212,7 @@ class SkillsView(ZugriffMixin, View):
     def _ausfuehren(werkzeug, argumente):
         """Ein Werkzeug fahren, Fehler abfangen, Wall-Zeit messen.
 
-        Der Fehlerfang gehoert hierher: Die skills2-Basisklasse hat keinen
+        Der Fehlerfang gehört hierher: Die skills2-Basisklasse hat keinen
         Wrapper (dort faengt die Einzel-View ab), und ein Stapel darf nicht an
         EINEM kaputten Werkzeug abbrechen. Werkzeuge ohne Eingabefeld werden
         ohne Argumente gerufen - die skills2-Werkzeuge nehmen keine."""
@@ -272,9 +272,9 @@ class SkillsView(ZugriffMixin, View):
              gliedere diese Bereiche ein in der Art und weise der Tabellen
              wie die vorherigen Bereiche"
 
-        Unter der Tabelle standen zwei Kaesten — „Logging & Tests" und
+        Unter der Tabelle standen zwei Kästen — „Logging & Tests" und
         „Klassen & Zustand" — mit je einem Knopf, der alle Werkzeuge eines
-        Kriteriums in einem Lauf faehrt. Die zehn Werkzeuge darin standen
+        Kriteriums in einem Lauf fährt. Die zehn Werkzeuge darin standen
         aber laengst in der Tabelle, verteilt auf drei Abschnitte:
 
             Stille Fehler                    jsstumm, protokoll, schreibrouten
@@ -282,24 +282,24 @@ class SkillsView(ZugriffMixin, View):
             Tests und Werkzeuge selbst       testaufbau, testdeckung, …
 
         Zwei Darstellungen derselben Sache also, und die zweite fing mit
-        „17." und „18." an — als waeren es neue Bereiche. Das waren sie nie.
+        „17." und „18." an — als wären es neue Bereiche. Das waren sie nie.
 
         Der Knopf war das einzig Eigene daran. Er sitzt jetzt in der
-        Abschnitts-Zeile und gilt fuer ALLE Abschnitte, nicht fuer zwei
-        ausgewaehlte.
+        Abschnitts-Zeile und gilt für ALLE Abschnitte, nicht für zwei
+        ausgewählte.
         """
         return (
             '<b>%s</b> <span class="sk1-leise">%s</span>'
             '<button type="submit" name="bereich" value="%d" formnovalidate'
             ' class="sk1-knopf" style="float:right;"'
             ' title="Alle %d Werkzeuge dieses Bereichs in einem Lauf">'
-            '<i class="bi bi-play-circle"></i> Bereich pruefen</button>'
+            '<i class="bi bi-play-circle"></i> Bereich prüfen</button>'
             % (escape(bereich["name"]), escape(bereich["warum"]),
                nummer, anzahl))
 
     @classmethod
     def _bereich_slugs(cls, nummer):
-        u"""Die Werkzeuge EINES Abschnitts — fuer den Knopf in seiner Zeile."""
+        u"""Die Werkzeuge EINES Abschnitts — für den Knopf in seiner Zeile."""
         try:
             nummer = int(nummer)
         except (TypeError, ValueError):
@@ -310,7 +310,7 @@ class SkillsView(ZugriffMixin, View):
         return [w.slug for _rang, w in abschnitte[nummer]["eintraege"]]
 
     def _tabelle(self, gelaufen):
-        """Struktur fuer djangobase/_tabelle.html. Die Zellen enthalten die
+        """Struktur für djangobase/_tabelle.html. Die Zellen enthalten die
         Formularfelder; die Tabelle steht innerhalb des Formulars."""
         zeilen = []
         rang = rangliste()
@@ -332,7 +332,7 @@ class SkillsView(ZugriffMixin, View):
         return self._rahmen(zeilen)
 
     def _zeile(self, w, nr, gelaufen):
-        u"""Eine Werkzeug-Zeile. Herausgeloest, weil _tabelle sonst ueber
+        u"""Eine Werkzeug-Zeile. Herausgeloest, weil _tabelle sonst über
         300 Zeilen ginge und zwei Dinge zugleich taete."""
         return {
             "klasse": "db-hervor" if w.slug in gelaufen else "",
@@ -378,19 +378,19 @@ class SkillsView(ZugriffMixin, View):
     # ------------------------------------------------------ Fix-Werkzeuge
 
     def _fixtabelle(self, fix):
-        u"""Die Fix-Werkzeuge in derselben Tabelle wie die Pruefer.
+        u"""Die Fix-Werkzeuge in derselben Tabelle wie die Prüfer.
 
             „ordne den Bereich Fix-Werkzeuge · schreiben Code — Diff-Vorschau
              zuerst auch in einer tabelle, mit veraenderbaren nummern"
 
         Vorher war es eine Liste von ``sk1-fixzeile``-Bloecken: keine
         Nummer, keine Sortierung, keine Spalten. Dieselbe Sorte Sonderfall
-        wie die zwei Kaesten, die heute schon weggefallen sind — was
-        nebeneinander gehoert, gehoert in dieselbe Tabelle.
+        wie die zwei Kästen, die heute schon weggefallen sind — was
+        nebeneinander gehört, gehört in dieselbe Tabelle.
 
-        Der Anwenden-Knopf erscheint NUR fuer den Fixer, dessen Vorschau
+        Der Anwenden-Knopf erscheint NUR für den Fixer, dessen Vorschau
         gerade gelaufen ist und etwas gefunden hat. Ein Knopf, der ohne
-        Vorschau schreibt, waere die Falle, gegen die es die Vorschau gibt.
+        Vorschau schreibt, wäre die Falle, gegen die es die Vorschau gibt.
         """
         rang = fixerrangliste()
         alle = list(fixer())
@@ -408,7 +408,7 @@ class SkillsView(ZugriffMixin, View):
                  "titel": "Eindeutige Nummer. Aendern verschiebt den Eintrag."},
                 {"label": "Fix-Werkzeug", "key": "name"},
                 {"label": "Behebt", "key": "behebt",
-                 "titel": "Die Pruefung, deren Befund dieser Fixer behebt"},
+                 "titel": "Die Prüfung, deren Befund dieser Fixer behebt"},
                 {"label": "Was es tut", "key": "zweck"},
                 {"label": "Grenzen", "key": "grenzen"},
                 {"label": "Aktion", "key": "start", "sortAus": True},
@@ -462,18 +462,18 @@ class SkillsView(ZugriffMixin, View):
     # ------------------------------------------------------------- Lehren
 
     def _lehrentabelle(self):
-        u"""Die Lehren in derselben Tabelle wie Pruefer und Fixer.
+        u"""Die Lehren in derselben Tabelle wie Prüfer und Fixer.
 
             „mach die Lehren auch in einer veraenderbaren Tabelle mit
              veraenderbaren Nummern"
 
         Vorher eine Liste von ``sk-lehre``-Bloecken, nach Bereichen
         gruppiert: kein Rang, keine Sortierung, keine Spalten. Der Bereich
-        geht dabei nicht verloren — er wird eine SPALTE und laesst sich
+        geht dabei nicht verloren — er wird eine SPALTE und lässt sich
         damit sogar sortieren, was er als Zwischenueberschrift nicht
         konnte.
 
-        Das Haekchen bleibt, was es war: „gilt fuer dieses Projekt".
+        Das Haekchen bleibt, was es war: „gilt für dieses Projekt".
         """
         stand = Lehrenstand.laden()
         rang = lehrenrangliste()
@@ -495,9 +495,9 @@ class SkillsView(ZugriffMixin, View):
                  "titel": "Eindeutige Nummer. Aendern verschiebt den Eintrag."},
                 {"label": "Bereich", "key": "bereich"},
                 {"label": "Lehre", "key": "name"},
-                {"label": "Regel und Begruendung", "key": "regel"},
-                {"label": "Pruefung", "key": "pruefung",
-                 "titel": "Welches Werkzeug haelt diese Regel?"},
+                {"label": "Regel und Begründung", "key": "regel"},
+                {"label": "Prüfung", "key": "pruefung",
+                 "titel": "Welches Werkzeug hält diese Regel?"},
             ],
             "zeilen": zeilen,
             "leer": "keine Lehren hinterlegt",
@@ -513,7 +513,7 @@ class SkillsView(ZugriffMixin, View):
         else:
             # KEINE PRUEFUNG IST EINE AUSSAGE, keine fehlende Angabe: Diese
             # Regel haengt allein an der Sorgfalt dessen, der schreibt.
-            pruefung = ('<span class="sk1-leise">keine — diese Regel prueft '
+            pruefung = ('<span class="sk1-leise">keine — diese Regel prüft '
                         'kein Werkzeug</span>')
         text = '<span class="sk1-fixtut">%s</span>' % escape(lehre.regel)
         text += ('<span class="sk1-dauer"><b>Warum:</b> %s</span>'

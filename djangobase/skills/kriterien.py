@@ -2,7 +2,7 @@
 u"""Die Kriterien des Review-Auftrags - und welches Werkzeug sie bedient.
 
 Der Auftrag, aus dem Skills2 entstanden ist, nannte 14 Punkte. Zehn davon lassen
-sich mechanisch pruefen; die uebrigen vier NICHT - und das ist keine Luecke im
+sich mechanisch prüfen; die übrigen vier NICHT - und das ist keine Lücke im
 Werkzeugkasten, sondern eine Eigenschaft der Punkte selbst. Sie stehen hier
 trotzdem, mit dem Weg, der bei ihnen funktioniert hat.
 

@@ -12,7 +12,7 @@ Ohne sie meldete das Protokoll-Werkzeug beim ersten Lauf **3.017 Stellen**, die
 allermeisten aus Fremdcode. Das ist die teuerste Sorte Fehlalarm: Sie verdeckt
 die echten Befunde, statt nur danebenzuliegen.
 
-Ergaenzbar bleibt es je Projekt ueber ``DJANGOBASE["skills2_ignorieren"]`` - die
+Ergaenzbar bleibt es je Projekt über ``DJANGOBASE["skills2_ignorieren"]`` - die
 Liste hier ist nur die Grundausstattung.
 """
 from .werkzeug import Werkzeug
@@ -37,14 +37,14 @@ class EigenesWerkzeug(Werkzeug):
     die Ausschluesse sind dort zusammengefasst, wo alle Werkzeuge sie sehen."""
 
     def hat_code(self):
-        """Gibt es im geprueften Baum ueberhaupt Quelltext ausser Tests?
+        """Gibt es im geprueften Baum ueberhaupt Quelltext außer Tests?
 
-        Zwei dieser Werkzeuge beantworten Fragen ueber das GANZE Projekt
+        Zwei dieser Werkzeuge beantworten Fragen über das GANZE Projekt
         („keine Tests", „diese Seite hat keinen Test") und holen sich einen Teil
         ihrer Antwort nicht aus den Dateien, sondern aus Django selbst - der
-        URL-Tabelle. Auf einem leeren Verzeichnis melden sie dann Befunde ueber
+        URL-Tabelle. Auf einem leeren Verzeichnis melden sie dann Befunde über
         ein Projekt, das dort gar nicht liegt. Das ist ein Fehlalarm, und die
-        Gegenprobe „laeuft auf leerem Projekt ohne Befund" faengt ihn (17.08.2026).
+        Gegenprobe „läuft auf leerem Projekt ohne Befund" faengt ihn (17.08.2026).
         """
         for d in self.dateien():
             kurz = d.name.rsplit("/", 1)[-1]

@@ -53,7 +53,7 @@ __all__ = ["Frontendquellen"]
 
 
 class Frontendquellen:
-    """Die Frontend-Dateien eines Projekts - fuer alle Werkzeuge dieselben."""
+    """Die Frontend-Dateien eines Projekts - für alle Werkzeuge dieselben."""
 
     #: Ordnernamen mit fremdem oder erzeugtem Code — projektunabhaengig.
     #: ``theatre`` und ``theatre-studio`` standen hier ebenfalls: 3DTools-Ordner
@@ -106,12 +106,12 @@ class Frontendquellen:
         u"""Darf diese Datei in die Konsole schreiben, ohne dass es ein Befund ist?
 
         DREI WEGE, und der dritte ist der wichtige: **``dauerhaft gewollt`` im
-        Dateikopf** nimmt die ganze Datei aus. Damit steht die Begruendung DORT,
-        wo die Ausgabe gewollt ist, statt als Pfad in einer Liste im Pruefer.
+        Dateikopf** nimmt die ganze Datei aus. Damit steht die Begründung DORT,
+        wo die Ausgabe gewollt ist, statt als Pfad in einer Liste im Prüfer.
 
         WARUM HIER UND NICHT IN EINEM WERKZEUG (17.08.2026): ``jsregeln`` hatte
         diese drei Ausnahmen, ``protokoll`` keine — zwei Werkzeuge, die dasselbe
-        zaehlen, mit verschiedenen Massstaeben. ``protokoll`` meldete deshalb 189
+        zählen, mit verschiedenen Massstaeben. ``protokoll`` meldete deshalb 189
         ``console.*``-Stellen, darunter 24 aus einem Playwright-Laeufer, dessen
         Ausgabe das Ergebnis IST.
         """
@@ -137,7 +137,7 @@ class Frontendquellen:
         return aus
 
     def texte(self, *endungen):
-        """[(kurzer Pfad, Zeilenliste)] - fuer Werkzeuge, die ueber Zeilen gehen."""
+        """[(kurzer Pfad, Zeilenliste)] - für Werkzeuge, die über Zeilen gehen."""
         aus = []
         for pfad, kurz in self.paare(*endungen):
             try:

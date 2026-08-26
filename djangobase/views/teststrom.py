@@ -88,8 +88,8 @@ class TestStromView(ZugriffMixin, View):
     def _abbrechen(request):
         u"""Den laufenden Lauf beenden - samt Prozessbaum und Sperre.
 
-        Ohne diesen Weg haelt ein haengender Lauf die Sperre bis zur Frist
-        (eine Stunde), und niemand kann etwas tun ausser den Server neu zu
+        Ohne diesen Weg hält ein haengender Lauf die Sperre bis zur Frist
+        (eine Stunde), und niemand kann etwas tun außer den Server neu zu
         starten.
         """
         erfolg, meldung = Laufsperre().abbrechen()

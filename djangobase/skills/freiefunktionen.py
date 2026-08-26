@@ -1,4 +1,4 @@
-"""FreieFunktionen — Funktionen auf Modulebene, die in eine Klasse gehoeren."""
+"""FreieFunktionen — Funktionen auf Modulebene, die in eine Klasse gehören."""
 
 import ast
 import re
@@ -52,11 +52,11 @@ class Modulsicht:
         """Funktionen mit gemeinsamem Namensanfang — die deutlichsten Kandidaten.
 
         `lade_bvh`, `pruefe_bvh`, `schreibe_bvh` sind drei Funktionen mit
-        demselben Gegenstand: zusammen eine Klasse. Gruppiert wird ueber den
+        demselben Gegenstand: zusammen eine Klasse. Gruppiert wird über den
         ersten Namensteil vor dem Unterstrich, in beide Richtungen (Praefix und
         Suffix), weil beide Schreibweisen ueblich sind.
 
-        Ein Verb als Schluessel zaehlt NICHT — siehe `VERBEN`.
+        Ein Verb als Schlüssel zählt NICHT — siehe `VERBEN`.
         """
         nach_anfang = defaultdict(list)
         nach_ende = defaultdict(list)
@@ -85,8 +85,8 @@ class FreieFunktionen(BefundWerkzeug):
     kriterium = 1
     titel = 'Freie Funktionen'
     zweck = ('Zeigt Module mit vielen Funktionen auf Modulebene und findet '
-             'Buendel gleichen Namensanfangs — die naheliegenden Kandidaten '
-             'fuer eine Klasse.')
+             'Bündel gleichen Namensanfangs — die naheliegenden Kandidaten '
+             'für eine Klasse.')
     abhilfe = ('Beim Umstieg auf Objektorientierung. Drei Funktionen mit demselben '
             'Namensanfang und demselben ersten Argument sind fast immer eine '
             'Klasse, die noch niemand geschrieben hat.')
@@ -105,7 +105,7 @@ class FreieFunktionen(BefundWerkzeug):
                               % (i, i) for i in range(1, 9))},
         mindestens=1, erwartet_in="helfer.py",
         warum="Acht lose Funktionen auf Modulebene: Der Zusammenhang steht "
-              "nirgends, und jede traegt ihren Zustand selbst")
+              "nirgends, und jede trägt ihren Zustand selbst")
 
     def pruefen(self, ab='1', **_argumente):
         try:
@@ -132,8 +132,8 @@ class FreieFunktionen(BefundWerkzeug):
                     '%d Weiterleitungen vor %d Klasse(n)'
                     % (sicht.weiterleitungen, sicht.klassen),
                     'Die Klasse steht schon da; die freien Funktionen geben '
-                    'nur weiter. Abreissen kostet so viele Aenderungen, wie '
-                    'es Aufrufstellen gibt — erst zaehlen, dann entscheiden.',
+                    'nur weiter. Abreissen kostet so viele Änderungen, wie '
+                    'es Aufrufstellen gibt — erst zählen, dann entscheiden.',
                     Befund.HINWEIS))
                 continue
 
@@ -167,7 +167,7 @@ class FreieFunktionen(BefundWerkzeug):
         kopf = ['%d Module, %d Funktionen auf Modulebene' % (len(sichten), gesamt),
                 '%d Module mit mindestens %d freien Funktionen'
                 % (len(befunde), grenze),
-                '%d davon stehen in einem Buendel gleichen Namensanfangs — '
+                '%d davon stehen in einem Bündel gleichen Namensanfangs — '
                 'das sind die Klassen, die noch niemand geschrieben hat'
                 % gebuendelt]
         return Befundsatz(self.titel, kopf, befunde)
@@ -219,9 +219,9 @@ class FreieFunktionen(BefundWerkzeug):
     def _rufer_sammeln(self, baum, hinein, datei=None):
         u"""Welche KLASSE ruft welche Funktion beim Namen?
 
-        Damit laesst sich die zweite Haelfte der Frage beantworten: nicht
-        nur „diese drei gehoeren in eine Klasse", sondern auch „und diese
-        Klasse gehoert dorthin".
+        Damit lässt sich die zweite Haelfte der Frage beantworten: nicht
+        nur „diese drei gehören in eine Klasse", sondern auch „und diese
+        Klasse gehört dorthin".
         """
         if datei is not None and ('test' in datei.name.lower()
                                  or 'tests' in datei.parts):
@@ -237,14 +237,14 @@ class FreieFunktionen(BefundWerkzeug):
 
     @staticmethod
     def _klassenname(schluessel, pfad=None):
-        u"""Ein Klassenname — aus dem Buendel, sonst aus dem DATEINAMEN.
+        u"""Ein Klassenname — aus dem Bündel, sonst aus dem DATEINAMEN.
 
         `person` -> `PersonVerwaltung`, `marzahn` -> `MarzahnVerwaltung`.
 
-        Ohne Buendel gilt die Datei. `path_resolver.py` -> `PathResolver`,
+        Ohne Bündel gilt die Datei. `path_resolver.py` -> `PathResolver`,
         `mqtt.py` -> `Mqtt`, `ffmpeg_path.py` -> `FfmpegPath`. Der Dateiname
         ist der bessere Ausgangspunkt, sobald der gemeinsame Namensteil ein
-        Verb waere: fuer `path_resolver.py` kam vorher `GetVerwaltung`
+        Verb wäre: für `path_resolver.py` kam vorher `GetVerwaltung`
         heraus — das Verb hatten alle gemeinsam, den Gegenstand keine.
 
         Ein Vorschlag, kein Befehl: Wer die Klasse schreibt, findet meist
@@ -267,8 +267,8 @@ class FreieFunktionen(BefundWerkzeug):
         u"""Namen, die in einer `urls.py` als Ansicht eingetragen sind.
 
         Sie werden vom URL-Router gerufen, nicht von einer Klasse. „Niemand
-        ruft sie" waere deshalb die falsche Auskunft — richtig ist: Django
-        hat dafuer die klassenbasierte Ansicht, und djangoBase benutzt sie
+        ruft sie" wäre deshalb die falsche Auskunft — richtig ist: Django
+        hat dafür die klassenbasierte Ansicht, und djangoBase benutzt sie
         durchgehend (`SkillsView(ZugriffMixin, View)`).
         """
         if datei.name != 'urls.py':
@@ -283,15 +283,15 @@ class FreieFunktionen(BefundWerkzeug):
                 hinein.add(name)
 
     def _wo_hin(self, eintraege, rufer, ansichten, eigene_klassen):
-        u"""In welchen Baum gehoert die neue Klasse?
+        u"""In welchen Baum gehört die neue Klasse?
 
         DIE ZWEITE HAELFTE DER FRAGE (Edgar, 24.08.2026)
         ================================================
             „die sollen als Klassen zusammengefasst werden, und dann
-             moeglichst in dem Baum der sie braucht"
+             möglichst in dem Baum der sie braucht"
 
-        Das Werkzeug meldete bisher nur „diese fuenf gehoeren in eine
-        Klasse". Wo diese Klasse dann haengt, blieb offen — und genau daran
+        Das Werkzeug meldete bisher nur „diese fünf gehören in eine
+        Klasse". Wo diese Klasse dann hängt, blieb offen — und genau daran
         scheitert der Umbau: Eine neue Klasse ohne Platz im Baum ist wieder
         eine Wurzel, und davon gab es schon zu viele.
 
@@ -303,11 +303,11 @@ class FreieFunktionen(BefundWerkzeug):
             gesamt.update(rufer.get(name) or {})
         if gesamt:
             klasse, zahl = gesamt.most_common(1)[0]
-            return ('Haengt an `%s` — die ruft sie %dx, wer sie braucht soll '
+            return ('Hängt an `%s` — die ruft sie %dx, wer sie braucht soll '
                     'sie halten.' % (klasse, zahl))
         treffer = sum(1 for n, _z, _l in eintraege if n in ansichten)
         if treffer:
-            return ('%d davon sind Django-Ansichten: gehoeren in eine '
+            return ('%d davon sind Django-Ansichten: gehören in eine '
                     'klassenbasierte Ansicht (`View`), nicht in eine eigene '
                     'Klasse daneben.' % treffer)
         if eigene_klassen:

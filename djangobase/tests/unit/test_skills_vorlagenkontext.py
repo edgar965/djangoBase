@@ -6,7 +6,7 @@ WARUM DIESE DATEI AM 23.08.2026 ENTSTAND
 Das Werkzeug meldete an CamTrack **29 Befunde**. Nachgeprueft, einzeln:
 
     21 x TOT       alle echt — darunter eine Kamera-Abfrage je Seiten-
-                   aufruf fuer sechs Namen, die `help/recordings.html`
+                   aufruf für sechs Namen, die `help/recordings.html`
                    nicht liest
      2 x FEHLEND   echt: zwei Seiten ohne `title`, der Reiter blieb leer
      7 x FEHLEND   **alle falsch**
@@ -19,7 +19,7 @@ Die sieben sahen so aus::
     Haupt: {{ main_probe.width|default:'?' }}
 
 Die Vorlage rechnet jedes Mal damit, dass der Name fehlt — im `{% if %}`
-oder mit `|default:`. Ein Pruefer, der zu hundert Prozent falsch meldet,
+oder mit `|default:`. Ein Prüfer, der zu hundert Prozent falsch meldet,
 wird abgestellt; danach faengt er auch die echten zwei nicht mehr.
 
 DIE GEGENPROBE IST DER WICHTIGSTE TEST HIER
@@ -43,7 +43,7 @@ from ..base import BasisTest
 
 
 class Vorlagenprobe(Vorlagensicht):
-    u"""`Vorlagensicht` fuer eine Vorlage aus dem Speicher.
+    u"""`Vorlagensicht` für eine Vorlage aus dem Speicher.
 
     Der Lader braucht eine Datei auf der Platte; hier geht es nur um das
     Ablaufen des Knotenbaums, und den liefert `from_string` genauso.
@@ -65,7 +65,7 @@ class WasDieVorlageUnbedingtLiest(BasisTest):
         u"""OHNE DIESEN TEST IST ALLES ANDERE WERTLOS.
 
         Beide Ausnahmen unten machen das Werkzeug leiser. Wenn sie es zu
-        leise machen, faellt es hier auf.
+        leise machen, fällt es hier auf.
         """
         probe = Vorlagenprobe('<h1>{{ titel }}</h1>')
         self.assertIn('titel', probe.fest)
@@ -83,7 +83,7 @@ class WasDieVorlageUnbedingtLiest(BasisTest):
     # ------------------------------------------------------ `{% if %}`-Fall
     def test_im_rumpf_einer_bedingung_ist_der_name_wahlfrei(self):
         u"""`{% if is_edit %}...{{ camera.name }}...{% endif %}` — auf dem
-        Anlegen-Weg gibt es keine Kamera, und die Vorlage weiss das."""
+        Anlegen-Weg gibt es keine Kamera, und die Vorlage weiß das."""
         probe = Vorlagenprobe('{% if is_edit %}{{ camera.name }}{% endif %}')
         self.assertIn('camera', probe.gelesen)
         self.assertNotIn('camera', probe.fest)
@@ -175,12 +175,12 @@ class DasWerkzeugAmEchtenProjekt(BasisTest):
 
         Hier stand ``titel``. In CamTrack liefert ein Kontextprozessor
         genau diesen Namen an jede Vorlage — das Werkzeug zog ihn also zu
-        Recht ab, und die Pruefung fiel durch, obwohl das Werkzeug richtig
-        lag. Sie haette in jedem Projekt mit einem ``titel``-Prozessor
+        Recht ab, und die Prüfung fiel durch, obwohl das Werkzeug richtig
+        lag. Sie hätte in jedem Projekt mit einem ``titel``-Prozessor
         rot gemeldet.
 
-        Eine Pruefung, die vom Wirtsprojekt abhaengt, prueft nicht das
-        Werkzeug. Der Name traegt deshalb jetzt ein Praefix, das in
+        Eine Prüfung, die vom Wirtsprojekt abhaengt, prüft nicht das
+        Werkzeug. Der Name trägt deshalb jetzt ein Praefix, das in
         keinem Projekt vorkommt.
         """
         satz = self._lauf(

@@ -4,9 +4,9 @@ u"""TestDauerView - Laufzeit eines im BROWSER gefahrenen Tests entgegennehmen.
 WARUM ES DIESEN EINEN SCHREIB-ENDPUNKT GIBT
 ===========================================
 Die UI-/Browser-Tests laufen nicht im Serverprozess, sondern im Iframe der
-Tests-Seite. Ihre Laufzeit kennt nur der Browser. Ohne diesen Endpunkt haetten
+Tests-Seite. Ihre Laufzeit kennt nur der Browser. Ohne diesen Endpunkt hätten
 sie als einzige Liste keine Historie - und „bei jedem Testcase soll auch die
-Performance aufnotiert werden" (Ansage 17.08.2026) gilt fuer alle.
+Performance aufnotiert werden" (Ansage 17.08.2026) gilt für alle.
 
 Er schreibt in dieselbe Datei wie die serverseitigen Laeufe
 (``logs/testhistorie.json``), damit es EINE Historie gibt und nicht zwei.
@@ -18,7 +18,7 @@ WAS ER NICHT ANNIMMT
   Laufzeit eines Python-Tests ueberschreiben.
 * Kennung hoechstens 200 Zeichen, Dauer 0 bis 3600 s, und hoechstens
   ``HOECHSTENS`` verschiedene UI-Kennungen in der Datei. Ohne diese Grenzen
-  koennte ein Aufruf in einer Schleife die Datei beliebig gross machen.
+  könnte ein Aufruf in einer Schleife die Datei beliebig groß machen.
 """
 import json
 import logging

@@ -14,14 +14,14 @@ DREI SORTEN
 
 DIE GRENZE DER METHODE - und warum sie hier trotzdem taugt
 ==========================================================
-Ein Namensvergleich findet keinen Aufruf ueber ``getattr(obj, name)``, keinen
+Ein Namensvergleich findet keinen Aufruf über ``getattr(obj, name)``, keinen
 aus einem Template und keinen aus JavaScript. Deshalb werden Vorlagen und
 JS-Dateien MITDURCHSUCHT, und Django-Sonderfaelle (Views, Commands,
 Migrationen, Tests) bleiben aussen vor.
 
-Was danach uebrig bleibt, ist ein begruendeter VERDACHT - keine Freigabe zum
-Loeschen. Ein Pruefwerk dieser Art hat in shortlongx einmal 122 lebende Namen
-fuer tot erklaert; seither steht der Satz in jedem Befund.
+Was danach übrig bleibt, ist ein begruendeter VERDACHT - keine Freigabe zum
+Löschen. Ein Pruefwerk dieser Art hat in shortlongx einmal 122 lebende Namen
+für tot erklärt; seither steht der Satz in jedem Befund.
 """
 import ast
 import re

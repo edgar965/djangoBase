@@ -90,7 +90,7 @@ GRUPPEN = {
              "search.utils.umlauts.restore_umlauts) — wird auf Commit-Subject/Body angewendet"),
             # --- Logs-Seite ---
             ("log_noisy_sources", "csv",
-             "Logs-Seite: Quell-Keys, die in 'Alle Quellen' uebersprungen werden "
+             "Logs-Seite: Quell-Keys, die in 'Alle Quellen' übersprungen werden "
              "(Komma-getrennt, z. B. mail_import, pst_worker)"),
         ],
     },
@@ -363,7 +363,7 @@ def _slugify(text):
 
 def profil_anlegen(label, kopie_von=None):
     """Legt ein neues Profil an (eindeutiger Slug aus Label) und gibt den Slug
-    zurueck. Optional die Werte von `kopie_von` uebernehmen."""
+    zurück. Optional die Werte von `kopie_von` uebernehmen."""
     with _Sperre():
         s = _roh_laden()
         basis = _slugify(label)

@@ -47,7 +47,7 @@ class JedesWerkzeugStehtGenauEinmal(BasisTest):
                       for _rang, w in a['eintraege']]
         self.assertEqual(sorted(in_tabelle),
                          sorted(w.slug for w in werkzeuge()),
-                         'Ein Werkzeug faellt aus der Tabelle — dann ist es '
+                         'Ein Werkzeug fällt aus der Tabelle — dann ist es '
                          'auf der Seite nicht mehr zu starten.')
 
     def test_keines_steht_in_zwei_abschnitten(self):
@@ -129,12 +129,12 @@ class JedesKriteriumIstEinemBereichZUGEORDNET(BasisTest):
         fehlend = sorted(vorhanden - zugeordnet - {0})
         self.assertEqual(
             fehlend, [],
-            'Kriterium %s traegt Werkzeuge, ist aber keinem Bereich '
+            'Kriterium %s trägt Werkzeuge, ist aber keinem Bereich '
             'zugeordnet. `bereich_von()` steckt es dann stillschweigend in '
-            'den letzten — sichtbar falsch waere besser.' % fehlend)
+            'den letzten — sichtbar falsch wäre besser.' % fehlend)
 
     def test_kein_bereich_ist_leer(self):
-        u"""Ein Abschnitt ohne Werkzeuge ist eine Ueberschrift ins Nichts."""
+        u"""Ein Abschnitt ohne Werkzeuge ist eine Überschrift ins Nichts."""
         leer = [a['bereich']['name'] for a in _abschnitte()
                 if not a['eintraege']]
         self.assertEqual(leer, [])
@@ -165,5 +165,5 @@ class KeineZWEITEDarstellungAufDerSeite(BasisTest):
         for rest in ('name="k1617"', 'name="k18"'):
             self.assertNotIn(
                 rest, markup,
-                'Der Kasten mit %s ist zurueck — dann stehen die Werkzeuge '
+                'Der Kasten mit %s ist zurück — dann stehen die Werkzeuge '
                 'wieder doppelt, einmal koennend und einmal nicht.' % rest)

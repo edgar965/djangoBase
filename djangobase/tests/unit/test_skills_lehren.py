@@ -61,7 +61,7 @@ class LehrenTest(LehrenstandIsolation, BasisTest):
             with self.subTest(lehre=lehre.slug):
                 self.assertTrue(lehre.titel)
                 self.assertTrue(lehre.regel)
-                self.assertTrue(lehre.warum, 'ohne Begruendung keine Regel')
+                self.assertTrue(lehre.warum, 'ohne Begründung keine Regel')
                 self.assertIn(lehre.bereich, BEREICHE)
 
     def test_kennungen_sind_eindeutig(self):

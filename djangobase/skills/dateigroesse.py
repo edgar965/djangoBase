@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Dateigroesse - Dateien und Funktionen, die zu gross geworden sind.
+u"""Dateigroesse - Dateien und Funktionen, die zu groß geworden sind.
 
 WAS ES IM REVIEW GEFUNDEN HAT (shortlongx, August 2026)
 =======================================================
@@ -11,7 +11,7 @@ beim Herausschneiden mitging.
 
 DIE ZAHL IST KEIN SELBSTZWECK
 =============================
-300 Zeilen sind eine Faustregel, keine Wahrheit. Was zaehlt, ist die Frage, die
+300 Zeilen sind eine Faustregel, keine Wahrheit. Was zählt, ist die Frage, die
 sie erzwingt: Welche ZUSTAENDIGKEITEN stecken hier drin? Beim Aufteilen von
 ``best_technik.js`` (478 Zeilen) kamen vier heraus - Laden/Status, die beiden
 Kreuztabellen, der Veraltet-Hinweis und die Verdrahtung. Erst danach war zu

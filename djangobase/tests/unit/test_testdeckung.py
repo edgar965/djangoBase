@@ -66,16 +66,16 @@ urlpatterns = MUSTER
 class RoutenTest(BasisTest):
 
     def _routen(self):
-        u"""``_routen`` mit leeren Testtexten - alles gilt als ungeprueft."""
+        u"""``_routen`` mit leeren Testtexten - alles gilt als ungeprüft."""
         return Testdeckung()._routen("")
 
     @override_settings(ROOT_URLCONF="djangobase.tests.unit.test_testdeckung")
     def test_zwei_klassenseiten_sind_zwei_zeilen(self):
-        u"""Der Kern des Fehlers: Beide heissen ``view``."""
+        u"""Der Kern des Fehlers: Beide heißen ``view``."""
         stellen = [z["stelle"] for z in self._routen()]
         self.assertIn("/erste/", stellen)
         self.assertIn("/zweite/", stellen, "die zweite Klassenseite fehlt — "
-                                           "der Merkposten haengt am Zielnamen")
+                                           "der Merkposten hängt am Zielnamen")
 
     @override_settings(ROOT_URLCONF="djangobase.tests.unit.test_testdeckung")
     def test_funktionsansicht_kommt_weiter_vor(self):

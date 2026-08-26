@@ -154,7 +154,7 @@ class EndpunktProbe(TestCase):
         """Kein Aufruf - aber der Verzicht steht schwarz auf weiss im Protokoll.
 
         Ohne diese Zeile sieht die Deckung vollstaendig aus, und niemand weiss
-        mehr, dass hier absichtlich nur die Haelfte geprueft wird."""
+        mehr, dass hier absichtlich nur die Haelfte geprüft wird."""
         wirkend = [z for a, z, _p in self.ENDPUNKTE if a == WIRKUNG]
         if wirkend:
             logger.info("%s: %d wirkende Endpunkte nur auf Route und "

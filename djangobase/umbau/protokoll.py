@@ -93,7 +93,7 @@ class ProtokollUmstellung:
         return self
 
     def _ersatz(self, i, treffer):
-        """Ersatz fuer die Zeile i, oder None wenn nicht sicher machbar."""
+        """Ersatz für die Zeile i, oder None wenn nicht sicher machbar."""
         einzug = treffer.group(1)
         rest = self.zeilen[i][treffer.end():]
         # Mehrzeilige Aufrufe: nur der Kopf wird ersetzt, der Rest bleibt.

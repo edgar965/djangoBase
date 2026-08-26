@@ -91,7 +91,7 @@ from .befund import Befund, Befundsatz, BefundWerkzeug
 
 
 class Sammelfund:
-    u"""Ein flaches Feld in einer Klasse, die mehrere Entitaeten bedient."""
+    u"""Ein flaches Feld in einer Klasse, die mehrere Entitäten bedient."""
 
     __slots__ = ('pfad', 'klasse', 'name', 'zeile', 'art', 'methode',
                  'zusammen', 'schluessel')
@@ -123,16 +123,16 @@ class Sammelzustand(BefundWerkzeug):
 
     slug = 'sammelzustand'
     kriterium = 18
-    titel = 'Zustand je Entitaet, gesammelt gehalten'
-    zweck = ('Findet Klassen, die nachweislich mehrere Entitaeten bedienen '
-             '(Verzeichnis mit variablem Schluessel) und daneben flache '
-             'Zaehler oder eine geteilte Unterinstanz fuer alle halten.')
-    abhilfe = ('Je Entitaet eine eigene Instanz: eine kleine Klasse mit diesen '
+    titel = 'Zustand je Entität, gesammelt gehalten'
+    zweck = ('Findet Klassen, die nachweislich mehrere Entitäten bedienen '
+             '(Verzeichnis mit variablem Schlüssel) und daneben flache '
+             'Zähler oder eine geteilte Unterinstanz für alle halten.')
+    abhilfe = ('Je Entität eine eigene Instanz: eine kleine Klasse mit diesen '
                'Feldern, gehalten im vorhandenen Verzeichnis '
                '(``self._je_x[schluessel].zaehler``). Ist die Summe wirklich '
                'gewollt, Vermerk „# geteilt gewollt: <Grund>" setzen.')
-    befund = ('Eine Stillstands-Wache fuer elf Kameras: Jede funktionierende '
-              'Kamera setzte den Zaehler der blind gewordenen zurueck. Vier '
+    befund = ('Eine Stillstands-Wache für elf Kameras: Jede funktionierende '
+              'Kamera setzte den Zähler der blind gewordenen zurück. Vier '
               'Kameras waren zehn Stunden blind, die Wache schlug nie an.')
     dauer = 'Sekunden'
 
@@ -208,9 +208,9 @@ class Sammelzustand(BefundWerkzeug):
             "        self.gesamt += 1     # geteilt gewollt: Summe fuer die Seite\n"
             "        return stand\n")},
         mindestens=1, hoechstens=1, erwartet_in="fehler",
-        warum="Eine Wache fuer elf Kameras (CamTrack, 09.05.2026): je Kamera "
-              "nachgesehen, gesammelt gezaehlt — jede laufende Kamera setzte "
-              "den Zaehler der blinden zurueck. `gesamt` traegt den Vermerk "
+        warum="Eine Wache für elf Kameras (CamTrack, 09.05.2026): je Kamera "
+              "nachgesehen, gesammelt gezählt — jede laufende Kamera setzte "
+              "den Zähler der blinden zurück. `gesamt` trägt den Vermerk "
               "und darf NICHT mitgemeldet werden")
 
     # ---------------------------------------------------------------- Ablauf
@@ -234,10 +234,10 @@ class Sammelzustand(BefundWerkzeug):
 
         funde.sort(key=lambda f: (f.gewicht != Befund.WARNUNG, f.pfad, f.zeile))
         kopf = [
-            '%d Klassen geprueft, %d bedienen mehrere Entitaeten' % (klassen,
+            '%d Klassen geprüft, %d bedienen mehrere Entitäten' % (klassen,
                                                                      bedienende),
             '%d gesammelt gehaltene Felder, davon %d in derselben Methode wie '
-            'der Zugriff je Entitaet'
+            'der Zugriff je Entität'
             % (len(funde), sum(1 for f in funde if f.zusammen)),
         ]
         return Befundsatz(self.titel, kopf,
@@ -254,8 +254,8 @@ class Sammelzustand(BefundWerkzeug):
     def _klasse(self, kurz, knoten, zeilen):
         u"""Die Befunde EINER Klasse — oder ``None``, wenn sie keine ist.
 
-        Erst wird gefragt, ob die Klasse ueberhaupt mehrere Entitaeten bedient.
-        Ohne diesen Beweis wird nichts gemeldet: Ein Zaehler in einer Klasse,
+        Erst wird gefragt, ob die Klasse ueberhaupt mehrere Entitäten bedient.
+        Ohne diesen Beweis wird nichts gemeldet: Ein Zähler in einer Klasse,
         von der es je Kamera eine gibt, ist genau richtig aufgehoben — das ist
         der Normalfall und darf nie im Bericht auftauchen.
         """
@@ -294,9 +294,9 @@ class Sammelzustand(BefundWerkzeug):
     def _je_name(funde):
         u"""Ein Befund je Feld, nicht je Fundstelle.
 
-        Ein Zaehler, der in vier Methoden hochgezaehlt wird, ist EIN Umbau. Vier
+        Ein Zähler, der in vier Methoden hochgezaehlt wird, ist EIN Umbau. Vier
         Zeilen darueber im Bericht liessen ihn nach vier Baustellen aussehen —
-        und die schwerste (die mit dem Zugriff je Entitaet daneben) ginge
+        und die schwerste (die mit dem Zugriff je Entität daneben) ginge
         zwischen den anderen unter. Deshalb bleibt je Name die schwerste
         Fundstelle stehen.
         """
@@ -310,16 +310,16 @@ class Sammelzustand(BefundWerkzeug):
     def _befund(self, f):
         wo = '%s:%d' % (f.pfad, f.zeile)
         if f.art == 'unterobjekt':
-            was = ('%s.%s — EINE Instanz fuer alle Entitaeten (%s)'
+            was = ('%s.%s — EINE Instanz für alle Entitäten (%s)'
                    % (f.klasse, f.name, f.methode))
-            warum = ('Ihr Zustand vermischt sich ueber alle Entitaeten: Was die '
-                     'eine setzt, sieht die naechste. In das Verzeichnis je '
-                     'Entitaet verschieben, dann hat jede ihre eigene.')
+            warum = ('Ihr Zustand vermischt sich über alle Entitäten: Was die '
+                     'eine setzt, sieht die nächste. In das Verzeichnis je '
+                     'Entität verschieben, dann hat jede ihre eigene.')
         else:
-            was = ('%s.%s — gesammelt fuer alle Entitaeten (%s)'
+            was = ('%s.%s — gesammelt für alle Entitäten (%s)'
                    % (f.klasse, f.name, f.methode))
-            warum = ('Der Wert bedeutet je Entitaet etwas, steht aber nur als '
-                     'Summe da. Als Feld einer Instanz je Entitaet fuehren.')
+            warum = ('Der Wert bedeutet je Entität etwas, steht aber nur als '
+                     'Summe da. Als Feld einer Instanz je Entität führen.')
         if f.zusammen:
             warum = ('In derselben Methode wird je %s nachgesehen und trotzdem '
                      'gesammelt geschrieben. ' % (f.schluessel or 'Schluessel')
@@ -424,7 +424,7 @@ class Sammelzustand(BefundWerkzeug):
 
     # ------------------------------------------------------------ Werkzeuge
     def _eigen(self, name):
-        u"""Gehoert das Feld dem Dienst selbst statt seinen Entitaeten?"""
+        u"""Gehoert das Feld dem Dienst selbst statt seinen Entitäten?"""
         blank = name.lstrip('_').lower()
         teile = [t for t in blank.split('_') if t]
         if blank in self.EIGEN or any(t in self.EIGEN for t in teile):
@@ -451,8 +451,8 @@ class Sammelzustand(BefundWerkzeug):
     def _ist_datensatz(knoten):
         u"""``@dataclass`` und Verwandte: ein Datensatz, kein Verteiler.
 
-        Ein Datensatz beschreibt EINE Sache. Haelt er ein Verzeichnis, sind das
-        seine Daten — nicht mehrere Entitaeten, die er bedient. ``TrackCenters``
+        Ein Datensatz beschreibt EINE Sache. Hält er ein Verzeichnis, sind das
+        seine Daten — nicht mehrere Entitäten, die er bedient. ``TrackCenters``
         und ``TrackLockState`` (CamTrack) sind genau das.
         """
         for schmuck in knoten.decorator_list:
@@ -488,7 +488,7 @@ class Sammelzustand(BefundWerkzeug):
         return self._namen_text(knoten) in self.VERZEICHNIS
 
     def _ist_test(self, pfad):
-        u"""Testdatei? Dort ist der Aufbau je Pruefung der Normalfall."""
+        u"""Testdatei? Dort ist der Aufbau je Prüfung der Normalfall."""
         if pfad.name.startswith('test_') or pfad.name.endswith('_test.py'):
             return True
         return any(teil in self.TESTS_AUS for teil in pfad.parts)

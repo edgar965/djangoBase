@@ -211,9 +211,9 @@ def _ueber_variable(quelle):
         {% include djangobase.sidebar_template|default:"djangobase/_sidebar.html" %}
 
     Im Quelltext steht damit KEIN Vorlagenname, den das Muster daneben
-    finden koennte. Die Kette endete an dieser Stelle - und jede
+    finden könnte. Die Kette endete an dieser Stelle - und jede
     Variable, die nur in der projekteigenen Seitenleiste gelesen wird,
-    galt als "wird uebergeben, aber von keiner beteiligten Vorlage
+    galt als "wird übergeben, aber von keiner beteiligten Vorlage
     gelesen".
 
     Gemessen: 73 Befunde, darunter reihenweise `active_page`,
@@ -270,10 +270,10 @@ class Vorlagensicht:
         self._wert(vorlage.nodelist)
 
     def _wert(self, wert, gesehen=None, tiefe=0, bedingt=False):
-        """Alles absuchen, was Variablen enthalten koennte.
+        """Alles absuchen, was Variablen enthalten könnte.
 
         Bewusst generisch statt nach Knotentypen: Die BEDINGUNGEN von
-        `{% if %}` haengen als TemplateLiteral in Operator-Objekten
+        `{% if %}` hängen als TemplateLiteral in Operator-Objekten
         (`.first`/`.second`) und sind weder Node noch FilterExpression. Wer nur
         die bekannten Typen abklappert, meldet dort gelesene Variablen faelsch-
         licherweise als tot.
@@ -324,7 +324,7 @@ class Vorlagensicht:
             self.fest.add(name)
 
     def feste_namen(self, tiefe=0):
-        u"""Nur was ausserhalb jedes `{% if %}` gelesen wird.
+        u"""Nur was außerhalb jedes `{% if %}` gelesen wird.
 
         DIE SIEBEN FEHLALARME (CamTrack, 23.08.2026)
         ============================================
@@ -335,12 +335,12 @@ class Vorlagensicht:
             {% if is_live %}<video src="{{ live_media_url }}">{% endif %}
             {% if tab.key == zb_aktiv or forloop.first and not zb_aktiv %}
 
-        Die Vorlage rechnet in allen drei Faellen damit, dass der Name
+        Die Vorlage rechnet in allen drei Fällen damit, dass der Name
         fehlt: `is_edit` ist auf dem Anlegen-Weg falsch, `is_live` auf dem
         Abspiel-Weg, und `zb_aktiv` wird per `not zb_aktiv` selbst
         abgefragt.
 
-        Ein Pruefer, der zu hundert Prozent falsch meldet, wird abgestellt.
+        Ein Prüfer, der zu hundert Prozent falsch meldet, wird abgestellt.
         Gemeldet wird deshalb nur noch, was die Vorlage UNBEDINGT liest.
         """
         alle = set(self.fest)
@@ -378,7 +378,7 @@ class Vorlagensicht:
 
 
 class Renderstelle:
-    """Ein render()-Aufruf: Vorlage, uebergebene Schluessel, Ort im Quelltext."""
+    """Ein render()-Aufruf: Vorlage, übergebene Schlüssel, Ort im Quelltext."""
 
     __slots__ = ('datei', 'zeile', 'vorlage', 'schluessel', 'vollstaendig')
 
@@ -400,8 +400,8 @@ class Vorlagenkontext(BefundWerkzeug):
 
     slug = 'vorlagen-kontext'
     titel = 'Vorlagen-Kontext'
-    zweck = ('Vergleicht jeden render()-Aufruf mit seiner Vorlage: uebergebene, '
-             'aber nie gelesene Schluessel (TOT), gelesene, aber nie gelieferte '
+    zweck = ('Vergleicht jeden render()-Aufruf mit seiner Vorlage: übergebene, '
+             'aber nie gelesene Schlüssel (TOT), gelesene, aber nie gelieferte '
              'Namen (FEHLEND) und Vorlagen, die niemand rendert (VERWAIST).')
     abhilfe = ('Nach jedem groesseren Umbau und vor einem Review — findet stille '
             'Fehler, die kein Test bemerkt, weil Django fehlende Variablen '
@@ -435,7 +435,7 @@ class Vorlagenkontext(BefundWerkzeug):
             for name in ungenutzt:
                 befunde.append(Befund(
                     stelle.ort, 'TOT: %s (%s)' % (name, stelle.vorlage),
-                    'wird uebergeben, aber von keiner beteiligten Vorlage gelesen',
+                    'wird übergeben, aber von keiner beteiligten Vorlage gelesen',
                     Befund.WARNUNG))
             if stelle.vollstaendig:
                 fehlend = sorted(n for n in ansicht.feste_namen()
@@ -447,7 +447,7 @@ class Vorlagenkontext(BefundWerkzeug):
                     befunde.append(Befund(
                         stelle.ort, 'FEHLEND: %s (%s)' % (name, stelle.vorlage),
                         'die Vorlage liest den Namen, niemand liefert ihn — '
-                        'Django rendert dafuer stillschweigend nichts',
+                        'Django rendert dafür stillschweigend nichts',
                         Befund.FEHLER))
         befunde.extend(self._verwaiste(stellen))
         kopf = ['%d render()-Stellen, %d Vorlagen geprueft'
@@ -524,11 +524,11 @@ class Vorlagenkontext(BefundWerkzeug):
 
     @staticmethod
     def _app_vorlagenordner():
-        u"""Auch `<app>/templates/` — sonst sieht die Pruefung nichts.
+        u"""Auch `<app>/templates/` — sonst sieht die Prüfung nichts.
 
-        CamTrack traegt in `DIRS` nichts ein und legt alle 57 Vorlagen
+        CamTrack trägt in `DIRS` nichts ein und legt alle 57 Vorlagen
         unter `app/templates/` ab. Alle drei Stellen, die hier nach
-        Vorlagen suchen, liefen deshalb ueber eine leere Liste: die Suche
+        Vorlagen suchen, liefen deshalb über eine leere Liste: die Suche
         nach verwaisten Vorlagen meldete nie etwas, und die Namen aus
         `{% include … with … %}` blieben unbekannt.
         """

@@ -186,7 +186,7 @@ def _test_arten(c):
     except Exception:                                          # noqa: BLE001
         import logging
         logging.getLogger("djangobase.tests").exception(
-            "Test-Kategorien fuer das Menue nicht ermittelbar - der Eintrag "
+            "Test-Kategorien für das Menue nicht ermittelbar - der Eintrag "
             "Tests zeigt dann nur 'Alle'")
         return []
     # Dictionary gewollt: geht unveraendert in die Vorlage.

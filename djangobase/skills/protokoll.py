@@ -504,7 +504,7 @@ def schlucken(fall):
           gefangene Ausnahme dorthin gibt, hat sie nicht verschluckt.
 
         Je Datei einmal ermittelt und gemerkt - ``_ausnahme`` fragt sonst
-        fuer jeden except-Block erneut den ganzen Syntaxbaum ab.
+        für jeden except-Block erneut den ganzen Syntaxbaum ab.
         """
         gemerkt = getattr(d, "_protokoll_helfer", None)
         if gemerkt is not None:
@@ -665,8 +665,8 @@ def schlucken(fall):
     def _typname(knoten):
         """„except:", „except ValueError", „except (A, B)".
 
-        Der erste Wurf schrieb ``except None`` fuer das nackte ``except:`` —
-        richtig gezaehlt, aber unlesbar gemeldet."""
+        Der erste Wurf schrieb ``except None`` für das nackte ``except:`` —
+        richtig gezählt, aber unlesbar gemeldet."""
         if knoten is None:
             return ":"                       # nacktes except - faengt auch KeyboardInterrupt
         if isinstance(knoten, ast.Name):

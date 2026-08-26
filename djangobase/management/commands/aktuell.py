@@ -45,7 +45,7 @@ class Command(BaseCommand):
         p.add_argument("--leeren", action="store_true",
                        help="Das Fenster leeren (fragt nicht nach)")
         p.add_argument("--zeigen", type=int, default=0,
-                       help="Die letzten N Eintraege ausgeben statt zu schreiben")
+                       help="Die letzten N Einträge ausgeben statt zu schreiben")
 
     def handle(self, *args, **o):
         f = feed()

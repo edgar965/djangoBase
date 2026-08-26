@@ -30,7 +30,7 @@ TAB_GRUPPEN = ["website", "djangobase", "freigabe", "email"]
 def _zeilen_text(key, wert):
     u"""Wert eines „zeilen"-Feldes als Text — eine Angabe je Zeile.
 
-    Die Listen in ``settings.py`` sind Dictionaries; im Formular muessen sie in
+    Die Listen in ``settings.py`` sind Dictionaries; im Formular müssen sie in
     dem Format stehen, das beim Speichern wieder gelesen wird. Sonst macht ein
     Klick auf Speichern aus einer gueltigen Angabe Unsinn (17.08.2026 im
     Browser gesehen).
@@ -48,7 +48,7 @@ def _zeilen_text(key, wert):
 
 def _felder_werte(c, gruppe):
     """Aktuelle (effektive) Werte je Feld der Gruppe fuers Formular.
-    CSV-Typ: Liste wird fuer die Anzeige zu 'a, b, c'."""
+    CSV-Typ: Liste wird für die Anzeige zu 'a, b, c'."""
     felder = []
     for key, typ, label in GRUPPEN[gruppe]["felder"]:
         wert = c["farben"].get(key, "") if key in FARB_KEYS else c.get(key, "")
@@ -87,7 +87,7 @@ def _werte_aus_post(request, gruppe):
 
 def _layout_optionen():
     """(value, label)-Liste fuers base_template-Dropdown — ausschliesslich die
-    in djangoBase MITGELIEFERTEN Layouts. Projekte koennen keine eigenen
+    in djangoBase MITGELIEFERTEN Layouts. Projekte können keine eigenen
     Templates einhaengen; neue Layouts werden in djangoBase selbst angelegt."""
     return list(LAYOUTS_BUILTIN)
 

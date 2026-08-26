@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""TestNummerView - den Platz eines Testfalls in der Tabelle aendern.
+u"""TestNummerView - den Platz eines Testfalls in der Tabelle ändern.
 
     „Die enthält zahlen, aufsteigend, die man ändern kann, dann verschieben sich
     die tests in der Tabelle." (Edgar, 17.08.2026)
@@ -7,21 +7,21 @@ u"""TestNummerView - den Platz eines Testfalls in der Tabelle aendern.
 POST ``{"id": "<test-id>", "nummer": 7, "gruppe": ["<id>", …]}``
 
 ``gruppe`` ist die Liste der Kennungen IN DER GERADE ANGEZEIGTEN Reihenfolge —
-die Seite weiss, was sie zeigt, und schickt es mit. Der Server ordnet daraus neu
-und speichert die Plaetze; zurueck kommt die neue Reihenfolge, damit die Seite
+die Seite weiß, was sie zeigt, und schickt es mit. Der Server ordnet daraus neu
+und speichert die Plaetze; zurück kommt die neue Reihenfolge, damit die Seite
 die Zeilen ohne Neuladen umhaengen kann.
 
 WARUM POST
 ==========
-Der Aufruf SCHREIBT (``logs/testreihenfolge.json``). Ein GET-Link waere von
+Der Aufruf SCHREIBT (``logs/testreihenfolge.json``). Ein GET-Link wäre von
 jedem Vorschau-Dienst oder Reload ausloesbar — dieselbe Ueberlegung wie beim
 Verschieben.
 
 WAS GEPRUEFT WIRD
 =================
-Nur bekannte Test-IDs (Discovery) kommen in die Ablage. Sonst koennte eine
-Anfrage die Datei mit beliebigen Schluesseln fuellen; harmlos in der Wirkung,
-aber es waere Muell, den niemand mehr los wird.
+Nur bekannte Test-IDs (Discovery) kommen in die Ablage. Sonst könnte eine
+Anfrage die Datei mit beliebigen Schlüsseln füllen; harmlos in der Wirkung,
+aber es wäre Muell, den niemand mehr los wird.
 """
 import json
 import logging
@@ -76,8 +76,8 @@ class TestNummerView(ZugriffMixin, View):
     def _bekannte():
         u"""Alle entdeckten Test-IDs - leer, wenn die Discovery nichts liefert.
 
-        Leer heisst „nicht pruefbar", nicht „nichts erlaubt": In einem Projekt
-        ohne Discovery waere die Spalte sonst tot.
+        Leer heißt „nicht prüfbar", nicht „nichts erlaubt": In einem Projekt
+        ohne Discovery wäre die Spalte sonst tot.
         """
         from ..conf import conf
         from ..testkategorien import Kategorien
@@ -90,5 +90,5 @@ class TestNummerView(ZugriffMixin, View):
                                                            mit_djangobase=True)
             return bekannte
         except Exception:  # noqa: BLE001
-            log.exception("Test-IDs fuer die Nummern-Pruefung nicht ermittelbar")
+            log.exception("Test-IDs für die Nummern-Prüfung nicht ermittelbar")
             return set()

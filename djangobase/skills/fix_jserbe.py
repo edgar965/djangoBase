@@ -236,8 +236,8 @@ class Erbteilung:
         """Die Teilung, bei der BEIDE Haelften unter die Grenze kommen.
 
         Mit festem Halbe-Halbe blieb ``tradesystem_config.js`` bei 265 Zeilen
-        stehen, waehrend die Basis nur 39 bekam: Konstruktor, statische Methoden
-        und alles, was eine freie Funktion der Datei braucht, koennen nicht
+        stehen, während die Basis nur 39 bekam: Konstruktor, statische Methoden
+        und alles, was eine freie Funktion der Datei braucht, können nicht
         wandern - die verbleibende Auswahl ist oft viel kleiner als die Haelfte.
         Deshalb wird der Anteil erhoeht, bis es passt (16.08.2026).
         """
@@ -353,9 +353,9 @@ class Erbteilung:
         return aus
 
     def _warum_keine(self):
-        """Nicht „keine Methode darf wandern", sondern WELCHE woran haengt.
+        """Nicht „keine Methode darf wandern", sondern WELCHE woran hängt.
 
-        Der Sammelsatz stand wortgleich unter fuenf verschiedenen Dateien und
+        Der Sammelsatz stand wortgleich unter fünf verschiedenen Dateien und
         sagte niemandem, wo anzusetzen ist.
         """
         lokal = self.datei.modul_lokale_namen
@@ -388,9 +388,9 @@ class Erbteilung:
         """Steht ``pos`` innerhalb eines Anführungszeichen-Paars dieser Zeile?
 
         Grobe, aber ausreichende Heuristik: eine UNGERADE Zahl Anfuehrungs-
-        zeichen davor heisst „mitten drin". Ein Klassenname in einem HTML-String
-        darf nicht zu ``this.constructor.`` werden - das waere ein Fehler, den
-        keine Syntaxpruefung findet und der erst beim Rendern auffaellt.
+        zeichen davor heißt „mitten drin". Ein Klassenname in einem HTML-String
+        darf nicht zu ``this.constructor.`` werden - das wäre ein Fehler, den
+        keine Syntaxpruefung findet und der erst beim Rendern auffällt.
         """
         vor = zeile[:pos]
         return any(vor.count(z) % 2 == 1 for z in ("'", '"', "`"))
@@ -593,7 +593,7 @@ class FixJsErbe(Fixer):
         """``node --input-type=module --check`` - die EINZIGE verlässliche Form.
 
         ``node --check <datei>`` behandelt die Datei als CommonJS-Skript und gab
-        am 16.08.2026 fuer eine nachweislich kaputte Modul-Datei 0 zurueck; der
+        am 16.08.2026 für eine nachweislich kaputte Modul-Datei 0 zurück; der
         Browser meldete denselben SyntaxError sofort."""
         import subprocess
         try:

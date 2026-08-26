@@ -42,7 +42,7 @@ class DieLehrenStehenInEinerTabelle(BasisTest):
     def test_die_spalten_stehen_fest(self):
         namen = [s['label'] for s in self._tabelle()['spalten']]
         self.assertEqual(namen[1:], ['Rang', 'Bereich', 'Lehre',
-                                     'Regel und Begruendung', 'Pruefung'])
+                                     'Regel und Begründung', 'Prüfung'])
         self.assertIn('checkbox', namen[0])
 
     def test_die_raenge_laufen_luekenlos_ab_eins(self):

@@ -6,7 +6,7 @@ DER BEFUND (3DTools, 16.08.2026)
 Beim Umstellen von ``fetch`` auf eine Abrufklasse mit Statuspruefung wird die
 Fehlerbehandlung schaerfer: Vorher lief eine 400er-Antwort als JSON durch
 (``{"ok": false, "error": "..."}``) und der Code zeigte selbst eine Meldung -
-danach WIRFT der Abruf bei jedem Status ausser 2xx.
+danach WIRFT der Abruf bei jedem Status außer 2xx.
 
 Das ist die bessere Fehlerbehandlung, aber nur dort, wo jemand faengt. Steht der
 Aufruf in keinem try-Block, wird aus einer sichtbaren Meldung eine stille
@@ -14,7 +14,7 @@ Aufruf in keinem try-Block, wird aus einer sichtbaren Meldung eine stille
 die Fehlerklasse, die der Umbau beseitigen sollte.
 
 Im Ursprungsprojekt liefern 200 Stellen im Python-Teil einen echten Fehlerstatus
-(``status=400/404/500``) mitsamt JSON-Body. Diese Pruefung listet die
+(``status=400/404/500``) mitsamt JSON-Body. Diese Prüfung listet die
 JavaScript-Stellen, an denen so eine Antwort ungefangen bliebe.
 
 WIE GEPRUEFT WIRD
@@ -22,13 +22,13 @@ WIE GEPRUEFT WIRD
 Zwei Schritte, in zwei eigenen Modulen:
 
 * ``Stelle`` (``jsstelle.py``) - deckt ein try-Block mit ``catch``/``finally``
-  diese Zeile? Blockende ueber die Klammertiefe, nicht ueber den Abstand.
+  diese Zeile? Blockende über die Klammertiefe, nicht über den Abstand.
 * ``Aufrufkette`` (``jsaufrufkette.py``) - wenn nicht: Faengt wenigstens ein
   Glied darueber? Bis zu drei Ebenen, und nur dort, wo der Name sichtbar ist.
 
 Ohne den zweiten Schritt standen in 3DTools 20 Zeilen, von denen 18 keine
 Fundstelle waren (17.08.2026). Die Zahlen stehen in der Zusammenfassung
-getrennt: im try, ueber den Aufrufer gedeckt, offen.
+getrennt: im try, über den Aufrufer gedeckt, offen.
 
 ANPASSEN: ``DJANGOBASE["skills2_abrufklassen"] = ["Serverabruf", "Api"]`` nennt
 die Klassen, deren Methoden werfen.
@@ -54,7 +54,7 @@ class JsFaenger(Werkzeug):
     befund = ("3DTools: 16 von 101 Aufrufen ohne Faenger. Zwei davon hingen "
               "direkt an einer Nutzeraktion (Koerperart wechseln, Pose "
               "anwenden) - ein Serverfehler blieb dort voellig stumm.")
-    abhilfe = ("try/catch mit sichtbarer Meldung ergaenzen. Die Spalte "
+    abhilfe = ("try/catch mit sichtbarer Meldung ergänzen. Die Spalte "
                "„aufrufer\" nennt die Stelle, an der die Kette abreisst.")
     dauer = "1–5 s"
     kriterium = 13

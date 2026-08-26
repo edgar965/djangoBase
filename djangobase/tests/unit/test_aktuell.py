@@ -103,7 +103,7 @@ class AktuellFeedTest(BasisTest):
 
         titel = [e["titel"] for e in self.feed.lesen()]
         self.assertIn("dazwischen", titel,
-                      "der gleichzeitige Eintrag wurde beim Kuerzen ueberschrieben")
+                      "der gleichzeitige Eintrag wurde beim Kuerzen überschrieben")
         self.assertIn("neu", titel)
 
     def test_sperre_verhindert_gleichzeitiges_kuerzen(self):
@@ -115,10 +115,10 @@ class AktuellFeedTest(BasisTest):
         sperre = self.feed.pfad.with_suffix(self.feed.pfad.suffix + ".lock")
         sperre.write_text("", encoding="utf-8")     # fremder Prozess kürzt gerade
         try:
-            self.feed.anhaengen("waehrend der Sperre")
+            self.feed.anhaengen("während der Sperre")
             self.assertGreater(len(self.feed.lesen()), self.feed.MAX_EINTRAEGE,
                                "trotz fremder Sperre gekuerzt")
-            self.assertEqual(self.feed.lesen()[0]["titel"], "waehrend der Sperre")
+            self.assertEqual(self.feed.lesen()[0]["titel"], "während der Sperre")
         finally:
             sperre.unlink()
 
@@ -167,7 +167,7 @@ class AktuellBefehlTest(BasisTest):
         with self.settings(DJANGOBASE={"aktuell_datei": str(self.datei)}):
             aus = StringIO()
             call_command("aktuell", "--titel", "Aus der CLI", "--art", "fix",
-                         "--text", "56 Tests gruen", stdout=aus)
+                         "--text", "56 Tests grün", stdout=aus)
             self.assertIn("Aus der CLI", aus.getvalue())
             eintraege = AktuellFeed(self.datei).lesen()
         self.assertEqual(eintraege[0]["titel"], "Aus der CLI")

@@ -64,7 +64,7 @@ class Letzterlauf:
 
 
 class Modellspeicher(Speicher):
-    u"""Haelt das eingelesene Modell, bis jemand ausdruecklich neu liest.
+    u"""Hält das eingelesene Modell, bis jemand ausdruecklich neu liest.
 
     DIE ANSAGE (Edgar, 24.08.2026)
     ==============================
@@ -79,7 +79,7 @@ class Modellspeicher(Speicher):
         „cache die Ergebnisse des letzten Laufs"
 
     Vorher lag alles nur im Arbeitsspeicher des Web-Dienstes. Der wird
-    nach jeder Aenderung neu gestartet (Daphne laedt nicht nach), und
+    nach jeder Änderung neu gestartet (Daphne lädt nicht nach), und
     danach stand die Seite wieder leer da. Jetzt liegt das Ergebnis unter
     ``BASE_DIR/.cache/umbau/`` und ueberlebt den Neustart — siehe
     ``djangobase/umbau/ablage.py``.
@@ -93,9 +93,9 @@ class Modellspeicher(Speicher):
 
 
 class Quellenspeicher:
-    u"""Die waehlbaren Quellen — einmal gezaehlt, dann gemerkt.
+    u"""Die waehlbaren Quellen — einmal gezählt, dann gemerkt.
 
-    Ohne Wurzel-Schluessel, deshalb keine Unterklasse von ``Speicher``:
+    Ohne Wurzel-Schlüssel, deshalb keine Unterklasse von ``Speicher``:
     Es gibt genau EINE Liste, nicht eine je Quelle.
     """
 
@@ -114,7 +114,7 @@ class Quellenspeicher:
 
 class Netzspeicher(Speicher):
     u"""Das Aufrufnetz — liest jede ``.py`` zweimal (Definitionen, dann
-    Aufrufe). Das gehoert nicht in jeden Reiterwechsel."""
+    Aufrufe). Das gehört nicht in jeden Reiterwechsel."""
 
     bereich = 'aufrufnetz'
 
@@ -124,7 +124,7 @@ class Netzspeicher(Speicher):
 
 
 class Bestandsspeicher(Speicher):
-    u"""Dasselbe fuer den Modulebenen-Bestand: einmal lesen, oft ansehen."""
+    u"""Dasselbe für den Modulebenen-Bestand: einmal lesen, oft ansehen."""
 
     bereich = 'globalbestand'
 
@@ -134,8 +134,8 @@ class Bestandsspeicher(Speicher):
 
 
 class Zahlenspeicher(Speicher):
-    u"""Die Bestandszahlen — der Durchgang geht ueber JEDE Datei, nicht
-    nur ueber die ``.py``. Bei CamTrack 1119 Quelldateien, knapp zwei
+    u"""Die Bestandszahlen — der Durchgang geht über JEDE Datei, nicht
+    nur über die ``.py``. Bei CamTrack 1119 Quelldateien, knapp zwei
     Sekunden."""
 
     bereich = 'codezahlen'
@@ -146,8 +146,8 @@ class Zahlenspeicher(Speicher):
 
 
 class Qualitaetsspeicher(Speicher):
-    u"""Die Messung — vier Werkzeuge ueber 711 Dateien: gemessen **19
-    Sekunden**. Das gehoert nicht in jeden Reiterwechsel und schon gar
+    u"""Die Messung — vier Werkzeuge über 711 Dateien: gemessen **19
+    Sekunden**. Das gehört nicht in jeden Reiterwechsel und schon gar
     nicht in den Seitenaufruf."""
 
     bereich = 'codequalitaet'
@@ -356,7 +356,7 @@ class KlassenmodellView(ZugriffMixin, View):
         u"""Welcher Teil des Projekts wird gelesen?
 
         Ohne Angabe der ganze Projektbaum. Ein Unterordner macht das Bild
-        kleiner und den Durchgang schneller — bei einem Projekt mit ueber
+        kleiner und den Durchgang schneller — bei einem Projekt mit über
         tausend Klassen ist das der Unterschied zwischen Uebersicht und
         Tapete.
         """
@@ -372,7 +372,7 @@ class KlassenmodellView(ZugriffMixin, View):
 
     @staticmethod
     def _aeste(modell, wie_viele=12):
-        u"""Die dicksten Aeste als Vorschlagsliste — Wer haelt wie viele?"""
+        u"""Die dicksten Aeste als Vorschlagsliste — Wer hält wie viele?"""
         gezaehlt = []
         for k in modell.klassen.values():
             # Tests halten oft genau ein Objekt und fuellten die Liste auf

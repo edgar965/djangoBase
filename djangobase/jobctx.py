@@ -37,9 +37,9 @@ _job_id_var: contextvars.ContextVar = contextvars.ContextVar(
 
 @contextmanager
 def with_job_id(job_id):
-    """Setzt den Job-ID-Kontext fuer alle Log-Calls im with-Block.
+    """Setzt den Job-ID-Kontext für alle Log-Calls im with-Block.
 
-    Akzeptiert int (rec_pk) oder str (custom label). None setzt zurueck.
+    Akzeptiert int (rec_pk) oder str (custom label). None setzt zurück.
     Vererbt korrekt in untergeordnete Threads/Tasks die in diesem Kontext
     gestartet wurden (ContextVar-Semantik).
     """
@@ -56,7 +56,7 @@ def current_job_id():
 
 
 class JobContextFilter(logging.Filter):
-    """Haengt job_id + job_str an jeden LogRecord. Ohne Kontext leer.
+    """Hängt job_id + job_str an jeden LogRecord. Ohne Kontext leer.
 
     job_str ist eine fertig formatierte Variante '[job=N] ' (mit Trailing-
     Space) oder '' — bequem in Format-Strings einsetzbar, z.B.:
@@ -82,9 +82,9 @@ class TimestampedStream:
     """Wrapper um sys.stdout/sys.stderr der pro-Zeile ein Datum vorhaengt
     wenn die Zeile noch keines hat.
 
-    Buffert Teil-Schreibvorgaenge bis zum naechsten ``\\n`` — sonst kriegen
+    Buffert Teil-Schreibvorgaenge bis zum nächsten ``\\n`` — sonst kriegen
     z.B. tqdm-Progress-Bar-Updates jeweils einen eigenen Timestamp pro
-    Carriage-Return-Tick (waere unleserlich).
+    Carriage-Return-Tick (wäre unleserlich).
     """
 
     #: Deutsche Typografie auf ASCII, fuer Stroeme die sie nicht koennen.

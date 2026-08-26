@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""AnlassfallCheck - laesst jedes Werkzeug seinen eigenen Anlassfall finden.
+u"""AnlassfallCheck - lässt jedes Werkzeug seinen eigenen Anlassfall finden.
 
 WOZU (17.08.2026)
 =================
@@ -7,26 +7,26 @@ Ein Pruefwerkzeug, das nichts mehr findet, sieht aus wie ein sauberes Projekt.
 Zweimal an einem Abend war es stattdessen Blindheit (siehe ``anlassfall.py``).
 Dieser Sammellauf stellt jedem Werkzeug dieselbe Frage:
 
-    Hier ist der Code, fuer den du gebaut wurdest. Siehst du ihn noch?
+    Hier ist der Code, für den du gebaut wurdest. Siehst du ihn noch?
 
 ZWEI LAEUFE JE WERKZEUG - der zweite ist der wichtigere
 =======================================================
 1. **Anlassfall**: die paar Zeilen, die einen Befund ausloesen MUESSEN.
    Kein Befund -> ``blind``.
 2. **Leeres Verzeichnis**: dieselbe Frage ohne Code. Wer hier meldet, hat die
-   uebergebene Wurzel ignoriert und in Wahrheit das ganze Projekt durchsucht -
-   dann sagt Lauf 1 nichts aus. Ohne diese Gegenprobe waere der ganze Check
+   übergebene Wurzel ignoriert und in Wahrheit das ganze Projekt durchsucht -
+   dann sagt Lauf 1 nichts aus. Ohne diese Gegenprobe wäre der ganze Check
    ein Selbstbetrug.
 
 WAS ER NICHT KANN
 =================
-Werkzeuge ohne dateibasierten Anlassfall (Seitenmessung ueber HTTP, Zeitmessung)
+Werkzeuge ohne dateibasierten Anlassfall (Seitenmessung über HTTP, Zeitmessung)
 haben keinen - sie stehen im Bericht als ``ohne Anlassfall`` und werden NICHT
 stillschweigend uebergangen. Ein Deckel, den niemand sieht, ist derselbe Fehler
 nochmal.
 
 Geschrieben wird ins PROJEKT (``<wurzel>/_anlassfall``), nie nach System-Temp,
-und hinterher aufgeraeumt.
+und hinterher aufgeräumt.
 """
 import shutil
 import traceback
@@ -124,7 +124,7 @@ class Probelauf:
 
 
 class Pruefergebnis:
-    """Das Urteil ueber EIN Werkzeug - mit dem Grund, nicht nur ok/nicht ok."""
+    """Das Urteil über EIN Werkzeug - mit dem Grund, nicht nur ok/nicht ok."""
 
     def __init__(self, klasse):
         self.klasse = klasse
@@ -207,9 +207,9 @@ class AnlassfallCheck(Werkzeug):
     #: Mechanik faellt dabei auf beiden Seiten zugleich aus. Die Pruefung
     #: dafuer steht deshalb ausserhalb, in
     #: ``tests/unit/test_fixer_anlassfall.py``.
-    ohne_anlassfall_weil = ("prueft die ANDEREN Werkzeuge — sein eigener Fall "
-                            "waere er selbst, und dann pruefte die Mechanik "
-                            "sich durch sich selbst; die Pruefung dafuer "
+    ohne_anlassfall_weil = ("prüft die ANDEREN Werkzeuge — sein eigener Fall "
+                            "wäre er selbst, und dann pruefte die Mechanik "
+                            "sich durch sich selbst; die Prüfung dafür "
                             "steht in tests/unit/test_fixer_anlassfall.py")
 
     SPALTEN = ("werkzeug", "stand", "kriterium", "im Anlassfall", "im Leeren",
@@ -287,7 +287,7 @@ class AnlassfallCheck(Werkzeug):
     def _aufraeumen(basis):
         """Loescht NUR den selbst angelegten Ordner - und nur diesen Namen.
 
-        Rekursives Loeschen ohne Prüfung hat in diesem Umfeld schon einmal 972
+        Rekursives Löschen ohne Prüfung hat in diesem Umfeld schon einmal 972
         Dateien eines laufenden Programms erwischt. Deshalb: Name muss stimmen,
         sonst passiert nichts."""
         basis = Path(basis)

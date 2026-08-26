@@ -11,20 +11,20 @@ einzelne meldet 1,4 s Dauer, weil es 1,3 s davon in der Warteschlange stand.
 Eine Messung, die nur den Server fragt, sieht davon nichts. Deshalb misst
 dieses Werkzeug ZWEI Dinge:
 
-* **serverseitig** (hier, ueber den Test-Client): Wie lange braucht die Ansicht
-  fuer das HTML, und wie gross ist es? Das trifft Datenbankarbeit und
+* **serverseitig** (hier, über den Test-Client): Wie lange braucht die Ansicht
+  für das HTML, und wie groß ist es? Das trifft Datenbankarbeit und
   Vorlagenrendern.
 * **im Browser** (Knopf „Im Browser messen" auf der Seite): Wie viele Dateien
-  laedt die Seite, wie viele Bytes, wann steht das DOM, wann ist alles da? Das
+  lädt die Seite, wie viele Bytes, wann steht das DOM, wann ist alles da? Das
   trifft alles andere — und das ist meistens mehr.
 
-Die Browser-Messung laedt jede Seite in einem unsichtbaren `<iframe>` und liest
+Die Browser-Messung lädt jede Seite in einem unsichtbaren `<iframe>` und liest
 dort die Navigation- und Resource-Timing-Werte. Deshalb braucht sie keinen
 externen Dienst und misst genau das, was der Benutzer erlebt.
 
 WELCHE SEITEN: Alle benannten GET-Routen ohne Parameter — Django kennt sie
 selbst (`urls`), es wird nichts geraten. Wer eine Seite ausnehmen will:
-``DJANGOBASE["skills2_seiten_ausser"] = ["logout", "…"]``.
+``DJANGOBASE["skills2_seiten_außer"] = ["logout", "…"]``.
 """
 import time
 
@@ -39,13 +39,13 @@ __all__ = ["Seitenzeiten"]
 
 class Seitenzeiten(Werkzeug):
     slug = "seitenzeiten"
-    titel = "Seiten: Serverzeit und Groesse"
+    titel = "Seiten: Serverzeit und Größe"
     zweck = ("Ruft jede parameterlose Seite auf und misst Antwortzeit und "
-             "HTML-Groesse. Der Knopf „Im Browser messen\" ergaenzt Dateizahl, "
+             "HTML-Größe. Der Knopf „Im Browser messen\" ergänzt Dateizahl, "
              "Bytes und Ladezeit aus dem Browser.")
     befund = ("3DTools: Alle Endpunkte unter 100 ms — die Szenenseite brauchte "
               "trotzdem 2,6 s und lud 250 Dateien mit 14,8 MB. Serverzeit allein "
-              "sagt nichts ueber das, was der Benutzer erlebt.")
+              "sagt nichts über das, was der Benutzer erlebt.")
     abhilfe = ("Grosse Antworten hinter einen Parameter legen (nur laden, was "
                "gebraucht wird), Vorschaubilder erst beim Aufklappen holen, "
                "Listen paginieren.")
@@ -70,7 +70,7 @@ class Seitenzeiten(Werkzeug):
 
     #: Kein Anlassfall - und das ist in Ordnung:
     ohne_anlassfall_weil = ("misst nur (Ladezeiten je Seite) - "
-                            "eine Messung hat keinen Fall, den man nachbauen koennte")
+                            "eine Messung hat keinen Fall, den man nachbauen könnte")
 
     def seiten(self):
         u"""Benannte GET-Routen ohne Parameter — von Django selbst erfragt."""
@@ -97,14 +97,14 @@ class Seitenzeiten(Werkzeug):
                 yield (weg, getattr(eintrag, "name", "") or "")
 
     def laufen(self):
-        u"""Jede Seite einmal aufrufen und Zeit und Groesse festhalten.
+        u"""Jede Seite einmal aufrufen und Zeit und Größe festhalten.
 
         FALLE, die beim Bau zuschlug (17.08.2026): Der Test-Client schickt den
         Host `testserver`. Steht der nicht in `ALLOWED_HOSTS`, antwortet Django
-        mit 400 — und die Messung zeigte fuer JEDE Seite 295 KB in 90 ms: die
-        Groesse der Fehlerseite. Ein Werkzeug, das immer dieselbe Zahl liefert,
-        misst nichts. Deshalb wird der Host fuer den Lauf ergaenzt, und der
-        Statuscode steht in der Tabelle — 400 oder 500 faellt damit auf.
+        mit 400 — und die Messung zeigte für JEDE Seite 295 KB in 90 ms: die
+        Größe der Fehlerseite. Ein Werkzeug, das immer dieselbe Zahl liefert,
+        misst nichts. Deshalb wird der Host für den Lauf ergänzt, und der
+        Statuscode steht in der Tabelle — 400 oder 500 fällt damit auf.
         """
         zeilen = []
         erlaubt = list(getattr(settings, 'ALLOWED_HOSTS', [])) + ['testserver']
@@ -113,7 +113,7 @@ class Seitenzeiten(Werkzeug):
         zeilen.sort(key=lambda z: -z["ms"])
         langsam = [z for z in zeilen if z["hinweis"]]
         echt = [z for z in zeilen if str(z["status"]) == "200"]
-        zusammen = ("%d Seiten gemessen (%d echt beantwortet), %d ueber %d ms "
+        zusammen = ("%d Seiten gemessen (%d echt beantwortet), %d über %d ms "
                     "oder %d KB" % (len(zeilen), len(echt), len(langsam),
                                     Seitenzeiten.GRENZE_MS,
                                     Seitenzeiten.GRENZE_KB))
@@ -126,7 +126,7 @@ class Seitenzeiten(Werkzeug):
             zusammenfassung=zusammen,
             hinweis="Das ist die SERVERZEIT. Was der Benutzer erlebt, steht "
                     "erst nach dem Knopf „Im Browser messen“ daneben "
-                    "— dort zaehlen Dateizahl und Bytes meist mehr. "
+                    "— dort zählen Dateizahl und Bytes meist mehr. "
                     "Zeilen mit 302 oder 401 sind die Abweisung am Eingang, "
                     "keine Seitenzeit.")
 
@@ -136,12 +136,12 @@ class Seitenzeiten(Werkzeug):
 
         BELEGT (17.08.2026): Von 162 Seiten antworteten 131 mit 302 und 29 mit
         401; genau ZWEI lieferten wirklich eine Seite. Die Zusammenfassung sagte
-        trotzdem „0 ueber 300 ms" - eine Entwarnung ueber Umleitungen.
+        trotzdem „0 über 300 ms" - eine Entwarnung über Umleitungen.
 
         Es wird NICHTS angelegt: Nur ein vorhandener Superuser wird angemeldet,
         und die dabei entstehende Sitzung raeumt ``_abmelden`` wieder weg. Ein
-        Analysewerkzeug, das Zeilen in den Echtdaten hinterlaesst, waere die
-        naechste Falle.
+        Analysewerkzeug, das Zeilen in den Echtdaten hinterlaesst, wäre die
+        nächste Falle.
         """
         from django.contrib.auth import get_user_model
         nutzer = get_user_model().objects.filter(
@@ -166,9 +166,9 @@ class Seitenzeiten(Werkzeug):
         """Bytes einer Antwort - auch wenn sie stroemt.
 
         ``antwort.content`` gibt es NICHT bei jeder Antwort: Eine
-        ``FileResponse`` (im Projekt assistant etwa ``/sw.js``) traegt
+        ``FileResponse`` (im Projekt assistant etwa ``/sw.js``) trägt
         ``streaming_content`` und wirft beim Zugriff auf ``content`` einen
-        AttributeError. Der stand ausserhalb des try-Blocks und hat das ganze
+        AttributeError. Der stand außerhalb des try-Blocks und hat das ganze
         Werkzeug abgebrochen - 162 gemessene Seiten waren futsch, weil EINE
         Seite eine Datei ausliefert (17.08.2026).
         """
@@ -217,7 +217,7 @@ class Seitenzeiten(Werkzeug):
             if dauer >= Seitenzeiten.GRENZE_MS:
                 hinweise.append("langsam")
             if kb >= Seitenzeiten.GRENZE_KB:
-                hinweise.append("grosses HTML")
+                hinweise.append("großes HTML")
             zeilen.append({"ms": dauer, "kb": kb, "status": antwort.status_code,
                            "seite": weg, "hinweis": ", ".join(hinweise)})
         return zeilen

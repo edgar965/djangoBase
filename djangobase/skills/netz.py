@@ -20,15 +20,15 @@ unterscheidet dieses Netz:
     verschwunden   Name existiert nirgends mehr          -> FEHLER
     verschoben     Name lebt in einem anderen Modul      -> genau das war der Plan
     umgehaengt     URL zeigt auf einen ANDEREN Namen     -> FEHLER
-    urls_weg       URL loest gar nicht mehr auf          -> FEHLER
+    urls_weg       URL löst gar nicht mehr auf          -> FEHLER
     signatur       Name lebt, nimmt aber andere Argumente-> WARNUNG
 
 DIE URL-PRUEFUNG IST DER KERN
 =============================
-Bei Django-Views haengt alles daran, dass ``urls.py`` noch auf dieselbe Funktion
+Bei Django-Views hängt alles daran, dass ``urls.py`` noch auf dieselbe Funktion
 zeigt. Das Aufloesen der URLs importiert dabei JEDES View-Modul - ein Modul, das
-nach dem Schnitt nicht mehr importierbar ist, faellt hier auf, ohne dass man es
-eigens pruefen muss.
+nach dem Schnitt nicht mehr importierbar ist, fällt hier auf, ohne dass man es
+eigens prüfen muss.
 
 Die Abnahme liegt in ``BASE_DIR/.djangobase-netz.json`` - Dateiname wie beim
 Einstellungs-Speicher, damit kein neuer Ordner entsteht, den die Pruefwerkzeuge
@@ -101,7 +101,7 @@ class Abnahme:
     @staticmethod
     def _urls():
         """{Muster: Zielname}. Loest die URL-Tabelle auf - das importiert dabei
-        jedes View-Modul, ein kaputtes faellt also hier auf."""
+        jedes View-Modul, ein kaputtes fällt also hier auf."""
         try:
             from django.urls import get_resolver
             wurzel = get_resolver()
@@ -176,7 +176,7 @@ class Umbaunetz:
         b = self._befunde(vorher, nachher)
         zeilen = ["VERGLEICH gegen Abnahme vom %s" % vorher.stand,
                   "%d verschwunden · %d URL umgehaengt · %d URL weg · "
-                  "%d Signatur geaendert · %d verschoben (gewollt)"
+                  "%d Signatur geändert · %d verschoben (gewollt)"
                   % (len(b["verschwunden"]), len(b["umgehaengt"]),
                      len(b["urls_weg"]), len(b["signatur"]), len(b["verschoben"])),
                   ""]

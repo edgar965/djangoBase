@@ -110,7 +110,7 @@ class Argumentquellen:
     nicht die Identitaet. Wer daraus eine Klasse macht, tauscht vier klare
     Aufrufe gegen ein Objekt, das bei jedem Aufruf etwas anderes ist.
 
-    Die Klasse zaehlt deshalb je aufgerufenem Namen und Stelle mit, ob dort
+    Die Klasse zählt deshalb je aufgerufenem Namen und Stelle mit, ob dort
     ein Literal oder ein gehaltener Wert steht.
     """
 
@@ -157,13 +157,13 @@ class Argumentquellen:
             get_int('THUMB_FFMPEG_TIMEOUT', _THUMB_FFMPEG_TIMEOUT)
 
         Die zweite Stelle ist gehalten, die erste ein Literal. Mit ``any``
-        galt `parser.py` weiter als Konstruktor — obwohl der Schluessel,
+        galt `parser.py` weiter als Konstruktor — obwohl der Schlüssel,
         also das eigentliche Merkmal, an jeder Stelle frisch dasteht. Ein
         Konstruktor nimmt ALLE Werte entgegen; wenn auch nur einer je
         Aufruf neu getippt wird, bleibt er ein Argument.
 
         Ohne jeden beobachteten Aufruf: ja. Ein Modul, das niemand
-        aufruft, laesst sich so nicht widerlegen — und ein Befund, der
+        aufruft, lässt sich so nicht widerlegen — und ein Befund, der
         nichts kostet, darf stehen bleiben.
         """
         gesehen = False
@@ -199,8 +199,8 @@ AUSGENOMMEN_TEILE = ('views', 'view', 'commands', 'management',
 #: Gemessen am 26.08.2026: `marzahn_pi` von 14 freien Funktionen auf zwei
 #: Klassen — sieben Aufrufstellen in vier Dateien, und `objektwurzeln`
 #: stieg von 37 auf 39. Ein Befund gegen einen anderen getauscht.
-PREIS_HINWEIS = ('Preis: %d Datei(en) fuehren dieses Modul ein; eine rein '
-                 'statisch benutzte Klasse ist ausserdem eine neue Wurzel '
+PREIS_HINWEIS = ('Preis: %d Datei(en) führen dieses Modul ein; eine rein '
+                 'statisch benutzte Klasse ist außerdem eine neue Wurzel '
                  '(`objektwurzeln`).')
 
 
@@ -284,15 +284,15 @@ class Klassenreif(BefundWerkzeug):
     kriterium = 18
     titel = 'Modul, das eine Klasse werden sollte'
     zweck = ('Stellt die vier Fragen, bei denen sich eine Klasse ihren Platz '
-             'verdient: eigener Zustand, gefaedelte Argumente, zwei Anliegen '
-             'in einer Datei, mehr als ein Exemplar noetig.')
+             'verdient: eigener Zustand, gefädelte Argumente, zwei Anliegen '
+             'in einer Datei, mehr als ein Exemplar nötig.')
     abhilfe = ('Bevor man ein Modul „aufraeumt". Ein Modul IST bereits ein '
                'Namensraum und ein Einzelstueck — eine Klasse mit lauter '
                'Klassenmethoden ist dasselbe mit mehr Syntax. Umgebaut wird, '
                'wo eine der vier Fragen mit Ja beantwortet wird, nicht wo '
                'viele Funktionen stehen.')
     befund = ('CamTrack, 26.08.2026: 806 Funktionen auf Modulebene, aber nur '
-              'fuenf Stellen mit veraenderlichem Modulzustand — und zwei '
+              'fünf Stellen mit veraenderlichem Modulzustand — und zwei '
               'davon sind Django-Konvention. Zwei Module wurden an diesem Tag '
               'umgebaut; genau EIN echter Fehler kam heraus, und der steckte '
               'im geteilten Lock von `marzahn_pi`, nicht in der Funktionszahl.')
@@ -328,14 +328,14 @@ class Klassenreif(BefundWerkzeug):
                 '_stand = {}\n'
                 '\n\n'
                 'def hochzaehlen(regel, kamera, person):\n'
-                '    schluessel = (regel, kamera, person)\n'
-                '    _stand[schluessel] = _stand.get(schluessel, 0) + 1\n'
+                '    schlüssel = (regel, kamera, person)\n'
+                '    _stand[schlüssel] = _stand.get(schlüssel, 0) + 1\n'
                 '    return _stand[schluessel]\n',
         },
         mindestens=3, erwartet_in='zwischenspeicher.py',
-        warum='Drei Module, drei verschiedene Gruende: eines haelt Zustand '
-              'mit `global`, eines faedelt dieselben drei Werte durch drei '
-              'Funktionen, eines fuehrt eine Instanzverwaltung von Hand')
+        warum='Drei Module, drei verschiedene Gruende: eines hält Zustand '
+              'mit `global`, eines fädelt dieselben drei Werte durch drei '
+              'Funktionen, eines führt eine Instanzverwaltung von Hand')
 
     # ------------------------------------------------------------------
     def pruefen(self, **_argumente):
@@ -383,10 +383,10 @@ class Klassenreif(BefundWerkzeug):
                 or letzter in AUSGENOMMEN_TEILE)
 
     def _einfuhren(self):
-        u"""Wie viele Dateien fuehren welches Modul ein?
+        u"""Wie viele Dateien führen welches Modul ein?
 
         DER PREIS GEHOERT IN DEN BEFUND. Ein Umbau, der zwanzig
-        Aufrufstellen kostet, um ein Modul aus einem Zaehler zu nehmen, ist
+        Aufrufstellen kostet, um ein Modul aus einem Zähler zu nehmen, ist
         schlecht angelegte Zeit — und das soll dranstehen, bevor jemand
         anfaengt, nicht danach.
         """
@@ -425,7 +425,7 @@ class Klassenreif(BefundWerkzeug):
         u"""``global`` oder ein veraenderter Modulzustand.
 
         `mqtt.py` hatte drei Globale und zwei ``global``-Anweisungen. Eine
-        Pruefung, die den Zwischenspeicher leeren wollte, musste
+        Prüfung, die den Zwischenspeicher leeren wollte, musste
         ``mqtt._client = None`` schreiben.
         """
         globale = set()
@@ -508,16 +508,16 @@ class Klassenreif(BefundWerkzeug):
             a, b = getrennt[0]
             fund.dazu(3, 'zwei getrennte Anliegen',
                       '`%s` und `%s` werden von verschiedenen Funktionen '
-                      'gefuehrt — keine fasst beide an' % (a, b))
+                      'geführt — keine fasst beide an' % (a, b))
 
     # ── 4. Mehr als ein Exemplar noetig ─────────────────────────────
     @staticmethod
     def _frage4_exemplare(fund, sicht, baum):
-        u"""Ein Woerterbuch, das von Hand nach einem Schluessel gefuehrt wird.
+        u"""Ein Woerterbuch, das von Hand nach einem Schlüssel geführt wird.
 
         ``_FRAME_STATE[(rule.pk, cam_id, person_id)]`` ist eine
         Instanzverwaltung ohne Klasse: je Regel, je Kamera, je Person ein
-        Zustand. Ein Woerterbuch mit FESTEN Schluesseln ist dagegen eine
+        Zustand. Ein Woerterbuch mit FESTEN Schlüsseln ist dagegen eine
         Tabelle und bleibt eine.
         """
         if not sicht.zustand:
@@ -533,7 +533,7 @@ class Klassenreif(BefundWerkzeug):
             if isinstance(schluessel, ast.Constant):
                 continue
             fund.dazu(4, 'Instanzverwaltung von Hand',
-                      '`%s[…]` wird nach einem berechneten Schluessel '
-                      'gefuehrt — je Exemplar ein Eintrag, aber keine Klasse'
+                      '`%s[…]` wird nach einem berechneten Schlüssel '
+                      'geführt — je Exemplar ein Eintrag, aber keine Klasse'
                       % teil.value.id)
             return

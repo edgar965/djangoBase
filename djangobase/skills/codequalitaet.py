@@ -6,10 +6,10 @@ DIE ANSAGE (Edgar, 24.08.2026)
     „fixe alle Fehler … und baue das Tool auch in die Code Review skills ein"
 
 Die anderen Werkzeuge dieses Ordners sind selbst geschrieben, weil sie
-Fragen stellen, die kein Standardwerkzeug kennt („welche Klasse haelt
-diese freie Funktion?"). Hier ist es umgekehrt: Komplexitaet, Wartbarkeit,
-tote Namen und PEP 8 sind seit Jahren geloest. Dieses Werkzeug misst nicht
-selbst — es faehrt `radon`, `pyflakes` und `pycodestyle` und bringt deren
+Fragen stellen, die kein Standardwerkzeug kennt („welche Klasse hält
+diese freie Funktion?"). Hier ist es umgekehrt: Komplexität, Wartbarkeit,
+tote Namen und PEP 8 sind seit Jahren gelöst. Dieses Werkzeug misst nicht
+selbst — es fährt `radon`, `pyflakes` und `pycodestyle` und bringt deren
 Ergebnis in dieselbe Form wie alle anderen Befunde.
 
 WAS DER ERSTE LAUF LEHRTE
@@ -20,9 +20,9 @@ Schnittstelle der Pakete, ausdruecklich so gewollt. `flake8` achtet auf die
 Marke, die reine Bibliothek `pyflakes` nicht.
 
 Es blieben 19 echte Funde. Darunter eine Testmethode, die in derselben
-Klasse ZWEIMAL denselben Namen trug: Python ueberschreibt still, die
+Klasse ZWEIMAL denselben Namen trug: Python überschreibt still, die
 aeltere Fassung lief nie. Sie prüfte noch `WEBRTC_STACK` — einen
-Schluessel, den v0.72 entfernt hat.
+Schlüssel, den v0.72 entfernt hat.
 
 Deshalb rechnet dieses Werkzeug ``# noqa`` heraus und nennt die Zahl
 trotzdem. Ein Bericht, in dem 211 gewollte Zeilen 19 echte zudecken, wird
@@ -47,9 +47,9 @@ class CodeQualitaet(BefundWerkzeug):
 
     slug = 'code-qualitaet'
     kriterium = 0
-    titel = 'Code-Qualitaet (radon, pyflakes, pycodestyle)'
-    zweck = ('Faehrt vier etablierte Messwerkzeuge ueber den Quelltext: '
-             'zyklomatische Komplexitaet und Wartbarkeitsindex (radon), '
+    titel = 'Code-Qualität (radon, pyflakes, pycodestyle)'
+    zweck = ('Fährt vier etablierte Messwerkzeuge über den Quelltext: '
+             'zyklomatische Komplexität und Wartbarkeitsindex (radon), '
              'echte Fehler (pyflakes) und PEP 8 (pycodestyle).')
     abhilfe = ('Vor jedem groesseren Umbau und nach jedem Merge. Die vier '
                'widersprechen einander regelmaessig, und das ist der Nutzen: '
@@ -76,7 +76,7 @@ class CodeQualitaet(BefundWerkzeug):
             '    return "%s"\n' % ('y' * 120))},
         mindestens=2, erwartet_in='verwickelt.py',
         warum='Eine Funktion mit vierzehn Verzweigungen, zwei tote Einfuhren '
-              'und eine Zeile ueber 79 Zeichen — drei verschiedene Fragen, '
+              'und eine Zeile über 79 Zeichen — drei verschiedene Fragen, '
               'die drei verschiedene Werkzeuge beantworten')
 
     def pruefen(self, **_argumente):
@@ -132,7 +132,7 @@ class CodeQualitaet(BefundWerkzeug):
     def _je_datei(pannen):
         u"""``[(datei, verfahren, grund)]`` auf eine Zeile je Datei.
 
-        Eine Datei ohne gueltige Syntax laesst ALLE Verfahren scheitern.
+        Eine Datei ohne gueltige Syntax lässt ALLE Verfahren scheitern.
         Vier gleichlautende Zeilen sagen nicht mehr als eine, die die
         betroffenen Verfahren aufzaehlt.
         """

@@ -1,7 +1,7 @@
 """Hilfe -> Jobs: listet die in ``djangobase.jobs`` registrierten Hintergrund-
 Jobs und zeigt deren Live-Zustand. Optional je Job: „Jetzt ausfuehren" und
 Aktivieren/Deaktivieren. Ein JSON-Endpoint (``?format=json``) liefert denselben
-Snapshot fuer das Auto-Refresh der Seite."""
+Snapshot für das Auto-Refresh der Seite."""
 from __future__ import annotations
 
 from django.contrib import messages
@@ -42,7 +42,7 @@ class JobsView(ZugriffMixin, View):
                 job["set_enabled"](False)
                 ok, msg = True, f"{job['name']}: deaktiviert."
             else:
-                msg = "Aktion fuer diesen Job nicht verfuegbar."
+                msg = "Aktion für diesen Job nicht verfuegbar."
         if ist_ajax:
             return JsonResponse({"ok": ok, "msg": msg, "jobs": jobs_registry.snapshot()})
         (messages.success if ok else messages.error)(request, msg)

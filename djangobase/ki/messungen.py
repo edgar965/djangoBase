@@ -185,7 +185,7 @@ MESSUNGEN = (
         # gemessen und begruendet die MoE-Lehre weiter oben. In der Tabelle
         # „lokal" taucht das Modell nicht mehr auf, die kommt aus ``ollama list``.
         "geloescht": "18.08.2026, ersetzt durch qwen3.8:27b",
-        "note": "4", "note_grund": "Inhaltlich stark, praktisch unbrauchbar: vier Minuten je Frage, weil 7,3 GB im Hauptspeicher liegen. Am 18.08.2026 geloescht - Nachfolger qwen3.8:27b braucht mit 9,1 GB Auslagerung noch mehr.",
+        "note": "4", "note_grund": "Inhaltlich stark, praktisch unbrauchbar: vier Minuten je Frage, weil 7,3 GB im Hauptspeicher liegen. Am 18.08.2026 gelöscht - Nachfolger qwen3.8:27b braucht mit 9,1 GB Auslagerung noch mehr.",
         "beispiel": "Long/Down: ~-6,7 EUR/Trade. Die Reduktion der Long/Down-Trades hat marginalen Einfluss auf das Gesamtkapital.",
         "urteil": "Sachlich stark - beste Antwort zu den schwachen Jahren inklusive "
                   "richtiger Gegenprobe, und es rechnete ungefragt aus, dass "
@@ -209,18 +209,18 @@ MESSUNGEN = (
         "beispiel": "Kandasamy, Shukla & Ranjan (2018), „Liquidity-driven trading strategies in the LOB“: positiver net-alpha von ca. 0,5 Basispunkten pro Trade.",
         "urteil": "Die einzigen offenen OpenAI-Gewichte seit GPT-2 und mit "
                   "34,9 Token/s das zweitschnellste lokale Modell - inhaltlich "
-                  "aber das schwaechste im Feld. Bei der Frage nach Belegen fuer "
+                  "aber das schwaechste im Feld. Bei der Frage nach Belegen für "
                   "Orderbuch-Handel nannte es eine Arbeit mit Autoren, Jahr und "
                   "einer praezisen Zahl („0,5 Basispunkte net-alpha“), die es "
                   "nicht gibt. Bei der Stichprobenrechnung gab die eigene Formel "
                   "rund 71 BEOBACHTUNGEN, ausgegeben wurden „35-45 HANDELSTAGE“ - "
                   "bei 100-ms-Schnappschuessen sind das 36.000 Beobachtungen je "
                   "Tag, also Faktor 500 daneben. Nemotrons Herleitung derselben "
-                  "Zahl liess sich dagegen Schritt fuer Schritt nachrechnen.",
+                  "Zahl liess sich dagegen Schritt für Schritt nachrechnen.",
         "einschraenkung": "Fiel bei der schwersten der vier Strategiefragen nach "
                           "zwei Versuchen ganz aus (leere Antwort). Markiert zwar "
                           "fleissig „UNSICHER“ - aber eben auch dort, wo es sich "
-                          "sicher sein koennte, was die Markierung wertlos macht.",
+                          "sicher sein könnte, was die Markierung wertlos macht.",
     },
     {
         "kennung": "moonshotai/kimi-k3",
@@ -309,15 +309,15 @@ MESSUNGEN = (
         "ct_je_frage": 0.0,
         "note": "4", "note_grund": "Hoechste Trefferzahl aller lokalen Modelle (5/6) - und trotzdem schwach: Die Treffer sind gestreute Stichworte, der Mechanismus fehlt.",
         "beispiel": "Der staerkste Einwand betrifft die Ignorierung der Opportunitaetskosten ... aber noch gravierender: die Verzerrung durch Look-Ahead-Bias ... Aber der klassische ORB-Fehler ist: Survivorship Bias",
-        "urteil": "DER BELEG DAFUER, DASS DIE TREFFERZAHL NICHTS TAUGT. Fuenf von sechs "
+        "urteil": "DER BELEG DAFUER, DASS DIE TREFFERZAHL NICHTS TAUGT. Fünf von sechs "
                   "Kernpunkten - mehr als jedes andere lokale Modell - und beim Lesen "
-                  "bleibt nichts uebrig: Die Antwort springt zwischen fuenf "
+                  "bleibt nichts übrig: Die Antwort springt zwischen fünf "
                   "„staerksten Einwaenden“ hin und her, nennt Look-Ahead-Bias, "
                   "Survivorship Bias, Mark-to-Market und Opportunitaetskosten - und das "
                   "Tageslimit, um das es geht, kein einziges Mal. Dazu erfundene "
                   "Dateinamen (backtest_engine.py, pnl_calculator.py) mit dem Zusatz "
                   "„Zeilennummer: [Unbekannt]“. Mit 105,2 Token/s allerdings sehr schnell.",
-        "einschraenkung": "Wer nur auf die Trefferspalte sieht, haelt dieses Modell fuer "
+        "einschraenkung": "Wer nur auf die Trefferspalte sieht, hält dieses Modell für "
                           "das beste lokale. Genau deshalb steht in dieser Datei, dass das "
                           "Urteil aus dem gelesenen Text kommt und nicht aus der Zahl.",
     },
@@ -326,7 +326,7 @@ MESSUNGEN = (
         "ort": "lokal", "rang": None, "sekunden": 257, "kern": 4, "standard": 3,
         "ct_je_frage": 0.0,
         "note": "3", "note_grund": "Dasselbe Modell wie qwen3.8:27b, nur genauer quantisiert. Inhaltlich gleichwertig, aber doppelter Speicher und ein Drittel weniger Tempo - ob Q8 inhaltlich mehr kann, ist mit einem Lauf nicht messbar.",
-        "beispiel": "Wenn das System ein globales Tageslimit von 4 Trades hat, und du sperrst Longs in Abwaertsphasen, dann sind an Abwaertstagen ploetzlich mehr Slots frei fuer Short-Trades.",
+        "beispiel": "Wenn das System ein globales Tageslimit von 4 Trades hat, und du sperrst Longs in Abwaertsphasen, dann sind an Abwaertstagen ploetzlich mehr Slots frei für Short-Trades.",
         "urteil": "DER Q4/Q8-VERGLEICH IST NICHT ENTSCHIEDEN - und das ist die "
                   "ehrlichere Auskunft als die Zahl. Belegt ist nur die Kostenseite: "
                   "dieselben 27,3 Mrd. Parameter, dieselbe Architektur, derselbe "
@@ -334,7 +334,7 @@ MESSUNGEN = (
                   "38,5 Token/s. Inhaltlich war die Antwort gleichwertig: Q8 fand "
                   "denselben Mechanismus, mit durchgespieltem Signalablauf. Die "
                   "Trefferzahl lag bei 4/6 gegen 5/6 - dieser eine Punkt ist jedoch "
-                  "KEINE Aussage ueber die Quantisierung: Der Pruefstein laeuft mit "
+                  "KEINE Aussage über die Quantisierung: Der Pruefstein läuft mit "
                   "temperature 0,5 ohne festen Seed, und dieselbe Q4-Fassung lieferte "
                   "an einem Tag einmal 4/6 und einmal 5/6. Der Unterschied liegt in "
                   "der Streuung des Verfahrens, nicht zwischen den Fassungen.",
@@ -350,11 +350,11 @@ MESSUNGEN = (
         "ort": "lokal", "rang": None, "sekunden": 113, "kern": 2, "standard": 3,
         "ct_je_frage": 0.0,
         "note": "3", "note_grund": "Findet den Mechanismus mit durchgerechnetem Szenario - und stellt daneben eine Rechnung mit falschem Vorzeichen auf. 38 s je Frage.",
-        "beispiel": "In einer Abwaertsphase waere die Wahrscheinlichkeit hoch, dass die gesperrten Long-Positionen durch Short-Positionen ersetzt werden wuerden - das Sperren wuerde dazu fuehren, dass die Short-Strategie noch haeufiger zum Einsatz kommt.",
+        "beispiel": "In einer Abwaertsphase wäre die Wahrscheinlichkeit hoch, dass die gesperrten Long-Positionen durch Short-Positionen ersetzt werden wuerden - das Sperren wuerde dazu führen, dass die Short-Strategie noch häufiger zum Einsatz kommt.",
         "urteil": "Das lokale Gegenstueck zu nemotron-3-ultra, das online auf Rang 6 "
                   "steht. Es findet den Nachrueck-Mechanismus und rechnet ihn in einem "
                   "Szenario durch. Mit 67,2 Token/s und 38 s je Frage ist es zudem das "
-                  "schnellste der grossen lokalen Modelle.",
+                  "schnellste der großen lokalen Modelle.",
         "einschraenkung": "Direkt daneben steht ein grober Denkfehler: Der Wegfall der "
                           "-7.861 EUR sei „ein Verlust von 7.861 EUR“, der als "
                           "Opportunitaetskosten zu werten sei. Das ist das Vorzeichen "
@@ -366,12 +366,12 @@ MESSUNGEN = (
         "ort": "lokal", "rang": None, "sekunden": 133, "kern": 1, "standard": 2,
         "ct_je_frage": 0.0,
         "note": "5", "note_grund": "70 Mrd. Parameter in Q2 - und das schwaechste Ergebnis im lokalen Feld. Grobe Quantisierung kostet mehr, als die Parameter einbringen.",
-        "beispiel": "Vereinfachung der Marktphasen und Richtungen: Die Aufteilung in nur zwei Marktphasen ueberspitzt die Komplexitaet des Marktes.",
+        "beispiel": "Vereinfachung der Marktphasen und Richtungen: Die Aufteilung in nur zwei Marktphasen ueberspitzt die Komplexität des Marktes.",
         "urteil": "DIE ANTWORT AUF DIE FRAGE, OB EIN GROSSES MODELL GROB QUANTISIERT "
                   "BESSER IST ALS EIN KLEINERES FEIN: nein. Mit 26,4 GB passt das 70B in "
                   "Q2 auf die Karte - aber es liefert nur Lehrbuchfloskeln "
                   "mit Lehrbuchfloskeln zur Vereinfachung der Marktphasen und zur "
-                  "fehlenden Kontrolle fuer Ueberfitting, dazu ein COVID-Beispiel - "
+                  "fehlenden Kontrolle für Ueberfitting, dazu ein COVID-Beispiel - "
                   "und nennt das Tageslimit "
                   "kein einziges Mal. Das 30B-Modell derselben Familie in Q4 findet den "
                   "Mechanismus - bei 3 Mrd. aktiven Parametern und halbem Speicherbedarf.",
@@ -492,7 +492,7 @@ MESSUNGEN = (
                   "der 7861 sind ohne Resimulation nicht bestimmbar.“ Damit das "
                   "erste Modell im Feld, dessen Prüfstein-Treffer sich wiederholen "
                   "ließ.",
-        "einschraenkung": "DREI LAEUFE, dreimal der Pruefstein getroffen (Kern 4/6, 5/6, 5/6) - das einzige Modell im Feld mit belegter Wiederholbarkeit. Dafuer schwankt das Tempo erheblich: 390, 477 und 548 s fuer dieselben drei Fragen, also 130 bis 183 s je Frage - nur qwen3.6 und qwen-plus:thinking waren "
+        "einschraenkung": "DREI LAEUFE, dreimal der Pruefstein getroffen (Kern 4/6, 5/6, 5/6) - das einzige Modell im Feld mit belegter Wiederholbarkeit. Dafuer schwankt das Tempo erheblich: 390, 477 und 548 s für dieselben drei Fragen, also 130 bis 183 s je Frage - nur qwen3.6 und qwen-plus:thinking waren "
                           "waren langsamer. Dazu ein Stealth-Modell: Der Anbieter nennt "
                           "sich nicht, das Modell kann jederzeit verschwinden, und jede "
                           "Frage geht an einen unbenannten Empfänger.",
@@ -518,7 +518,7 @@ BEFUNDE = (
      "550 Mrd. Parameter (nemotron) und 27 Mrd. (qwen3.6 lokal) fanden je einen "
      "der beiden versteckten Punkte. Das 9-Mrd.-Modell auf diesem Rechner lag "
      "gleichauf mit gemini-2.5-pro."),
-    ("MoE haelt, was es verspricht - sauber nachgemessen",
+    ("MoE hält, was es verspricht - sauber nachgemessen",
      "Dieser Befund stand am 24.08.2026 zweimal auf dem Kopf. Ursprünglich: "
      "gemma4 rechnet je Token nur 4 seiner 26 Mrd. Parameter und war achtmal "
      "schneller als das dichte qwen3.6. Dann schien eine Messung auf der neuen "

@@ -158,7 +158,7 @@ class ReviewPartner:
             self.verlauf.pop()                # Frage nicht im Verlauf lassen
             raise ReviewFehler(
                 "Verbindung zu %s fehlgeschlagen: %s%s"
-                % (self.ziel, e, "  (laeuft `ollama serve`?)" if self.ziel == "lokal" else "")
+                % (self.ziel, e, "  (läuft `ollama serve`?)" if self.ziel == "lokal" else "")
             ) from e
         except Exception:
             self.verlauf.pop()
@@ -226,7 +226,7 @@ class ReviewPartner:
             wert = ""
         if not wert:
             raise ReviewFehler(
-                "Kein API-Schluessel. Er gehoert in genau eine Datei ausserhalb des "
-                "Projekts: %s (eine Zeile). Ueber DJANGOBASE['review_schluessel_datei'] "
+                "Kein API-Schlüssel. Er gehört in genau eine Datei außerhalb des "
+                "Projekts: %s (eine Zeile). Über DJANGOBASE['review_schlüssel_datei'] "
                 "aenderbar." % pfad)
         return wert

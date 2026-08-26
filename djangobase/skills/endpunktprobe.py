@@ -13,18 +13,18 @@ class Endpunktprobe(BefundWerkzeug):
 
     slug = 'endpunkt-probe'
     titel = 'Endpunkt-Probe'
-    zweck = ('Ruft jede GET-Route auf, haelt den Statuscode fest und vergleicht '
-             'ihn beim naechsten Lauf. Neue, verschwundene und veraenderte '
+    zweck = ('Ruft jede GET-Route auf, hält den Statuscode fest und vergleicht '
+             'ihn beim nächsten Lauf. Neue, verschwundene und veränderte '
              'Routen werden gemeldet.')
-    abhilfe = ('VOR einem grossen Umbau einmal als Referenz aufnehmen, danach nach '
-            'jedem Schritt pruefen. Das ist das Sicherheitsnetz fuer alles, was '
+    abhilfe = ('VOR einem großen Umbau einmal als Referenz aufnehmen, danach nach '
+            'jedem Schritt prüfen. Das ist das Sicherheitsnetz für alles, was '
             'keine Tests hat: Wer eine 6.000-Zeilen-Datei zerlegt, merkt einen '
-            'kaputten Endpunkt sonst erst, wenn jemand die Seite oeffnet.')
+            'kaputten Endpunkt sonst erst, wenn jemand die Seite öffnet.')
     befund = ('Hat den Umbau von 110 Endpunkten aus einer Datei in Module '
-             'abgesichert — 195 Routen unveraendert, jede Abweichung sofort '
+             'abgesichert — 195 Routen unverändert, jede Abweichung sofort '
              'sichtbar.')
-    dauer = 'mehrere Minuten — gemessen: 147 s fuer 188 Routen'
-    eingabe = ('modus', "'pruefen' oder 'referenz' (Sollzustand neu aufnehmen)",
+    dauer = 'mehrere Minuten — gemessen: 147 s für 188 Routen'
+    eingabe = ('modus', "'prüfen' oder 'referenz' (Sollzustand neu aufnehmen)",
                'pruefen')
     ruft_endpunkte_auf = True
 
@@ -32,7 +32,7 @@ class Endpunktprobe(BefundWerkzeug):
 
     #: Kein Anlassfall - und das ist in Ordnung:
     ohne_anlassfall_weil = ("fragt den LAUFENDEN Server - "
-                            "vergleicht Antworten gegen eine frueher aufgenommene Referenz")
+                            "vergleicht Antworten gegen eine früher aufgenommene Referenz")
 
     def pruefen(self, modus='pruefen', **_argumente):
         besucher = klient()
@@ -51,7 +51,7 @@ class Endpunktprobe(BefundWerkzeug):
             return Befundsatz(self.titel, [
                 'Referenz mit %d Routen geschrieben:' % len(aktuell),
                 self.kurz(pfad),
-                'Ab jetzt meldet der Modus "pruefen" jede Abweichung.',
+                'Ab jetzt meldet der Modus "prüfen" jede Abweichung.',
             ])
 
         if not pfad.is_file():
@@ -83,6 +83,6 @@ class Endpunktprobe(BefundWerkzeug):
         gleich = len(set(aktuell) & set(referenz)) - sum(
             1 for b in befunde if 'GEAENDERT' in b.was)
         return Befundsatz(self.titel, [
-            '%d Routen geprueft, %d unveraendert' % (len(aktuell), gleich),
+            '%d Routen geprüft, %d unverändert' % (len(aktuell), gleich),
             'Referenz: ' + self.kurz(pfad),
         ], befunde)

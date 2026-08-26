@@ -1,22 +1,22 @@
 # -*- coding: utf-8 -*-
 u"""Testdeckung - welche Seite, welcher Endpunkt, welcher Menuepunkt hat KEINEN Test?
 
-    Kriterium 17 (Zusatz): Testcases fuer alle wichtigen Funktionen und Menues.
+    Kriterium 17 (Zusatz): Testcases für alle wichtigen Funktionen und Menues.
 
 DIE FRAGE VON DER ANDEREN SEITE
 ===============================
-``testaufbau`` prueft, ob die vorhandenen Tests ordentlich liegen. Das sagt
+``testaufbau`` prüft, ob die vorhandenen Tests ordentlich liegen. Das sagt
 nichts darueber, ob sie das Wichtige treffen. Hier wird umgekehrt gefragt: Das
-Projekt sagt selbst, was wichtig ist - die URL-Tabelle und das Menue -, und fuer
+Projekt sagt selbst, was wichtig ist - die URL-Tabelle und das Menue -, und für
 jeden Eintrag wird nachgesehen, ob ihn irgendein Test ueberhaupt erwaehnt.
 
 WARUM „ERWAEHNT" UND NICHT „GEPRUEFT"
 =====================================
-Ob ein Test etwas SINNVOLL prueft, kann ein Werkzeug nicht beurteilen. Dass eine
+Ob ein Test etwas SINNVOLL prüft, kann ein Werkzeug nicht beurteilen. Dass eine
 Seite in KEINEM Test vorkommt, ist dagegen eindeutig - und genau das ist die
-teure Sorte Luecke: Ein Menuepunkt, den niemand faehrt, faellt erst dem Nutzer
-auf. Deshalb zaehlt jede Erwaehnung (URL-Name, Pfad oder Funktionsname), und der
-Befund heisst „ungeprueft", nicht „falsch".
+teure Sorte Lücke: Ein Menuepunkt, den niemand fährt, fällt erst dem Nutzer
+auf. Deshalb zählt jede Erwaehnung (URL-Name, Pfad oder Funktionsname), und der
+Befund heißt „ungeprüft", nicht „falsch".
 
 GEWICHTUNG
 ==========

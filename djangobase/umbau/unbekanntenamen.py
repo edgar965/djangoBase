@@ -269,12 +269,12 @@ def main():
         if offen:
             treffer += 1
             print('%-52s %s' % (p.as_posix(), ', '.join(offen[:12])))
-    print('\n%d Dateien geprueft, %d mit unbekannten Namen'
+    print('\n%d Dateien geprüft, %d mit unbekannten Namen'
           % (len(dateien) - klassisch, treffer))
     if klassisch:
-        print('%d klassische Skripte uebersprungen (kein import/export — ihre '
+        print('%d klassische Skripte übersprungen (kein import/export — ihre '
               'Namen kommen aus Geschwisterdateien). Einzeln als Argument '
-              'nennen, um sie doch zu pruefen.' % klassisch)
+              'nennen, um sie doch zu prüfen.' % klassisch)
 
 
 if __name__ == '__main__':

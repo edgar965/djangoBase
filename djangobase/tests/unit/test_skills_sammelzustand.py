@@ -104,7 +104,7 @@ class SammelzustandTest(BasisTest):
             '        return det\n')})
         namen = self._namen(satz)
         self.assertIn('frames_processed', namen,
-                      'der gesammelte Zaehler wurde nicht gemeldet')
+                      'der gesammelte Zähler wurde nicht gemeldet')
         self.assertIn('stillstand', namen,
                       'die geteilte Unterinstanz wurde nicht gemeldet — genau '
                       'sie liess vier Kameras zehn Stunden blind laufen')
@@ -124,13 +124,13 @@ class SammelzustandTest(BasisTest):
         self.assertTrue(satz.befunde)
         self.assertEqual(satz.befunde[0].gewicht, 'warnung')
         self.assertIn('slug', satz.befunde[0].warum,
-                      'die Meldung muss sagen, WOMIT je Entitaet '
+                      'die Meldung muss sagen, WOMIT je Entität '
                       'nachgeschlagen wird')
 
     def test_die_abhilfe_nennt_die_unterinstanz(self):
-        u"""Ein Befund ohne naechsten Schritt ist eine Beschwerde."""
+        u"""Ein Befund ohne nächsten Schritt ist eine Beschwerde."""
         werkzeug = werkzeug_finden(self.SLUG)
-        self.assertIn('Entitaet', werkzeug.abhilfe)
+        self.assertIn('Entität', werkzeug.abhilfe)
         self.assertIn('geteilt gewollt', werkzeug.abhilfe)
 
     def test_ein_befund_je_feld_nicht_je_fundstelle(self):
@@ -170,7 +170,7 @@ class SammelzustandTest(BasisTest):
             '    def bild(self, frame):\n'
             '        self.bilder += 1\n')})
         self.assertFalse(satz.befunde,
-                         'eine Klasse je Entitaet darf nie gemeldet werden')
+                         'eine Klasse je Entität darf nie gemeldet werden')
 
     def test_fester_schluessel_ist_keine_verteilung(self):
         u"""``self._teile['kopf']`` ist eine Struktur mit benannten Faechern,
@@ -183,7 +183,7 @@ class SammelzustandTest(BasisTest):
             '    def fuege(self, text):\n'
             '        self._teile["kopf"] = text\n'
             '        self.zeilen += 1\n')})
-        self.assertFalse(satz.befunde, 'fester Schluessel ist kein Beweis')
+        self.assertFalse(satz.befunde, 'fester Schlüssel ist kein Beweis')
 
     def test_eigene_stelle_als_index_ist_keine_verteilung(self):
         u"""``self.punkte[self.stand]`` ist Buchfuehrung ueber die eigene
@@ -196,7 +196,7 @@ class SammelzustandTest(BasisTest):
             '    def push(self, wert):\n'
             '        self.punkte[self.stand] = wert\n'
             '        self.stand += 1\n')})
-        self.assertFalse(satz.befunde, 'ein Positionsindex ist kein Schluessel')
+        self.assertFalse(satz.befunde, 'ein Positionsindex ist kein Schlüssel')
 
     def test_datensatz_wird_uebersprungen(self):
         u"""Ein ``@dataclass`` beschreibt EINE Sache. Haelt er ein Verzeichnis,
@@ -225,7 +225,7 @@ class SammelzustandTest(BasisTest):
             '        self.pool[k] = v\n'
             '        self.next_id += 1\n'
             '        return self.next_id\n')})
-        self.assertFalse(satz.befunde, 'eine Kennungsfolge gehoert allen')
+        self.assertFalse(satz.befunde, 'eine Kennungsfolge gehört allen')
 
     def test_sammelbehaelter_ist_das_ergebnis_nicht_der_zustand(self):
         u"""``self.to_keep.append(person)`` IST, was die Klasse liefert.
@@ -291,7 +291,7 @@ class SammelzustandTest(BasisTest):
             '        self.gesamt = 0\n\n'
             '    def bild(self, slug):\n'
             '        d = self._je_cam[slug]\n'
-            '        # geteilt gewollt: Summe fuer die Startseite\n'
+            '        # geteilt gewollt: Summe für die Startseite\n'
             '        self.gesamt += 1\n'
             '        return d\n')})
         self.assertFalse(mit.befunde,
@@ -310,10 +310,10 @@ class SammelzustandTest(BasisTest):
             '        d = self._je_cam[slug]\n'
             '        self.zahl += 1\n'
             '        return d\n')})
-        self.assertFalse(satz.befunde, 'Testdateien gehoeren nicht in den Bericht')
+        self.assertFalse(satz.befunde, 'Testdateien gehören nicht in den Bericht')
 
     def test_leeres_projekt_bleibt_still(self):
         u"""Wer im Leeren etwas meldet, sucht woanders."""
         satz = self._lauf({})
         self.assertFalse(satz.befunde)
-        self.assertTrue(satz.kopf, 'auch ohne Befund gehoert eine Kennzahl hin')
+        self.assertTrue(satz.kopf, 'auch ohne Befund gehört eine Kennzahl hin')

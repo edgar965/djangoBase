@@ -267,7 +267,7 @@ export async function ladenMitRueckfall(url) {
 
     @classmethod
     def _wird_beschriftet(cls, zeilen, von, bis, name):
-        """Wird ``name`` unter dem Waechter als Anzeige benutzt?"""
+        """Wird ``name`` unter dem Wächter als Anzeige benutzt?"""
         text = "\n".join(zeilen[von:bis + 1])
         return any("%s.%s" % (name, eigenschaft) in text
                    for eigenschaft in cls.BESCHRIFTET)
@@ -288,7 +288,7 @@ export async function ladenMitRueckfall(url) {
                              "abgebrochene Aktion sieht erfolgreich aus")
 
     def _bloecke(self, kurz, zeilen, muster, art, warum):
-        """Gemeinsamer Teil von 2 und 3: Block finden, Rumpf pruefen."""
+        """Gemeinsamer Teil von 2 und 3: Block finden, Rumpf prüfen."""
         aus = []
         for nummer, zeile in enumerate(zeilen):
             if zeile.lstrip().startswith(("*", "//")):
@@ -338,13 +338,13 @@ export async function ladenMitRueckfall(url) {
 
     @staticmethod
     def _blockklammer(zeile, ab):
-        u"""Position der ``{``, die den if-Block oeffnet — oder None.
+        u"""Position der ``{``, die den if-Block öffnet — oder None.
 
         NICHT ``"{" in rest`` (23 Fehlalarme in 3DTools, 17.08.2026): In
 
             if (!resp.ok) throw new Error(`Scene list error: ${resp.status}`);
 
-        steht ein ``{`` — es gehoert zur Vorlagenzeichenkette ``${…}``. Das galt
+        steht ein ``{`` — es gehört zur Vorlagenzeichenkette ``${…}``. Das galt
         als Blockanfang; gelesen wurde dann der „Rumpf" ``resp.status}…``, darin
         kein Meldeweg, also ein Befund. Gemeldet waren damit ausgerechnet die
         Zeilen, die es RICHTIG machen: Sie werfen die Ausnahme mit Statuscode

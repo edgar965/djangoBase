@@ -88,7 +88,7 @@ class WasUnberuehrtBleibt(BasisTest):
         self.assertEqual(werkzeug.vorschau().aenderungen, [])
 
     def test_eine_kaputte_datei_wird_uebersprungen(self):
-        u"""Ein Syntaxfehler ist ein Fall für `code-qualitaet`, nicht für
+        u"""Ein Syntaxfehler ist ein Fall für `code-qualität`, nicht für
         einen Fixer, der schreiben will."""
         werkzeug, _o = _fixer({'kaputt.py': u"def (:\n"})
         self.assertEqual(werkzeug.vorschau().aenderungen, [])

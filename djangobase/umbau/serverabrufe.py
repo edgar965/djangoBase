@@ -136,7 +136,7 @@ class ServerabrufUmstellung:
         return ersatz, ende + 2 - i
 
     def import_ergaenzen(self):
-        """Import auf `Serverabruf` ergaenzen (siehe js_importe.Importblock)."""
+        """Import auf `Serverabruf` ergänzen (siehe js_importe.Importblock)."""
         block = Importblock(self.pfad)
         block.zeilen = self.zeilen          # Stand dieser Umstellung, nicht Platte
         if block.sicherstellen('Serverabruf'):

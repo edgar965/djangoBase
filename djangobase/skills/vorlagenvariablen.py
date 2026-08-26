@@ -12,23 +12,23 @@ class Vorlagenvariablen(BefundWerkzeug):
 
     slug = 'vorlagen-variablen'
     titel = 'Vorlagen-Variablen'
-    zweck = ('Zaehlt beim Rendern einer Seite jede Variablenaufloesung — '
+    zweck = ('Zählt beim Rendern einer Seite jede Variablenauflösung — '
              'insgesamt und je Name. Zeigt damit, ob eine Seite viele '
              'verschiedene Werte anzeigt oder wenige Werte sehr oft.')
     abhilfe = ('Wenn eine Seite langsam ist und das Profil nur Django-Interna '
             'zeigt. Grosse {% for %}-Schleifen kosten pro Durchlauf eine '
-            'Aufloesung je Variable — das summiert sich, ohne dass eine einzelne '
-            'Funktion auffaellt.')
-    befund = ('Eine Einstellungsseite kam auf 70.772 Aufloesungen bei nur ACHT '
+            'Auflösung je Variable — das summiert sich, ohne dass eine einzelne '
+            'Funktion auffällt.')
+    befund = ('Eine Einstellungsseite kam auf 70.772 Auflösungen bei nur ACHT '
              'verschiedenen Namen: vier Namen mal 7.067 Listeneintraege, und der '
              'Baustein war zweimal eingebunden. Sichtbar war davon nichts — die '
-             'Liste startete zugeklappt. Nach dem Umbau: 297 Aufloesungen.')
+             'Liste startete zugeklappt. Nach dem Umbau: 297 Auflösungen.')
     dauer = 'Sekunden'
     eingabe = ('weg', 'Welche Route? (z. B. /hilfe/versionen/)', '/')
 
     #: Kein Anlassfall - und das ist in Ordnung:
     ohne_anlassfall_weil = ("braucht den Renderer zur Laufzeit - "
-                            "gezaehlt wird, was beim Rendern aufgeloest wird")
+                            "gezählt wird, was beim Rendern aufgelöst wird")
 
     def pruefen(self, weg='/', **_argumente):
         ziel = (str(weg).strip() or '/')
@@ -54,15 +54,15 @@ class Vorlagenvariablen(BefundWerkzeug):
         kopf = [
             '%s -> Status %s, %d Byte' % (ziel, antwort.status_code,
                                           len(antwort.content)),
-            '%d Aufloesungen, %d verschiedene Namen' % (gesamt, len(zaehler)),
+            '%d Auflösungen, %d verschiedene Namen' % (gesamt, len(zaehler)),
         ]
         if zaehler:
             haeufigster, anzahl = zaehler.most_common(1)[0]
             if anzahl > 500:
-                kopf.append('Auffaellig: "%s" wird %d-mal aufgeloest — das ist '
+                kopf.append('Auffaellig: "%s" wird %d-mal aufgelöst — das ist '
                             'eine Schleife, keine Seite voller Werte.'
                             % (haeufigster, anzahl))
-        befunde = [Befund(name, '%d Aufloesungen' % anzahl,
+        befunde = [Befund(name, '%d Auflösungen' % anzahl,
                           gewicht=(Befund.WARNUNG if anzahl > 500
                                    else Befund.HINWEIS))
                    for name, anzahl in zaehler.most_common(30)]

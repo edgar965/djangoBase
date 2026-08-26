@@ -155,7 +155,7 @@ class GetattrNamen(Werkzeug):
     zweck = ("Findet ``getattr(x, \"name\", vorgabe)``, wo der Name im Projekt "
              "weder als Attribut noch als Bezeichner vorkommt.")
     befund = ("In shortlongx fragte der Live-Autotrader ``getattr(self.ts, "
-              "\"orb_nacht\", False)``; das Feld heißt ``position_ueber_nacht`` "
+              "\"orb_nacht\", False)``; das Feld heißt ``position_über_nacht`` "
               "und hat nie anders geheißen. Der Autotrader schloss deshalb jede "
               "Position am Fensterende, während der Backtest daneben über Nacht "
               "hielt — ohne eine einzige Fehlermeldung.")
@@ -205,7 +205,7 @@ def kann_das(paketname):
         mindestens=1, hoechstens=1,
         erwartet_in="orb_nacht",
         warum="Autotrader fragte ``orb_nacht``; das Feld heißt "
-              "``position_ueber_nacht`` (16.08.2026). Die zwei Ausnahmen sind "
+              "``position_über_nacht`` (16.08.2026). Die zwei Ausnahmen sind "
               "die Fehlalarme aus 3DTools: Dunder und Modul-Empfänger.")
 
     def laufen(self):

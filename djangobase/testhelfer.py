@@ -101,7 +101,7 @@ class Webmodul:
         return self.ordner / "eigen" / quelle.name
 
     def _importziele(self, quelle, text):
-        """Die Dateien, die `quelle` importiert - aufgeloest."""
+        """Die Dateien, die `quelle` importiert - aufgelöst."""
         ziele = []
         for _, _, angabe, _ in IMPORTE.findall(text):
             ziel = self._aufloesen(quelle, angabe)

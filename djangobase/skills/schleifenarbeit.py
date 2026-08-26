@@ -5,7 +5,7 @@ WAS EINE STATISCHE PRUEFUNG HIER LEISTEN KANN - und was nicht
 =============================================================
 Sie kann nicht messen. Was sie kann, ist die Handvoll Muster finden, die schon
 mehrfach Minuten gekostet haben: Arbeit in einer Schleife, die vor die Schleife
-gehoert. Gesucht wird nur, was auch ohne Messung eindeutig ist - Datei- oder
+gehört. Gesucht wird nur, was auch ohne Messung eindeutig ist - Datei- oder
 Datenbankzugriff in einer Schleife und Sammlungen, die per ``+=`` wachsen
 (quadratisch).
 

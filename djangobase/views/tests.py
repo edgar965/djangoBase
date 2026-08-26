@@ -90,11 +90,11 @@ class TestsView(ZugriffMixin, View):
     def _ids_gecacht(cls, label):
         u"""Test-IDs eines Labels, kurz zwischengespeichert.
 
-        Ohne den Zwischenspeicher laedt JEDER Aufruf von /hilfe/tests/ alle
-        Testmodule neu — im Projekt assistant sind das ueber dreissig Labels.
+        Ohne den Zwischenspeicher lädt JEDER Aufruf von /hilfe/tests/ alle
+        Testmodule neu — im Projekt assistant sind das über dreissig Labels.
         Der Cache liegt in Djangos Cache-Rahmen (Vorgabe: im Speicher des
         Prozesses), nicht in einer Modulvariablen: veraenderlicher Zustand auf
-        Modulebene gilt fuer ALLE Anfragen gleichzeitig.
+        Modulebene gilt für ALLE Anfragen gleichzeitig.
         """
         from django.core.cache import cache
         schluessel = "djangobase:testids:%s" % label
@@ -113,12 +113,12 @@ class TestsView(ZugriffMixin, View):
 
         VORGABE FUER ALLE (Ansage 17.08.2026: „aktiviere das per default für alle
         in djangoBase!"). Ohne das war die Seite in jedem Konsumenten leer, der
-        den Schluessel nicht gesetzt hat — und damit gab es dort auch keine
+        den Schlüssel nicht gesetzt hat — und damit gab es dort auch keine
         Laufzeiten je Testcase. :class:`~.testbefehle.Testbefehle` sucht die
         ``tests``-Ordner unter ``BASE_DIR`` und baut je App und Art einen Eintrag;
         genau das hatte der assistant von Hand in seinen Einstellungen stehen.
 
-        Ein Projekt, das ``DJANGOBASE["test_befehle"]`` setzt, behaelt seine
+        Ein Projekt, das ``DJANGOBASE["test_befehle"]`` setzt, behält seine
         Liste — die Vorgabe greift nur, wo nichts steht.
         """
         from django.core.cache import cache
@@ -233,9 +233,9 @@ class TestsView(ZugriffMixin, View):
     def _einzeltests(cls, discover, mit_djangobase=False):
         u"""Die Reiter je Typ mit ihren Einzeltests - und alle bekannten IDs.
 
-        ``mit_djangobase`` schaltet die Faelle zu, die djangoBase SELBST
+        ``mit_djangobase`` schaltet die Fälle zu, die djangoBase SELBST
         mitbringt (Grundtests, Endpunktprobe). Sie laufen im Wirt-Projekt mit,
-        gehoeren aber nicht zu seinem Code — und standen in der Liste ganz oben
+        gehören aber nicht zu seinem Code — und standen in der Liste ganz oben
         im Weg. Vorgabe deshalb AUS, Schalter unter Einstellungen → djangoBase
         (Ansage 17.08.2026).
         """
@@ -280,7 +280,7 @@ class TestsView(ZugriffMixin, View):
 
         NUR konfigurierte Befehle, ENTDECKTE Test-IDs und die Sammel-Labels der
         Karten; ein Label aus der Query wird nie ausgefuehrt. Die abgeleiteten
-        Sammelbefehle sind aus den konfigurierten Eintraegen gebaut und deshalb
+        Sammelbefehle sind aus den konfigurierten Einträgen gebaut und deshalb
         ebenso sicher, die Karten-Labels aus den entdeckten IDs.
         """
         if not slug:

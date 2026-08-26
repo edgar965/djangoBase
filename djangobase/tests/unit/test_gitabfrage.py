@@ -74,7 +74,7 @@ class GitabfrageEchtTest(BasisTest):
 
     def test_kein_repo_gibt_leerstring(self):
         u"""Die Versionen-Seite muss auch ohne git stehen — das war schon vor
-        dem Cache so und darf sich nicht geaendert haben."""
+        dem Cache so und darf sich nicht geändert haben."""
         self.assertEqual(Gitabfrage.lauf("/gibt/es/nicht", "status"), "")
 
     def test_eigenes_repo_liefert_einen_head(self):

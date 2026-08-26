@@ -1,4 +1,4 @@
-"""Endpunktprofil — cProfile fuer EINE Route, eigene Zeit und Aufrufbaum."""
+"""Endpunktprofil — cProfile für EINE Route, eigene Zeit und Aufrufbaum."""
 
 import cProfile
 import io
@@ -16,11 +16,11 @@ class Endpunktprofil(BefundWerkzeug):
              'Sichten: tottime (wo gerechnet wird) und cumulative (wer es '
              'veranlasst).')
     abhilfe = ('Sobald die Endpunkt-Zeiten einen Ausreisser zeigen. Beide Listen '
-            'sind noetig — die eigene Zeit allein verraet nicht, warum eine '
-            'Funktion 40.000-mal laeuft.')
-    befund = ('So kamen die groessten Funde zustande: eine Doppelschleife mit '
+            'sind nötig — die eigene Zeit allein verraet nicht, warum eine '
+            'Funktion 40.000-mal läuft.')
+    befund = ('So kamen die größten Funde zustande: eine Doppelschleife mit '
              '248.354 abs()-Aufrufen, 7.067 einzelne stat()-Aufrufe statt eines '
-             'Verzeichnisscans, und 144 ms reines JSON-Kodieren fuer ein '
+             'Verzeichnisscans, und 144 ms reines JSON-Kodieren für ein '
              'Ergebnis, das schon im Zwischenspeicher lag.')
     dauer = 'Sekunden'
     eingabe = ('weg', 'Welche Route? (z. B. /hilfe/logs/)', '/')

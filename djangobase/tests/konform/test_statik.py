@@ -208,7 +208,7 @@ class KommentareZaehlenNichtTest(SimpleTestCase):
         self.assertEqual(adressen, [])
 
     def test_die_zeilennummern_bleiben_stehen(self):
-        u"""Geleert, nicht geloescht — sonst zeigt jede Meldung daneben."""
+        u"""Geleert, nicht gelöscht — sonst zeigt jede Meldung daneben."""
         raus = ohne_kommentare(self.VORLAGE)
         self.assertEqual(raus.count('\n'), self.VORLAGE.count('\n'))
         self.assertEqual(len(raus), len(self.VORLAGE))

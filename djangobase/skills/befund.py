@@ -13,17 +13,17 @@ Dateisuchen, zwei Ausschlusslisten und einen Adapter dazwischen; wer ein
 Werkzeug anfasste, musste erst herausfinden, in welcher Welt er ist.
 
 Jetzt gibt es EINE Basis (:class:`~.werkzeug.Werkzeug`) und hier eine duenne
-Zwischenschicht fuer die Werkzeuge, die ihre Funde als BEFUNDE beschreiben statt
+Zwischenschicht für die Werkzeuge, die ihre Funde als BEFUNDE beschreiben statt
 als freie Tabelle. Sie erben damit alles, was die Basis kann — Projektwurzel
-ueber das Git-Repo, EINE Ausschlussliste, Quelldatei-Cache — und liefern
+über das Git-Repo, EINE Ausschlussliste, Quelldatei-Cache — und liefern
 trotzdem weiter ``Befund``-Objekte.
 
 WARUM NICHT ALLES AUF SPALTEN UMSCHREIBEN
 =========================================
 Weil die vier Befund-Felder verlustfrei auf vier Spalten abbilden und die Form
-etwas taugt: „wo, was, warum, wie schwer" ist bei einer Code-Pruefung fast immer
-die richtige Frage. Elf Werkzeuge dafuer Zeile fuer Zeile umzuschreiben waere
-Arbeit ohne Ertrag — und jede Umschreibung ein Anlass fuer neue Fehler.
+etwas taugt: „wo, was, warum, wie schwer" ist bei einer Code-Prüfung fast immer
+die richtige Frage. Elf Werkzeuge dafür Zeile für Zeile umzuschreiben wäre
+Arbeit ohne Ertrag — und jede Umschreibung ein Anlass für neue Fehler.
 """
 import time
 
@@ -37,8 +37,8 @@ class Befund:
 
     Eigene Klasse statt Dictionary — genau die Regel, die dieser Durchgang
     hervorgebracht hat: Ein Datensatz mit mehr als drei Feldern, der seine
-    Ursprungsfunktion verlaesst und anderswo per ["schluessel"] gelesen wird,
-    gehoert in eine Klasse.
+    Ursprungsfunktion verlässt und anderswo per ["schlüssel"] gelesen wird,
+    gehört in eine Klasse.
     """
 
     __slots__ = ("ort", "was", "warum", "gewicht")
@@ -58,7 +58,7 @@ class Befund:
 
     @property
     def zeile(self):
-        """Eine Zeile Klartext - fuer Berichte, die kopiert werden."""
+        """Eine Zeile Klartext - für Berichte, die kopiert werden."""
         teile = ["%s: %s" % (self.ort, self.was)]
         if self.warum:
             teile.append("(%s)" % self.warum)
@@ -103,7 +103,7 @@ class BefundWerkzeug(Werkzeug):
         raise NotImplementedError
 
     def laufen(self, **argumente):
-        u"""Pruefen, Fehler abfangen, in die Tabelle umrechnen.
+        u"""Prüfen, Fehler abfangen, in die Tabelle umrechnen.
 
         Der Fehlerfall wird zu einem HINWEIS, nicht zu einer Ausnahme: Ein
         Werkzeug ist ein Hilfsmittel, und ein Hilfsmittel darf die Hilfe-Seite
@@ -131,11 +131,11 @@ class BefundWerkzeug(Werkzeug):
     def projektdateien(self, endung=".py", ausser=None):
         u"""Alle Projektdateien mit dieser Endung - als Pfade.
 
-        Fuehrt ueber :meth:`~.werkzeug.Werkzeug.dateien`, also ueber DIESELBE
+        Führt über :meth:`~.werkzeug.Werkzeug.dateien`, also über DIESELBE
         Wurzel und DIESELBE Ausschlussliste wie jedes andere Werkzeug. Vorher
         hatte diese Bauform ihre eigene Suche ab ``BASE_DIR`` und eine eigene
         Liste — die beiden liefen auseinander, und ``doppelcode`` meldete
-        weiter 183 von 200 Befunden aus ``vendor/``, waehrend die neue Basis
+        weiter 183 von 200 Befunden aus ``vendor/``, während die neue Basis
         dort laengst nicht mehr hinsah.
         """
         raus = set(ausser or ())
@@ -146,7 +146,7 @@ class BefundWerkzeug(Werkzeug):
             yield pfad
 
     def kurz(self, pfad):
-        """Der Pfad relativ zur Projektwurzel - fuer die Anzeige."""
+        """Der Pfad relativ zur Projektwurzel - für die Anzeige."""
         try:
             return str(pfad.relative_to(self.wurzel())).replace("\\", "/")
         except (ValueError, AttributeError):

@@ -115,7 +115,7 @@ def _collect_all(log_dir: Path, sources: list, max_per_source: int,
                   noisy: set[str] | None = None) -> list[dict]:
     """Tailt alle Quellen und sortiert chronologisch absteigend.
     `noisy` (DJANGOBASE['log_noisy_sources']): Source-Keys, die in der
-    'all'-Sicht uebersprungen werden — fuer extrem schreibwuetige Worker
+    'all'-Sicht übersprungen werden — für extrem schreibwuetige Worker
     (z.B. PST-Import) deren Rauschen kein Progress-Bar-Filter abfaengt.
     """
     skip = noisy or set()
@@ -142,7 +142,7 @@ def _resolve_log_config(request, c) -> tuple[Path, list]:
 
     Wenn DJANGOBASE['log_source_provider'] gesetzt ist (dotted path oder
     Callable), bestimmt es die Quellen pro Request (z.B. pro Station /
-    datums-suffigierte Dateinamen). Rueckgabe entweder eine Liste `sources`
+    datums-suffigierte Dateinamen). Rückgabe entweder eine Liste `sources`
     (Verzeichnis bleibt DJANGOBASE['log_verzeichnis']) oder ein Tupel
     `(verzeichnis, sources)`. Absolute Dateinamen in `sources` gewinnen
     gegenueber `verzeichnis` (Path('/a') / '/abs' -> '/abs').
@@ -175,10 +175,10 @@ def _stat(p: Path | None) -> dict | None:
 def _truncate_source(log_dir: Path, sources: list, key: str):
     """Best-effort Truncate aller Dateien einer Source (bei 'all' alle Quellen).
 
-    Auf Windows kann eine Datei, die ein RotatingFileHandler offen haelt,
+    Auf Windows kann eine Datei, die ein RotatingFileHandler offen hält,
     zwar per open('w') getruncatet werden, aber der Append-Pointer des
     Handlers steht noch beim alten Offset -> Null-Byte-Padding. Best-effort
-    reicht fuer die Log-Seite; PermissionError wird sauber gemeldet.
+    reicht für die Log-Seite; PermissionError wird sauber gemeldet.
     """
     cleared, locked, failed = 0, [], []
     targets = sources if key == _DEFAULT_SOURCE else [s for s in sources if s[0] == key]
@@ -204,7 +204,7 @@ def _truncate_source(log_dir: Path, sources: list, key: str):
 
 class LogsClearView(ZugriffMixin, View):
     """Hilfe -> Logs: leert (truncatet) die Dateien der gewaehlten Quelle.
-    POST-only; nach dem Leeren Redirect zurueck auf die Logs-Seite."""
+    POST-only; nach dem Leeren Redirect zurück auf die Logs-Seite."""
 
     def post(self, request):
         c = conf()

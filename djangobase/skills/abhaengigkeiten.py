@@ -1,4 +1,4 @@
-"""Abhaengigkeiten — Importgraph des Projekts: Zyklen, Naben, Inseln."""
+"""Abhängigkeiten — Importgraph des Projekts: Zyklen, Naben, Inseln."""
 
 import ast
 from collections import defaultdict
@@ -30,14 +30,14 @@ class Abhaengigkeiten(BefundWerkzeug):
     kriterium = 9
     titel = 'Abhängigkeiten'
     zweck = ('Baut den Importgraph der Projektmodule und meldet Zyklen, '
-             'Module mit besonders vielen Abhaengigkeiten (Naben) und solche, '
+             'Module mit besonders vielen Abhängigkeiten (Naben) und solche, '
              'die niemand importiert (Inseln).')
     abhilfe = ('Wenn die Struktur unklar geworden ist — und nach jedem Schnitt '
-            'grosser Dateien. Ein Zyklus zwingt spaeter zu Importen INNERHALB '
+            'großer Dateien. Ein Zyklus zwingt später zu Importen INNERHALB '
             'von Funktionen; genau daran erkennt man ihn oft zuerst.')
     befund = ('Beim Zerlegen einer 6.000-Zeilen-Datei war die Frage "wer darf '
              'wen importieren" die eigentliche Arbeit: Endpunkte -> Dienste -> '
-             'Kernbibliothek, nie zurueck.')
+             'Kernbibliothek, nie zurück.')
     dauer = 'Sekunden'
     eingabe = ('nabe_ab', 'Ab wie vielen Importeuren gilt ein Modul als Nabe?', '8')
 
@@ -45,7 +45,7 @@ class Abhaengigkeiten(BefundWerkzeug):
         {"ring_a.py": "from ring_b import zwei\n\n\ndef eins():\n    return zwei()\n",
          "ring_b.py": "from ring_a import eins\n\n\ndef zwei():\n    return 2\n"},
         mindestens=1, erwartet_in="ZYKLUS",
-        warum="Zwei Module brauchen einander — der Ring faellt erst auf, wenn "
+        warum="Zwei Module brauchen einander — der Ring fällt erst auf, wenn "
               "man eines davon herausloesen will")
 
     def pruefen(self, nabe_ab='8', **_argumente):
@@ -67,14 +67,14 @@ class Abhaengigkeiten(BefundWerkzeug):
             if len(modul.von) >= nabengrenze:
                 befunde.append(Befund(
                     modul.name, 'NABE: von %d Modulen importiert' % len(modul.von),
-                    'Aenderungen hier wirken weit — Schnittstelle klein halten',
+                    'Änderungen hier wirken weit — Schnittstelle klein halten',
                     Befund.HINWEIS))
 
         for modul in sorted(knoten.values(), key=lambda m: -len(m.nach)):
             if len(modul.nach) >= nabengrenze:
                 befunde.append(Befund(
                     modul.name, 'BREIT: importiert %d Projektmodule' % len(modul.nach),
-                    'viele Abhaengigkeiten in eine Richtung — meist ein Modul '
+                    'viele Abhängigkeiten in eine Richtung — meist ein Modul '
                     'mit mehreren Aufgaben', Befund.HINWEIS))
 
         kanten = sum(len(m.nach) for m in knoten.values())
@@ -166,7 +166,7 @@ class Abhaengigkeiten(BefundWerkzeug):
 
     @staticmethod
     def _nur_typpruefung(knoten):
-        """``if TYPE_CHECKING:`` - der Block laeuft zur Laufzeit nie."""
+        """``if TYPE_CHECKING:`` - der Block läuft zur Laufzeit nie."""
         pruefung = knoten.test
         if isinstance(pruefung, ast.Name):
             return pruefung.id == "TYPE_CHECKING"
@@ -176,7 +176,7 @@ class Abhaengigkeiten(BefundWerkzeug):
 
     @staticmethod
     def _importe(baum, eigener_name, bekannte):
-        """Importierte Projektmodule — relative Importe aufgeloest.
+        """Importierte Projektmodule — relative Importe aufgelöst.
 
         Nur die Importe, die beim LADEN laufen - siehe
         ``_ladezeit_knoten``.

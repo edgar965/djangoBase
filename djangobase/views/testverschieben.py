@@ -7,7 +7,7 @@ hier steht nur, wer darf und was hereinkommen darf.
 
 WARUM POST UND NICHT EIN LINK
 =============================
-Der Aufruf VERSCHIEBT EINE DATEI. Ein GET-Link waere von jedem Vorschau-Dienst,
+Der Aufruf VERSCHIEBT EINE DATEI. Ein GET-Link wäre von jedem Vorschau-Dienst,
 Crawler oder versehentlichen Reload ausloesbar — dieselbe Fehlerklasse, die das
 Werkzeug ``schreibrouten`` sucht („Datenverlust auf ein GET hin").
 """
@@ -27,7 +27,7 @@ class TestVerschiebenView(ZugriffMixin, View):
     u"""POST ``{"id": "mail.tests.unit.test_x.K.test_y", "ziel": "longrunner"}``.
 
     Mit ``"was": "bereich"`` wechselt stattdessen der BEREICH (Chat, Musik, …) —
-    dieselbe Mechanik, nur wandert die Datei quer statt laengs. Ein Endpunkt fuer
+    dieselbe Mechanik, nur wandert die Datei quer statt laengs. Ein Endpunkt für
     beides, weil es derselbe Vorgang ist: Datei umhaengen, Historie mitnehmen,
     Discovery-Cache der betroffenen Labels verwerfen.
     """

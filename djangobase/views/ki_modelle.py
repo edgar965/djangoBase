@@ -9,7 +9,7 @@ Die Seite zeigt DREI Tabellen (Ansage Edgar, 11.08.2026):
 
 Die Katalogdaten kommen live von OpenRouter und aus ``ollama list``
 (``djangobase.ki.modelle``), die Bewertung aus der eigenen Messung
-(``djangobase.ki.messungen``). Beides bewusst getrennt: Preise aendern sich
+(``djangobase.ki.messungen``). Beides bewusst getrennt: Preise ändern sich
 woechentlich, ein einmal gemessenes Urteil nicht.
 
 AUS shortlongx HIERHER (18.08.2026, Ansage: „kannst du diese Seite nach
@@ -20,11 +20,11 @@ ist jetzt konfigurierbar:
                       (Vorgabe: ``BASE_DIR/output/KI_Modelle``)
     ``ki_anbieter``   welche Anbieter ueberhaupt angezeigt werden
 
-OHNE FILTER waeren es ueber 400 Zeilen, die meisten davon Bildmodelle,
+OHNE FILTER wären es über 400 Zeilen, die meisten davon Bildmodelle,
 Rollenspiel-Ableger und Altbestand. „moonshot" kam am 11.08.2026 dazu: Kimi K3
 stand in der GEMESSENEN Bestenliste, fehlte aber im Katalog darunter - dieselbe
 Seite zeigte das Modell einmal mit Note und einmal gar nicht. Wer ein Modell
-testet, traegt seinen Anbieter hier nach.
+testet, trägt seinen Anbieter hier nach.
 """
 import logging
 from pathlib import Path

@@ -51,7 +51,7 @@ class ReviewFaden:
             return True
 
     def fragen(self, text, marke="", schon_beansprucht=False):
-        """Eine Runde stellen. Laeuft im Hintergrund-Faden des Laufs."""
+        """Eine Runde stellen. Läuft im Hintergrund-Faden des Laufs."""
         if not schon_beansprucht and not self.beansprucht():
             raise RuntimeError("Dieser Faden wartet noch auf eine Antwort")
         t0 = time.time()

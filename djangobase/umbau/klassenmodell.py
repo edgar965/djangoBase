@@ -81,7 +81,7 @@ class Feld:
 
 
 class Beziehung:
-    u"""Eine Linie zwischen zwei Kaesten."""
+    u"""Eine Linie zwischen zwei Kästen."""
 
     #: Vererbung wird als Dreieckspfeil gezeichnet, Besitz als Linie.
     ERBT = 'erbt'
@@ -126,7 +126,7 @@ class Klasse:
 
     @property
     def ist_test(self):
-        u"""Gehoert diese Klasse zur Pruefung statt zum Programm?
+        u"""Gehoert diese Klasse zur Prüfung statt zum Programm?
 
         DER FALL (Edgar, 24.08.2026)
         ============================
@@ -136,7 +136,7 @@ class Klasse:
         Er hatte recht. Unter „Dickste Aeste" standen `_MitChrome`,
         `VollbildZeigtDenHauptstrom`, `WacheUnterscheidetKaputtVonLeer` —
         alles Testklassen, die je EIN Objekt halten. Sie fuellten die Liste
-        auf zwoelf auf, obwohl es nur sechs echte Aeste gibt::
+        auf zwölf auf, obwohl es nur sechs echte Aeste gibt::
 
             PersonDetector        14      SmartSearchJob         2
             StrictPersonDetector   9      ---- ab hier Tests ----
@@ -153,7 +153,7 @@ class Klasse:
 
 
 class Klassenmodell:
-    u"""Liest ein Projekt und liefert Kaesten und Linien."""
+    u"""Liest ein Projekt und liefert Kästen und Linien."""
 
     def __init__(self, wurzel):
         self.wurzel = Path(wurzel)
@@ -271,7 +271,7 @@ class Klassenmodell:
         return raus
 
     def dickster_ast(self):
-        u"""Die Klasse, die am meisten haelt — dort ist am meisten zu sehen."""
+        u"""Die Klasse, die am meisten hält — dort ist am meisten zu sehen."""
         beste, zahl = None, -1
         for k in self.klassen.values():
             if k.ist_test:
@@ -284,7 +284,7 @@ class Klassenmodell:
     def nachbarschaft(self, start=None, tiefe=2):
         u"""Die Wurzel und alles, was in `tiefe` Schritten erreichbar ist.
 
-        Ein Bild mit 548 Kaesten liest niemand. Diese Grenze ist der
+        Ein Bild mit 548 Kästen liest niemand. Diese Grenze ist der
         Unterschied zwischen einer Uebersicht und einer Tapete.
         """
         start = start or self.dickster_ast()
@@ -321,14 +321,14 @@ class Klassenmodell:
         ('model', 'Django-Model', 'Vom ORM erzeugt, nicht vom Quelltext'),
         ('ansicht', 'Django-Ansicht', 'Der URL-Router ruft sie'),
         ('formular', 'Django-Formular', 'Django erzeugt und bindet sie'),
-        ('test', 'Test', 'Prueft anderen Code, gehoert nicht ins Modell'),
+        ('test', 'Test', 'Prüft anderen Code, gehört nicht ins Modell'),
         ('ausnahme', 'Ausnahme', 'Wird geworfen, nicht gehalten'),
         ('aufzaehlung', 'Aufzaehlung', 'Feste Werte statt Verhalten'),
         ('daten', 'Datenklasse', 'Nur Felder — ein Wert mit Namen'),
         ('werkzeug', 'Werkzeugklasse', 'Nur statische Methoden, kein Zustand'),
         ('im_baum', 'Baustein im Baum', 'Haengt als self.x an einer anderen'),
         ('oberklasse', 'Oberklasse', 'Wird beerbt, aber nicht gehalten'),
-        ('frei', 'Freistehend', 'Haengt an nichts — der eigentliche Befund'),
+        ('frei', 'Freistehend', 'Hängt an nichts — der eigentliche Befund'),
     )
 
     #: Woran eine Django-Klasse zu erkennen ist. Ueber die Oberklasse, nicht
@@ -356,8 +356,8 @@ class Klassenmodell:
              Wo ist der Rest? Kategorisiere sie alle"
 
         Das Bild zeigt eine NACHBARSCHAFT — Wurzel plus n Schritte. Am
-        groessten Ast von CamTrack sind das 17 Kaesten, und tiefer wird es
-        nicht. Der Rest fehlt nicht im Bild, er haengt an nichts::
+        größten Ast von CamTrack sind das 17 Kästen, und tiefer wird es
+        nicht. Der Rest fehlt nicht im Bild, er hängt an nichts::
 
             Klassen gesamt        1004
             irgendwo gehalten       71
@@ -413,12 +413,12 @@ class Klassenmodell:
              erwarte bereiche und buttons wo ich alle 1004 klassen sehen
              kann!"
 
-        Berechtigt. Die Seite nannte 1004, zeigte 27 im Bild und bot zwoelf
-        Ast-Knoepfe — die uebrigen 965 waren genannt, aber nicht erreichbar.
+        Berechtigt. Die Seite nannte 1004, zeigte 27 im Bild und bot zwölf
+        Ast-Knoepfe — die übrigen 965 waren genannt, aber nicht erreichbar.
         Eine Zahl, zu der es keinen Weg gibt, ist eine Behauptung.
 
-        Gebuendelt wird ueber die ersten zwei Pfadteile (`views/persons`,
-        `live/service`). Ein Teil waere zu grob (`views` allein sind 300),
+        Gebuendelt wird über die ersten zwei Pfadteile (`views/persons`,
+        `live/service`). Ein Teil wäre zu grob (`views` allein sind 300),
         drei zu fein — dann hat die Haelfte der Bereiche einen Eintrag.
         """
         bereiche = {}
@@ -442,7 +442,7 @@ class Klassenmodell:
         Die Einteilung selbst liegt in `umbau/gliederung.py` — die
         Funktionen brauchen dieselbe (24.08.2026: „mache alle Klassen in
         allen Tabs und alle Funktionen aus allen Tabs auch als Gliederung
-        mit Knoepfen"). Zwei Kopien liefen beim naechsten Zusatz
+        mit Knoepfen"). Zwei Kopien liefen beim nächsten Zusatz
         auseinander: `views/` staende dann in der einen Liste unter
         „Ansichten" und in der anderen unter „Uebrige".
         """
@@ -451,7 +451,7 @@ class Klassenmodell:
                         for name in sorted(self.klassen))
 
     def steckbrief(self, name):
-        u"""Alles zu EINER Klasse — fuer Hover und Popup.
+        u"""Alles zu EINER Klasse — für Hover und Popup.
 
         DIE ANSAGE (Edgar, 24.08.2026)
         ==============================
@@ -459,10 +459,10 @@ class Klassenmodell:
              eigenschaften zeigen, wie: Von wem genutzt, und welche
              Unterklassen (als Instanzen) als Member"
 
-        Im Bild steht bisher nur, WAS eine Klasse haelt — die Linien zeigen
-        nach unten. Die Gegenrichtung fehlte: WER haelt sie? Bei 71
+        Im Bild steht bisher nur, WAS eine Klasse hält — die Linien zeigen
+        nach unten. Die Gegenrichtung fehlte: WER hält sie? Bei 71
         gehaltenen von 1004 ist genau das die interessante Frage, und sie
-        ist im Bild oft nicht zu sehen, weil der Halter ausserhalb der
+        ist im Bild oft nicht zu sehen, weil der Halter außerhalb der
         gezeigten Nachbarschaft liegt.
         """
         k = self.klassen.get(name)
@@ -497,7 +497,7 @@ class Klassenmodell:
         }
 
     def steckbriefe(self, namen):
-        u"""Steckbriefe fuer die gezeigten Klassen — als Woerterbuch."""
+        u"""Steckbriefe für die gezeigten Klassen — als Woerterbuch."""
         raus = {}
         for name in namen:
             eintrag = self.steckbrief(name)

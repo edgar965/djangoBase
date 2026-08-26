@@ -2,17 +2,17 @@
 u"""RueckgabeTupel - Datensaetze, die als Tupel aus einer Funktion kommen.
 
     Kriterium 10 des Auftrags: „Datensatz mit mehr als drei Feldern, der seine
-    Funktion verlaesst -> eigene Klasse"
+    Funktion verlässt -> eigene Klasse"
 
 WARUM MEHR ALS DREI
 ===================
-Bis drei Werte haelt man die Reihenfolge im Kopf: ``(ok, wert, fehler)``. Ab
+Bis drei Werte hält man die Reihenfolge im Kopf: ``(ok, wert, fehler)``. Ab
 vier nicht mehr - und der Aufrufer schreibt:
 
     a, b, c, d, e = rechnen(...)
 
-Vertauscht jemand beim Umbau zwei Rueckgabewerte, faellt das nicht auf: Es gibt
-keinen Namen, an dem es sich reiben koennte. Eine Klasse (oder wenigstens ein
+Vertauscht jemand beim Umbau zwei Rueckgabewerte, fällt das nicht auf: Es gibt
+keinen Namen, an dem es sich reiben könnte. Eine Klasse (oder wenigstens ein
 NamedTuple) macht daraus einen Fehler, den man sieht.
 
 WAS NICHT GEMELDET WIRD

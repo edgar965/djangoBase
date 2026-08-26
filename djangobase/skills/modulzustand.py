@@ -21,10 +21,10 @@ Die Suche fand 31 solcher Sammlungen im Projekt; genau zwei waren echte Fehler.
 
 WARUM EIN VERMERK IM CODE STATT EINER LISTE IM WERKZEUG
 =======================================================
-Die uebrigen 29 sind absichtlich geteilt (Zwischenspeicher je Datenstand, ein
+Die übrigen 29 sind absichtlich geteilt (Zwischenspeicher je Datenstand, ein
 Prozess-Pool je Server). Damit das Werkzeug sie nicht jedes Mal meldet, tragen
-sie den Vermerk ``geteilt gewollt: <Grund>`` in ihrer Naehe. Eine Ausnahmeliste
-IM WERKZEUG waere die schlechtere Loesung: Sie raet, was der Autor gemeint hat.
+sie den Vermerk ``geteilt gewollt: <Grund>`` in ihrer Nähe. Eine Ausnahmeliste
+IM WERKZEUG wäre die schlechtere Lösung: Sie raet, was der Autor gemeint hat.
 """
 import ast
 
@@ -137,7 +137,7 @@ def lesen():
         u"""(Name, Zeile, Art) jeder Stelle, die eine Sammlung verändert.
 
         NUR MUTATIONEN IN FUNKTIONEN ZAEHLEN (17.08.2026): Was auf MODULEBENE
-        veraendert wird, laeuft beim Import — einmal, in einem Thread, bevor die
+        verändert wird, läuft beim Import — einmal, in einem Thread, bevor die
         erste Anfrage da ist. Das ist Aufbau einer Konstantentabelle, nicht
         geteilter veraenderlicher Zustand.
 

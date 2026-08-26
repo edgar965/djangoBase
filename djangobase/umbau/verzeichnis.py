@@ -34,7 +34,7 @@ class Werkzeugverzeichnis:
         ("Ansehen", "Was vor dem Schnitt zu klaeren ist: was steht drin, wer "
                     "ruft wen.",
          ("strukturbericht", "aufrufgraph")),
-        ("Schneiden", "Definitionen herausheben - ueber den AST, nicht per "
+        ("Schneiden", "Definitionen herausheben - über den AST, nicht per "
                       "Textsuche.",
          ("modulschneider", "klassenbauer")),
         ("Aufraeumen und gegenpruefen",
@@ -64,7 +64,7 @@ class Werkzeugverzeichnis:
         return raus
 
     def gruppen(self):
-        u"""[(titel, zweck, [eintrag, ...])] - fuer die Ausgabe auf der Seite."""
+        u"""[(titel, zweck, [eintrag, ...])] - für die Ausgabe auf der Seite."""
         raus = []
         for titel, zweck, _module in Werkzeugverzeichnis.GRUPPEN:
             raus.append((titel, zweck,

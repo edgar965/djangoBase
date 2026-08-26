@@ -1,25 +1,25 @@
 # -*- coding: utf-8 -*-
 u"""Klammerzaehler - Klammertiefe in JavaScript zeilenweise mitzaehlen.
 
-Hilfsklasse, kein Werkzeug: Zwei Pruefungen brauchen sie (`jsfaenger`: wo endet
+Hilfsklasse, kein Werkzeug: Zwei Prüfungen brauchen sie (`jsfaenger`: wo endet
 ein try-Block? `jsbefunde`: wo endet ein mehrzeiliger `fetch(`-Aufruf?).
 
 WARUM MIT GEDAECHTNIS (3DTools, 16.08.2026)
 ===========================================
-Als Funktion je Zeile war es falsch, sobald ein Template-String ueber mehrere
+Als Funktion je Zeile war es falsch, sobald ein Template-String über mehrere
 Zeilen geht::
 
     header.innerHTML = `<span class="cat-chevron">…</span>
         <span class="cat-count">${anims.length}</span>`;
 
-Die zweite Zeile steht komplett IM String. Ein zeilenweiser Zaehler ohne
-Gedaechtnis zaehlt die geschweiften Klammern von ``${…}`` mit und meldet den
+Die zweite Zeile steht komplett IM String. Ein zeilenweiser Zähler ohne
+Gedaechtnis zählt die geschweiften Klammern von ``${…}`` mit und meldet den
 try-Block 60 Zeilen zu frueh als beendet - in ``animation/baum.js`` galt ein
 gefangener Aufruf dadurch als ungefangen.
 
 DER ZWEITE FALLSTRICK: ``tiefstand``
 ====================================
-``} catch (fehler) {`` schliesst den try-Block im ERSTEN Zeichen und oeffnet
+``} catch (fehler) {`` schließt den try-Block im ERSTEN Zeichen und öffnet
 gleich wieder einen neuen. Am Zeilenende ist die Tiefe also wieder 1. Wer nur
 das Zeilenende ansieht, findet das Ende eines Blocks nie.
 """
@@ -84,7 +84,7 @@ class Klammerzaehler:
 
         Beispiel: ``marke='await fetch('`` findet das Ende eines mehrzeiligen
         `fetch(...)`-Aufrufs. Liefert None, wenn die Anweisung innerhalb von
-        `grenze` Zeilen nicht schliesst - dann ist die Annahme falsch und das
+        `grenze` Zeilen nicht schließt - dann ist die Annahme falsch und das
         Werkzeug soll die Stelle nicht anfassen.
         """
         if marke not in zeilen[start]:

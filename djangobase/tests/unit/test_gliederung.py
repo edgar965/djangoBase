@@ -38,7 +38,7 @@ class DieRolleStehtAmPfad(BasisTest):
         self.assertEqual(rolle('app/test_regression.py'), 'Tests')
 
     def test_nicht_am_klassennamen(self):
-        u"""`VideoCodecProbe` in `views/` ist keine Pruefung."""
+        u"""`VideoCodecProbe` in `views/` ist keine Prüfung."""
         self.assertEqual(rolle('views/recordings/codec_probe.py'), 'Ansichten')
 
     def test_was_nirgends_passt_faellt_nicht_weg(self):

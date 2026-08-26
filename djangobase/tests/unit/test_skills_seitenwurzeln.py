@@ -86,8 +86,8 @@ class SeitenwurzelnTest(BasisTest):
         self.assertIn('2 Objekte', satz.befunde[0].was)
 
     def test_die_fabrik_schreibweise_zaehlt_mit(self):
-        """Ohne sie haette `live_view.html` zwei statt neun Wurzeln — dort
-        heissen sie `setupTrefferBar`, `setupGlobalTimeline`, …"""
+        """Ohne sie hätte `live_view.html` zwei statt neun Wurzeln — dort
+        heißen sie `setupTrefferBar`, `setupGlobalTimeline`, …"""
         satz = self._lauf({'seite.html': (
             '<script type="module">\n'
             'setupZeitbereiche({});\n'

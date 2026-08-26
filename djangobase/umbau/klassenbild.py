@@ -75,7 +75,7 @@ class Kasten:
 
 
 class Klassenbild:
-    u"""Ordnet Kaesten in Ebenen an und schreibt das SVG."""
+    u"""Ordnet Kästen in Ebenen an und schreibt das SVG."""
 
     def __init__(self, kaesten, linien, wurzel=None, steckbriefe=None):
         self.klassen = {k.name: k for k in kaesten}
@@ -264,7 +264,7 @@ class Klassenbild:
             '<path d="M0,0 L12,6 L0,12 z" fill="var(--km-grund,#12161c)" '
             'stroke="var(--km-strich,#7aa2c8)" stroke-width="1.2"/>'
             '</marker>'
-            '<marker id="km-haelt" viewBox="0 0 10 10" refX="9" refY="5" '
+            '<marker id="km-hält" viewBox="0 0 10 10" refX="9" refY="5" '
             'markerWidth="8" markerHeight="8" orient="auto">'
             '<path d="M0,0 L10,5 L0,10 z" fill="var(--km-strich,#7aa2c8)"/>'
             '</marker></defs>')
@@ -292,7 +292,7 @@ class Klassenbild:
         else:
             zeilen.append('genutzt von: niemandem')
         if s['haelt']:
-            zeilen.append('haelt: ' + ', '.join(
+            zeilen.append('hält: ' + ', '.join(
                 '%s = %s (%s)' % (h['feld'], h['klasse'], h['viel'])
                 for h in s['haelt'][:6]))
         if s['beerbt_von']:

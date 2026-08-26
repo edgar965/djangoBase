@@ -302,7 +302,7 @@ UEBERSPRINGEN = {"grossdateien"}
 #: Der Block zu Kriterium 18 fragte laengst die Registrierung; sein
 #: Kommentar sagte auch warum („Hier wird gefragt statt aufgezaehlt").
 #:
-#: Am selben Tag ging es einen Schritt weiter: Die zwei Kaesten unter
+#: Am selben Tag ging es einen Schritt weiter: Die zwei Kästen unter
 #: der Tabelle sind ganz weg. Ihre Werkzeuge standen dort ein ZWEITES
 #: Mal — in der Tabelle koennen sie mehr. Der Sammellauf-Knopf sitzt
 #: jetzt in der Abschnitts-Zeile und gilt fuer jeden Bereich

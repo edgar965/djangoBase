@@ -4,11 +4,11 @@ u"""FixVermerk - Anzeigeformate mit dem Vermerk versehen, der sie ausnimmt.
 DER HAEUFIGSTE „FIX" IST KEIN UMBAU (16.08.2026)
 ================================================
 134 von 204 Kriterium-11-Befunden waren Anzeigeformate: Woerterbuecher, deren
-Schluessel woertlich im Frontend stehen. Der Auftrag nimmt sie ausdruecklich aus
+Schlüssel woertlich im Frontend stehen. Der Auftrag nimmt sie ausdruecklich aus
 („geht es als JSON an den Browser, bleibt es ein Dictionary") - aber das
 Pruefwerk kann es an der Fundstelle nicht wissen.
 
-Die Loesung ist ein Vermerk IM CODE, direkt ueber der Rueckgabe:
+Die Lösung ist ein Vermerk IM CODE, direkt über der Rückgabe:
 
     # Dictionary gewollt: geht als JSON an die Stunden-Seite (stunden.js liest
     # expected_end_of_day, expected_p5_eod …)
@@ -20,9 +20,9 @@ beantworten, statt sie in einer Ausnahmeliste verschwinden zu lassen.
 WAS DIESER FIXER TUT
 ====================
 Er setzt den Vermerk dort, wo die Messung eindeutig ist: mindestens 70 % der
-aussagekraeftigen Schluessel stehen im Frontend, und die Fundstelle nennt die
+aussagekraeftigen Schlüssel stehen im Frontend, und die Fundstelle nennt die
 Dateien, in denen sie gefunden wurden. Alles darunter bleibt liegen - „gemischt"
-heisst, ein Mensch muss hinsehen.
+heißt, ein Mensch muss hinsehen.
 """
 import ast
 import re
@@ -35,7 +35,7 @@ MARKER = "Dictionary gewollt"
 
 
 class Fundstelle:
-    """Ein Rueckgabe-Woerterbuch und wo seine Schluessel im Frontend stehen."""
+    """Ein Rückgabe-Woerterbuch und wo seine Schlüssel im Frontend stehen."""
 
     def __init__(self, pfad, knoten, schluessel, treffer, quellen):
         self.pfad = pfad
@@ -189,7 +189,7 @@ class FixVermerk(Fixer):
             "    return [d.tagesquote, d.restposten, d.fehlerquote];\n"
             "}\n"},
         mindestens=1, hoechstens=1, erwartet_in="kennzahlen.py",
-        warum="Ein Rueckgabe-Dictionary, dessen Schluessel woertlich in der "
+        warum="Ein Rückgabe-Dictionary, dessen Schlüssel woertlich in der "
               "Oberflaeche stehen und das nachweislich als JSON hinausgeht — "
               "genau der Fall, den der Auftrag ausdruecklich ausnimmt")
 

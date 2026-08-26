@@ -1,21 +1,21 @@
 # -*- coding: utf-8 -*-
-u"""JsBefunde - zaehlbare Auffaelligkeiten im Frontend (JavaScript und Vorlagen).
+u"""JsBefunde - zaehlbare Auffälligkeiten im Frontend (JavaScript und Vorlagen).
 
 DER BEFUND (3DTools, 16.08.2026)
 ================================
 Ein Auftrag verlangte einen tiefen Review mit einer nachpruefbaren Zahl von
 Befunden. Eine Zahl aus dem Bauch ist wertlos - deshalb erhebt dieses Werkzeug
-jeden Befund mit Datei, Zeile und Begruendung, gruppiert nach Art. Erste
+jeden Befund mit Datei, Zeile und Begründung, gruppiert nach Art. Erste
 Erhebung: 3.290 Befunde, davon nach dem Durchgang beseitigt:
 
-    Antwort ohne .ok-Pruefung      71 -> 0   (echte Fehlerklasse)
+    Antwort ohne .ok-Prüfung      71 -> 0   (echte Fehlerklasse)
     console.log im Betrieb        144 -> 0
     var statt let/const           157 -> 0   (alle in Django-Vorlagen)
     setInterval ohne Abbruch        4 -> 0
 
 WOZU DAS TAUGT
 ==============
-Die Zahl je Art ist nach jeder Aenderung neu messbar. Das unterscheidet einen
+Die Zahl je Art ist nach jeder Änderung neu messbar. Das unterscheidet einen
 Review von einem Gefuehl: „1.082 Inline-Stile" ist eine Aufgabe, „viel zu viele
 Inline-Stile" ist eine Meinung.
 
@@ -32,14 +32,14 @@ __all__ = ["JsBefunde"]
 class JsBefunde(Werkzeug):
     slug = "jsbefunde"
     titel = "Frontend-Befunde (JS + Vorlagen)"
-    zweck = ("Zaehlt zehn objektiv pruefbare Auffaelligkeiten in .js und .html "
-             "- fehlende ok-Pruefung, console.log, var, Inline-Stile, lange "
+    zweck = ("Zählt zehn objektiv prüfbare Auffälligkeiten in .js und .html "
+             "- fehlende ok-Prüfung, console.log, var, Inline-Stile, lange "
              "Zeilen, TODOs.")
-    befund = ("3DTools: 3.290 Befunde erhoben. Die 71 fehlenden .ok-Pruefungen "
+    befund = ("3DTools: 3.290 Befunde erhoben. Die 71 fehlenden .ok-Prüfungen "
               "waren eine echte Fehlerklasse - bei einer 500er-Antwort las der "
               "Code die HTML-Fehlerseite als JSON und meldete "
               "\"Unexpected token '<'\".")
-    abhilfe = ("Nach Wirkung abarbeiten: erst fehlende ok-Pruefungen und "
+    abhilfe = ("Nach Wirkung abarbeiten: erst fehlende ok-Prüfungen und "
                "Dauerlaeufer, dann console.log und var, zuletzt Inline-Stile "
                "und lange Zeilen.")
     dauer = "1-3 s"
@@ -98,7 +98,7 @@ export async function laden(url) {
         gesamt = sum(len(f) for f in gruppen.values())
         return Ergebnis(
             ["art", "ort", "text"], zeilen_aus,
-            zusammenfassung="%d Befunde in %d Arten, %d Dateien geprueft"
+            zusammenfassung="%d Befunde in %d Arten, %d Dateien geprüft"
                             % (gesamt, len(gruppen), dateien),
             hinweis="Je Art die ersten %d Stellen; die Zahl in Klammern ist die "
                     "vollstaendige." % JsBefunde.JE_ART)
@@ -119,7 +119,7 @@ export async function laden(url) {
         FEHLALARM, der hier behoben ist: Ein Einzeiler wie
         ``<script src="…/three.min.js"></script>`` oeffnete den Block und
         schloss ihn nie - ``<script`` wurde zuerst gefunden und die Zeile
-        uebersprungen. Ab dort galt die GANZE Vorlage als JavaScript, und
+        übersprungen. Ab dort galt die GANZE Vorlage als JavaScript, und
         ``{% if job.status == 'pending' %}`` erschien als Befund „Vergleich mit
         ==". Deshalb entscheidet die Reihenfolge innerhalb der Zeile.
         """

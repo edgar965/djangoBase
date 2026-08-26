@@ -161,7 +161,7 @@ class BaumsichtTest(BasisTest):
         self.assertTrue(tot)
         # Seit der Korrektur vom 23.08.2026 (Utility-Klassen galten als tot)
         # nennt der Befund beide Formen, in denen der Name vorkommen koennte.
-        self.assertIn('Vor dem Loeschen', tot[0].warum)
+        self.assertIn('Vor dem Löschen', tot[0].warum)
         self.assertIn('Vergessen.etwas', tot[0].warum)
 
 

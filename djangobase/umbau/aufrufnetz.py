@@ -76,7 +76,7 @@ class Stelle:
 
 
 class Aufrufnetz:
-    u"""Liest ein Projekt und weiss danach, wer wen ruft."""
+    u"""Liest ein Projekt und weiß danach, wer wen ruft."""
 
     def __init__(self, wurzel):
         self.wurzel = Path(wurzel)

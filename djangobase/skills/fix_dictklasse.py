@@ -45,7 +45,7 @@ MARKER = "Dictionary gewollt"
 
 
 class Feldsatz:
-    """Die festen Schluessel einer Rueckgabe - und der Name ihrer Klasse."""
+    """Die festen Schlüssel einer Rückgabe - und der Name ihrer Klasse."""
 
     #: Funktionsnamen, die ueber den DATENTYP nichts aussagen.
     NICHTSSAGEND = {"as_dict", "to_dict", "dict", "daten", "datensatz", "leer",
@@ -68,8 +68,8 @@ class Feldsatz:
         """Ein Name, der den DATENSATZ benennt - nicht die Funktion.
 
         Die erste Fassung nahm stur den Funktionsnamen und schlug ``AsDict``,
-        ``Leer`` und ``BloeckeUndZufall`` vor. Das sind Namen fuer Vorgaenge,
-        nicht fuer Datentypen, und ein schlechter Name ueberlebt jeden Umbau.
+        ``Leer`` und ``BloeckeUndZufall`` vor. Das sind Namen für Vorgaenge,
+        nicht für Datentypen, und ein schlechter Name ueberlebt jeden Umbau.
         Deshalb: nichtssagende Funktionsnamen weichen dem MODULNAMEN, und
         angehaengte Verben fallen weg (16.08.2026).
         """
@@ -222,7 +222,7 @@ class FixDictKlasse(Fixer):
             "    return k['quote']\n"},
         mindestens=1, hoechstens=1, erwartet_in="kennzahlen.py",
         warum="Ein Datensatz mit vier Feldern, den zwei Stellen per "
-              "[\"schluessel\"] auslesen, gehoert in eine Klasse — genau die "
+              "[\"schlüssel\"] auslesen, gehört in eine Klasse — genau die "
               "Regel, die dieser Durchgang hervorgebracht hat")
 
     MIN_SCHLUESSEL = 4
@@ -242,7 +242,7 @@ class FixDictKlasse(Fixer):
 
     @property
     def baeume(self):
-        """{Pfad: Syntaxbaum} - einmal fuer das ganze Projekt."""
+        """{Pfad: Syntaxbaum} - einmal für das ganze Projekt."""
         if self._baeume is None:
             aus = {}
             for pfad in self._pyquellen():
@@ -258,7 +258,7 @@ class FixDictKlasse(Fixer):
         """{importierter Name: {Dateien, die ihn holen}} - EINMAL aufgebaut.
 
         Die erste Fassung suchte die Importeure je Fundstelle neu und brauchte
-        154 Sekunden fuer einen Knopfdruck: derselbe Durchlauf ueber tausend
+        154 Sekunden für einen Knopfdruck: derselbe Durchlauf über tausend
         Syntaxbaeume, zwanzig Mal. Das ist der Befund „Arbeit in Schleifen",
         den das Nachbarwerkzeug meldet - hier im Fixer selbst.
         """
@@ -296,8 +296,8 @@ class FixDictKlasse(Fixer):
         DIE ZAEHLWEISE IST ZWEIMAL DANEBENGEGANGEN, bevor sie stimmte
         (16.08.2026, an 68 Befunden gemessen):
 
-            nur das eigene Modul       62 von 68 haetten „hoechstens einen Leser"
-            reiner Namensabgleich      272 „Leser" fuer eine Funktion ``kennzahlen``
+            nur das eigene Modul       62 von 68 hätten „hoechstens einen Leser"
+            reiner Namensabgleich      272 „Leser" für eine Funktion ``kennzahlen``
             eigenes Modul + Importeure 51 von 68 haben zwei oder mehr  ← richtig
 
         Die dritte Zahl hat das Kriterium bestaetigt, nicht entkraeftet - deshalb
@@ -481,7 +481,7 @@ class FixDictKlasse(Fixer):
             return ""
 
     def _je_datei(self, pfad, text, saetze):
-        """Eine Aenderung je Datei; mehrere Saetze werden von hinten eingesetzt."""
+        """Eine Änderung je Datei; mehrere Sätze werden von hinten eingesetzt."""
         aus = []
         for satz in saetze:
             warnungen = []

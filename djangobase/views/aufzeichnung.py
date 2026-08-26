@@ -3,18 +3,18 @@ u"""Endpunkte der Testcase-Aufzeichnung.
 
 Alle antworten JSON und werden von ``aufzeichnung.js`` gerufen:
 
-    GET  ?               Zustand (laeuft gerade eine?) + Liste
+    GET  ?               Zustand (läuft gerade eine?) + Liste
     POST aktion=start    Aufzeichnung beginnen
     POST aktion=schritte Ereignis-Puffer anhaengen  (haeufigster Aufruf)
     POST aktion=ende     Beenden und die Server-Logs des Zeitraums anhaengen
     POST aktion=name     Umbenennen
-    POST aktion=loeschen Entfernen
+    POST aktion=löschen Entfernen
 
 WARUM EIN EINZIGER ENDPUNKT MIT ``aktion``
 ==========================================
-Sechs Pfade fuer einen Vorgang waeren sechs Stellen in ``urls.py``, sechs
+Sechs Pfade für einen Vorgang wären sechs Stellen in ``urls.py``, sechs
 Namen und sechs Gelegenheiten, den Zugriffsschutz zu vergessen. Der Schutz
-haengt hier an EINER Klasse.
+hängt hier an EINER Klasse.
 
 ``@csrf_exempt`` bewusst NICHT: Diese Endpunkte schreiben in eine Datei des
 Projekts, und der Aufrufer ist die eigene Seite - die hat das Token. Die

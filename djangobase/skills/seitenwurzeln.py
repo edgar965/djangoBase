@@ -88,11 +88,11 @@ class Seitenwurzeln(BefundWerkzeug):
     slug = 'seitenwurzeln'
     kriterium = 4
     titel = 'Wurzeln je Seite (Frontend)'
-    zweck = ('Zaehlt, wie viele Objekte eine HTML-Vorlage selbst erzeugt. '
-             'Idealwert: EINE Seiten-Klasse, die den Rest haelt.')
+    zweck = ('Zählt, wie viele Objekte eine HTML-Vorlage selbst erzeugt. '
+             'Idealwert: EINE Seiten-Klasse, die den Rest hält.')
     abhilfe = ('Eine Klasse je Seite anlegen, die die Teile im Konstruktor '
-               'haelt — dann steht die Reihenfolge dort statt in einem '
-               '`setTimeout`. Die Vorlage enthaelt danach eine Zeile.')
+               'hält — dann steht die Reihenfolge dort statt in einem '
+               '`setTimeout`. Die Vorlage enthält danach eine Zeile.')
     befund = ('CamTrack: `live_view.html` erzeugt neun Objekte nebeneinander '
               'und raet ihre Reihenfolge mit zwei `setTimeout`. Am '
               '21.08.2026 liefen dadurch Zeitleiste und Kachel-Leisten mit '
@@ -168,7 +168,7 @@ class Seitenwurzeln(BefundWerkzeug):
                                    -len(s.wurzeln), s.pfad))
         gesamt = sum(len(s.wurzeln) for s in seiten)
         kopf = [
-            '%d Vorlagen geprueft, %d erzeugen selbst Objekte' % (vorlagen,
+            '%d Vorlagen geprüft, %d erzeugen selbst Objekte' % (vorlagen,
                                                                   len(seiten)),
             '%d Wurzeln insgesamt, %d Wartezeiten zum Raten der Reihenfolge'
             % (gesamt, sum(s.wartezeiten for s in seiten)),
@@ -200,11 +200,11 @@ class Seitenwurzeln(BefundWerkzeug):
         if seite.wartezeiten:
             warum = ('Dazu %d mal `setTimeout` — die Reihenfolge zwischen '
                      'ihnen steht nirgends und wird mit Wartezeiten geraten. '
-                     'Eine Seiten-Klasse haelt sie im Konstruktor.'
+                     'Eine Seiten-Klasse hält sie im Konstruktor.'
                      % seite.wartezeiten)
         else:
             warum = ('Jedes davon ist eine eigene Wurzel. Eine Seiten-Klasse '
-                     'haelt sie, und die Vorlage enthaelt eine Zeile.')
+                     'hält sie, und die Vorlage enthält eine Zeile.')
         return Befund(seite.pfad, was, warum, seite.gewicht)
 
 

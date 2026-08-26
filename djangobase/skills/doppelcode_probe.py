@@ -4,16 +4,16 @@ u"""Gegenprobe zur Block-Zusammenfassung im Doppelcode-Melder.
 WARUM (25.08.2026, Projekt assistant)
 =====================================
 Gesucht wird mit einem GLEITENDEN Fenster. Ein zusammenhaengender
-Duplikatblock von zwoelf Zeilen erzeugt bei Fenstergroesse sechs sieben
-Fenster - und damit sieben Befunde fuer EINE Stelle. Von 670 gemeldeten
+Duplikatblock von zwölf Zeilen erzeugt bei Fenstergroesse sechs sieben
+Fenster - und damit sieben Befunde für EINE Stelle. Von 670 gemeldeten
 Stellen blieben nach dem Zusammenfassen 446; in den ersten 200
 angezeigten waren 112 blosse Folgezeilen.
 
-Diese Probe haelt beide Richtungen fest:
+Diese Probe hält beide Richtungen fest:
 
 * Aneinandergrenzende Fenster werden zu EINEM Befund mit der ECHTEN
   Laenge - sonst blaeht sich die Liste wieder auf.
-* Zwei GETRENNTE Duplikatstellen bleiben zwei Befunde - sonst waere die
+* Zwei GETRENNTE Duplikatstellen bleiben zwei Befunde - sonst wäre die
   einfachste Art, die Liste kurz zu bekommen, alles zusammenzuwerfen.
 """
 from django.test import SimpleTestCase
@@ -47,7 +47,7 @@ class DoppelcodeProbe(SimpleTestCase):
                          "acht Zeilen echte Blocklaenge.")
 
     def test_leerzeile_im_block_bricht_nicht(self):
-        u"""Der Melder ueberspringt Leerzeilen - die Nummern springen."""
+        u"""Der Melder überspringt Leerzeilen - die Nummern springen."""
         roh = [['a.py:10', 'b.py:100'],
                ['a.py:12', 'b.py:102']]
         self.assertEqual(len(self._fassen(roh)), 1,
@@ -56,7 +56,7 @@ class DoppelcodeProbe(SimpleTestCase):
                          "man genau +1, fasst man fast nichts zusammen.")
 
     def test_getrennte_stellen_bleiben_getrennt(self):
-        u"""Ohne diese Richtung waere das Zusammenfassen wertlos."""
+        u"""Ohne diese Richtung wäre das Zusammenfassen wertlos."""
         roh = [['a.py:10', 'b.py:100'],
                ['a.py:400', 'b.py:900']]
         self.assertEqual(len(self._fassen(roh)), 2,

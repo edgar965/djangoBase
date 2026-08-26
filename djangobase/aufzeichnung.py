@@ -75,7 +75,7 @@ class Aufzeichnung:
 
     @property
     def dauer_s(self):
-        u"""Sekunden zwischen Start und Ende - oder bis jetzt, wenn sie laeuft."""
+        u"""Sekunden zwischen Start und Ende - oder bis jetzt, wenn sie läuft."""
         try:
             a = datetime.fromisoformat(self.start)
         except (TypeError, ValueError):
@@ -96,7 +96,7 @@ class Aufzeichnung:
 
     # ------------------------------------------------------------- Auskunft
     def kurz(self):
-        u"""Der Kopf ohne die Ereignisse - fuer Listen und Tabellen."""
+        u"""Der Kopf ohne die Ereignisse - für Listen und Tabellen."""
         return {"id": self.id, "name": self.name, "start": self.start,
                 "ende": self.ende, "seite": self.seite, "laeuft": self.laeuft,
                 "dauer_s": self.dauer_s, "n_schritte": len(self.schritte),
@@ -175,7 +175,7 @@ class Aufzeichnungen:
 
         Laeuft eine laenger als ``MAX_LAUFZEIT_S``, wird sie hier beendet statt
         ewig weiterzuzaehlen: Eine Aufnahme, die der Nutzer vergessen hat, soll
-        die naechste nicht blockieren."""
+        die nächste nicht blockieren."""
         with self._sperre:
             liste = self._lesen()
             for a in liste:

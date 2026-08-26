@@ -51,7 +51,7 @@ log = logging.getLogger("djangobase.tests")
 
 
 class Verschieber:
-    """Findet die Datei eines Testfalls und haengt sie in eine andere Art um."""
+    """Findet die Datei eines Testfalls und hängt sie in eine andere Art um."""
 
     ARTEN = Testbefehle.ARTEN
     #: Anzeigenamen der Kategorien - dieselbe Quelle wie die Reiter.

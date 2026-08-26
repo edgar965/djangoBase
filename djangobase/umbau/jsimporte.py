@@ -54,7 +54,7 @@ class Importblock:
         return any(datei in zeile for zeile in self.zeilen[:Importblock.KOPFZEILEN])
 
     def sicherstellen(self, klasse):
-        """Import ergaenzen, wenn er fehlt. Liefert True, wenn geaendert."""
+        """Import ergänzen, wenn er fehlt. Liefert True, wenn geändert."""
         datei = GEMEINSAM[klasse]
         if self.hat(datei):
             return False
@@ -127,7 +127,7 @@ def main():
         block = Importblock(datei)
         if block.sicherstellen(klasse):
             block.schreiben()
-            print('%s: %s ergaenzt' % (datei, klasse))
+            print('%s: %s ergänzt' % (datei, klasse))
         else:
             print('%s: schon vorhanden' % datei)
 

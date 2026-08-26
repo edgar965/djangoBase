@@ -40,10 +40,10 @@ ROLLE = (
     "Ohne ausloesenden Fall ist es kein Befund, sondern Geschmack.\n"
     "2. Fehlen dir Angaben, sage GENAU welche Datei oder Funktion du brauchst. "
     "Erfinde keinen Code, den du nicht gesehen hast.\n"
-    "3. Sortiere nach Schaden: was Daten verliert, was haengt, was nur haesslich ist.\n"
+    "3. Sortiere nach Schaden: was Daten verliert, was hängt, was nur haesslich ist.\n"
     "4. Antworte auf DEUTSCH, knapp, in Stichpunkten. Keine Zusammenfassung des "
     "Codes — der Fragende kennt ihn.\n"
-    "5. Wirst du widerlegt, zieh den Befund ausdruecklich zurueck. Ein Modell, das "
+    "5. Wirst du widerlegt, zieh den Befund ausdruecklich zurück. Ein Modell, das "
     "seine Fehler verteidigt, ist als Kritiker unbrauchbar."
 )
 
@@ -51,12 +51,12 @@ ROLLE = (
 #: des Dialogs: Sie zwingen zu dem, was eine erste Antwort nie liefert.
 NACHFASSEN = {
     "widerlegen": (
-        "Greife jetzt DEINE EIGENE Antwort an. Welcher deiner Befunde haelt einer "
+        "Greife jetzt DEINE EIGENE Antwort an. Welcher deiner Befunde hält einer "
         "Gegenprobe nicht stand, welcher ist Lehrbuchwissen ohne Ausloeser in "
         "diesem Code? Nenne mindestens einen, den du zuruecknimmst."),
     "rangfolge": (
-        "Genau DREI Aenderungen, die ich heute machen soll — nicht vier. Je einen "
-        "Satz Begruendung. Und sag dazu, was du bewusst NICHT in die drei nimmst "
+        "Genau DREI Änderungen, die ich heute machen soll — nicht vier. Je einen "
+        "Satz Begründung. Und sag dazu, was du bewusst NICHT in die drei nimmst "
         "und warum."),
     "fehlt": (
         "Was fehlt dir, um sicher zu urteilen? Nenne konkrete Dateien oder "
@@ -167,7 +167,7 @@ class ReviewLauf:
 
         dateien = list((bereich or {}).get("dateien") or [])
         if dateien:
-            teile.append("## Quelltext (vollstaendig, von der Platte gelesen)\n")
+            teile.append("## Quelltext (vollständig, von der Platte gelesen)\n")
             gesamt = 0
             # Ein Bereich darf eine EIGENE Wurzel mitbringen. Grund: Das geteilte
             # Paket (djangoBase) liegt ausserhalb jedes Projektverzeichnisses,
@@ -220,10 +220,10 @@ class ReviewLauf:
         MIT ZEILENNUMMERN als Anker: Ein Befund soll auf die Stelle in der
         ECHTEN Datei zeigen, nicht auf eine Zeile im Ausschnitt. Und was NICHT
         gefunden wurde, steht ausdruecklich dabei — sonst beurteilt das Modell
-        einen Ausschnitt, dessen Umfang es fuer vollstaendig haelt."""
+        einen Ausschnitt, dessen Umfang es für vollständig hält."""
         import ast
         if not rel.lower().endswith(".py"):
-            return text, "Funktionsauswahl nur fuer Python moeglich — ganze Datei"
+            return text, "Funktionsauswahl nur für Python möglich — ganze Datei"
         try:
             baum = ast.parse(text)
         except SyntaxError as e:
@@ -274,8 +274,8 @@ class ReviewLauf:
         except OSError as e:
             return None, "Pfad nicht aufloesbar: %s" % e
         if not self._liegt_in(ziel, wurzel):
-            logger.warning("Review: Datei ausserhalb der Wurzel abgelehnt: %s", ziel)
-            return None, "Liegt ausserhalb der Bereichs-Wurzel — nicht gesendet."
+            logger.warning("Review: Datei außerhalb der Wurzel abgelehnt: %s", ziel)
+            return None, "Liegt außerhalb der Bereichs-Wurzel — nicht gesendet."
         try:
             text = ziel.read_text(encoding="utf-8", errors="replace").rstrip()
         except OSError as e:

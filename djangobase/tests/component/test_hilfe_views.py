@@ -41,7 +41,7 @@ class HilfeViewsTest(BasisTest):
         Anmeldung und setzt `zugriff: none` — damit darf jeder auf die
         Hilfe-Seiten, und der Test schlug fehl, ohne dass an djangoBase etwas
         kaputt war. Ein Test, dessen Ergebnis von den Settings des Gastgebers
-        abhaengt, prueft nicht djangoBase, sondern den Gastgeber."""
+        abhaengt, prüft nicht djangoBase, sondern den Gastgeber."""
         from django.test import Client
         c = Client()
         c.force_login(self.nutzer(username="kein_staff", is_staff=False))

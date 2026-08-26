@@ -3,15 +3,15 @@
 Repo-Liste, App-Version, Paket-Liste, optionaler Commit-Text-Transform
 und Commits-pro-Page kommen aus settings.DJANGOBASE.
 
-Pro Commit wird zusaetzlich ermittelt:
+Pro Commit wird zusätzlich ermittelt:
   - is_release / version_label  (Subject matched Release-Marker?)
   - effective_version           (Newest-First-Scan: in welchem Release ist
                                   der Commit gelandet — oder "vX.Y+1-dev"
-                                  fuer noch ungebumpte Commits)
+                                  für noch ungebumpte Commits)
   - is_unreleased               (Commit ist neuer als letztes Release)
   - is_current                  (entspricht der laufenden App-Version)
 
-Ausserdem werden Git-Tags geholt + ein "local_in_remote"-Flag berechnet,
+Außerdem werden Git-Tags geholt + ein "local_in_remote"-Flag berechnet,
 das zeigt, ob HEAD bereits gepushed ist. Beides ist optional sichtbar
 im Template.
 """
@@ -44,11 +44,11 @@ _TRANSFORM_CACHE: dict = {}
 
 
 class _Einmalig:
-    """Merkt sich, welche Schluessel gerade bearbeitet werden.
+    """Merkt sich, welche Schlüssel gerade bearbeitet werden.
 
-    `add_if_absent` gibt True zurueck, wenn der Aufrufer der erste ist —
-    pruefen und eintragen unter EINER Sperre, sonst starten zwei Anfragen zwei
-    Erneuerungsfaeden fuer denselben Schluessel."""
+    `add_if_absent` gibt True zurück, wenn der Aufrufer der erste ist —
+    prüfen und eintragen unter EINER Sperre, sonst starten zwei Anfragen zwei
+    Erneuerungsfaeden für denselben Schlüssel."""
 
     def __init__(self):
         self._lock = threading.Lock()
@@ -71,8 +71,8 @@ class _TTLCache:
 
     Ohne Lock spawnen zwei parallele Page-Renders auf Cache-Miss doppelt so
     viele `gh`-Subprocesses (pro Repo einen je Render). Unter ASGI/Daphne mit
-    echter Nebenlaeufigkeit ist das real. Der per-Key-Lock haelt den zweiten
-    Caller zurueck, bis der erste denselben Key gefuellt hat.
+    echter Nebenlaeufigkeit ist das real. Der per-Key-Lock hält den zweiten
+    Caller zurück, bis der erste denselben Key gefuellt hat.
     """
 
     def __init__(self, ttl_seconds: float) -> None:
@@ -122,7 +122,7 @@ class _TTLCache:
 
     def _erneuern(self, key, producer, key_lock):
         """Im Hintergrund neu berechnen. Fehler bleiben still: Der alte Wert
-        steht weiter, und genau dafuer ist dieser Weg da."""
+        steht weiter, und genau dafür ist dieser Weg da."""
         try:
             with key_lock:
                 wert = producer()
@@ -206,7 +206,7 @@ def _render_body_html(body: str) -> str:
 
 def _resolve_transform(dotted: str | None):
     """DJANGOBASE['commit_text_transform']="search.utils.umlauts.restore_umlauts"
-    laedt einmalig und cached. Bei None oder Import-Fehler: identity."""
+    lädt einmalig und cached. Bei None oder Import-Fehler: identity."""
     if not dotted:
         return lambda s: s
     if dotted in _TRANSFORM_CACHE:
@@ -309,13 +309,13 @@ def _fetch_tags(repo):
 
 
 def _git(repo_path, *args, timeout=5):
-    u"""`git` im Repo aufrufen — ueber :class:`Gitabfrage`, also mit Cache.
+    u"""`git` im Repo aufrufen — über :class:`Gitabfrage`, also mit Cache.
 
     GEMESSEN (17.08.2026): Diese Funktion war der ganze Aufwand der Seite —
-    650 von 690 ms warm, bei 0 SQL-Abfragen. Zwoelf Aufrufe (vier Repos mal
+    650 von 690 ms warm, bei 0 SQL-Abfragen. Zwölf Aufrufe (vier Repos mal
     `remote get-url` / `rev-parse` / `status --porcelain`), jeder rund 50 ms,
     weil das STARTEN eines Prozesses unter Windows so viel kostet. Die
-    Begruendung fuer den Cache und seine Haltbarkeit steht in
+    Begründung für den Cache und seine Haltbarkeit steht in
     ``djangobase/gitabfrage.py``.
     """
     return Gitabfrage.lauf(repo_path, *args, timeout=timeout)
@@ -339,7 +339,7 @@ def _gh_repo_from_remote(repo_path):
 def _git_log_local(repo_path, n=100, transform=None, gh_repo=""):
     """Fallback ohne gh: lokales git log als Changelog — inkl. Commit-BODY,
     damit ausfuehrliche Release-Beschreibungen (Bullet-Listen im Commit)
-    genauso erscheinen wie ueber die GitHub-API."""
+    genauso erscheinen wie über die GitHub-API."""
     out = _git(repo_path, "log", f"-{n}",
                "--pretty=format:%H\x1f%an\x1f%ad\x1f%B\x1e", "--date=short")
     tr = transform or (lambda s: s)
@@ -384,7 +384,7 @@ def _git_log_local(repo_path, n=100, transform=None, gh_repo=""):
 
 
 def _next_dev_label(current_version: str) -> str:
-    """Fuer Commits NEUER als das letzte Release: naechste Minor-Version
+    """Für Commits NEUER als das letzte Release: nächste Minor-Version
     mit '-dev'-Suffix. '0.46' -> 'v0.47-dev'."""
     norm = (current_version or "").lstrip("v").strip()
     m = re.match(r"^(\d+)\.(\d+)(?:\.(\d+))?$", norm)
@@ -396,10 +396,10 @@ def _next_dev_label(current_version: str) -> str:
 
 def _annotate_chronological(commits: list, current_version: str) -> list[dict]:
     """Newest-First-Scan: jedem Commit eine effective_version zuordnen
-    (welches Release enthaelt diesen Commit?). Commits ueber dem letzten
+    (welches Release enthält diesen Commit?). Commits über dem letzten
     Release sind unreleased-dev.
 
-    Markiert is_current fuer den Commit, der genau current_version traegt.
+    Markiert is_current für den Commit, der genau current_version trägt.
     """
     norm_current = (current_version or "").lstrip("v").strip()
     out = []

@@ -47,7 +47,7 @@ __all__ = ["Testbefehle"]
 
 
 class Testbefehle:
-    """Baut die Eintraege fuer die Tests-Seite aus dem Dateibestand."""
+    """Baut die Einträge für die Tests-Seite aus dem Dateibestand."""
 
     #: Reihenfolge = Anzeigereihenfolge: erst schnell, zuletzt langsam.
     #: ``automated`` steht vorn — es ist der Lauf, den man bei JEDER Aenderung
@@ -139,7 +139,7 @@ class Testbefehle:
     # ------------------------------------------------------------------ Platte
 
     def _bereiche(self, wurzel):
-        """Unterordner, die selbst nach Art gegliedert sind (grosse Apps)."""
+        """Unterordner, die selbst nach Art gegliedert sind (große Apps)."""
         if not wurzel.is_dir():
             return []
         aus = []

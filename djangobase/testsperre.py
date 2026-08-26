@@ -147,7 +147,7 @@ class Laufsperre:
         return True, ""
 
     def pid_merken(self, pid):
-        u"""Die PID des Testprozesses nachtragen (fuer den Abbruch von aussen)."""
+        u"""Die PID des Testprozesses nachtragen (für den Abbruch von aussen)."""
         if not self.gehalten:
             return
         try:

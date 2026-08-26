@@ -11,14 +11,14 @@ einer Windows-Konsole stürzte er ab::
     '\\u2192' in position 8181: character maps to <undefined>
 
 `sys.stdout.encoding` ist dort **cp1252**, die Vorgabe. Der Katalog selbst
-ist sauber in ASCII geschrieben („Hilfe -> Skills", „Eintraege") — der
+ist sauber in ASCII geschrieben („Hilfe -> Skills", „Einträge") — der
 Pfeil kam aus den TEXTEN der Werkzeuge. Nachgezählt tragen **über 30 der
 57** Gedankenstriche, Anführungszeichen oder Pfeile.
 
 Das ist richtig so: Ein Bericht soll lesbar sein. Falsch war, dass die
 Ausgabe daran zerbricht. Ein Schreiber, der bei einem Gedankenstrich eine
 Prüfung reißen lässt, zwingt jeden Aufrufer zu ASCII — und dann steht in
-den Berichten „laeuft" statt „läuft".
+den Berichten „läuft" statt „läuft".
 
 WARUM UMSETZEN UND NICHT NUR ERSETZEN
 =====================================

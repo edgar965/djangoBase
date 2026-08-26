@@ -1,4 +1,4 @@
-"""Namensdubletten — derselbe Name mehrfach, und mehrere Namen fuer dasselbe."""
+"""Namensdubletten — derselbe Name mehrfach, und mehrere Namen für dasselbe."""
 
 import ast
 import re
@@ -64,11 +64,11 @@ class Namensdubletten(BefundWerkzeug):
              'ausgenommen — dass zwei Klassen ein `anzahl()` haben, ist der '
              'Sinn der Sache und keine Dublette.')
     abhilfe = ('Wenn ein Projekt aus mehreren Umbauten gewachsen ist. Zwei Namen '
-            'fuer dieselbe Sache kosten bei jeder Suche Zeit und erzeugen '
+            'für dieselbe Sache kosten bei jeder Suche Zeit und erzeugen '
             'stille Fehler, sobald jemand den falschen benutzt.')
     befund = ('Genau dieser Fall kostete im Ursprungsprojekt vier Monate: Eine '
              'Vorlage las `unique_videos`, die Ansicht lieferte `upload_files` '
-             '— Django rendert dafuer kommentarlos nichts, also fiel es keinem '
+             '— Django rendert dafür kommentarlos nichts, also fiel es keinem '
              'auf.')
     dauer = 'Sekunden'
 
@@ -132,7 +132,7 @@ class Namensdubletten(BefundWerkzeug):
                     'auch: ' + ', '.join(orte[1:5]), Befund.HINWEIS))
         befunde.extend(self._synonyme(wortverwendung))
 
-        kopf = ['%d Klassennamen, %d Funktionsnamen geprueft'
+        kopf = ['%d Klassennamen, %d Funktionsnamen geprüft'
                 % (len(klassen), len(funktionen))]
         return Befundsatz(self.titel, kopf, befunde)
 
@@ -161,6 +161,6 @@ class Namensdubletten(BefundWerkzeug):
                 beispiele.append('%s (%s)' % (wort, ', '.join(erste)))
             befunde.append(Befund(
                 ' / '.join(benutzt),
-                '%d Schreibweisen fuer dieselbe Sache' % len(benutzt),
+                '%d Schreibweisen für dieselbe Sache' % len(benutzt),
                 '; '.join(beispiele), Befund.HINWEIS))
         return befunde

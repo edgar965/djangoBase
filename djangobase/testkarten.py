@@ -27,7 +27,7 @@ __all__ = ["Karten"]
 
 
 class Karten:
-    """Baut Kartenlisten (Titel + Sammelknopf + Tabelle) fuer die Tests-Seite."""
+    """Baut Kartenlisten (Titel + Sammelknopf + Tabelle) für die Tests-Seite."""
 
     #: Text fuer eine leere Liste. Er nennt BEIDE Gruende, denn der zweite hat
     #: schon einmal in die Irre gefuehrt (18.08.2026): Im assistant besteht die
@@ -51,7 +51,7 @@ class Karten:
 
     def je_kategorie(self, tests, titel, key, tab, icon="bi-list-check",
                      leer=None):
-        u"""[karte] - eine Karte mit allen Faellen der Kategorie."""
+        u"""[karte] - eine Karte mit allen Fällen der Kategorie."""
         return [self._karte(titel, tests, key, tab, icon, leer)]
 
     def _karte(self, titel, tests, key, tab, icon, leer):

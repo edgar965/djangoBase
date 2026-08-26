@@ -88,7 +88,7 @@ class Gitabfrage:
 
     @classmethod
     def leeren(cls):
-        u"""Cache verwerfen - fuer Tests und nach einem Commit aus der App."""
+        u"""Cache verwerfen - für Tests und nach einem Commit aus der App."""
         with cls._schloss:
             cls._werte.clear()
 

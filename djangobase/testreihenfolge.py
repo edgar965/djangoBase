@@ -92,7 +92,7 @@ class Reihenfolge:
         return self.raenge.get(str(test_id or ""), self.OHNE)
 
     def nummer(self, test_id):
-        u"""Der Platz, oder ``None`` - fuer die Anzeige im Eingabefeld."""
+        u"""Der Platz, oder ``None`` - für die Anzeige im Eingabefeld."""
         wert = self.raenge.get(str(test_id or ""))
         return wert if isinstance(wert, int) else None
 
@@ -133,7 +133,7 @@ class Reihenfolge:
                 encoding="utf-8")
         except OSError:
             log.exception("Test-Reihenfolge %s nicht schreibbar — die Nummer "
-                          "gilt nur bis zum naechsten Laden", self.pfad)
+                          "gilt nur bis zum nächsten Laden", self.pfad)
 
     def umhaengen(self, alt_praefix, neu_praefix):
         u"""Plaetze mitnehmen, wenn eine Testdatei umzieht.

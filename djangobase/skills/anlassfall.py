@@ -3,26 +3,26 @@ u"""Anlassfall - der Code, an dem ein Werkzeug beweisen muss, dass es sieht.
 
 DIE FRAGE, DIE ZWEIMAL ETWAS GEFUNDEN HAT (17.08.2026)
 ======================================================
-    „Findet die Pruefung noch den Fall, fuer den sie gebaut wurde?"
+    „Findet die Prüfung noch den Fall, für den sie gebaut wurde?"
 
-Zweimal an einem Abend hat sie einen blinden Pruefer entlarvt:
+Zweimal an einem Abend hat sie einen blinden Prüfer entlarvt:
 
 * ``getattr-namen`` meldete NULL. Sein Massstab liess jede Zeichenkette als
   Beleg gelten - und ``orb_nacht``, sein eigener Anlassfall, steht als
-  Zeichenkette in der Pruefung, die ihn dokumentiert. Enger gefasst: 2 statt 0.
-* ``js-vererbung`` haette ``SignaleTab`` als Absturz gemeldet, obwohl der Name
+  Zeichenkette in der Prüfung, die ihn dokumentiert. Enger gefasst: 2 statt 0.
+* ``js-vererbung`` hätte ``SignaleTab`` als Absturz gemeldet, obwohl der Name
   ausdruecklich ans Fenster gehaengt wird.
 
-Beides waere unbemerkt geblieben. Eine Null sieht aus wie ein sauberes Projekt,
-und niemand prueft nach, ob der Pruefer ueberhaupt noch etwas sehen KANN.
+Beides wäre unbemerkt geblieben. Eine Null sieht aus wie ein sauberes Projekt,
+und niemand prüft nach, ob der Prüfer ueberhaupt noch etwas sehen KANN.
 
-Deshalb traegt jedes Werkzeug seinen Anlassfall bei sich: ein paar Zeilen Code,
+Deshalb trägt jedes Werkzeug seinen Anlassfall bei sich: ein paar Zeilen Code,
 die es melden MUSS. ``AnlassfallCheck`` schreibt sie in ein eigenes Verzeichnis,
-laesst das Werkzeug nur dort laufen und vergleicht.
+lässt das Werkzeug nur dort laufen und vergleicht.
 
 WARUM DER FALL AM WERKZEUG HAENGT UND NICHT IN EINER LISTE
 ==========================================================
-Eine zentrale Liste ist eine zweite Quelle, und die laeuft auseinander - genau
+Eine zentrale Liste ist eine zweite Quelle, und die läuft auseinander - genau
 so war ``Skills1`` gebaut, lief und stand in keinem Menue. Wer ein Werkzeug
 schreibt, schreibt seinen Anlassfall daneben; wer keinen angibt, taucht im
 Bericht als ``ohne Anlassfall`` auf und wird nicht stillschweigend uebergangen.
@@ -39,7 +39,7 @@ class Anlassfall:
     das Werkzeug hier finden MUSS - fast immer 1.
 
     ``erwartet_in`` ist optional: ein Text, der in irgendeiner Befundzeile
-    vorkommen muss. Damit laesst sich pruefen, dass das Werkzeug die RICHTIGE
+    vorkommen muss. Damit lässt sich prüfen, dass das Werkzeug die RICHTIGE
     Stelle meldet und nicht irgendeine.
 
     ``hoechstens`` ist die andere Haelfte und mindestens so wichtig: Viele
@@ -72,7 +72,7 @@ class Anlassfall:
         self.ohne_arten = tuple(ohne_arten)
 
     def dateibezogen(self, zeilen):
-        """Nur die Befunde, die an einer Datei im Pruefverzeichnis haengen."""
+        """Nur die Befunde, die an einer Datei im Pruefverzeichnis hängen."""
         if not self.ohne_arten:
             return list(zeilen)
         return [z for z in zeilen if z.get("art") not in self.ohne_arten]

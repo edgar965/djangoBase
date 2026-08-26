@@ -102,7 +102,7 @@ class Aufrufkette:
     # ----------------------------------------------------------- Aufrufstellen
 
     def _aufrufstellen(self, datei, name):
-        """Jede Zeile, die ``name`` als Aufruf enthaelt - dort, wo er sichtbar ist."""
+        """Jede Zeile, die ``name`` als Aufruf enthält - dort, wo er sichtbar ist."""
         muster = re.compile(r"(?<![\w$.])(?:\w[\w$]*\.)?" + re.escape(name)
                             + r"\s*\(")
         ueber_import, ueber_sammelstelle, namen = self._sichtbar(datei)
@@ -187,7 +187,7 @@ class Aufrufkette:
 
     @classmethod
     def _veroeffentlicht(cls, zeilen):
-        """Namen, die diese Datei an eine Sammelstelle haengt."""
+        """Namen, die diese Datei an eine Sammelstelle hängt."""
         aus = set()
         for zeile in zeilen:
             treffer = cls.SAMMELSTELLE.match(zeile)

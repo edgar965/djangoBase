@@ -96,17 +96,17 @@ class Szenarienpruefer(ast.NodeVisitor):
             self.befunde.append(Befund(
                 '%s:%d' % (self.datei, knoten.lineno),
                 u'Name nennt kein Verhalten: %s' % wo,
-                u'Wer diesen Namen rot sieht, weiss nicht, was kaputt ist — '
+                u'Wer diesen Namen rot sieht, weiß nicht, was kaputt ist — '
                 u'er muss den Rumpf lesen. Ein Name wie '
                 u'`test_person_bleibt_nach_dem_merge_erhalten` sagt es '
                 u'selbst.', Befund.HINWEIS))
         if not self._sichert_zu(knoten):
             self.befunde.append(Befund(
                 '%s:%d' % (self.datei, knoten.lineno),
-                u'Pruefung ohne Zusicherung: %s' % wo,
-                u'Der Rumpf behauptet nichts — die Pruefung meldet gruen, '
-                u'egal was der Code tut. Das ist teurer als keine Pruefung, '
-                u'weil sie Sicherheit vortaeuscht.', Befund.FEHLER))
+                u'Prüfung ohne Zusicherung: %s' % wo,
+                u'Der Rumpf behauptet nichts — die Prüfung meldet grün, '
+                u'egal was der Code tut. Das ist teurer als keine Prüfung, '
+                u'weil sie Sicherheit vortäuscht.', Befund.FEHLER))
 
     @staticmethod
     def _sagt_etwas(name):
@@ -173,7 +173,7 @@ class Szenarien(BefundWerkzeug):
             '    def test_person_wird_richtig_geloescht(self):\n'
             '        self.assertEqual(1, 1)\n'},
         mindestens=2, erwartet_in='test_basic',
-        warum=u'Ein nichtssagender Name und eine Pruefung ohne Zusicherung — '
+        warum=u'Ein nichtssagender Name und eine Prüfung ohne Zusicherung — '
               u'die dritte macht beides richtig und darf nicht mitgemeldet '
               u'werden')
 
@@ -200,13 +200,13 @@ class Szenarien(BefundWerkzeug):
         ohne_zusicherung = sum(1 for b in befunde if b.gewicht == Befund.FEHLER)
         stumm = len(befunde) - ohne_zusicherung
         anteil = (100.0 * (methoden - stumm) / methoden) if methoden else 100.0
-        kopf = ['%d Pruefdateien, %d Pruefmethoden' % (dateien, methoden),
-                '%d ohne jede Zusicherung — die melden gruen, egal was '
+        kopf = ['%d Prüfdateien, %d Prüfmethoden' % (dateien, methoden),
+                '%d ohne jede Zusicherung — die melden grün, egal was '
                 'passiert' % ohne_zusicherung,
                 '%d mit einem Namen, der kein Verhalten nennt (%.0f %% tun es)'
                 % (stumm, anteil)]
         if not befunde:
-            kopf.append('Keine — jede Pruefung nennt ihr Verhalten und '
+            kopf.append('Keine — jede Prüfung nennt ihr Verhalten und '
                         'sichert es zu.')
         return Befundsatz(self.titel, kopf, befunde)
 

@@ -281,12 +281,12 @@ class Uebersprungen(BefundWerkzeug):
                 befunde.append(self._befund(stelle))
 
         schwer = sum(1 for b in befunde if b.gewicht == Befund.FEHLER)
-        kopf = ['%d Pruefdateien gelesen' % dateien,
+        kopf = ['%d Prüfdateien gelesen' % dateien,
                 '%d Stelle(n), an denen ein Lauf abgekuerzt wird' % len(befunde),
-                '%d davon haengen an einer Umgebungsvariablen — ein Schalter, '
+                '%d davon hängen an einer Umgebungsvariablen — ein Schalter, '
                 'den im Alltag niemand setzt, ist eine Abschaltung' % schwer]
         if not befunde:
-            kopf.append('Keine — jede Pruefung laeuft wirklich.')
+            kopf.append('Keine — jede Prüfung läuft wirklich.')
         return Befundsatz(self.titel, kopf, befunde)
 
     @staticmethod
@@ -308,12 +308,12 @@ class Uebersprungen(BefundWerkzeug):
                            stelle.wobei)
         warum = stelle.grund or u'(kein Grund angegeben)'
         if stelle.art == 'umgebung':
-            warum += (u' — laeuft im Alltag NIE. Vor dem Entfernen einmal '
-                      u'mit gesetztem Schalter fahren: Besteht die Pruefung, '
-                      u'gehoert der Schalter weg; ueberspringt sie sich '
+            warum += (u' — läuft im Alltag NIE. Vor dem Entfernen einmal '
+                      u'mit gesetztem Schalter fahren: Besteht die Prüfung, '
+                      u'gehört der Schalter weg; überspringt sie sich '
                       u'weiterhin, kann sie gar nicht laufen.')
         elif stelle.art == 'rumpf':
-            warum += (u' — „nichts zu pruefen" ist ein ERGEBNIS und laesst '
+            warum += (u' — „nichts zu prüfen" ist ein ERGEBNIS und lässt '
                       u'sich zusichern: `assertTrue(nichts_da or bedingung)` '
-                      u'laeuft immer und faellt auf, wenn der Sucher bricht.')
+                      u'läuft immer und fällt auf, wenn der Sucher bricht.')
         return Befund(stelle.ort, was, warum, stelle.gewicht())

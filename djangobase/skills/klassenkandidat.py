@@ -80,8 +80,8 @@ class Klassenkandidat(BefundWerkzeug):
     titel = 'Klassen-Kandidaten aus geteiltem Zustand'
     zweck = ('Findet freie Funktionen, die sich dieselbe Modulvariable teilen — '
              'das ist eine Klasse, die noch niemand geschrieben hat. Und '
-             'getrennt davon: Funktionsbuendel ohne Zustand, die in eine '
-             'Utility-Klasse mit statischen Methoden gehoeren.')
+             'getrennt davon: Funktionsbündel ohne Zustand, die in eine '
+             'Utility-Klasse mit statischen Methoden gehören.')
     abhilfe = ('Geteilter Zustand → Klasse: die Variable wird zum Attribut, die '
                'Funktionen werden zu Methoden, das erste Argument entfaellt. '
                'Kein Zustand → Utility-Klasse mit @staticmethod, damit die '
@@ -125,7 +125,7 @@ class Klassenkandidat(BefundWerkzeug):
         {"zaehlwerk.py": (
             "_stand = {}\n\n\n"
             "def erhoehen(schluessel):\n"
-            "    _stand[schluessel] = _stand.get(schluessel, 0) + 1\n\n\n"
+            "    _stand[schlüssel] = _stand.get(schlüssel, 0) + 1\n\n\n"
             "def lesen(schluessel):\n"
             "    return _stand.get(schluessel, 0)\n\n\n"
             "def zuruecksetzen():\n"
@@ -247,7 +247,7 @@ class Klassenkandidat(BefundWerkzeug):
         return kandidaten, self._utilities(datei, rest, grenze)
 
     def _utilities(self, datei, funktionen, grenze):
-        u"""Buendel gleichen Namensanfangs OHNE geteilten Zustand."""
+        u"""Bündel gleichen Namensanfangs OHNE geteilten Zustand."""
         nach_anfang = defaultdict(list)
         for fn in funktionen:
             if self._ruft_das_framework(fn):
@@ -268,11 +268,11 @@ class Klassenkandidat(BefundWerkzeug):
         sich gar nicht verschieben, weil ihr Aufrufer nicht im Quelltext steht:
 
         * ``Utility-Klasse Api: 10 Funktionen`` (``api_live_start`` …) —
-          Django-Views, gerufen ueber die URL-Zuordnung. Wandern sie in eine
+          Django-Views, gerufen über die URL-Zuordnung. Wandern sie in eine
           Klasse, zeigt ``urls.py`` ins Leere und die Seite ist tot.
         * ``Utility-Klasse Run: 16 Funktionen`` (``run_bedienelemente`` …) —
-          Pruefungen mit Dekorator; die Testsuite findet sie ueber den
-          Dekorator, nicht ueber den Namen.
+          Prüfungen mit Dekorator; die Testsuite findet sie über den
+          Dekorator, nicht über den Namen.
         * ``Utility-Klasse Test: 8 Funktionen`` (``test_strategy`` …) —
           unittest sammelt ``test_*`` auf Modulebene ein.
 
@@ -293,7 +293,7 @@ class Klassenkandidat(BefundWerkzeug):
         u"""Was liegt in diesem Modulnamen? ``'klasse'``, ``'kontext'`` oder None.
 
         * ``'klasse'`` - nackter Container oder Primitiv: Hier fehlt eine Klasse.
-        * ``'kontext'`` - eine Instanz: Sie gehoert in die Kontext-Klasse.
+        * ``'kontext'`` - eine Instanz: Sie gehört in die Kontext-Klasse.
         * ``None`` - ein Alias auf einen bestehenden Namen; kein Zustand.
         """
         wert = getattr(knoten, 'value', None)
@@ -320,10 +320,10 @@ class Klassenkandidat(BefundWerkzeug):
     def _aus_dem_kontext(cls, wert):
         u"""Kommt der Wert aus der Kontext-Klasse des Projekts?
 
-        Erkannt wird der Aufruf ``Kontext.<name>(...)`` - unabhaengig davon, wie
-        die Klasse importiert wurde, denn geprueft wird der Name links vom
+        Erkannt wird der Aufruf ``Kontext.<name>(...)`` - unabhängig davon, wie
+        die Klasse importiert wurde, denn geprüft wird der Name links vom
         Punkt. Ein blosser Attributzugriff ohne Aufruf ist ohnehin ein Alias und
-        faellt schon vorher durch."""
+        fällt schon vorher durch."""
         if not isinstance(wert, ast.Call):
             return False
         ziel = wert.func
@@ -344,10 +344,10 @@ class Klassenkandidat(BefundWerkzeug):
 
     @staticmethod
     def _zugriffe(funktion, modulnamen):
-        u"""(gelesen_oder_geschrieben, geschrieben) - beides nur fuer Modulnamen.
+        u"""(gelesen_oder_geschrieben, geschrieben) - beides nur für Modulnamen.
 
-        Ein lokaler Name gleichen Namens verdeckt den globalen; deshalb zaehlen
-        nur Namen, die die Funktion NICHT selbst bindet - ausser sie erklaert
+        Ein lokaler Name gleichen Namens verdeckt den globalen; deshalb zählen
+        nur Namen, die die Funktion NICHT selbst bindet - außer sie erklärt
         ihn ausdruecklich per ``global``."""
         global_erklaert = {name for k in ast.walk(funktion)
                            if isinstance(k, ast.Global) for name in k.names}

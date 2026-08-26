@@ -4,23 +4,23 @@ u"""Doppelrumpf - zeichengleiche Funktions- und Klassenrumpfe finden.
 WAS ES GEFUNDEN HAT (shortlongx, 16.08.2026)
 ============================================
 Vier Werkzeuge, die je einen Import-Befehl gegen absichtlich beschaedigten Code
-fahren, trugen denselben Ablauf Zeile fuer Zeile viermal. Dabei faellt auf, was
+fahren, trugen denselben Ablauf Zeile für Zeile viermal. Dabei fällt auf, was
 Duplikate wirklich kosten: Als der Befehl umgebaut wurde, zeigte die
 Schadensliste EINES der vier ins Leere - drei Tage lang war das eine Sicherung,
 die keine mehr war, und niemandem fiel es auf.
 
 Weitere Funde derselben Art: dieselbe „wo endet der Import-Kopf?"-Funktion in
-fuenf Werkzeugen (in drei davon OHNE die Begruendung, warum sie ueber den
+fünf Werkzeugen (in drei davon OHNE die Begründung, warum sie über den
 Syntaxbaum gehen muss), derselbe Zugriff auf den System-Speicher in drei.
 
 WORAUF ZU ACHTEN IST
 ====================
-Zeichengleich heisst nicht austauschbar. Zwei der gefundenen Paare hatten
+Zeichengleich heißt nicht austauschbar. Zwei der gefundenen Paare hatten
 dieselbe Rechnung, aber verschiedene Signaturen; beim Zusammenlegen muss man die
 Aufrufer mitnehmen, sonst wandert der Fehler nur.
 
-Der Vergleich laeuft ueber den Syntaxbaum OHNE Docstrings - sonst gelten zwei
-identische Funktionen als verschieden, nur weil eine besser erklaert ist.
+Der Vergleich läuft über den Syntaxbaum OHNE Docstrings - sonst gelten zwei
+identische Funktionen als verschieden, nur weil eine besser erklärt ist.
 """
 import ast
 from collections import defaultdict

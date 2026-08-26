@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""JsWaisen - Browser-Module, die niemand laedt, und Importe ins Leere.
+u"""JsWaisen - Browser-Module, die niemand lädt, und Importe ins Leere.
 
 DER BEFUND (3DTools, 16.08.2026)
 ================================
@@ -7,26 +7,26 @@ DER BEFUND (3DTools, 16.08.2026)
 Registrierung an - wurde aber von KEINER Datei importiert und in KEINEM Template
 eingebunden. Der Aufruf lief deshalb immer in ein „is not a function",
 verschluckt vom umgebenden ``try``; alles danach (Hautfarbe setzen, Rohdaten
-anzeigen) wurde uebersprungen. Drei Module waren so verwaist, drei Funktionen
+anzeigen) wurde übersprungen. Drei Module waren so verwaist, drei Funktionen
 der Seite damit tot - ohne eine einzige Fehlermeldung.
 
-Ein Modul, das sich selbst in einer Registrierung anmeldet, faellt ohne Import
+Ein Modul, das sich selbst in einer Registrierung anmeldet, fällt ohne Import
 nicht auf: Es gibt keinen unbenutzten Import und keine unaufgeloeste Referenz,
 nur eine Funktion, die zur Laufzeit fehlt.
 
 DREI ARTEN VON FUND
 ===================
-* **verwaist** - niemand importiert die Datei, kein Template laedt sie.
+* **verwaist** - niemand importiert die Datei, kein Template lädt sie.
 * **verwaist + angemeldet** - dazu meldet sie Funktionen in einer Registrierung
   an. Der gefaehrliche Fall: Andere Dateien rufen diese Namen auf.
 * **Import ins Leere** - ein Import zeigt auf eine Datei, die es nicht gibt.
   ``scene/kleider_anpassen.js`` importierte dynamisch ``../model_generator.js``,
   aufgeteilt am Vortag. Ein ``await import(...)`` mitten in einer Funktion
-  faellt erst auf, wenn genau dieser Zweig laeuft.
+  fällt erst auf, wenn genau dieser Zweig läuft.
 
 WARUM ERREICHBARKEIT und nicht „wird irgendwo importiert"
 =========================================================
-Wer nur zaehlt, welche Datei irgendwo importiert wird, uebersieht ganze
+Wer nur zählt, welche Datei irgendwo importiert wird, uebersieht ganze
 Altlast-Ketten: ``scene_state.js`` wurde von drei alten Modulen importiert - und
 alle vier lud niemand. Erst der Lauf von den Vorlagen aus zeigt das.
 """
@@ -84,7 +84,7 @@ def ohne_kommentarzeilen(text):
 
 
 class Modulinventar:
-    """Alle JS-Dateien unter einer Wurzel und wer sie laedt."""
+    """Alle JS-Dateien unter einer Wurzel und wer sie lädt."""
 
     def __init__(self, dateien, vorlagen):
         self.dateien = [p.resolve() for p in dateien]
@@ -115,7 +115,7 @@ class Modulinventar:
         return self
 
     def _aufloesen(self, von, angabe, bekannt):
-        """Angabe zu einem Pfad machen; absolute Pfade ueber den Dateinamen."""
+        """Angabe zu einem Pfad machen; absolute Pfade über den Dateinamen."""
         if angabe.startswith("."):
             ziel = (von.parent / angabe).resolve()
             return ziel if ziel in bekannt else None
@@ -135,7 +135,7 @@ class Modulinventar:
         return gesehen
 
     def _einstiegspunkte(self):
-        """Dateien, die eine Vorlage laedt - ueber {% static %} oder als src."""
+        """Dateien, die eine Vorlage lädt - über {% static %} oder als src."""
         nach_name = {}
         for pfad in self.dateien:
             nach_name.setdefault(pfad.name, []).append(pfad)
@@ -162,11 +162,11 @@ class Modulinventar:
     STILLGELEGT = re.compile(r"//\s*stillgelegt gewollt:\s*\S+")
 
     def verwaist(self):
-        u"""Dateien, die keine Seite laedt — Laeufer und Stillgelegte ausgenommen.
+        u"""Dateien, die keine Seite lädt — Laeufer und Stillgelegte ausgenommen.
 
-        Ein Laeufer (Node-Skript, Bauwerkzeug, Testlaeufer) gehoert nicht zu den
-        Seiten und MUSS unerreichbar sein. Er unter „laedt niemand" zu fuehren
-        heisst, einen Loeschvorschlag fuer lebenden Code zu machen.
+        Ein Laeufer (Node-Skript, Bauwerkzeug, Testlaeufer) gehört nicht zu den
+        Seiten und MUSS unerreichbar sein. Er unter „lädt niemand" zu führen
+        heißt, einen Loeschvorschlag für lebenden Code zu machen.
         """
         aus = []
         for p in self.dateien:
@@ -178,7 +178,7 @@ class Modulinventar:
         return aus
 
     def _stillgelegt(self, pfad):
-        """Traegt der Modulkopf den Vermerk mit Begruendung?"""
+        """Trägt der Modulkopf den Vermerk mit Begründung?"""
         try:
             kopf = "\n".join(Path(pfad).read_text(
                 encoding="utf-8", errors="replace").split("\n")[:30])
@@ -200,13 +200,13 @@ class Modulinventar:
 class JsWaisen(Werkzeug):
     slug = "jswaisen"
     titel = "Browser-Module: Waisen und Importe ins Leere"
-    zweck = ("Laeuft von den Vorlagen aus durch alle Importe: Welche .js-Datei "
-             "laedt niemand, und welcher Import zeigt auf eine Datei, die es "
+    zweck = ("Läuft von den Vorlagen aus durch alle Importe: Welche .js-Datei "
+             "lädt niemand, und welcher Import zeigt auf eine Datei, die es "
              "nicht gibt?")
     befund = ("3DTools: drei Module waren verwaist und meldeten trotzdem "
               "Funktionen an - Fotoanalyse, Ausricht-Assistent und Textur-Reiter "
               "waren dadurch ohne Wirkung, ohne eine Fehlermeldung.")
-    abhilfe = ("Verwaist + angemeldet: importieren oder loeschen. Import ins "
+    abhilfe = ("Verwaist + angemeldet: importieren oder löschen. Import ins "
                "Leere: Pfad korrigieren - meist ist die Datei umgezogen.")
     dauer = "unter 1 s"
     kriterium = 5
@@ -251,8 +251,8 @@ export function start() { return hilf(); }
         zeilen.sort(key=lambda z: (rang[z["art"]], z["ort"]))
         return Ergebnis(
             ["art", "ort", "text"], zeilen,
-            zusammenfassung="%d JS-Dateien, %d davon laedt niemand, %d Importe "
-                            "ins Leere (%d Laeufer nicht gezaehlt)"
+            zusammenfassung="%d JS-Dateien, %d davon lädt niemand, %d Importe "
+                            "ins Leere (%d Laeufer nicht gezählt)"
                             % (len(inventar.dateien), len(inventar.verwaist()),
                                len(inventar.fehlende()), len(inventar.laeufer)),
             hinweis="Laeufer (Node-Skripte, vite.config.js, Playwright-Tests) "

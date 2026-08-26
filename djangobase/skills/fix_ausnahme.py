@@ -105,7 +105,7 @@ class FixAusnahme(Fixer):
         Fixer pruefte::
 
             fix-ausnahme   im Anlassfall 32   im Leeren 32
-            -> meldet im Leeren 32 — sucht nicht in der uebergebenen Wurzel
+            -> meldet im Leeren 32 — sucht nicht in der übergebenen Wurzel
 
         Im gewoehnlichen Lauf faellt das nicht auf, weil beide Wurzeln
         dieselbe sind. Bei einem Werkzeug, das SCHREIBT, ist „durchsucht
@@ -163,7 +163,7 @@ class FixAusnahme(Fixer):
         return aus
 
     def _datei(self, d, handler):
-        """Eine Aenderung fuer EINE Datei - oder None, wenn nichts zu tun ist."""
+        """Eine Änderung für EINE Datei - oder None, wenn nichts zu tun ist."""
         datei = Ausnahmedatei(d.pfad, d.text, d.baum)
         logger = datei.loggername()
         braucht_logger = False

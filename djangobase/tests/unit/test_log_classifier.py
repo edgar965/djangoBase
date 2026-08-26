@@ -80,7 +80,7 @@ class IterExceptionsTests(SimpleTestCase):
             '  File "a.py", line 10, in run',
             "    do_it()",
             "ValueError: nope",
-            "[INFO] naechster job",
+            "[INFO] nächster job",
         ]
         got = list(LC.iter_exceptions(lines))
         self.assertEqual(got, [

@@ -5,11 +5,11 @@ DER BEFUND (shortlongx, 16.08.2026)
 ===================================
 Die Seiten bestehen aus ES-Modulen, die einander importieren. Ein Tippfehler im
 Namen oder eine Datei, die beim Aufteilen umbenannt wurde, bricht die GANZE
-Seite: Der Browser laedt das Einstiegsmodul nicht, es gibt keinen Teilausfall -
+Seite: Der Browser lädt das Einstiegsmodul nicht, es gibt keinen Teilausfall -
 nur eine tote Seite und eine Meldung in einer Konsole, die niemand offen hat.
 
 Auslöser war das Aufteilen einer 478-Zeilen-Datei in vier: vier neue
-Import-Zeilen, jede eine Gelegenheit fuer genau diesen Fehler.
+Import-Zeilen, jede eine Gelegenheit für genau diesen Fehler.
 
 ZWEI FRAGEN, NICHT EINE
 =======================
@@ -21,13 +21,13 @@ ZWEI FRAGEN, NICHT EINE
 
 FALLEN, DIE BEIM BAU AUFGEFALLEN SIND
 =====================================
-* Kommentare enthalten Beispielcode („Aufruf ``X.y(…)`` bleibt gueltig") - ohne
-  Kommentarfilter meldet die Pruefung funktionierenden Code als kaputt.
+* Kommentare enthalten Beispielcode („Aufruf ``X.y(…)`` bleibt gültig") - ohne
+  Kommentarfilter meldet die Prüfung funktionierenden Code als kaputt.
 * ``export const {a, b} = …`` exportiert ZWEI Namen; ein Regex, der nur einen
   Bezeichner nach ``const`` erwartet, meldet einen gueltigen Import als Fehler.
-* Vererbung ueber mehrere Ebenen (``A extends B extends C``) muss verfolgt
+* Vererbung über mehrere Ebenen (``A extends B extends C``) muss verfolgt
   werden, sonst gelten geerbte Methoden als fehlend.
-Alle drei haetten den Test rot gemacht, obwohl der Code lief - und ein Test, der
+Alle drei hätten den Test rot gemacht, obwohl der Code lief - und ein Test, der
 bei funktionierendem Code rot wird, wird abgeschaltet statt geglaubt.
 """
 import re

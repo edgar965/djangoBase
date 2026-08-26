@@ -11,13 +11,13 @@ Die Lehren stammen aus zwei getrennt entstandenen Sammlungen:
 * ``lehren_kriterien`` - 43 Lehren aus dem shortlongx-Durchgang, als Tupel
                          ``(slug, gruppe, titel, tun, fall)``.
 
-Beide sagen dasselbe in anderer Form: eine Regel, ihre Begruendung und der Fall,
+Beide sagen dasselbe in anderer Form: eine Regel, ihre Begründung und der Fall,
 der sie ausgeloest hat. Hier werden sie auf EINE Form gebracht - sonst muesste
-jede Seite und jeder Test beide Formen kennen, und beim naechsten Zusammenlegen
-waere es die dritte.
+jede Seite und jeder Test beide Formen kennen, und beim nächsten Zusammenlegen
+wäre es die dritte.
 
 Die Quelldateien bleiben getrennt bestehen: Sie sind gewachsene Texte mit
-Belegen, und sie zusammenzukopieren wuerde die Herkunft loeschen - gerade die
+Belegen, und sie zusammenzukopieren wuerde die Herkunft löschen - gerade die
 macht eine Lehre ueberpruefbar.
 """
 from .lehren_kriterien import LEHREN as _LEHREN_KRITERIEN
@@ -63,7 +63,7 @@ def gruppen():
     """[(Gruppenname, [Lehre-Dict, …])] in der Reihenfolge von LEHREN.
 
     Gleiche Signatur wie die Fassung aus ``lehren_kriterien`` - die Seite und
-    die Tests rufen sie unveraendert weiter auf."""
+    die Tests rufen sie unverändert weiter auf."""
     aus, index = [], {}
     for l in LEHREN:
         if l["gruppe"] not in index:
@@ -74,7 +74,7 @@ def gruppen():
 
 
 def als_zeilen():
-    """Alle Lehren als Tabelle - fuer den Bericht und die Ausgabe im Klartext."""
+    """Alle Lehren als Tabelle - für den Bericht und die Ausgabe im Klartext."""
     return [{"gruppe": l["gruppe"], "titel": l["titel"], "tun": l["tun"],
              "fall": (l["fall"] or l["warum"])[:400],
              "herkunft": HERKUNFT.get(l["herkunft"], l["herkunft"])}
