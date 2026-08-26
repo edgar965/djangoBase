@@ -16,6 +16,23 @@ class DjangoBaseConfig(AppConfig):
         from . import signals  # noqa: F401  (Signale verbinden)
         self._aufzeichnung_einhaengen()
         self._cache_header_einhaengen()
+        self._joblaeufe_mitschreiben()
+
+    @staticmethod
+    def _joblaeufe_mitschreiben():
+        u"""Jeden Management-Command-Lauf in den Jobverlauf schreiben.
+
+        Aus demselben Grund von selbst wie die Middleware darueber: Muesste
+        es jedes Projekt eintragen, haette die Jobs-Seite dort so lange
+        leere Spalten - und niemand saehe, dass etwas fehlt.
+
+        ``DJANGOBASE_JOBAUFZEICHNUNG = False`` verhindert es. Die
+        Aufzeichnung kann einen Befehl nicht scheitern lassen: Sie misst
+        die Zeit und reicht jede Ausnahme unveraendert weiter.
+        """
+        from .jobaufzeichnung import Jobaufzeichnung
+
+        Jobaufzeichnung.einschalten()
 
     @staticmethod
     def _aufzeichnung_einhaengen():

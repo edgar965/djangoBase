@@ -15,7 +15,7 @@
     {% endcomment %}
     {% for pfad in djangobase.favicons %}
         <link rel="icon"{% if pfad.typ %} type="{{ pfad.typ }}"{% endif %}
-              href="{% if pfad.roh %}{{ pfad.roh }}{% else %}{% static pfad.static|default:pfad %}{% endif %}?v={{ JS_VERSION|default:STATIC_V|default:djangobase.statik_v }}">
+              href="{% if pfad.roh %}{{ pfad.roh }}{% else %}{% static pfad.static|default:pfad %}{% endif %}?v={% firstof JS_VERSION STATIC_V djangobase.statik_v %}">
     {% empty %}
         {% if djangobase.favicon %}<link rel="icon" href="{% static djangobase.favicon %}">{% endif %}
     {% endfor %}
@@ -75,9 +75,24 @@
     Die Kette faellt jetzt der Reihe nach zurueck: die Projektvariable,
     wie sie auch immer heisst, und zuletzt djangoBases eigene Kennung —
     die ist immer da und immer echt.
+
+    WARUM `firstof` UND NICHT `|default:` (berichtigt 26.08.2026)
+    ============================================================
+    Zuerst stand hier `{{ JS_VERSION|default:STATIC_V|default:… }}`.
+    Django loest ein FILTERARGUMENT immer auf, auch wenn der linke Wert
+    schon da ist — und wirft `VariableDoesNotExist`, wenn es die
+    Variable nicht gibt. Diese Ausnahme wird NICHT geschluckt wie eine
+    fehlende Variable in `{{ … }}`.
+
+    Folge in assistant, das kein `STATIC_V` fuehrt: Serverfehler 500 auf
+    JEDER Hilfe-Seite — Jobs, Logs, Versionen, Tests. Die Huelle ist
+    gemeinsam, der Ausfall damit vollstaendig.
+
+    `firstof` loest mit `ignore_failures=True` auf: Was fehlt, wird
+    uebersprungen statt geworfen.
     {% endcomment %}
     {% for path in djangobase.extra_css %}
-        <link rel="stylesheet" href="{% static path %}?v={{ JS_VERSION|default:STATIC_V|default:djangobase.statik_v }}">
+        <link rel="stylesheet" href="{% static path %}?v={% firstof JS_VERSION STATIC_V djangobase.statik_v %}">
     {% endfor %}
 
     {% comment %}extra_js_head: Frueh-im-Head-Scripts (htmx, importmap-
