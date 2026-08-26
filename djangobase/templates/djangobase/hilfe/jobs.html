@@ -47,6 +47,93 @@
         </div>
         {% endfor %}
     </div>
+
+    {% comment %}
+    DIE ABLAUF-ÜBERSICHT (26.08.2026)
+    =================================
+    Oben stehen die registrierten Daemons mit ihrem Live-Zustand. Hier
+    steht, was das Projekt an Abläufen HAT und was davon zuletzt lief —
+    "welcher Job wann zuletzt lief, wie lange er brauchte und ob er
+    Fehler warf" (Ansage Edgar).
+
+    Der Bestand wird gemerkt und einmal am Tag von selbst aufgefrischt;
+    der Knopf erzwingt es sofort. Grund: Für die Beschreibung wird jede
+    Befehlsklasse importiert — in assistant 93 Stück.
+    {% endcomment %}
+    <div class="jb-head" style="margin-top: 26px;">
+        <h3><i class="bi bi-clock-history"></i> Abläufe des Projekts</h3>
+        <form method="post" style="margin:0;">
+            {% csrf_token %}
+            <input type="hidden" name="aktion" value="ermitteln">
+            <button type="submit" class="jb-btn jb-btn-go">
+                <i class="bi bi-arrow-clockwise"></i> Jetzt aktualisieren</button>
+        </form>
+    </div>
+
+    <div class="jb-card">
+        <p class="jb-stand">
+            {% if stand %}
+                Bestand ermittelt: {{ stand|date:"d.m.Y H:i" }}
+                {% if stand_veraltet %}<span class="jb-pill bad">veraltet</span>
+                {% else %}<span class="jb-pill ok">aktuell</span>{% endif %}
+            {% else %}
+                Noch nicht ermittelt.
+            {% endif %}
+            {% if zahlen.gesamt %}
+                · {{ zahlen.gesamt }} Abläufe
+                · {{ zahlen.gelaufen }} schon gelaufen
+                {% if zahlen.fehlerhaft %}
+                · <span class="jb-pill bad">{{ zahlen.fehlerhaft }} zuletzt mit Fehler</span>
+                {% endif %}
+            {% endif %}
+        </p>
+
+        {% if uebersicht_fehler %}
+        <p class="jb-empty">Die Übersicht konnte nicht gebaut werden —
+            Einzelheiten stehen unter Hilfe → Logs.</p>
+        {% elif not zeilen %}
+        <p class="jb-empty">Keine Abläufe gefunden. Auf „Jetzt aktualisieren"
+            drücken — gesucht werden die Management-Commands der
+            Projekt-Apps.</p>
+        {% else %}
+        <table class="jb-tabelle">
+            <thead>
+                <tr>
+                    <th>Ablauf</th><th>App</th><th>Art</th>
+                    <th>Zuletzt</th><th class="num">Dauer</th>
+                    <th>Ergebnis</th><th class="num">Läufe</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for z in zeilen %}
+                <tr>
+                    <td>
+                        <span class="jb-name">{{ z.name }}</span>
+                        {% if z.hilfe %}<span class="jb-desc">{{ z.hilfe }}</span>{% endif %}
+                    </td>
+                    <td class="jb-key">{{ z.app|default:"—" }}</td>
+                    <td class="jb-key">{{ z.art }}</td>
+                    <td class="jb-key">
+                        {% if z.nie_gelaufen %}nie{% else %}{{ z.lief_am_zeit|date:"d.m.Y H:i" }}{% endif %}
+                    </td>
+                    <td class="num">
+                        {% if z.dauer_s != None %}{{ z.dauer_s|floatformat:1 }} s{% else %}—{% endif %}
+                    </td>
+                    <td>
+                        {% if z.erfolg == True %}<span class="jb-pill ok">ok</span>
+                        {% elif z.erfolg == False %}<span class="jb-pill bad">Fehler</span>
+                            <span class="jb-desc">{{ z.fehler }}</span>
+                        {% else %}<span class="jb-desc">—</span>{% endif %}
+                    </td>
+                    <td class="num">
+                        {{ z.laeufe }}{% if z.fehlerzahl %} <span class="jb-desc">({{ z.fehlerzahl }} Fehler)</span>{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
 </div>
 
 <style>
@@ -72,6 +159,18 @@
 .jb-pill.ok { background: #15803d; color: #fff; }
 .jb-pill.bad { background: #b91c1c; color: #fff; }
 .jb-empty { color: #8aa0b8; margin: 0; }
+/* Die Ablauf-Tabelle (26.08.2026). Gitternetz wie in den übrigen
+   djangoBase-Tabellen: jede Zelle gerahmt, Zahlen rechtsbündig. */
+.jb-stand { color: #8aa0b8; font-size: .82rem; margin: 0 0 12px 0; }
+.jb-tabelle { width: 100%; border-collapse: collapse; font-size: .84rem; }
+.jb-tabelle th { text-align: left; color: #8aa0b8; font-weight: 600;
+    font-size: .78rem; padding: 6px 9px; border: 1px solid #1c3354;
+    background: #0f1d31; }
+.jb-tabelle td { padding: 6px 9px; border: 1px solid #1c3354;
+    color: #d6e2f0; vertical-align: top; }
+.jb-tabelle th.num, .jb-tabelle td.num { text-align: right;
+    white-space: nowrap; }
+.jb-tabelle .jb-desc { font-size: .76rem; }
 .jb-empty code, .jb-state code { background: #0d1117; color: #a5d6ff; padding: 1px 6px; border-radius: 4px; }
 </style>
 
