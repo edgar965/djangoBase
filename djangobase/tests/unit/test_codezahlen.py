@@ -181,3 +181,74 @@ class DieSummeStimmt(BasisTest):
         z = _zaehlen({})
         self.assertEqual(z.gesamt()['dateien'], 0)
         self.assertEqual(z.kennzahlen()['kommentar_anteil'], 0.0)
+
+
+class GlobalerCodeWirdGetrenntGezaehlt(BasisTest):
+    u"""Wie viel Code hängt an KEINER Klasse? (27.08.2026, auf Ansage)
+
+    Die Spalte „Klassen" sagt, wie viele es gibt — nicht, wie viel Code
+    auf Modulebene liegt. Genau das ist der Maßstab aus Kriterium 1
+    und 18: Vorgaben gehören dorthin, Zustand nicht.
+    """
+
+    #: Von Hand ausgezählt — zehn Anweisungszeilen, fünf davon in der Klasse
+    #: (Dekorator, ``class``, ``x``, ``def zeig``, ``return``).
+    QUELLE = (
+        'import os\n'
+        'MAX = 5\n'
+        '\n'
+        '@dataclass\n'
+        'class Punkt:\n'
+        '    x = 1\n'
+        '\n'
+        '    def zeig(self):\n'
+        '        return self.x\n'
+        '\n'
+        'def frei():\n'
+        '    return 2\n'
+        '\n'
+        '_cache = {}\n'
+    )
+
+    def _python(self, quelle=None):
+        z = _zaehlen({'a.py': quelle if quelle is not None else self.QUELLE})
+        return [a for a in z.liste() if a['name'] == u'Python'][0]
+
+    def test_nur_was_ausserhalb_steht_wird_gezaehlt(self):
+        u"""Fünf der zehn Anweisungen stehen nicht in der Klasse."""
+        self.assertEqual(self._python()['ausserhalb'], 5)
+
+    def test_der_dekorator_gehoert_zur_klasse(self):
+        u"""``@dataclass`` steht VOR ``lineno`` und zählt trotzdem innen."""
+        ohne = self.QUELLE.replace('@dataclass\n', '')
+        # Eine Anweisung weniger, und sie lag innen: aussen bleibt es bei 5.
+        self.assertEqual(self._python(ohne)['ausserhalb'], 5)
+
+    def test_eine_datei_ganz_ohne_klasse_ist_ganz_aussen(self):
+        eins = self._python('import os\nMAX = 5\n')
+        self.assertEqual(eins['ausserhalb'], eins['anweisungen'])
+
+    def test_eine_datei_nur_aus_klasse_hat_nichts_aussen(self):
+        self.assertEqual(self._python('class A:\n    x = 1\n')['ausserhalb'], 0)
+
+    def test_verschachtelte_klassen_zaehlen_nicht_doppelt(self):
+        u"""Die innere Spanne liegt in der äußeren — kein Abzug zweimal."""
+        quelle = 'class A:\n    class B:\n        x = 1\nY = 2\n'
+        self.assertEqual(self._python(quelle)['ausserhalb'], 1)
+
+    def test_eine_kaputte_datei_zaehlt_nicht_als_globaler_code(self):
+        u"""Ohne Syntaxbaum ist die Klassenspanne unbekannt — lieber nichts."""
+        z = _zaehlen({'kaputt.py': 'class ohne Doppelpunkt\n'})
+        py = [a for a in z.liste() if a['name'] == u'Python'][0]
+        self.assertIsNone(py['ausserhalb'])
+
+    def test_html_traegt_keine_zahl_sondern_nichts(self):
+        u"""Eine 0 sähe aus wie ein Messergebnis. HTML hat keine Klassen."""
+        z = _zaehlen({'a.html': '<p>x</p>\n'})
+        html = [a for a in z.liste() if a['name'] == u'HTML-Vorlagen'][0]
+        self.assertIsNone(html['ausserhalb'])
+
+    def test_die_summe_uebergeht_die_nicht_messbaren(self):
+        u"""None darf nicht als 0 mitsummieren — und nicht alles kippen."""
+        z = _zaehlen({'a.py': self.QUELLE, 'b.html': '<p>x</p>\n'})
+        self.assertEqual(z.gesamt()['ausserhalb'], 5)

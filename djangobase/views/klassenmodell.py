@@ -322,13 +322,22 @@ class KlassenmodellView(ZugriffMixin, View):
         # einer QueryDict zaehlt der letzte Wert, und der Knopf verlöre.
         was = (daten.get('was')
                or daten.get('was_zuletzt') or 'statistik')
-        if was not in ('statistik', 'qualitaet'):
+        if was not in ('statistik', 'qualitaet', 'befunde'):
             was = 'statistik'
         zusatz = {'was': was, 'bereich': daten.get('bereich', '')}
-        if was == 'qualitaet':
+        if was in ('qualitaet', 'befunde'):
             messung, alter = Qualitaetsspeicher.holen(wurzel, neu=neu)
             zusatz['verfahren'] = messung.als_liste()
             zusatz['q_dateien'] = len(messung.dateien)
+            if was == 'befunde':
+                # ALLE Funde in EINER Tabelle (27.08.2026, auf Ansage):
+                #     „ich sehe keine Tabelle zu den Findings der 4 Werkzeuge"
+                # Die Verfahrensblöcke zeigen je 15 Treffer und sind nach
+                # Werkzeug getrennt — man sieht dort nie, was insgesamt das
+                # Dringendste ist. Diese Sicht dreht das um: eine Liste,
+                # nach Gewicht sortiert, mit dem Werkzeug als Spalte.
+                zusatz['befunde'] = self._befundliste(messung)
+                zusatz['befund_stufen'] = self._stufenzaehler(zusatz['befunde'])
             # Was beim MESSEN scheiterte, gehört ganz nach oben: Eine
             # Datei, die nicht parst, ist der schwerste Fund — und sie
             # verschwand bis zum 24.08.2026 hinter einem stummen
@@ -349,6 +358,47 @@ class KlassenmodellView(ZugriffMixin, View):
         return self._seite(request, reiter='qualitaet',
                            alter=int(alter) if alter is not None else None,
                            **zusatz)
+
+    #: Reihenfolge der Dringlichkeit - Fehler zuerst.
+    STUFEN = ('fehler', 'warnung', 'hinweis')
+
+    @classmethod
+    def _befundliste(cls, messung):
+        u"""Alle Treffer aller Verfahren als EINE nach Gewicht sortierte Liste.
+
+        Die Gewichtung kommt aus ``skills.codequalitaet.CodeQualitaet``, wo sie
+        ohnehin fuer den Bericht gerechnet wird - ein zweiter Satz Regeln
+        daneben liefe irgendwann auseinander, und dann behauptete dieselbe
+        Zahl an zwei Stellen zweierlei.
+
+        Hier wird NICHT auf 15 gekuerzt: Der Sinn der Sicht ist gerade, das
+        Dringendste ueber alle vier Verfahren hinweg zu sehen. Eine Kuerzung
+        je Verfahren wuerde genau das verdecken, was sie zeigen soll.
+        """
+        from ..skills.codequalitaet import CodeQualitaet
+        raus = []
+        for v in messung.verfahren:
+            if v.fehlt:
+                continue
+            for t in v.treffer:
+                raus.append({
+                    'stufe': CodeQualitaet._gewicht(v, t),
+                    'verfahren': v.name, 'werkzeug': v.werkzeug,
+                    'wert': t.wert, 'nachkomma': v.nachkomma,
+                    'name': t.name, 'datei': t.datei, 'zeile': t.zeile,
+                    'text': t.text,
+                })
+        rang = {s: i for i, s in enumerate(cls.STUFEN)}
+        raus.sort(key=lambda b: (rang.get(b['stufe'], 9), b['datei'], b['zeile']))
+        return raus
+
+    @classmethod
+    def _stufenzaehler(cls, befunde):
+        u"""``[(stufe, anzahl)]`` fuer den Kopf - auch die leeren Stufen."""
+        zahl = {s: 0 for s in cls.STUFEN}
+        for b in befunde:
+            zahl[b['stufe']] = zahl.get(b['stufe'], 0) + 1
+        return [(s, zahl[s]) for s in cls.STUFEN]
 
     # ── intern ──────────────────────────────────────────────────
     @staticmethod
