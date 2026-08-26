@@ -73,9 +73,23 @@ def _discover_ids(label):
 
 
 def _kurz(test_id):
-    """tests.unit.test_geo.GeoTest.test_distanz -> GeoTest.test_distanz"""
-    teile = test_id.split(".")
-    return ".".join(teile[-2:]) if len(teile) >= 2 else test_id
+    u"""``tests.unit.test_geo.GeoTest.test_distanz`` -> ein LESBARER Satz.
+
+        „verbessere meine testcases, so dass es die Gherkin BDD
+         Anforderungen erfuellt, z. B. Wer kann es lesen: auch
+         Nicht-Programmierer" (26.08.2026)
+
+    Hier stand ``GeoTest.test_distanz`` — derselbe Satz, aber in
+    Maschinenschrift: Unterstriche statt Leerzeichen, ``test_`` davor,
+    ``ae`` statt ``ä``, der Gegenstand ohne Trennung im Klassennamen.
+
+    ``Testsatz`` liest daraus „Geo: Distanz". Das ist die eine
+    Eigenschaft, die Gherkin voraus hatte — lesbar, ohne den Code zu
+    oeffnen — und sie kostet hier keine zweite Datei: Der Satz stand
+    schon da.
+    """
+    from ..testsatz import Testsatz
+    return Testsatz(test_id).satz()
 
 
 class TestsView(ZugriffMixin, View):
