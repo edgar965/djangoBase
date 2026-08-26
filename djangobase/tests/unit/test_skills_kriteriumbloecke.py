@@ -103,6 +103,52 @@ class EineUnsinnigeNummerFaehrtNICHTS(BasisTest):
         self.assertEqual(SkillsView._bereich_slugs(None), [])
 
 
+class JedesKriteriumIstEinemBereichZUGEORDNET(BasisTest):
+    u"""Der Wächter, den ich beim Umbau selbst verloren habe (26.08.2026).
+
+    In der ersten Fassung dieser Datei stand er als
+    ``JedesKriteriumMitWerkzeugenHatEinenPlatz``. Beim Umbau von „Kästen"
+    auf „Tabellen-Abschnitte" habe ich die Datei neu geschrieben — und ihn
+    dabei nicht mitgenommen. Aufgefallen ist es erst, als Kriterium 19
+    dazukam und NICHTS rot wurde.
+
+    Warum das zählt: ``Rangliste.bereich_von()`` gibt für ein unbekanntes
+    Kriterium den LETZTEN Bereich zurück. Ein neues Kriterium landet damit
+    stillschweigend unter „Abnahme und Beispiele (BDD)" — nicht falsch
+    genug, um aufzufallen, und nicht richtig.
+
+    Diese Prüfung verlangt die ausdrückliche Zuordnung.
+    """
+
+    def test_jedes_kriterium_mit_werkzeugen_steht_in_einem_bereich(self):
+        from djangobase.skills.rangliste import BEREICHE
+        zugeordnet = {nr for b in BEREICHE for nr in b['kriterien']}
+        vorhanden = {getattr(w, 'kriterium', 0) for w in werkzeuge()}
+        # 0 heisst ausdruecklich „kein Auftrags-Kriterium" und ist damit
+        # selbst eine Zuordnung — es braucht keinen eigenen Bereich.
+        fehlend = sorted(vorhanden - zugeordnet - {0})
+        self.assertEqual(
+            fehlend, [],
+            'Kriterium %s traegt Werkzeuge, ist aber keinem Bereich '
+            'zugeordnet. `bereich_von()` steckt es dann stillschweigend in '
+            'den letzten — sichtbar falsch waere besser.' % fehlend)
+
+    def test_kein_bereich_ist_leer(self):
+        u"""Ein Abschnitt ohne Werkzeuge ist eine Ueberschrift ins Nichts."""
+        leer = [a['bereich']['name'] for a in _abschnitte()
+                if not a['eintraege']]
+        self.assertEqual(leer, [])
+
+    def test_der_bdd_bereich_traegt_seine_beiden_werkzeuge(self):
+        u"""Gegenprobe zum neuen Abschnitt: Steht er da, ist er auch
+        gefuellt — und zwar mit denen, für die er angelegt wurde."""
+        drin = {w.slug for a in _abschnitte()
+                if a['bereich']['name'].startswith('Abnahme')
+                for _r, w in a['eintraege']}
+        self.assertIn('anlassfall-check', drin)
+        self.assertIn('szenarien', drin)
+
+
 class KeineZWEITEDarstellungAufDerSeite(BasisTest):
     u"""Der Rückfall, gegen den diese Datei geschrieben ist."""
 

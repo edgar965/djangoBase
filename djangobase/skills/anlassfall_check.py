@@ -192,8 +192,25 @@ class AnlassfallCheck(Werkzeug):
                "sieht seinen Fall nicht mehr — erst reparieren, dann seinen "
                "Zahlen wieder glauben. ‚meldet im Leeren‘ heißt: Er ignoriert "
                "die übergebene Wurzel; dann ist auch der grüne Lauf wertlos.")
-    kriterium = 0
+    # Kriterium 19 (26.08.2026): „BDD ohne Gherkin" — dieses Werkzeug IST
+    # die Zusicherung, dass jede Regel ein Beispiel hat.
+    kriterium = 19
     dauer = "10–30 s"
+
+    #: DAS EINZIGE WERKZEUG OHNE EIGENEN ANLASSFALL — und zwar begruendet
+    #: (26.08.2026). Es stand vorher schweigend da, und ein Schweigen sieht
+    #: aus wie Vergessen.
+    #:
+    #: Sein Fall waere es selbst: ein Wegwerf-Projekt mit einem Werkzeug,
+    #: dessen Anlassfall nicht mehr greift. Das laesst sich bauen — nur
+    #: pruefte es dann sich selbst durch sich selbst, und ein Fehler in der
+    #: Mechanik faellt dabei auf beiden Seiten zugleich aus. Die Pruefung
+    #: dafuer steht deshalb ausserhalb, in
+    #: ``tests/unit/test_fixer_anlassfall.py``.
+    ohne_anlassfall_weil = ("prueft die ANDEREN Werkzeuge — sein eigener Fall "
+                            "waere er selbst, und dann pruefte die Mechanik "
+                            "sich durch sich selbst; die Pruefung dafuer "
+                            "steht in tests/unit/test_fixer_anlassfall.py")
 
     SPALTEN = ("werkzeug", "stand", "kriterium", "im Anlassfall", "im Leeren",
                "urteil", "nachgebaut")

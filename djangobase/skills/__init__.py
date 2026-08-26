@@ -89,6 +89,7 @@ from .namensvarianten import Namensvarianten
 from .rueckgabedict import RueckgabeDict
 from .rueckgabetupel import RueckgabeTupel
 from .schleifenarbeit import Schleifenarbeit
+from .szenarien import Szenarien
 from .schreibrouten import Schreibrouten
 from .seitenzeiten import Seitenzeiten
 from .uebersprungen import Uebersprungen
@@ -146,6 +147,23 @@ KRITERIEN_ZUSATZ = {
         "Verhalten in Klassen bzw. Utility-Klassen mit statischen Methoden, "
         "veränderlichen Zustand als Attribut, globale Konstanten in einer "
         "Kontext-Klasse",
+    # KRITERIUM 19 — BDD, aber ohne Gherkin (26.08.2026)
+    # =================================================
+    #     „Macht es sinn, dass ich die anwende?"
+    #
+    # Gemessen statt geraten: 88 % der 1538 Pruefungen tragen schon einen
+    # Satz als Namen (`test_ausgeblendete_person_bleibt_ausgeblendet`), und
+    # 50 von 60 Werkzeugen haben einen `Anlassfall` — woertlich
+    # Given/When/Then. Was fehlte, war nicht die Schreibweise, sondern die
+    # LUECKEN: 179 Seiten und Endpunkte ohne jede Abnahme, ein Werkzeug
+    # ohne Beispiel.
+    #
+    # Deshalb ein Kriterium statt eines Rahmenwerks: Es prueft die drei
+    # Zusicherungen, die BDD wirklich gibt — jede Regel hat ein Beispiel,
+    # jede Seite eine Abnahme, jeder Pruefungsname sagt das Verhalten.
+    19: "BDD ohne Gherkin: jede Regel hat ein Beispiel (Anlassfall), jede "
+        "Seite und jeder Endpunkt eine Abnahme, jeder Pruefungsname nennt "
+        "das erwartete Verhalten",
 }
 KRITERIEN = dict(_KRITERIEN_BASIS)
 KRITERIEN.update(KRITERIEN_ZUSATZ)
@@ -185,6 +203,10 @@ NEUE = [
     # Pruefung — es sind die Fehler, die man beim zweiten Mal
     # genauso macht wie beim ersten.
     Lehrentreue,
+    # Kriterium 19 (26.08.2026): BDD ohne Gherkin. Eine Pruefung
+    # ohne Zusicherung meldet gruen, egal was passiert — teurer
+    # als gar keine, weil sie Sicherheit vortaeuscht.
+    Szenarien,
     Seitenzeiten,
     Vorlagenblock,
     Doppelrumpf,

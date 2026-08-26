@@ -79,6 +79,21 @@ BEREICHE = (
     {"name": "Tests und Werkzeuge selbst", "kriterien": (17,),
      "warum": "Was die Prüfer prüft. Nie dringend und deshalb der Bereich, der "
               "als erster liegen bleibt."},
+    # BDD OHNE GHERKIN — EIN EIGENER BEREICH (26.08.2026)
+    # ==================================================
+    #     „Mach auch einen neuen Abschnitt (meinetwegen BDD) der genau das
+    #      überprüft"
+    #
+    # Er steht ABSICHTLICH ganz hinten und damit als letzter Bereich auch
+    # dort, wo `bereich_von()` alles Unbekannte hinsortiert. Das passt: Ein
+    # Werkzeug ohne Kriterium ist selbst ein Fall für diesen Bereich — es
+    # sagt nicht, wozu es da ist.
+    {"name": "Abnahme und Beispiele (BDD)", "kriterien": (19,),
+     "warum": "Nicht Gherkin, sondern die drei Zusicherungen dahinter: jede "
+              "Regel hat ein Beispiel, jede Seite eine Abnahme, jeder "
+              "Prüfungsname nennt das erwartete Verhalten. Gemessen waren "
+              "88 % der Prüfungen schon so benannt — was fehlte, waren die "
+              "Lücken."},
 )
 
 
