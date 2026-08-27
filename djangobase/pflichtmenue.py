@@ -112,6 +112,11 @@ PFLICHTSEITEN = (
         "Das Objektmodell als Bild: wer hält wen, wer erbt von wem — auf "
         "Knopfdruck aus dem Quelltext gezeichnet"),
     PflichtEintrag(
+        "Werkzeug Workflows", "bi-signpost-split", "workflows",
+        "Die Wege des Projekts als Bild: was von einer Seite, einem Befehl "
+        "oder einem Faden aus tatsächlich gerufen wird — aus dem Quelltext "
+        "gelesen, sortiert nach Anzahl der beteiligten Klassen"),
+    PflichtEintrag(
         "Review", "bi-chat-left-text", "review",
         "Code-Review im Gespräch mit einem zweiten Modell — die Runden "
         "laufen im Hintergrund, eine bis fünf Minuten"),

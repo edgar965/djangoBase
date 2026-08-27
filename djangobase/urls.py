@@ -2,7 +2,9 @@ from django.urls import path
 
 from .views import api_system_stats
 from .views.ki_modelle import KiModelleView
-from .views import (AufzeichnungView, AktuellDatenView, AktuellLeerenView, AktuellView,
+from .views import (WorkflowsDatenView, WorkflowsView,
+                    AufzeichnungView, AktuellDatenView, AktuellLeerenView,
+                    AktuellView,
                     BenutzerBearbeitenView, BenutzerErstellenView,
                     BenutzerInlineView, BenutzerListeView, BenutzerLoeschenView,
                     BenutzerStatusView, EinstellungenTabsView, EinstellungenView,
@@ -55,6 +57,9 @@ urlpatterns = [
     # jede `.py` des Projekts.
     path("klassenmodell/", KlassenmodellView.as_view(),
          name="klassenmodell"),
+    path("workflows/", WorkflowsView.as_view(), name="workflows"),
+    path("workflows/daten/", WorkflowsDatenView.as_view(),
+         name="workflows_daten"),
     # Skills2 und Skills3 sind UEBERGANGSSEITEN auf dem Weg zur Abschaffung
     # (17.08.2026). Ihre Werkzeuge liegen im Master; sie bleiben nur, damit
     # Lesezeichen und fremde Links nicht ins Leere zeigen.

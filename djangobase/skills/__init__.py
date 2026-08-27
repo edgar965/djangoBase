@@ -89,6 +89,7 @@ from .namensvarianten import Namensvarianten
 from .rueckgabedict import RueckgabeDict
 from .rueckgabetupel import RueckgabeTupel
 from .schleifenarbeit import Schleifenarbeit
+from .dokumentation import Dokumentation
 from .szenarien import Szenarien
 from .schreibrouten import Schreibrouten
 from .seitenzeiten import Seitenzeiten
@@ -169,6 +170,30 @@ KRITERIEN_ZUSATZ = {
         "beweist, dass es seinen Befund noch findet. Jede Seite und jeder "
         "Endpunkt wird einmal aufgerufen, damit ein Absturz auffällt, "
         "bevor ihn jemand im Betrieb findet",
+    # KRITERIUM 20 — DOKUMENTATION, DIE SICH SELBST WIDERLEGEN KANN
+    # =============================================================
+    #     „Mach auch einen neuen Abschnitt: Dokumentation, wo auch getestet
+    #      wird, ob es ein Klassendiagramm gibt" (27.08.2026)
+    #
+    # Nicht die Menge zählt, sondern die Deckung. Eine Beschreibung, die
+    # einmal richtig war, ist gefährlicher als gar keine — man verlässt
+    # sich darauf.
+    #
+    # Der Anlass, gemessen: Eine Hilfeseite zeichnete den Aufnahme-Ablauf
+    # mit „10-Minuten-Segmenten". Seit v0.83 schreibt der Segment-Muxer
+    # Stunden-Dateien, seit v0.88 liegt der Hauptstrom in 10-SEKUNDEN-
+    # Blöcken. Die Zeichnung war zwei Umbauten alt und sah unverändert
+    # richtig aus.
+    #
+    # Darum die Bedingung: Bilder werden aus dem Quelltext gelesen, und
+    # jeder Kasten trägt Modul und Zeile. Eine von Hand gemalte Zeichnung
+    # erfüllt dieses Kriterium nicht.
+    20: "Die Dokumentation deckt sich mit dem Code: Es gibt ein "
+        "Klassendiagramm und Bilder der wichtigsten Abläufe, beide aus dem "
+        "Quelltext gelesen statt gemalt; jeder Kasten nennt Modul und "
+        "Zeile, sodass er nachprüfbar ist; ein abgeschnittenes oder "
+        "unvollständiges Bild sagt das selbst, statt Vollständigkeit "
+        "vorzutäuschen",
 }
 KRITERIEN = dict(_KRITERIEN_BASIS)
 KRITERIEN.update(KRITERIEN_ZUSATZ)
@@ -212,6 +237,7 @@ NEUE = [
     # ohne Zusicherung meldet gruen, egal was passiert — teurer
     # als gar keine, weil sie Sicherheit vortaeuscht.
     Szenarien,
+    Dokumentation,
     Seitenzeiten,
     Vorlagenblock,
     Doppelrumpf,

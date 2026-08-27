@@ -79,6 +79,22 @@ BEREICHE = (
     {"name": "Tests und Werkzeuge selbst", "kriterien": (17,),
      "warum": "Was die Prüfer prüft. Nie dringend und deshalb der Bereich, der "
               "als erster liegen bleibt."},
+    # DOKUMENTATION — DER BEREICH, DER SICH SELBST WIDERLEGEN KANN
+    # ============================================================
+    #     „Mach auch einen neuen Abschnitt: Dokumentation, wo auch
+    #      getestet wird, ob es ein Klassendiagramm gibt" (27.08.2026)
+    #
+    # Er steht VOR dem BDD-Bereich, nicht dahinter: Der letzte Bereich ist
+    # der Auffangkorb von `bereich_von()` für unbekannte Kriterien, und das
+    # soll BDD bleiben.
+    {"name": "Dokumentation", "kriterien": (20,),
+     "warum": "Nicht ob viel dokumentiert ist, sondern ob es noch stimmt. "
+              "Geprüft wird, ob es ein Klassendiagramm und Workflow-Bilder "
+              "gibt, ob jeder Kasten darin auf Code zeigt, den es wirklich "
+              "gibt, und ob die schwersten Wege des Projekts überhaupt "
+              "gezeichnet sind. Eine von Hand gemalte Zeichnung fällt hier "
+              "durch, sobald jemand eine Klasse umbenennt — genau das ist "
+              "der Zweck."},
     # BDD OHNE GHERKIN — EIN EIGENER BEREICH (26.08.2026)
     # ==================================================
     #     „Mach auch einen neuen Abschnitt (meinetwegen BDD) der genau das
