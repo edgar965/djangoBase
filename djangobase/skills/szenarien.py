@@ -40,26 +40,47 @@ from __future__ import annotations
 
 import ast
 
+from ..testsatz import Testsatz
 from .anlassfall import Anlassfall
 from .befund import Befund, Befundsatz, BefundWerkzeug
+from .pruefcode import Pruefcode
 
-#: Ordner-Teile, in denen Prüf-Code steht.
-PRUEFORTE = ('tests', 'test', 'pruefungen')
-
-#: NUR das Präfix, NICHT die Endung (berichtigt 26.08.2026)
-#: ========================================================
-#: Der erste Wurf nahm auch ``*_test.py`` — und meldete prompt zwei
-#: Verstösse in ``app/views/cameras/connection_test.py``. Das ist eine
-#: ANSICHT: `ConnectionTester.test_http_snapshot(ip, port, …)` probiert
-#: Schnappschuss-Pfade an einer Kamera durch. Sie heisst nur so.
+#: KEINE DATEINAMEN-LISTE MEHR (27.08.2026)
+#: =======================================
+#: Hier standen ``PRUEFORTE`` und ``PRUEFDATEI``: Ein Prüf-Modul war, was
+#: ``test_`` heißt oder unter ``tests/`` liegt.
 #:
-#: Ein Werkzeug, das Produktivcode als Prüfung anmahnt, wird ignoriert —
-#: und nimmt die echten vier daneben mit.
-PRUEFDATEI = ('test_',)
+#: Das war ein Behelf gegen einen Fehlalarm vom 26.08.2026 — der erste
+#: Wurf nahm auch ``*_test.py`` und meldete zwei Verstösse in
+#: ``app/views/cameras/connection_test.py``, einer ANSICHT.
+#:
+#: Der Behelf kostete mehr, als er einbrachte: Gemessen übersah er **73
+#: Prüfmethoden** in djangoBase, darunter ALLE Grundtests
+#: (``grundtests.py``, ``befundgrenzen.py``, ``endpunkttests.py``,
+#: ``leistungstests.py``). Wer die Regeln des Hauses prüft, entging der
+#: Prüfung, weil seine Datei nicht so heißt wie die anderen.
+#:
+#: Jetzt entscheidet ``Pruefcode`` über die VERERBUNG. Das findet mehr und
+#: ist zugleich genauer: ``class ConnectionTester:`` hat gar keine Basis
+#: und fällt von selbst heraus.
 
-#: So viele Wörter muss ein Prüfungsname mindestens haben, um ein Satz zu
-#: sein. Drei, nicht fünf: `test_person_wird_geloescht` ist ein Satz.
-WOERTER_MINDESTENS = 3
+#: So viele Wörter braucht der ERGEBNISTEIL mindestens — also der Teil aus
+#: dem Methodennamen, ohne die Klasse.
+#:
+#: ZWEI, NICHT DREI — EINE TEUER BEZAHLTE UNTERSCHEIDUNG (27.08.2026)
+#: =================================================================
+#: Hier standen zwei Zahlen für zwei verschiedene Dinge nebeneinander:
+#: `szenarien` verlangte DREI Wörter in der ganzen Kennung (Klasse plus
+#: Methode), `bdd-saetze` ZWEI im Ergebnisteil allein. Beim Zusammenlegen
+#: habe ich die Drei auf den Ergebnisteil angewandt.
+#:
+#: Gemessen an CamTrack: **0 Befunde wurden zu 41**, und die 41 waren
+#: falsch. „Reihenfolge stimmt" ist eine vollständige Aussage; sie hat nur
+#: zwei Wörter. Ebenso „Setzt Verweis" und „Meldet Abbruchgrund".
+#:
+#: Eins ist ein Gegenstand („Versionen"), zwei tragen eine Aussage
+#: („Versionen laden"). Mehr zu verlangen bestraft knappe, richtige Namen.
+WOERTER_IM_ERGEBNIS = 2
 
 #: Namen, die nichts erwarten — auch wenn sie lang genug sind.
 NICHTSSAGEND = ('test_basic', 'test_it_works', 'test_works', 'test_ok',
@@ -70,23 +91,31 @@ NICHTSSAGEND = ('test_basic', 'test_it_works', 'test_works', 'test_ok',
 ZUSICHERND = ('assert', 'fail', 'skipTest', 'raises', 'assertRaises')
 
 
-class Szenarienpruefer(ast.NodeVisitor):
-    u"""Liest EIN Prüf-Modul und beurteilt jede Prüfmethode darin."""
+class Szenarienpruefer:
+    u"""Beurteilt die Prüfmethoden EINER Klasse.
+
+    KEIN NodeVisitor MEHR (27.08.2026)
+    ==================================
+    Vorher lief er selbst über den Baum und nahm jede Funktion, deren Name
+    mit ``test`` anfängt — egal, wo sie stand. Das erzwang den
+    Dateinamen-Filter davor, und der übersah 73 Prüfmethoden in
+    djangoBase, weil `grundtests.py` nicht `test_` heißt.
+
+    Jetzt sagt `Pruefcode` über die VERERBUNG, welche Klassen Prüfungen
+    sind, und übergibt sie hier. Damit fällt beides weg: der Filter und
+    die eigene Suche.
+    """
 
     def __init__(self, datei):
         self.datei = datei
         self.befunde = []
         self._klasse = []
 
-    def visit_ClassDef(self, knoten):
-        self._klasse.append(knoten.name)
-        self.generic_visit(knoten)
-        self._klasse.pop()
-
-    def visit_FunctionDef(self, knoten):
-        if knoten.name.startswith('test'):
-            self._beurteilen(knoten)
-        self.generic_visit(knoten)
+    def beurteilen_klasse(self, klasse, methoden):
+        self._klasse = [klasse.name]
+        for m in methoden:
+            self._beurteilen(m)
+        return self.befunde
 
     # ── Die beiden Fragen an eine Prüfmethode ───────────────────
 
@@ -96,10 +125,13 @@ class Szenarienpruefer(ast.NodeVisitor):
             self.befunde.append(Befund(
                 '%s:%d' % (self.datei, knoten.lineno),
                 u'Name nennt kein Verhalten: %s' % wo,
-                u'Wer diesen Namen rot sieht, weiß nicht, was kaputt ist — '
-                u'er muss den Rumpf lesen. Ein Name wie '
-                u'`test_person_bleibt_nach_dem_merge_erhalten` sagt es '
-                u'selbst.', Befund.HINWEIS))
+                u'Gelesen als „%s" — %s. Wer diesen Namen rot sieht, weiß '
+                u'nicht, was kaputt ist; er muss den Rumpf lesen. Ein Name '
+                u'wie `test_person_bleibt_nach_dem_merge_erhalten` sagt es '
+                u'selbst.'
+                % (Testsatz(wo).satz(),
+                   ', '.join(self.maengel(wo)) or u'zu wenig Wörter'),
+                Befund.HINWEIS))
         if not self._sichert_zu(knoten):
             self.befunde.append(Befund(
                 '%s:%d' % (self.datei, knoten.lineno),
@@ -110,28 +142,46 @@ class Szenarienpruefer(ast.NodeVisitor):
 
     @staticmethod
     def _sagt_etwas(voll):
-        u"""Der GANZE Name — Klasse UND Methode (berichtigt 26.08.2026).
+        u"""Wird aus der Kennung ein Satz? Gelesen mit ``Testsatz``.
 
-        Der erste Wurf sah nur die Methode und meldete 52 Prüfungen an.
-        Nachgesehen sind die meisten davon im Zusammenhang tadellos::
+        EINE LESART, NICHT ZWEI (27.08.2026)
+        ====================================
+            „merge das mit dem was es schon gibt, keine Duplikate"
 
-            KameraUndPerson.test_nur_bekannte
-            CosineSimilarityTests.test_identical_vectors
-            PointInPolygonTests.test_inside_square
+        Hier stand eine eigene Heuristik: Unterstriche zählen, gegen eine
+        Liste nichtssagender Namen halten. Daneben entstand `bdd-saetze`
+        mit derselben Frage, aber über ``Testsatz`` gelesen.
 
-        Der Satz steht dort verteilt: Die Klasse nennt den Gegenstand, die
-        Methode den Fall. Genau so meldet unittest sie auch, wenn eine rot
-        wird — als ``Klasse.methode``. Wer nur die Methode beurteilt,
-        verlangt, dass der Gegenstand zweimal dasteht.
+        Gemessen an djangoBase fanden beide **dieselben 16** Namen —
+        `szenarien` zusätzlich 2 stumme Prüfungen, die `bdd-saetze` gar
+        nicht sucht. Also: eine echte Teilmenge, und zwei Fassungen
+        derselben Frage, die beim nächsten Anfassen auseinanderlaufen.
 
-        Was damit trotzdem auffällt, ist der echte Fall: ``A.test_basic``
-        sagt auch mit Klasse nichts, und ``test_yolo`` ohne Klasse erst
-        recht.
+        Jetzt entscheidet ``Testsatz`` — dieselbe Lesart, die auch die
+        Tests-Seite anzeigt. Was dort als Satz erscheint, gilt hier als
+        Satz.
         """
         methode = voll.rsplit('.', 1)[-1]
         if methode in NICHTSSAGEND:
             return False
-        return voll.replace('.', '_').count('_') >= WOERTER_MINDESTENS
+        return not Szenarienpruefer.maengel(voll)
+
+    @staticmethod
+    def maengel(voll):
+        u"""Was dieser Kennung zum Satz fehlt — leere Liste, wenn nichts.
+
+        Gemeldet wird nur, was OHNE Sprachwissen entscheidbar ist: ein
+        Ergebnisteil aus zu wenigen Wörtern und ein fehlender Gegenstand.
+        Auf ein Verb zu prüfen bräuchte ein Wörterbuch, und Fehlalarme
+        sind hier teurer als fehlende Befunde.
+        """
+        satz = Testsatz(voll)
+        aus = []
+        if not satz.gegenstand():
+            aus.append(u'ohne Gegenstand')
+        if len(satz.ergebnis().split()) < WOERTER_IM_ERGEBNIS:
+            aus.append(u'ohne Aussage')
+        return aus
 
     @staticmethod
     def _sichert_zu(knoten):
@@ -198,23 +248,25 @@ class Szenarien(BefundWerkzeug):
 
     # ------------------------------------------------------------------
     def pruefen(self, **_argumente):
+        u"""Erst das ganze Projekt einlesen, dann urteilen.
+
+        Zwei Durchgaenge, weil Vererbung sich nicht in einer Datei
+        entscheidet: `Pruefcode` muss ALLE Klassen kennen, bevor es sagen
+        kann, ob `JobsSeiteBasis` eine Pruefbasis ist.
+        """
+        eingelesen = list(self._einlesen())
+        pruefcode = Pruefcode().lesen(eingelesen)
         befunde, dateien, methoden = [], 0, 0
-        for datei in self.projektdateien('.py'):
-            kurz = self.kurz(datei)
-            if not self._ist_pruefcode(kurz):
-                continue
-            try:
-                baum = ast.parse(datei.read_text(encoding='utf-8',
-                                                 errors='replace'))
-            except (SyntaxError, OSError, ValueError):
+        for kurz, baum in eingelesen:
+            klassen = pruefcode.pruefklassen(baum)
+            if not klassen:
                 continue
             dateien += 1
-            methoden += sum(1 for k in ast.walk(baum)
-                            if isinstance(k, ast.FunctionDef)
-                            and k.name.startswith('test'))
-            pruefer = Szenarienpruefer(kurz)
-            pruefer.visit(baum)
-            befunde.extend(pruefer.befunde)
+            for klasse, eigene in klassen:
+                methoden += len(eigene)
+                pruefer = Szenarienpruefer(kurz)
+                pruefer.beurteilen_klasse(klasse, eigene)
+                befunde.extend(pruefer.befunde)
 
         ohne_zusicherung = sum(1 for b in befunde if b.gewicht == Befund.FEHLER)
         stumm = len(befunde) - ohne_zusicherung
@@ -229,9 +281,13 @@ class Szenarien(BefundWerkzeug):
                         'sichert es zu.')
         return Befundsatz(self.titel, kopf, befunde)
 
-    @staticmethod
-    def _ist_pruefcode(kurz):
-        teile = [t.lower() for t in kurz.replace('\\', '/').split('/')]
-        name = teile[-1]
-        return (any(t in PRUEFORTE for t in teile[:-1])
-                or any(m in name for m in PRUEFDATEI))
+    def _einlesen(self):
+        u"""``(kurzer Pfad, Syntaxbaum)`` fuer jede lesbare Datei."""
+        for datei in self.projektdateien('.py'):
+            try:
+                yield (self.kurz(datei),
+                       ast.parse(datei.read_text(encoding='utf-8',
+                                                 errors='replace')))
+            except (SyntaxError, OSError, ValueError):
+                continue
+

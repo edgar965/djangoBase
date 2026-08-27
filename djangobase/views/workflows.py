@@ -33,26 +33,11 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from django.views import View
 
-from ..umbau.ablage import Speicher
 from ..umbau.workflowbild import Workflowbild
-from ..umbau.workflows import Workflowliste
+from ..umbau.workflows import Workflowspeicher
 from ..mixins import ZugriffMixin
 
 logger = logging.getLogger('djangobase.workflows')
-
-
-class Workflowspeicher(Speicher):
-    u"""Die ermittelten Wege — einmal gelesen, dann gemerkt.
-
-    Gemessen an CamTrack: 688 Dateien, 284 Einstiege, rund zwei Sekunden.
-    Das gehoert nicht in jeden Reiterwechsel.
-    """
-
-    bereich = 'workflows'
-
-    @staticmethod
-    def bauen(wurzel):
-        return Workflowliste(wurzel).lesen()
 
 
 class WorkflowsView(ZugriffMixin, View):

@@ -127,9 +127,27 @@ class ProduktivcodeIstKeinePruefung(BasisTest):
                          'Eine Ansicht, deren Methoden test_ heißen, ist '
                          'keine Prüfung — sie heißt nur so.')
 
-    def test_dieselbe_datei_unter_tests_zaehlt_schon(self):
-        u"""Gegenprobe: Sonst prüft der Test darüber nur den Dateinamen."""
+    def test_der_ORT_aendert_daran_nichts_mehr(self):
+        u"""Berichtigt am 27.08.2026.
+
+        Hier stand die Gegenprobe „dieselbe Datei unter tests/ zählt
+        schon" — sie hielt fest, dass der ORT entscheidet. Genau das war
+        der Fehler: Der Dateiname-Filter übersah 73 Prüfmethoden in
+        djangoBase, weil `grundtests.py` nicht `test_` heißt.
+
+        Jetzt entscheidet die VERERBUNG. Dieselbe Ansicht bleibt auch
+        unter ``tests/`` eine Ansicht — sie erbt von nichts.
+        """
         satz = _lauf({'tests/connection_test.py': self.ANSICHT})
+        self.assertEqual(satz.befunde, [])
+
+    def test_mit_einer_test_basis_zaehlt_sie_sehr_wohl(self):
+        u"""Die echte Gegenprobe: Sonst prüft der Test darüber nur, dass
+        das Werkzeug gar nichts findet."""
+        satz = _lauf({'tests/echt.py':
+                      'class Echte(TestCase):\n'
+                      '    def test_x(self):\n'
+                      '        pass\n'})
         self.assertEqual(_gewichte(satz).get(Befund.FEHLER), 1)
 
 

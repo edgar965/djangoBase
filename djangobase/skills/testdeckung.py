@@ -73,14 +73,19 @@ class Testdeckung(EigenesWerkzeug):
         zeilen = []
         zeilen += self._menue(erwaehnt)
         zeilen += self._routen(erwaehnt)
+        zeilen += self._klassen(erwaehnt)
         rang = {"Menüpunkt ungeprüft": 0, "Seite ungeprüft": 1,
-                "Endpunkt ungeprüft": 2}
-        zeilen.sort(key=lambda z: (rang.get(z["art"], 9), z["stelle"]))
-        seiten = [z for z in zeilen if z["art"] != "Endpunkt ungeprüft"]
+                "Klasse ungeprüft": 2, "Endpunkt ungeprüft": 3}
+        zeilen.sort(key=lambda z: (rang.get(z["art"], 9),
+                                   -z.get("gewicht", 0), z["stelle"]))
+        seiten = [z for z in zeilen if z["art"] in ("Menüpunkt ungeprüft",
+                                                    "Seite ungeprüft")]
+        klassen = [z for z in zeilen if z["art"] == "Klasse ungeprüft"]
         return Ergebnis(
             ["art", "stelle", "ziel", "hinweis"], zeilen,
-            "%d ungeprüft — davon %d Seiten/Menüpunkte (die sichtbaren)"
-            % (len(zeilen), len(seiten)),
+            "%d ungeprüft — %d Seiten/Menüpunkte (die sichtbaren), "
+            "%d Klassen auf einem Arbeitsweg"
+            % (len(zeilen), len(seiten), len(klassen)),
             "„Ungeprüft“ heißt: kommt in keinem Test vor. Ob ein vorhandener Test "
             "sinnvoll prüft, sagt dieses Werkzeug nicht — das bleibt Handarbeit.")
 
@@ -94,6 +99,70 @@ class Testdeckung(EigenesWerkzeug):
             if "/tests" in name or name.rsplit("/", 1)[-1].startswith("test_"):
                 teile.append(d.text)
         return "\n".join(teile)
+
+    def _klassen(self, erwaehnt):
+        u"""Welche KLASSE des laufenden Systems erwähnt kein Test?
+
+        DIE ANSAGE (Edgar, 27.08.2026)
+        ==============================
+            „bdd soll ja auch den ganzen Code absuchen, ob es testcases
+             dafür gibt usw"
+            „merge das mit dem was es schon gibt, keine Duplikate"
+
+        Bis hierher fragte dieses Werkzeug nur nach Seiten, Endpunkten und
+        Menüpunkten — also nach dem, was das Projekt nach AUSSEN zeigt.
+        Der Code dahinter kam nicht vor.
+
+        Ein eigenes Werkzeug dafür wäre ein Duplikat gewesen: Die Frage
+        ist dieselbe („was hat gar keinen Test?"), nur die Quelle ist eine
+        andere. Also steht sie hier, als dritte Spalte derselben Antwort.
+
+        WARUM NICHT ALLE 448 IN DER LISTE STEHEN
+        ========================================
+        Gemessen an CamTrack am 27.08.2026: **448 von 587 Klassen** (76 %)
+        erwähnt kein Test. Diese Zahl ungefiltert auszugeben wäre keine
+        Arbeitsliste, sondern eine Tapete — man liest sie einmal und nie
+        wieder.
+
+        Gewichtet wird deshalb über die Workflows (``umbau/workflows.py``):
+        Eine Klasse, die auf einem der ermittelten Arbeitswege liegt,
+        läuft im Betrieb; eine, die auf keinem liegt, ist Randbereich.
+
+            178 auf mindestens einem Weg   <- die Arbeitsliste
+            270 auf keinem                 <- nur gezählt
+
+        Die Zahl der Wege ist zugleich die Sortierung: ``CorruptFileCounter``
+        liegt auf 23 Wegen und hat keinen Test — das ist ein anderer Befund
+        als eine Hilfsklasse, die einmal vorkommt.
+        """
+        try:
+            from ..umbau.workflows import Workflowspeicher
+            from ..umbau.wegenetz import Verzeichnis
+        except ImportError:                            # pragma: no cover
+            return []
+        wurzel = self.wurzel()
+        verzeichnis = Verzeichnis(wurzel).lesen()
+        gewicht = {}
+        liste, _alter = Workflowspeicher.holen(wurzel)
+        for weg in liste.wege:
+            for name in weg.klassen:
+                gewicht[name] = gewicht.get(name, 0) + 1
+        aus = []
+        for name, bezug in sorted(verzeichnis.klassen.items()):
+            if self._kommt_vor(erwaehnt, name):
+                continue
+            wege = gewicht.get(name, 0)
+            if not wege:
+                continue          # Randbereich — gezählt, nicht gelistet
+            aus.append({
+                "art": "Klasse ungeprüft",
+                "stelle": name,
+                "ziel": "%s:%d" % (bezug.modul, bezug.zeile),
+                "gewicht": wege,
+                "hinweis": "liegt auf %d Arbeitsweg%s, wird aber in keinem "
+                           "Test erwähnt" % (wege, "en" if wege != 1 else ""),
+            })
+        return aus
 
     def _routen(self, erwaehnt):
         """Jede Route des Projekts gegen die Testtexte halten."""
@@ -216,13 +285,47 @@ class Testdeckung(EigenesWerkzeug):
         folgt ein Anfuehrungszeichen, der Treffer fiel also immer durch. Drei
         Seiten galten deshalb als ungeprueft, obwohl ein Test sie woertlich
         aufruft (17.08.2026). Fehlalarme dieser Sorte verdecken die echten
-        Luecken."""
+        Luecken.
+
+        NACHGESCHLAGEN STATT DURCHSUCHT (27.08.2026)
+        ============================================
+        Ein einfacher Bezeichner wird ueber eine EINMAL gebaute Wortmenge
+        nachgeschlagen statt ueber einen Ausdruck ueber 1,58 Mio. Zeichen.
+        Nur was keine Wortmenge treffen kann — ein Pfad mit Schraegstrich —
+        geht weiter durch den regulaeren Ausdruck.
+
+        Gemessen davor: ``_routen`` 16,9 s und ``_klassen`` 15,3 s,
+        zusammen 32 s fuer ein Werkzeug, das man oft drueckt. Die Wortmenge
+        kostet einmal 0,2 s und danach nichts mehr."""
+        woerter = Testdeckung._woerter(text)
         for m in marken:
             m = (m or "").strip()
             if len(m) < 4:
+                continue
+            if m.isidentifier():
+                if m in woerter:
+                    return True
                 continue
             vorn = r"\b" if m[:1].isalnum() or m[:1] == "_" else ""
             hinten = r"\b" if m[-1:].isalnum() or m[-1:] == "_" else ""
             if re.search(vorn + re.escape(m) + hinten, text):
                 return True
         return False
+
+    #: Die Wortmenge EINES Textes, gemerkt am Text selbst.
+    _wortcache = {}
+
+    @classmethod
+    def _woerter(cls, text):
+        u"""Alle Bezeichner des Textes als Menge — einmal je Text.
+
+        Gemerkt wird an der Länge plus einem Ausschnitt statt am ganzen
+        Text: Ein 1,58-MB-String als dict-Schlüssel wird bei jedem Zugriff
+        neu gehasht, und genau das sollte hier ja wegfallen.
+        """
+        schluessel = (len(text), text[:80], text[-80:])
+        menge = cls._wortcache.get(schluessel)
+        if menge is None:
+            menge = set(re.findall(r"[A-Za-z_][A-Za-z0-9_]*", text))
+            cls._wortcache = {schluessel: menge}
+        return menge

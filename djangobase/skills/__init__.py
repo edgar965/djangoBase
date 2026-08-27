@@ -64,7 +64,6 @@ from .anlassfall import Anlassfall
 from .anlassfall_check import AnlassfallCheck
 from .anzeigeformat import Anzeigeformat
 from .codequalitaet import CodeQualitaet
-from .bddsaetze import BddSaetze
 from .dateigroesse import Dateigroesse
 from .doppelrumpf import Doppelrumpf
 from .esmodulimporte import EsModulImporte
@@ -247,7 +246,6 @@ NEUE = [
     Kapselung,
     Namensvarianten,
     Schleifenarbeit,
-    BddSaetze,
     Dateigroesse,
     Altlast,
     # „Lohnt der Umbau ueberhaupt" statt „was ist falsch":

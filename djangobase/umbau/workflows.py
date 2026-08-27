@@ -28,6 +28,7 @@ Weil die meisten nichts erzaehlen. ``GRENZE`` schneidet ab: Was weniger
 als eine Handvoll Klassen beruehrt, ist kein Workflow, sondern ein
 Handgriff. Was uebrig bleibt, sind die 20 bis 50, nach denen gefragt war.
 """
+from .ablage import Speicher
 from .einstiege import Einstiegssucher
 from .wegenetz import Verzeichnis, Wegsucher
 
@@ -151,3 +152,27 @@ class Workflowliste:
                         'wege': [w.als_dict() for w in wege]}
                        for k, t, wege in self.reiter()],
         }
+
+
+class Workflowspeicher(Speicher):
+    u"""Die ermittelten Wege — einmal gelesen, dann gemerkt.
+
+    STEHT HIER, NICHT IN DER ANSICHT (27.08.2026)
+    =============================================
+    Zuerst lag diese Klasse in ``views/workflows.py``, weil nur die Seite
+    sie brauchte. Dann brauchte ``skills/testdeckung.py`` dieselben Wege —
+    und ein Werkzeug, das eine Ansicht importiert, steht auf dem Kopf.
+
+    Der Ausweg wäre ein zweiter Speicher gewesen. Zwei Speicher für
+    dieselbe Sache laufen auseinander, sobald einer angefasst wird; das
+    hat dieses Projekt an der Live-Kachel Wochen gekostet.
+
+    Gemessen: ``testdeckung`` fiel damit von 34 s auf unter eine Sekunde,
+    sobald die Wege schon einmal gelesen waren.
+    """
+
+    bereich = 'workflows'
+
+    @staticmethod
+    def bauen(wurzel):
+        return Workflowliste(wurzel).lesen()
