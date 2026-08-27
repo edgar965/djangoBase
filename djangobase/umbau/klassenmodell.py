@@ -47,9 +47,25 @@ from pathlib import Path
 #: lagen unter `werkzeug/sicherung/` — 233 Dateien, die ein Fixer am
 #: 18.08. beiseitegelegt hatte. Das Modell zeigte also einen Abzug des
 #: Projekts als eigenen Ast, mit doppelten Klassennamen im Bestand.
+#: FREMDER CODE FEHLTE IN DIESER LISTE (27.08.2026)
+#: ===============================================
+#: ``skills/werkzeug.py`` fuehrt dieselbe Frage an der Wurzel und schliesst
+#: dort ``vendor``, ``unsloth_compiled_cache``, ``tmp`` und ``diktator``
+#: aus — mit der Begruendung, dass bei assistant 40 % aller Befunde aus
+#: fremdem Code kamen. Diese Liste hier kannte die Namen nicht, und
+#: ``wegenetz.py`` benutzt sie: ``testdeckung`` meldete deshalb 14
+#: ungepruefte Klassen aus ``vendor/ace-step-1.5/`` — darunter Attrappen
+#: aus deren eigenen Tests (``_FakeRequest``). Ein Fehlalarm, der
+#: dazwischen die echten Luecken verdeckt.
+#:
+#: NICHT uebernommen wird ``models`` aus der Wurzel-Liste: Dort ist der
+#: Ordner mit ML-Gewichten gemeint, hier traefe es ``mail/models/`` —
+#: also genau die Klassen, um die es geht.
 AUS = ('migrations', '__pycache__', 'node_modules', '.git', 'venv',
        'staticfiles', 'site-packages',
-       'sicherung', 'sicherungen', 'backup', 'backups', '.bak')
+       'sicherung', 'sicherungen', 'backup', 'backups', '.bak',
+       'vendor', 'unsloth_compiled_cache', 'tmp', 'temp', 'diktator',
+       'htmlcov')
 
 #: Sammlungen: Ein Feld dieser Bauart haelt VIELE.
 SAMMLUNGEN = {'list', 'dict', 'set', 'tuple', 'defaultdict', 'OrderedDict',

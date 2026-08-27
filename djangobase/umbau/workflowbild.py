@@ -46,6 +46,10 @@ ZEILE = 54
 #: Luft am Bildrand.
 RAHMEN = 28
 
+#: Hoehe des Fussvermerks unter einem Bild, das nicht den ganzen Weg
+#: zeigt. Siehe ``Workflowbild._abschluss``.
+VERMERK = 26
+
 #: Rueckfall fuer die Zeilenzahl, falls sich keine bessere findet.
 MAX_JE_SPALTE = 14
 
@@ -129,6 +133,10 @@ class Workflowbild:
             hoechste = max(hoechste, min(len(eintraege), zeilen))
         self.breite = int(x - SPALTE + BREITE + RAHMEN)
         self.hoehe = RAHMEN * 2 + max(hoechste, 1) * ZEILE
+        # Platz fuer den Fussvermerk, wenn der Weg weitergeht als das Bild
+        # (siehe _abschluss weiter unten).
+        if getattr(self.weg, 'abgeschnitten', False):
+            self.hoehe += VERMERK
         return self
 
     @staticmethod
@@ -165,8 +173,34 @@ class Workflowbild:
         teile.append(self._stil())
         teile.extend(self._kanten())
         teile.extend(self._kaesten())
+        teile.extend(self._abschluss())
         teile.append('</svg>')
         return '\n'.join(teile)
+
+    def _abschluss(self):
+        u"""Der Vermerk, wenn das Bild weniger zeigt als den ganzen Weg.
+
+        WARUM DAS INS BILD GEHOERT (27.08.2026)
+        =======================================
+        Die Tiefengrenze ist Absicht: Ohne sie laufen alle Wege bei den
+        Hilfsfunktionen zusammen und jedes Bild sieht aus wie jedes
+        andere. Das Werkzeug ``dokumentation`` meldete das Abschneiden
+        trotzdem als Hinweis, und die Begruendung dort war praezise:
+
+            „ein Bild, das seine eigene Grenze verschweigt, wird fuer das
+             Ganze gehalten."
+
+        Genau das - und nur das - behebt diese Zeile. Wer das Bild
+        ansieht, liest jetzt selbst, dass es weitergeht. An assistant
+        betraf das 33 von 34 Bildern.
+        """
+        if not getattr(self.weg, 'abgeschnitten', False):
+            return []
+        return ['<text class="wf-mehr" x="%d" y="%d">%s</text>'
+                % (RAHMEN, self.hoehe - RAHMEN // 2,
+                   u'… hier geht der Weg weiter, als das Bild zeigt '
+                   u'(%d Klassen in %d Schritten gezeichnet)'
+                   % (len(self.weg.klassen), len(self.weg.schritte)))]
 
     @staticmethod
     def _stil():
@@ -178,6 +212,8 @@ class Workflowbild:
             '.wf-n{font:600 11px system-ui,sans-serif;'
             'fill:var(--ct-text,#e6edf3)}'
             '.wf-m{font:400 9px system-ui,sans-serif;'
+            'fill:var(--ct-text-muted,#8b949e)}'
+            '.wf-mehr{font:italic 400 11px system-ui,sans-serif;'
             'fill:var(--ct-text-muted,#8b949e)}'
             '.wf-l{fill:none;stroke-width:1.2;opacity:.55}'
             '</style>')

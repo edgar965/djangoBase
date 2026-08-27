@@ -209,21 +209,53 @@ class Dokumentation(BefundWerkzeug):
 
     @staticmethod
     def _abgeschnittene(liste):
-        u"""Bilder, die weniger zeigen als den ganzen Weg.
+        u"""Bilder, die ihre eigene Grenze VERSCHWEIGEN.
 
         Kein Fehler, sondern ein Hinweis: Die Tiefengrenze ist Absicht —
         ohne sie laufen alle Wege bei den Hilfsfunktionen zusammen und
-        jedes Bild sieht aus wie jedes andere. Gemeldet wird es trotzdem,
+        jedes Bild sieht aus wie jedes andere. Gemeldet wurde es trotzdem,
         denn ein Bild, das seine eigene Grenze verschweigt, wird für das
         Ganze gehalten.
+
+        DAS ABSCHNEIDEN ALLEIN IST SEIT DEM 27.08.2026 KEIN BEFUND MEHR
+        ===============================================================
+        ``Workflowbild._abschluss`` setzt jetzt einen Fussvermerk unter
+        jedes gekürzte Bild („… hier geht der Weg weiter, als das Bild
+        zeigt"). Damit ist die Begründung oben erfüllt — das Bild
+        verschweigt nichts mehr, und 33 von 34 Hinweisen an assistant
+        waren erledigt, ohne dass etwas unterdrückt wurde.
+
+        Was hier bleibt, ist die Gegenprobe: Kann das Bild den Vermerk
+        gar nicht setzen (weil ihm die Angabe fehlt), steht der Hinweis
+        wieder da. Ein stillschweigend gekürztes Bild soll nie wieder
+        möglich sein.
         """
-        return [Befund(
-            str(weg.einstieg.datei),
-            u'Bild abgeschnitten: %s' % weg.einstieg.titel,
-            u'%d Klassen in %d Schritten gezeichnet — dahinter geht der Weg '
-            u'weiter, als das Bild zeigt.'
-            % (len(weg.klassen), len(weg.schritte)),
-            Befund.HINWEIS) for weg in liste.wege if weg.abgeschnitten]
+        from ..umbau.workflowbild import Workflowbild
+
+        befunde = []
+        for weg in liste.wege:
+            if not weg.abgeschnitten:
+                continue
+            try:
+                # ``<text class="wf-mehr"`` und NICHT nur ``wf-mehr``:
+                # Der Name steht auch im Stilblock, den jedes Bild
+                # mitbringt — die Prüfung wäre immer wahr gewesen und
+                # hätte nie etwas gemeldet. Die Gegenprobe (Vermerk
+                # abschalten → muss rot werden) hat das gefasst,
+                # 27.08.2026.
+                zeigt_es = '<text class="wf-mehr"' in Workflowbild(weg).svg()
+            except Exception:
+                zeigt_es = False
+            if zeigt_es:
+                continue
+            befunde.append(Befund(
+                str(weg.einstieg.datei),
+                u'Bild verschweigt seine Grenze: %s' % weg.einstieg.titel,
+                u'%d Klassen in %d Schritten gezeichnet — dahinter geht der '
+                u'Weg weiter, und das Bild sagt es nicht.'
+                % (len(weg.klassen), len(weg.schritte)),
+                Befund.HINWEIS))
+        return befunde
 
     def _nicht_in_der_liste(self, liste):
         u"""Wege, die schwer genug wären, aber nicht mehr hineinpassen.

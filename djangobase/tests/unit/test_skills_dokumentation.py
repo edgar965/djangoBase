@@ -106,3 +106,112 @@ class DasWerkzeugFuehrtSeinenEigenenBeispielfallMit(BasisTest):
 
     def test_der_anlassfall_sagt_warum_er_so_aussieht(self):
         self.assertTrue(Dokumentation.anlassfall.warum)
+
+
+class _Bezug:
+    u"""So viel Bezug, wie das Bild zum Zeichnen braucht."""
+
+    def __init__(self, name):
+        self.name = self.anzeige = name
+        self.klasse = name
+        self.art = 'klasse'
+        self.modul = 'attrappe'
+        self.datei = None
+        self.zeile = 1
+
+
+class _Schritt:
+    def __init__(self, name, tiefe=0):
+        self.bezug = _Bezug(name)
+        self.tiefe = tiefe
+        self.grund = 'aufruf'
+
+
+class _Einstieg:
+    titel = 'Ein Weg, der weitergeht'
+    datei = 'attrappe.py'
+
+
+class _Weg:
+    u"""Ein abgeschnittener Weg — mehr braucht die Pruefung nicht."""
+
+    def __init__(self, abgeschnitten=True):
+        self.einstieg = _Einstieg()
+        self.schritte = [_Schritt('Erste'), _Schritt('Zweite', 1)]
+        self.kanten = []
+        self.offen = []
+        self.abgeschnitten = abgeschnitten
+
+    @property
+    def klassen(self):
+        return ['Erste', 'Zweite']
+
+
+class _Liste:
+    def __init__(self, wege):
+        self.wege = wege
+        self.verworfen = 0
+        self.kennzahlen = {}
+
+
+class EinBildDasSeineGrenzeZeigt(BasisTest):
+    u"""Gegeben: Der Weg geht weiter, und das Bild sagt es.
+
+    DIE VORGESCHICHTE (27.08.2026)
+    ==============================
+    Bis heute meldete dieses Werkzeug JEDES gekuerzte Bild — an assistant
+    waren das 33 von 34, und die Begruendung stand im eigenen Docstring:
+    „ein Bild, das seine eigene Grenze verschweigt, wird fuer das Ganze
+    gehalten." Seit ``Workflowbild._abschluss`` einen Fussvermerk setzt,
+    verschweigt keines mehr etwas — der Hinweis ist damit erledigt, nicht
+    unterdrueckt.
+
+    Der erste Versuch pruefte auf ``'wf-mehr' in svg`` und war IMMER wahr:
+    Der Name steht auch im Stilblock, den jedes Bild mitbringt. Die
+    Pruefung haette nie wieder etwas gemeldet. Aufgefallen ist es nur,
+    weil die Gegenprobe unten verlangt wurde.
+    """
+
+    def test_wird_nicht_mehr_gemeldet(self):
+        self.assertEqual(Dokumentation._abgeschnittene(_Liste([_Weg()])), [])
+
+    def test_der_vermerk_steht_wirklich_im_bild(self):
+        from djangobase.umbau.workflowbild import Workflowbild
+        svg = Workflowbild(_Weg()).svg()
+        self.assertIn('<text class="wf-mehr"', svg)
+        self.assertIn('hier geht der Weg weiter', svg)
+
+    def test_ein_vollstaendiges_bild_traegt_keinen_vermerk(self):
+        from djangobase.umbau.workflowbild import Workflowbild
+        svg = Workflowbild(_Weg(abgeschnitten=False)).svg()
+        self.assertNotIn('<text class="wf-mehr"', svg)
+
+
+class EinBildDasSeineGrenzeVERSCHWEIGT(BasisTest):
+    u"""Gegeben: Der Weg geht weiter, und das Bild sagt es NICHT.
+
+    Die Gegenprobe. Faellt sie um, meldet das Werkzeug nichts mehr —
+    dann waere der Hinweis nicht behoben, sondern abgeschaltet.
+    """
+
+    def setUp(self):
+        from djangobase.umbau import workflowbild
+        self.echt = workflowbild.Workflowbild._abschluss
+        workflowbild.Workflowbild._abschluss = lambda self: []
+
+    def tearDown(self):
+        from djangobase.umbau import workflowbild
+        workflowbild.Workflowbild._abschluss = self.echt
+
+    def test_wird_gemeldet(self):
+        befunde = Dokumentation._abgeschnittene(_Liste([_Weg()]))
+        self.assertEqual(len(befunde), 1)
+
+    def test_der_befund_nennt_den_weg(self):
+        befund = Dokumentation._abgeschnittene(_Liste([_Weg()]))[0]
+        self.assertIn('Ein Weg, der weitergeht', befund.was)
+
+    def test_ein_vollstaendiger_weg_bleibt_still(self):
+        u"""Auch ohne Vermerk: Was nicht gekuerzt ist, ist kein Befund."""
+        self.assertEqual(
+            Dokumentation._abgeschnittene(_Liste([_Weg(False)])), [])
