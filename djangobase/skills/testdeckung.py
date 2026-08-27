@@ -141,7 +141,9 @@ class Testdeckung(EigenesWerkzeug):
         except ImportError:                            # pragma: no cover
             return []
         wurzel = self.wurzel()
-        verzeichnis = Verzeichnis(wurzel).lesen()
+        # MIT der Ausschlussliste dieses Projekts: Sonst zaehlen
+        # Vergleichskopien und Fremdcode als ungeprueft mit.
+        verzeichnis = Verzeichnis(wurzel, self.ausgeschlossen()).lesen()
         gewicht = {}
         liste, _alter = Workflowspeicher.holen(wurzel)
         for weg in liste.wege:

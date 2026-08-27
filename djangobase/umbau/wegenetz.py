@@ -121,8 +121,23 @@ class Verzeichnis:
     der fuenfzig Wege das Projekt erneut.
     """
 
-    def __init__(self, wurzel):
+    def __init__(self, wurzel, ausser=()):
         self.wurzel = Path(wurzel)
+        #: Verzeichnisnamen, die dieses PROJEKT ausschliesst — zusaetzlich zu
+        #: `AUS` und `OHNE`.
+        #:
+        #: WARUM ALS ARGUMENT UND NICHT AUS `settings` (27.08.2026): Das Paket
+        #: `umbau` liest bewusst keine Django-Einstellungen; es soll auch als
+        #: `python -m djangobase.umbau.<name>` laufen. Der Aufrufer kennt die
+        #: Liste — `skills.Werkzeug.ausgeschlossen()` fuehrt sie ohnehin.
+        #:
+        #: DER FEHLALARM, DER DAZU GEFUEHRT HAT: In 3DTools liegt unter
+        #: `TestCharakter/` eine Vergleichskopie der eigenen Bibliothek und des
+        #: CharMorph-Addons. `DJANGOBASE["skills_ignorieren"]` nennt sie, aber
+        #: `lesen()` kannte nur seine eigene Liste — `testdeckung` meldete
+        #: deshalb fuenf Klassen aus dieser Kopie als ungeprueft. Fuenf
+        #: Fehlalarme neben sieben echten Befunden.
+        self.ausser = frozenset(str(a) for a in ausser)
         #: Klassenname -> Bezug
         self.klassen = {}
         #: Freier Funktionsname -> Bezug
@@ -149,7 +164,8 @@ class Verzeichnis:
 
     def lesen(self):
         for datei in sorted(self.wurzel.rglob('*.py')):
-            if any(teil in AUS or teil in OHNE for teil in datei.parts):
+            if any(teil in AUS or teil in OHNE or teil in self.ausser
+                   for teil in datei.parts):
                 continue
             try:
                 baum = ast.parse(datei.read_text(encoding='utf-8'))

@@ -274,3 +274,32 @@ class EinKlassenkastenIstDerKonstruktor(BasisTest):
                   '        Ding()\n'}
         weg = _weg(quelle, 'Nutzer', 'arbeiten')
         self.assertIn('Frueh', weg.klassen)
+
+
+class DieAusschlusslisteDesProjektsGilt(BasisTest):
+    u"""Was das Projekt ausschliesst, darf nicht im Verzeichnis landen.
+
+    DER FEHLALARM (3DTools, 27.08.2026)
+    ===================================
+    Unter ``TestCharakter/`` liegt eine Vergleichskopie der eigenen
+    Bibliothek und des CharMorph-Addons. ``DJANGOBASE["skills_ignorieren"]``
+    nennt sie, und jedes Werkzeug ueber ``Werkzeug.ausgeschlossen()``
+    respektiert das — ``Verzeichnis.lesen()`` aber kannte nur seine eigene
+    Liste. ``testdeckung`` meldete deshalb fuenf Klassen aus dieser Kopie
+    als „ungeprueft": fuenf Fehlalarme neben sieben echten Befunden.
+    """
+
+    QUELLE = {
+        'eigen.py': 'class Eigen:\n    def tun(self):\n        pass\n',
+        'abzug/kopie.py': 'class Kopie:\n    def tun(self):\n        pass\n',
+    }
+
+    def test_ohne_liste_ist_die_kopie_dabei(self):
+        verzeichnis = Verzeichnis(_abzug(self.QUELLE)).lesen()
+        self.assertIn('Kopie', verzeichnis.klassen)
+
+    def test_mit_liste_bleibt_die_kopie_draussen(self):
+        verzeichnis = Verzeichnis(_abzug(self.QUELLE), ['abzug']).lesen()
+        self.assertNotIn('Kopie', verzeichnis.klassen)
+        self.assertIn('Eigen', verzeichnis.klassen,
+                      'der eigene Code muss bleiben')
