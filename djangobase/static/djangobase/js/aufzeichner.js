@@ -30,7 +30,9 @@
  * Geheimnis deutet, werden als «…» abgelegt. Diese Datei landet im Projekt und
  * wird später zu Testcode — dort darf nichts Geheimes hineingeraten.
  */
-const PFAD = '/hilfe/tests/aufzeichnung/';
+import { Basiswurzel } from '/static/djangobase/js/basiswurzel.js';
+
+const PFAD = Basiswurzel.weg('tests/aufzeichnung/');
 
 /* Wie oft der Puffer zum Server geht. Nicht je Ereignis: Ein Klick, der eine
  * eigene Anfrage auslöst, verdoppelt die Last der Seite und erscheint im

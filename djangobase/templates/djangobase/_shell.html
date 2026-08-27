@@ -19,6 +19,13 @@
     {% empty %}
         {% if djangobase.favicon %}<link rel="icon" href="{% static djangobase.favicon %}">{% endif %}
     {% endfor %}
+    {% comment %}Praefix, unter dem `djangobase.urls` eingebunden ist. Die
+    mitgelieferten JS-Module lesen ihn hier ab (`basiswurzel.js`), statt ihn
+    fest im Text zu fuehren: Vier von ihnen hatten `/hilfe/...` verdrahtet und
+    liefen in 3DTools (`/help/`) bei JEDEM Seitenaufruf in eine 404 — ohne
+    Fehlerseite und ohne Eintrag im Fehlerlog. Siehe `basiswurzel.py`.
+    {% endcomment %}
+    <meta name="djangobase-wurzel" content="{{ djangobase.wurzel }}">
     {% block head_meta %}{% endblock %}
 
     {% comment %}Default-CSS: Bootstrap + Icons (CDN) + djangoBase-

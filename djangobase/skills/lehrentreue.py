@@ -68,10 +68,53 @@ class Verstoss:
 class Regelsucher(ast.NodeVisitor):
     u"""Findet alle fünf Muster in EINEM Durchgang durch den Syntaxbaum."""
 
+    #: Vermerk, der eine Stelle von einer Lehre ausnimmt. Er muss in den
+    #: Zeilen DAVOR stehen und gehoert zu einer Begruendung — dieselbe
+    #: Schreibweise wie ``in der Schleife gewollt`` in `schleifenarbeit`.
+    #:
+    #: WARUM ES IHN GIBT (27.08.2026, 3DTools)
+    #: =======================================
+    #: Zwei der beiden gemeldeten Verstoesse waren keine:
+    #:
+    #: * `koerperhuelle.py` benutzt `np.add.at` MIT Messung daneben — unter
+    #:   numpy 2.4 ist `np.bincount` dort 31 ms gegen 29 ms, plus ein
+    #:   zusaetzliches `np.repeat`. Die Lehre stammt aus einem anderen
+    #:   Zahlenbereich.
+    #: * `test_projekt_temp.py` ruft `gettempdir()`, um zu BEHAUPTEN, dass
+    #:   die Datei NICHT dort liegt. Der Waechter meldete die Zusicherung,
+    #:   die seine eigene Lehre durchsetzt.
+    #:
+    #: Ohne Ausnahme bleiben beide Zeilen fuer immer in der Liste, und eine
+    #: Liste mit Dauergaesten liest niemand mehr.
+    VERMERK = 'Lehre gilt hier nicht'
+
+    #: Der Vermerk gilt in der Funktion, in der er steht, und NUR fuer die
+    #: Lehre, die er beim Namen nennt. Zwei Gruende gegen ein reines
+    #: Zeilenfenster:
+    #:
+    #: * Eine belegte Ausnahme braucht eine ausfuehrliche Begruendung. In
+    #:   `koerperhuelle.py` stehen zwischen Vermerk und `np.add.at` sieben
+    #:   Zeilen Messwerte und zwei Zeilen Code — jedes feste Fenster ist
+    #:   entweder zu kurz dafuer oder so gross, dass es Fremdes mitnimmt.
+    #: * Weil der Name der Lehre mitstehen MUSS, nimmt der Vermerk nicht
+    #:   versehentlich einen anderen Befund derselben Funktion mit.
+    #:
+    #: Steht der Vermerk auf Modulebene, gilt er fuer die ganze Datei — das
+    #: ist die Stelle fuer eine Datei, die als Ganzes eine Ausnahme ist.
+
     def __init__(self, datei, quelle):
         self.datei = datei
         self.quelle = quelle
         self.verstoesse = []
+        #: Wie viele Stellen ein Vermerk ausgenommen hat — sie gehoeren in
+        #: die Kopfzeile, sonst versteckt der Vermerk unbemerkt.
+        self.ausgenommen = 0
+        self.zeilen = quelle.splitlines()
+        #: (erste, letzte) Zeile jeder Funktion — gefuellt beim Durchgang.
+        self.funktionen = []
+        #: Bis hierhin gilt ein Vermerk fuer die ganze Datei: der Kopf vor
+        #: der ersten Definition.
+        self.kopfzeilen = self._kopfende()
         #: Nur wo cKDTree vorkommt, ist ein ``.query()`` eine Nachbarsuche.
         self.hat_kdtree = 'KDTree' in quelle
 
@@ -97,8 +140,47 @@ class Regelsucher(ast.NodeVisitor):
         return '.'.join(reversed(teile))
 
     def _dazu(self, knoten, lehre, was, warum, gewicht=Befund.WARNUNG):
+        if self._vermerkt(knoten.lineno, lehre):
+            self.ausgenommen += 1
+            return
         self.verstoesse.append(Verstoss(self.datei, knoten.lineno, lehre,
                                         was, warum, gewicht))
+
+    def _vermerkt(self, zeile, lehre):
+        u"""Nimmt ein Vermerk diese Stelle von DIESER Lehre aus?"""
+        for von, bis in self._bereiche(zeile):
+            block = '\n'.join(self.zeilen[von:bis])
+            for absatz in block.split(self.VERMERK)[1:]:
+                # Der Name der Lehre steht im selben oder im naechsten Satz.
+                if lehre in absatz[:self.VERMERK_REICHWEITE]:
+                    return True
+            if lehre in block and self.VERMERK in block:
+                # Auch die Schreibweise „Lehre gilt hier nicht" VOR dem
+                # Namen zaehlt — beides steht dann in derselben Erklaerung.
+                return True
+        return False
+
+    #: So viele Zeichen hinter dem Vermerk darf der Name der Lehre stehen.
+    VERMERK_REICHWEITE = 400
+
+    def _bereiche(self, zeile):
+        u"""Erst die umgebende Funktion, dann die Datei als Ganzes."""
+        for von, bis in self.funktionen:
+            if von <= zeile <= bis:
+                yield von - 1, bis
+        yield 0, self.kopfzeilen
+
+    def visit_FunctionDef(self, knoten):
+        self._merken(knoten)
+        self.generic_visit(knoten)
+
+    def visit_AsyncFunctionDef(self, knoten):
+        self._merken(knoten)
+        self.generic_visit(knoten)
+
+    def _merken(self, knoten):
+        ende = getattr(knoten, 'end_lineno', knoten.lineno) or knoten.lineno
+        self.funktionen.append((knoten.lineno, ende))
 
     # ── Der eine Durchgang ──────────────────────────────────────
 
@@ -163,6 +245,14 @@ class Regelsucher(ast.NodeVisitor):
         return gesehen_values and not gesehen_order
 
 
+    def _kopfende(self):
+        u"""Die letzte Zeile vor der ersten `def`/`class` — der Dateikopf."""
+        for nr, zeile in enumerate(self.zeilen):
+            if zeile.startswith(('def ', 'class ', 'async def ')):
+                return nr
+        return len(self.zeilen)
+
+
 class Lehrentreue(BefundWerkzeug):
 
     kriterium = 15
@@ -210,7 +300,7 @@ class Lehrentreue(BefundWerkzeug):
 
     # ------------------------------------------------------------------
     def pruefen(self, **_argumente):
-        befunde, gelesen = [], 0
+        befunde, gelesen, ausgenommen = [], 0, 0
         for datei in self.projektdateien('.py'):
             try:
                 quelle = datei.read_text(encoding='utf-8', errors='replace')
@@ -221,6 +311,7 @@ class Lehrentreue(BefundWerkzeug):
             sucher = Regelsucher(self.kurz(datei), quelle)
             sucher.visit(baum)
             befunde.extend(v.als_befund() for v in sucher.verstoesse)
+            ausgenommen += sucher.ausgenommen
 
         je_lehre = {}
         for v in befunde:
@@ -231,6 +322,11 @@ class Lehrentreue(BefundWerkzeug):
                 % len(befunde)]
         for lehre, zahl in sorted(je_lehre.items(), key=lambda p: -p[1]):
             kopf.append('  %-32s %d' % (lehre, zahl))
+        if ausgenommen:
+            # Nie verschweigen: Ein Vermerk, den niemand sieht, ist eine
+            # Hintertuer.
+            kopf.append(u'%d Stelle(n) durch den Vermerk „%s" ausgenommen'
+                        % (ausgenommen, Regelsucher.VERMERK))
         if not befunde:
             kopf.append('Keiner — die prüfbaren Lehren werden gehalten.')
         return Befundsatz(self.titel, kopf, befunde)

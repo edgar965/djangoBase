@@ -6,6 +6,7 @@ from collections import Counter, defaultdict
 
 from .befund import Befund, Befundsatz, BefundWerkzeug
 from .anlassfall import Anlassfall
+from .rahmenvorschrift import Rahmenvorschrift
 
 
 class Modulsicht:
@@ -115,9 +116,13 @@ class FreieFunktionen(BefundWerkzeug):
 
         sichten, befunde = [], []
         rufer, ansichten = {}, set()
+        # Was Django beim Namen aus den Einstellungen holt, MUSS auf
+        # Modulebene stehen (siehe `rahmenvorschrift.py`). Einmal gelesen,
+        # nicht je Datei.
+        vorgeschrieben = Rahmenvorschrift.namen()
         for datei in self.projektdateien('.py'):
             self._ansichten_sammeln(datei, ansichten)
-            sicht = self._modul(datei, rufer)
+            sicht = self._modul(datei, rufer, vorgeschrieben)
             if sicht is not None:
                 sichten.append(sicht)
 
@@ -316,19 +321,26 @@ class FreieFunktionen(BefundWerkzeug):
         return ('Niemand ruft sie aus einer Klasse: eine neue Wurzel, '
                 'sparsam einsetzen.')
 
-    def _modul(self, datei, rufer=None):
+    def _modul(self, datei, rufer=None, vorgeschrieben=()):
         try:
             baum = ast.parse(datei.read_text(encoding='utf-8', errors='replace'))
         except (SyntaxError, OSError):
             return None
         if rufer is not None:
             self._rufer_sammeln(baum, rufer, datei)
+        # `manage.py`, `wsgi.py`, `asgi.py`: Der Rahmen ruft sie, nicht wir.
+        if Rahmenvorschrift.eigene_datei(datei):
+            return None
         funktionen, klassen, weiterleitungen = [], 0, 0
         for knoten in baum.body:          # nur Modulebene, nicht ast.walk
             if isinstance(knoten, ast.ClassDef):
                 klassen += 1
             elif isinstance(knoten, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 if knoten.name.startswith('__'):
+                    continue
+                # Kontextprozessor, Middleware-Fabrik & Co.: In eine Klasse
+                # verschoben findet `import_string` sie nicht mehr.
+                if knoten.name in vorgeschrieben:
                     continue
                 ende = getattr(knoten, 'end_lineno', knoten.lineno) or knoten.lineno
                 erstes = (knoten.args.args[0].arg if knoten.args.args else '')

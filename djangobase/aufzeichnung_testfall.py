@@ -35,6 +35,8 @@ es von Hand ergaenzt werden muss.
 import re
 from datetime import datetime
 
+from .basiswurzel import Basiswurzel
+
 __all__ = ["Testfall"]
 
 
@@ -42,8 +44,20 @@ class Testfall:
     u"""Erzeugt den Quelltext eines Django-Testfalls aus einer Aufzeichnung."""
 
     #: Diese Pfade werden nie nachgefahren - sie gehoeren zur Aufzeichnung
-    #: selbst oder liefern bei jedem Aufruf etwas anderes.
-    AUS = ("/hilfe/tests/aufzeichnung/", "/api/system-stats/", "/verbrauch/")
+    #: selbst oder liefern bei jedem Aufruf etwas anderes. Der
+    #: Steuer-Endpunkt kommt aus `Basiswurzel`: Fest verdrahtet
+    #: ("/hilfe/...") griff der Ausschluss in jedem anders
+    #: eingebundenen Projekt ins Leere, und der erzeugte Testfall
+    #: enthielt die Abfragen der Aufzeichnung selbst
+    #: (Befund 27.08.2026, siehe `basiswurzel.py`).
+    #: Berechnet beim Zugriff — `reverse()` geht beim Import des
+    #: Moduls noch nicht.
+    FESTE_AUS = ("/api/system-stats/", "/verbrauch/")
+
+    @property
+    def AUS(self):
+        return (Basiswurzel.weg() + "tests/aufzeichnung/",
+                ) + Testfall.FESTE_AUS
 
     def __init__(self, aufzeichnung):
         self.a = aufzeichnung

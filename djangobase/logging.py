@@ -34,6 +34,48 @@ except ImportError:
     _HANDLER_CLASS = "logging.handlers.RotatingFileHandler"
 
 
+#: Der Name des Filters, der die Auftragskennung an jede Zeile haengt.
+JOB_FILTER = "job_context"
+
+#: Der Formatierer, den `LogFenster` lesen kann (siehe `config`).
+FORMATIERER = "voll"
+
+
+def handler_filters_fuer(job_context):
+    """Die Filterliste eines Handlers — mit oder ohne Auftragskennung."""
+    return [JOB_FILTER] if job_context else []
+
+
+def datei_handler(log_dir, name, *, level=None, max_bytes=3 * 1024 * 1024,
+                  backup_count=5, filters=None):
+    """Ein rotierender Datei-Handler, gebaut wie djangoBases eigene.
+
+    OEFFENTLICH SEIT DEM 28.08.2026: Projekte mit eigenen Logdateien geben sie
+    ueber `extra_handlers` mit und brauchten dafuer denselben Bausatz. Wer ihn
+    nachbaut, hat zwei Fassungen — und wer dann `maxBytes` aendert, aendert
+    `django.log`, aber nicht die Projektdatei daneben.
+
+        LOGGING = dblog.config(
+            LOG_DIR, job_context=True,
+            extra_handlers={'core_file': dblog.datei_handler(
+                LOG_DIR, 'core.log', level='DEBUG',
+                filters=dblog.handler_filters_fuer(True))})
+    """
+    handler = {
+        "class": _HANDLER_CLASS,
+        "filename": os.path.join(str(log_dir), name),
+        "maxBytes": max_bytes,
+        "backupCount": backup_count,
+        "encoding": "utf-8",
+        "formatter": FORMATIERER,
+    }
+    if level:
+        handler["level"] = level
+    if filters:
+        handler["filters"] = list(filters)
+    return handler
+
+
 def config(log_dir, level="INFO", *,
            job_context=False,
            extra_filters=None,
@@ -77,17 +119,10 @@ def config(log_dir, level="INFO", *,
     os.makedirs(log_dir, exist_ok=True)
 
     def datei(name, level_override=None):
-        h = {
-            "class": _HANDLER_CLASS,
-            "filename": os.path.join(log_dir, name),
-            "maxBytes": file_max_bytes,
-            "backupCount": file_backup_count,
-            "encoding": "utf-8",
-            "formatter": "voll",
-        }
-        if level_override:
-            h["level"] = level_override
-        return h
+        return datei_handler(log_dir, name, level=level_override,
+                             max_bytes=file_max_bytes,
+                             backup_count=file_backup_count,
+                             filters=handler_filters_fuer(job_context))
 
     # Wenn job_context aktiv: format-String enthaelt einen {job_str}-Slot,
     # der vom JobContextFilter befuellt wird. Filter wird automatisch auf
@@ -95,10 +130,9 @@ def config(log_dir, level="INFO", *,
     fmt = ("{asctime} [{levelname}] {name}: {job_str}{message}"
            if job_context else "{asctime} [{levelname}] {name}: {message}")
     base_filters = {}
-    handler_filters = []
+    handler_filters = handler_filters_fuer(job_context)
     if job_context:
         base_filters["job_context"] = {"()": "djangobase.jobctx.JobContextFilter"}
-        handler_filters = ["job_context"]
 
     def _h(extra):
         return {**extra, **({"filters": handler_filters} if handler_filters else {})}

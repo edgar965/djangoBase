@@ -42,7 +42,9 @@
  * Fehlschlag gezählt: Ein falscher Klick geht als grün durch, ein gemeldeter
  * Fehlschlag nicht.
  */
-const PFAD = '/hilfe/tests/aufzeichnung/';
+import { Basiswurzel } from '/static/djangobase/js/basiswurzel.js';
+
+const PFAD = Basiswurzel.weg('tests/aufzeichnung/');
 const LAUF = 'djb-aufz-lauf';       // {id, i, fehler, name} — überlebt Navigation
 const WEG = 'djb-absp-weg';         // Bereich ausgeblendet ja/nein
 

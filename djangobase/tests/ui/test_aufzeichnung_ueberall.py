@@ -95,9 +95,16 @@ class MiddlewareTest(SimpleTestCase):
         self.assertEqual(antwort.content.count(b"aufzeichner_leiste.js"), 1)
 
     def test_eigener_endpunkt_ausgenommen(self):
-        u"""Der Steuer-Endpunkt liefert JSON, aber sicher ist sicher."""
+        u"""Der Steuer-Endpunkt liefert JSON, aber sicher ist sicher.
+
+        Der Pfad wird ueber `Basiswurzel` gebildet, nicht fest geschrieben:
+        Er haengt vom Praefix ab, unter dem das Projekt `djangobase.urls`
+        einbindet (3DTools: `/help/`, sonst meist `/hilfe/`). Mit der festen
+        Adresse griff der Ausschluss dort ins Leere, und die Aufzeichnung
+        schrieb ihre eigene Abfrage mit (Befund 27.08.2026)."""
+        from djangobase.basiswurzel import Basiswurzel
         antwort = self._durch(HttpResponse(FREMDE_SEITE),
-                              pfad="/hilfe/tests/aufzeichnung/")
+                              pfad=Basiswurzel.weg() + "tests/aufzeichnung/")
         self.assertNotIn(b"aufzeichner_leiste.js", antwort.content)
 
     @override_settings(DJANGOBASE_AUFZEICHNUNG=False)

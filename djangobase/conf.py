@@ -64,6 +64,19 @@ DEFAULTS = {
     #   {"runner": "/static/tests/runner.js", "cases": "/static/tests/testcases.js",
     #    "seiten": {"navi": "/navi/ziel/?…&demo=1", "osm": "/ausfluege/", ...}}
     "test_ui": None,
+    # Klassen, die in DIESEM Projekt eine Testbasis sind, ohne von
+    # `TestCase` zu erben — weil ein Adapter sie in Tests verwandelt.
+    #
+    # WARUM ES DEN SCHALTER GIBT (27.08.2026, 3DTools)
+    # ===============================================
+    # `test_pruefcode` meldete dort 16 Klassen als „verwaist: unittest fuehrt
+    # sie NIE aus". Sie erben von `TestCategory` (Projektbasis ohne
+    # Vorfahren) — und `core/tests/ui/test_oberflaeche.py` macht aus jeder
+    # eine `django.test.TestCase`-Klasse. Sie laufen also sehr wohl, nur
+    # sieht man es der Klasse nicht an.
+    #
+    # Beispiel: DJANGOBASE["test_basen"] = ["TestCategory"]
+    "test_basen": [],
     # ----- Hilfe -> Aktuell (rollierendes Fenster, Claude-CLI) --------------
     # Die Seite erscheint in JEDEM Projekt. Geschrieben wird ueber
     # `manage.py aktuell` (kein HTTP-Schreibweg). None -> <log_verzeichnis>/aktuell.jsonl

@@ -39,6 +39,17 @@
 
 const SPEICHER = 'dbTabSort:';
 
+/** Eine Zelle, die als ZAHL gelten darf: Ziffern, davor hoechstens ein
+ *  Waehrungszeichen, dahinter hoechstens eine kurze Einheit.
+ *
+ *  Trifft zu auf  "1.234,5"  "-0,18"  "32,7 MB"  "15 %"  "12 €"  "€ 12"
+ *  Trifft NICHT zu auf  "Speed.mp4"  "005 DanceLang.mp4"  "Kapitel 9"
+ *
+ *  Die Einheit ist auf sechs Zeichen begrenzt: "MB", "km/h", "Stueck" ja,
+ *  ein Dateiname nein. */
+const ZAHL_MIT_EINHEIT =
+  /^[€\$£]?\s*[-+]?\d[\d.,]*\s*(?:%|[°µA-Za-z\/]{1,6}|[€\$£])?$/;
+
 export class TabellenSortierung {
 
   /** Alle sortierbaren Tabellen unterhalb von ``wurzel`` anbinden.
@@ -198,8 +209,27 @@ export class TabellenSortierung {
       const n = parseFloat(bruch[2].replace(',', '.'));
       return (n && !isNaN(z)) ? z / n : null;
     }
-    // Nur Ziffern, Trenner und Vorzeichen behalten; Minus auch als Gedankenstrich.
-    const roh = text.replace(/−|–/g, '-').replace(/[^\d,.\-]/g, '');
+    // DIE ZELLE MUSS EINE ZAHL SEIN, nicht bloß eine enthalten.
+    //
+    // BEFUND 28.08.2026 (3DTools, Spalte „Name" der Auftragstabelle)
+    // -------------------------------------------------------------
+    // Hier stand `text.replace(/[^\d,.\-]/g, '')` — alles außer Ziffern und
+    // Trennern wegwerfen, Rest als Zahl lesen. Damit wurde
+    //
+    //     "Speed.mp4"           ->  ".4"    ->    4
+    //     "005 DanceLang.mp4"   -> "005.4"  ->   54
+    //     "Nussknacker.webm"    -> ""       -> null (ans Ende)
+    //
+    // und eine Spalte mit Dateinamen sortierte nach unsichtbaren Zahlen.
+    // Auffällig ist das nicht: Die Reihenfolge sieht nur „irgendwie falsch"
+    // aus. Auch das eigene Beispiel im Kopf dieser Datei war betroffen —
+    // „Kapitel 9" wurde zu 9 und kam nie bei `localeCompare` an.
+    //
+    // Erlaubt ist deshalb: eine Zahl, davor höchstens ein Währungszeichen,
+    // dahinter höchstens eine kurze Einheit ("32,7 MB", "15 %", "1.234,5 €").
+    const gereinigt = text.replace(/−|–/g, '-').trim();
+    if (!ZAHL_MIT_EINHEIT.test(gereinigt)) return null;
+    const roh = gereinigt.replace(/[^\d,.\-]/g, '');
     if (!/\d/.test(roh)) return null;
     const z = parseFloat(roh.replace(/\./g, '').replace(',', '.'));
     return isNaN(z) ? null : z;

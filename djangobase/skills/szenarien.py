@@ -208,7 +208,89 @@ class Szenarienpruefer:
                     return True
             if isinstance(teil, ast.Raise):
                 return True
+        return Szenarienpruefer._urteil_als_rueckgabe(knoten)
+
+    @staticmethod
+    def _urteil_als_rueckgabe(knoten):
+        u"""Gibt die Methode ihr Urteil ZURUECK statt es zuzusichern?
+
+        WARUM DAS ZAEHLT (27.08.2026, 3DTools)
+        ======================================
+        Neben `unittest` gibt es Testbasen, deren Vertrag lautet: Eine
+        Pruefmethode liefert ``(bestanden, text)``, und der Rahmen macht
+        daraus die Zusicherung. 3DTools hat 127 solcher Faelle
+        (`tests/base.TestCategory`, umgesetzt in
+        `core/tests/ui/test_oberflaeche.py`)::
+
+            def test_scene_npz_roundtrip_preserves_rigid_vertex_count():
+                r = Clothbasis.npz_rundlauf()
+                return r.rigid_V == 3, 'rigid_V=%d' % r.rigid_V
+
+        Ohne diese Frage waren alle 127 „ohne jede Zusicherung — die melden
+        gruen, egal was passiert". Das Gegenteil ist wahr: Der Vergleich
+        steht im `return`.
+
+        Streng geprueft — eines von beiden muss dastehen:
+
+        * ein `return` mit einem VERGLEICH (`return r.rigid_V == 3, …`),
+          einem `bool(...)`/`all(...)`/`any(...)` oder einem `not`, oder
+        * ein ausdruecklicher FEHLSCHLAG-Zweig (`return False, 'Upload …'`).
+          Ein Rumpf, der irgendwo `False` zurueckgeben kann, faellt durch —
+          er meldet eben NICHT gruen, egal was passiert.
+
+        Ein `return None`, `return daten` oder ein Rumpf, der nur
+        `return True, …` kennt, bleibt ein Befund.
+        """
+        geurteilt = Szenarienpruefer._urteilsnamen(knoten)
+        fehlschlag = False
+        for teil in ast.walk(knoten):
+            if not isinstance(teil, ast.Return) or teil.value is None:
+                continue
+            wert = teil.value
+            if isinstance(wert, ast.Tuple) and wert.elts:
+                wert = wert.elts[0]
+            if Szenarienpruefer._ist_urteil(wert):
+                return True
+            if isinstance(wert, ast.Name) and wert.id in geurteilt:
+                return True
+            if isinstance(wert, ast.Constant) and wert.value is False:
+                fehlschlag = True
+        return fehlschlag
+
+    @staticmethod
+    def _ist_urteil(wert):
+        u"""Sieht dieser Ausdruck nach einem gefaellten Urteil aus?"""
+        if isinstance(wert, (ast.Compare, ast.BoolOp)):
+            return True
+        if isinstance(wert, ast.UnaryOp) and isinstance(wert.op, ast.Not):
+            return True
+        if isinstance(wert, ast.Call):
+            name = (getattr(wert.func, 'id', '')
+                    or getattr(wert.func, 'attr', ''))
+            return name in ('bool', 'all', 'any')
         return False
+
+    @staticmethod
+    def _urteilsnamen(knoten):
+        u"""Namen, denen im Rumpf ein Urteil zugewiesen wurde.
+
+        Die uebliche Schreibweise dieser Faelle ist zweizeilig::
+
+            ok = bool(abs(pos[0]) < 1e-5 and abs(pos[1] + 4.0) < 1e-5)
+            return ok, 'pos=%s' % (pos,)
+
+        Ohne diesen Schritt zaehlte nur die einzeilige Form.
+        """
+        namen = set()
+        for teil in ast.walk(knoten):
+            if not isinstance(teil, ast.Assign):
+                continue
+            if not Szenarienpruefer._ist_urteil(teil.value):
+                continue
+            for ziel in teil.targets:
+                if isinstance(ziel, ast.Name):
+                    namen.add(ziel.id)
+        return namen
 
 
 class Szenarien(BefundWerkzeug):

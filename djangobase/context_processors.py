@@ -1,6 +1,7 @@
 import logging
 
 from . import jobs
+from .basiswurzel import Basiswurzel
 from .conf import conf
 from .statik import Statik
 from .pflichtmenue import PFLICHTSEITEN
@@ -94,6 +95,12 @@ def djangobase(request):
         # ohne sie liefert der Browser-Cache alte Module aus, und der Fix kommt
         # nie an (gemessen 17.08.2026, siehe `statik.py`).
         "statik_v": Statik.kennung(),
+        # Praefix, unter dem `djangobase.urls` haengt. Die
+        # mitgelieferten JS-Module lesen ihn aus dem Grundgeruest —
+        # vorher stand `/hilfe/` in vier Dateien fest und lieferte in
+        # jedem anders eingebundenen Projekt eine stille 404
+        # (Befund 27.08.2026, siehe `basiswurzel.py`).
+        "wurzel": Basiswurzel.weg(),
         "titel": c["titel"],
         "untertitel": c["untertitel"],
         "logo_icon": c["logo_icon"],

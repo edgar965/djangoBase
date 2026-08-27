@@ -235,9 +235,14 @@ class QuelltextFallenTest(SimpleTestCase):
 
     def test_beenden_fuehrt_zur_liste(self):
         u"""„bei Klick auf Beenden soll der Tab wechseln zu /hilfe/tests/, im
-        Tab Aufzeichnen, damit ich den Testcase sehe" (Ansage 21.08.2026)."""
+        Tab Aufzeichnen, damit ich den Testcase sehe" (Ansage 21.08.2026).
+
+        Der Praefix steht seit dem 27.08.2026 NICHT mehr im Text: Er kommt aus
+        `Basiswurzel`, weil 3DTools djangoBase unter `/help/` einbindet und die
+        feste Adresse dort bei jedem Seitenaufruf in eine 404 lief. Geprueft
+        wird deshalb der Weg HINTER der Wurzel."""
         leiste = (JS / "aufzeichner_leiste.js").read_text(encoding="utf-8")
-        self.assertIn("/hilfe/tests/?tab=Aufzeichnen", leiste)
+        self.assertIn("Basiswurzel.weg('tests/?tab=Aufzeichnen')", leiste)
         self.assertIn("location.href = ZIEL", leiste)
 
     def test_abspieler_faehrt_keine_abrufe_nach(self):

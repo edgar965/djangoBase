@@ -53,6 +53,36 @@ class Doppelcode(BefundWerkzeug):
 
     #: Zeilen, die als Blockanfang nichts taugen (zu haeufig, zu leer).
     UNINTERESSANT = re.compile(r'^\s*(#|//|/\*|\*|\}|\)|\]|$)')
+
+    #: Eine Zeile, die nur etwas hereinholt.
+    #:
+    #: WARUM SIE NICHT ZAEHLT (27.08.2026, 3DTools)
+    #: ===========================================
+    #: Vier Module bekamen eine Warnung fuer diesen Block::
+    #:
+    #:     import json
+    #:     import logging
+    #:     import os
+    #:     import re
+    #:
+    #:     from django.conf import settings
+    #:
+    #: Der ist tatsaechlich in allen vier gleich — und muss es sein. Ein
+    #: Importblock laesst sich nicht zusammenfassen: Wer `json` braucht, muss
+    #: `json` importieren. Ein Befund, der nichts zu tun gibt, verdeckt die,
+    #: die etwas zu tun geben.
+    #:
+    #: Gezaehlt wird streng: NUR wenn JEDE Zeile des Fensters so aussieht.
+    #: Ein Block, der mit Importen anfaengt und mit Code weitergeht, bleibt
+    #: ein Befund.
+    NUR_HEREINGEHOLT = re.compile(
+        r'^\s*('
+        r'import\s|from\s.+\simport\s|'                 # Python und ES
+        r'export\s.*\sfrom\s|'                          # ES-Weitergabe
+        r'\{%\s*(load|extends)\s|'                      # Django-Vorlagen
+        r'#|//|'                                        # Kommentarzeilen
+        r'"""$|\'\'\'$'                                 # Ende des Docstrings
+        r')')
     #: Hoechstens so viele Stellen anzeigen (die Kappung wird im Kopf genannt).
     ZEILEN = 200
 
@@ -71,6 +101,9 @@ class Doppelcode(BefundWerkzeug):
               "den anderen — so entstehen zwei Wahrheiten")
 
     def pruefen(self, mindestens='6', **_argumente):
+        #: Wie viele Fenster nur Importe waren — gehoert in die Kopfzeile,
+        #: sonst verschweigt die Ausnahme, wie viel sie schluckt.
+        self.nur_importe = 0
         try:
             fenster = max(3, int(str(mindestens).strip() or 6))
         except ValueError:
@@ -104,6 +137,10 @@ class Doppelcode(BefundWerkzeug):
         befunde.sort(key=lambda b: b.was, reverse=True)
         kopf = ['%d Dateien geprüft, Blockgroesse %d Zeilen' % (dateien, fenster),
                 '%d Stellen mit mehrfach vorkommenden Bloecken' % len(befunde)]
+        if self.nur_importe:
+            # Nie verschweigen, wie viel die Ausnahme schluckt.
+            kopf.append('%d Fenster uebergangen: reine Importbloecke'
+                        % self.nur_importe)
         if len(befunde) > self.ZEILEN:
             # Kappung benennen, nicht verschweigen: Sonst liest sich die Liste
             # wie eine vollstaendige Bestandsaufnahme.
@@ -200,6 +237,9 @@ class Doppelcode(BefundWerkzeug):
             fensterzeilen = inhalt[start:start + fenster]
             erste = fensterzeilen[0][1]
             if self.UNINTERESSANT.match(erste):
+                continue
+            if all(self.NUR_HEREINGEHOLT.match(z) for _n, z in fensterzeilen):
+                self.nur_importe += 1
                 continue
             text = '\n'.join(z for _n, z in fensterzeilen)
             schluessel = hashlib.blake2b(text.encode('utf-8'),

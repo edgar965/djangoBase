@@ -31,9 +31,11 @@
  * die Aufnahme lässt sich also weiterhin überall starten, und sie läuft über
  * Seitenwechsel hinweg.
  */
-const PFAD = '/hilfe/tests/aufzeichnung/';
+import { Basiswurzel } from '/static/djangobase/js/basiswurzel.js';
+
+const PFAD = Basiswurzel.weg('tests/aufzeichnung/');
 const WEG = 'djb-aufz-weg';        // Bereich ausgeblendet ja/nein
-const ZIEL = '/hilfe/tests/?tab=Aufzeichnen';   // wohin es nach dem Beenden geht
+const ZIEL = Basiswurzel.weg('tests/?tab=Aufzeichnen');  // nach dem Beenden
 
 /* Wie oft die Schrittzahl beim Server nachgefragt wird. Die Sekunden laufen
  * lokal weiter; nur die SCHRITTE kennt der Server. */

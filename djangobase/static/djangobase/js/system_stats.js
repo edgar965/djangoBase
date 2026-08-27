@@ -20,6 +20,8 @@
    geteilten Datei ist teurer als anderswo: Er wird kopiert.
    ========================================================================== */
 
+import { Basiswurzel } from '/static/djangobase/js/basiswurzel.js';
+
 export class SystemStatsLeiste {
   /** Wohin gefragt wird. Anpassbar, weil JEDES Projekt ``djangobase.urls``
    *  unter einem eigenen Praefix einbindet:
@@ -33,7 +35,10 @@ export class SystemStatsLeiste {
    *
    *      SystemStatsLeiste.URL = '/meinpfad/api/system-stats/';   // vor .starten()
    */
-  static URL = '/hilfe/api/system-stats/';
+  //  Seit 27.08.2026 steht hier keine feste Adresse mehr: Der Praefix
+  //  kommt aus dem Grundgeruest (`Basiswurzel`). Ein Projekt, das die
+  //  Zeile oben vergisst, bekommt damit trotzdem die richtige.
+  static URL = Basiswurzel.weg('api/system-stats/');
 
   static WARN = 75;
   static GEFAHR = 90;

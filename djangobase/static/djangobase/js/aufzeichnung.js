@@ -24,7 +24,9 @@
  */
 import { AufzeichnungsListe } from '/static/djangobase/js/aufzeichner_liste.js';
 
-const PFAD = '/hilfe/tests/aufzeichnung/';
+import { Basiswurzel } from '/static/djangobase/js/basiswurzel.js';
+
+const PFAD = Basiswurzel.weg('tests/aufzeichnung/');
 
 const csrf = () => {
   const m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);

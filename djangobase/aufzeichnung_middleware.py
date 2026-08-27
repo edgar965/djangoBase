@@ -45,6 +45,8 @@ import re
 from django.conf import settings
 from django.templatetags.static import static
 
+from .basiswurzel import Basiswurzel
+
 #: Vor diesem Tag wird eingehängt (das LETZTE Vorkommen, case-insensitive).
 _BODY_ENDE = re.compile(rb"</body\s*>", re.IGNORECASE)
 
@@ -81,8 +83,12 @@ class AufzeichnungMiddleware:
         for aus in getattr(settings, "DJANGOBASE_AUFZEICHNUNG_AUS", ()) or ():
             if pfad.startswith(aus):
                 return False
-        # Der eigene Steuer-Endpunkt und statische Dateien nie.
-        if pfad.startswith("/hilfe/tests/aufzeichnung"):
+        # Der eigene Steuer-Endpunkt und statische Dateien nie. Die
+        # Wurzel kommt aus `Basiswurzel` — fest verdrahtet ("/hilfe/")
+        # griff der Ausschluss in jedem anders eingebundenen Projekt
+        # ins Leere, und die Aufzeichnung schrieb ihre eigene
+        # Abfrage mit (Befund 27.08.2026).
+        if pfad.startswith(Basiswurzel.weg() + "tests/aufzeichnung"):
             return False
         return True
 

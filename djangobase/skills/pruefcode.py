@@ -60,6 +60,11 @@ WURZELBASEN = {
     'TestCase', 'SimpleTestCase', 'TransactionTestCase',
     'LiveServerTestCase', 'StaticLiveServerTestCase',
     'IsolatedAsyncioTestCase',
+    # djangoBase bringt eigene Basen mit. Sie stehen NICHT im Projekt,
+    # deshalb findet die Aufloesung sie nicht von selbst — `EndpunkteTest`
+    # (3DTools) galt darum als verwaist, obwohl `EndpunktProbe` von
+    # `TestCase` erbt (Befund 27.08.2026).
+    'EndpunktProbe', 'GrundTests', 'LeistungsTests',
 }
 
 #: Womit eine Pruefmethode anfaengt. Das IST ein festes Muster — aber
@@ -80,11 +85,29 @@ class Pruefcode:
         True
     """
 
-    def __init__(self):
+    def __init__(self, zusatzbasen=None):
         #: Klassenname -> Menge der Basisnamen
         self._basen = {}
         #: Klassennamen, die (transitiv) Pruefbasen sind
-        self.pruefbasen = set(WURZELBASEN)
+        self.pruefbasen = set(WURZELBASEN) | set(
+            zusatzbasen if zusatzbasen is not None
+            else Pruefcode.projektbasen())
+
+    @staticmethod
+    def projektbasen():
+        u"""Was das Projekt als eigene Testbasis nennt (`test_basen`).
+
+        Ohne Django-Einstellungen (etwa in einem reinen Werkzeuglauf) leer —
+        dann gilt nur `WURZELBASEN`.
+        """
+        try:
+            from ..conf import conf
+            return set(conf().get('test_basen') or ())
+        # stumm gewollt: Ohne eingerichtetes Django gibt es keine
+        # Projekteinstellungen. Das ist kein Fehler, sondern der Fall
+        # „niemand hat welche genannt".
+        except Exception:                                    # noqa: BLE001
+            return set()
 
     # ── Einlesen ────────────────────────────────────────────────
 
