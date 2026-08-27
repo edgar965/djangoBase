@@ -66,6 +66,51 @@ die Prosa.
 .ab-buehne [data-ziel] { cursor: pointer; }
 .ab-buehne [data-ziel]:hover rect { fill: #dfe8f0; }
 .ab-fuss { font-size: 0.78rem; opacity: 0.7; margin-top: 0.5rem; }
+
+/* Ein Kasten zeigt beim Überfahren, dass er etwas zu sagen hat. */
+.ab-buehne .ak-teil { cursor: pointer; }
+.ab-buehne .ak-teil:hover rect,
+.ab-buehne .ak-teil:hover polygon { stroke: #1f6feb; stroke-width: 2; }
+
+/* Beim Überfahren: eine kleine Karte am Zeiger. Kein Klick nötig. */
+.ab-schwebe {
+    position: fixed; z-index: 3000; pointer-events: none;
+    background: #10151b; color: #e6edf3; border: 1px solid #2b3540;
+    border-radius: 5px; padding: 0.45rem 0.6rem; font-size: 0.78rem;
+    max-width: 380px; box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+    line-height: 1.45; display: none; }
+.ab-schwebe b { color: #38d4d8; }
+.ab-schwebe .ab-code { color: #a99bea; font-family: ui-monospace, monospace;
+                       font-size: 0.74rem; word-break: break-all; }
+
+/* Beim Klick: ein Fenster, das stehen bleibt — mit X rechts oben. */
+.ab-fenster {
+    position: fixed; z-index: 3100; top: 90px; right: 32px; width: 420px;
+    background: #10151b; color: #e6edf3; border: 1px solid #2b3540;
+    border-radius: 6px; box-shadow: 0 10px 30px rgba(0,0,0,0.55);
+    display: none; }
+.ab-fenster.auf { display: block; }
+.ab-fenster-kopf {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.5rem 0.6rem 0.5rem 0.8rem;
+    border-bottom: 1px solid #2b3540; }
+.ab-fenster-titel { flex: 1; font-size: 0.9rem; font-weight: 600;
+                    color: #38d4d8; word-break: break-all; }
+.ab-fenster-zu {
+    background: transparent; border: 0; color: #8b949e; cursor: pointer;
+    font-size: 1.1rem; line-height: 1; padding: 0.1rem 0.4rem;
+    border-radius: 4px; }
+.ab-fenster-zu:hover { background: #2b3540; color: #e6edf3; }
+.ab-fenster-rumpf { padding: 0.7rem 0.8rem; font-size: 0.82rem;
+                    line-height: 1.6; }
+.ab-fenster-rumpf dt { color: #8b949e; font-size: 0.72rem;
+                       text-transform: uppercase; letter-spacing: 0.05em;
+                       margin-top: 0.5rem; }
+.ab-fenster-rumpf dt:first-child { margin-top: 0; }
+.ab-fenster-rumpf dd { margin: 0.1rem 0 0; word-break: break-all; }
+.ab-fenster-rumpf .ab-code { font-family: ui-monospace, monospace;
+                             font-size: 0.76rem; color: #a99bea; }
+.ab-fenster-fuss { padding: 0 0.8rem 0.8rem; }
 </style>
 
 <form method="post" id="ab-form">{% csrf_token %}
@@ -119,13 +164,28 @@ die Prosa.
       </div>
       <div class="ab-buehne" style="background:#ffffff">{{ bild|safe }}</div>
       <div class="ab-fuss">
-        Ein Kasten mit hellerem Rand beim Überfahren führt weiter: Anklicken
-        zeigt den Ablauf der dort gerufenen Funktion. Rechts oben im Kasten
-        steht die Zeile im Quelltext.
+        Überfahren zeigt Klasse, Methode und Fundstelle; Anklicken hält das
+        Fenster fest. Führt der Schritt in eigenen Code, springt man von dort
+        in dessen Ablauf. Links oben im Kasten steht die Zeile im Quelltext.
       </div>
     {% else %}
       <div class="ab-zahl">Kein Einstieg gewählt.</div>
     {% endif %}
+  </div>
+</div>
+
+<div class="ab-schwebe" id="ab-schwebe"></div>
+
+<div class="ab-fenster" id="ab-fenster">
+  <div class="ab-fenster-kopf">
+    <span class="ab-fenster-titel" id="ab-fenster-titel">—</span>
+    <button type="button" class="ab-fenster-zu" id="ab-fenster-zu"
+            title="Schließen (Esc)" aria-label="Schließen">&times;</button>
+  </div>
+  <div class="ab-fenster-rumpf" id="ab-fenster-rumpf"></div>
+  <div class="ab-fenster-fuss">
+    <button type="button" class="ab-knopf" id="ab-fenster-hin"
+            style="display:none">Ablauf dieser Funktion zeigen</button>
   </div>
 </div>
 
@@ -138,11 +198,83 @@ document.querySelectorAll('.ab-liste tr[data-weg]').forEach((zeile) => {
         form.submit();
     });
 });
-document.querySelectorAll('.ab-buehne [data-ziel]').forEach((teil) => {
-    teil.addEventListener('click', () => {
-        document.getElementById('ab-funktion').value = teil.dataset.ziel;
-        form.submit();
+// ── Woher ein Kasten kommt ──────────────────────────────────────────
+//
+// Der Satz im Kasten ist Prosa und sagt darum nicht, WO das steht. Beim
+// Überfahren erscheint eine Karte am Zeiger, beim Klick bleibt sie als
+// Fenster stehen — mit X rechts oben.
+//
+// Vorher sprang ein Klick sofort in den nächsten Ablauf. Das war ein
+// Schritt zu viel: Meist will man erst wissen, wohin es überhaupt ginge.
+
+const schwebe = document.getElementById('ab-schwebe');
+const fenster = document.getElementById('ab-fenster');
+const fTitel = document.getElementById('ab-fenster-titel');
+const fRumpf = document.getElementById('ab-fenster-rumpf');
+const fHin = document.getElementById('ab-fenster-hin');
+
+/** Die Angaben eines Kastens als Liste von [Beschriftung, Wert, Code?]. */
+function angaben(d) {
+    const zeilen = [];
+    if (d.klasse) zeilen.push([d.erzeugt ? 'Klasse (wird erzeugt)' : 'Klasse',
+                               d.klasse]);
+    if (d.methode) zeilen.push(['Methode', d.methode]);
+    if (d.funktion) zeilen.push(['Funktion', d.funktion]);
+    if (d.modul) zeilen.push(['definiert in',
+                              d.modul + (d.zielzeile ? ':' + d.zielzeile : ''),
+                              true]);
+    if (d.zeile) zeilen.push(['Aufruf in Zeile', d.zeile]);
+    if (d.doku) zeilen.push(['Beschreibung', d.doku]);
+    if (d.quelle) zeilen.push(['im Quelltext', d.quelle, true]);
+    return zeilen;
+}
+
+function kurzTitel(d) {
+    if (d.klasse && d.methode) return d.klasse + '.' + d.methode;
+    return d.klasse || d.methode || d.funktion || (d.art === 'frage'
+        ? 'Entscheidung' : 'Schritt');
+}
+
+document.querySelectorAll('.ab-buehne .ak-teil').forEach((teil) => {
+    const d = teil.dataset;
+    teil.addEventListener('mousemove', (ev) => {
+        if (fenster.classList.contains('auf')) return;
+        schwebe.innerHTML = '<b>' + kurzTitel(d) + '</b><br>'
+            + angaben(d).slice(0, 3).map(
+                ([k, v, code]) => k + ': '
+                    + (code ? '<span class="ab-code">' + v + '</span>' : v)
+              ).join('<br>');
+        schwebe.style.display = 'block';
+        // Nicht über den rechten Rand hinaus.
+        const b = schwebe.getBoundingClientRect();
+        schwebe.style.left = Math.min(ev.clientX + 16,
+                                      window.innerWidth - b.width - 12) + 'px';
+        schwebe.style.top = (ev.clientY + 18) + 'px';
     });
+    teil.addEventListener('mouseleave', () => {
+        schwebe.style.display = 'none';
+    });
+    teil.addEventListener('click', () => {
+        schwebe.style.display = 'none';
+        fTitel.textContent = kurzTitel(d);
+        fRumpf.innerHTML = '<dl>' + angaben(d).map(
+            ([k, v, code]) => '<dt>' + k + '</dt><dd'
+                + (code ? ' class="ab-code"' : '') + '>' + v + '</dd>'
+          ).join('') + '</dl>';
+        fHin.style.display = d.ziel ? 'inline-block' : 'none';
+        fHin.dataset.ziel = d.ziel || '';
+        fenster.classList.add('auf');
+    });
+});
+
+function fensterZu() { fenster.classList.remove('auf'); }
+document.getElementById('ab-fenster-zu').addEventListener('click', fensterZu);
+document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape') fensterZu();
+});
+fHin.addEventListener('click', () => {
+    document.getElementById('ab-funktion').value = fHin.dataset.ziel;
+    form.submit();
 });
 </script>
 {% endblock %}

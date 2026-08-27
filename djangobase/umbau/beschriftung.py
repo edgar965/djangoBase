@@ -90,6 +90,58 @@ class Beschriftung:
         return cls(getattr(knoten, 'aufruf', '') or knoten.text, bezug,
                    getattr(knoten, 'empfaenger', '')).satz()
 
+    @classmethod
+    def herkunft(cls, knoten, verzeichnis=None):
+        u"""Woher dieser Kasten kommt — Klasse, Methode, Modul, Zeile.
+
+        DIE ANSAGE (Edgar, 27.08.2026)
+        ==============================
+            „kannst du hover und popups machen, die bei Klick auf einen
+             Bereich die Klasse und die Methode anzeigt?"
+
+        Der Satz im Kasten ist Prosa und sagt darum NICHT, wo das steht.
+        Beides zugleich in den Kasten zu schreiben ginge nicht — dann
+        waere er wieder Quelltext.
+
+        Zwei Zeilen werden unterschieden:
+
+            zeile     wo der AUFRUF steht (im gezeigten Ablauf)
+            ziel_*    wo die gerufene Funktion DEFINIERT ist
+
+        Das ist nicht dasselbe, und wer springen will, meint meist das
+        zweite.
+        """
+        angaben = {
+            'quelle': getattr(knoten, 'text', ''),
+            'zeile': getattr(knoten, 'zeile', 0),
+            'art': getattr(knoten, 'art', ''),
+        }
+        ziel = getattr(knoten, 'ziel', '')
+        if not ziel or verzeichnis is None:
+            return angaben
+        klasse, _punkt, name = ziel.rpartition('.')
+        if klasse:
+            bezug = verzeichnis.in_klasse(klasse, name)
+            angaben['klasse'] = klasse
+            angaben['methode'] = name
+        elif name in verzeichnis.klassen:
+            # ERZEUGEN IST KEIN METHODENAUFRUF (27.08.2026)
+            # `self.service = RecordingService(...)` stand als
+            # „Methode: RecordingService" im Fenster. Hier wird eine
+            # KLASSE gebaut; wer das verwechselt, sucht die Methode im
+            # falschen Modul.
+            bezug = verzeichnis.klassen[name]
+            angaben['klasse'] = name
+            angaben['erzeugt'] = 'ja'
+        else:
+            bezug = verzeichnis.funktionen.get(name)
+            angaben['funktion'] = name
+        if bezug is not None:
+            angaben['modul'] = bezug.modul
+            angaben['zielzeile'] = bezug.zeile
+            angaben['doku'] = cls('', bezug).aus_doku()
+        return angaben
+
     # ── Der Satz ────────────────────────────────────────────────
 
     def satz(self):

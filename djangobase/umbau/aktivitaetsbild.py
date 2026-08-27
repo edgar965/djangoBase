@@ -58,9 +58,11 @@ FARBEN = {
 class Teil:
     u"""Ein gezeichnetes Element mit Mittelpunkt und Groesse."""
 
-    __slots__ = ('art', 'text', 'x', 'y', 'breite', 'hoehe', 'ziel', 'zeile')
+    __slots__ = ('art', 'text', 'x', 'y', 'breite', 'hoehe', 'ziel',
+                 'zeile', 'knoten')
 
-    def __init__(self, art, text, x, y, breite, hoehe, ziel='', zeile=0):
+    def __init__(self, art, text, x, y, breite, hoehe, ziel='', zeile=0,
+                 knoten=None):
         self.art = art
         self.text = text
         self.x = x            # Mitte
@@ -69,6 +71,9 @@ class Teil:
         self.hoehe = hoehe
         self.ziel = ziel
         self.zeile = zeile
+        #: Der Ablauf-Knoten dahinter — Grundlage der Angaben beim
+        #: Ueberfahren und beim Anklicken.
+        self.knoten = knoten
 
     @property
     def unten(self):
@@ -86,11 +91,23 @@ class Teil:
 class Aktivitaetsbild:
     u"""Ein ``Ablauf`` im Stil eines UML-Aktivitaetsdiagramms."""
 
-    def __init__(self, ablauf, beschrifter=None):
+    def __init__(self, ablauf, beschrifter=None, herkunft=None):
         self.ablauf = ablauf
         #: ``knoten -> Satz`` — wird von aussen gestellt, damit das Bild
         #: nichts ueber Docstrings und Namen wissen muss.
         self.beschrifter = beschrifter or (lambda k: k.text)
+        #: ``knoten -> dict`` mit Klasse, Methode, Modul, Zeile.
+        #:
+        #: WOHER EIN KASTEN KOMMT (27.08.2026, auf Ansage)
+        #: ==============================================
+        #:     „kannst du hover und popups machen, die bei Klick auf einen
+        #:      Bereich die Klasse und die Methode anzeigt?"
+        #:
+        #: Der Satz im Kasten ist Prosa — gut zum Lesen, aber er sagt
+        #: nicht, WO das steht. Diese Angaben haengen als Daten am Kasten;
+        #: die Seite macht daraus ein Fenster beim Ueberfahren und beim
+        #: Anklicken. Das Bild selbst bleibt ein Bild.
+        self.herkunft = herkunft or (lambda k: {})
         self.teile = []
         self.kanten = []      # (x1,y1,x2,y2,marke) — als Polylinie
         self.breite = 0
@@ -133,7 +150,7 @@ class Aktivitaetsbild:
         hoehe = KASTEN_H if k.art != 'ende' else KASTEN_H
         art = 'ausgang' if k.art == 'ende' else 'kasten'
         teil = Teil(art, text, achse, y, KASTEN_B, hoehe,
-                    getattr(k, 'ziel', ''), k.zeile)
+                    getattr(k, 'ziel', ''), k.zeile, k)
         self.teile.append(teil)
         if voriges is not None:
             self._pfeil(voriges, teil)
@@ -141,7 +158,8 @@ class Aktivitaetsbild:
 
     def _frage(self, k, text, achse, y, voriges):
         u"""Raute auf der Achse, ``ja`` nach links, danach zurueck."""
-        raute = Teil('frage', text, achse, y, RAUTE, RAUTE, '', k.zeile)
+        raute = Teil('frage', text, achse, y, RAUTE, RAUTE, '',
+                     k.zeile, k)
         self.teile.append(raute)
         if voriges is not None:
             self._pfeil(voriges, raute)
@@ -193,7 +211,8 @@ class Aktivitaetsbild:
             self._pfeil(voriges, balken)
         y = balken.unten + LUFT
         y, letzte = self._folge(k.rumpf, achse, y, balken)
-        raute = Teil('frage', text, achse, y, RAUTE, RAUTE, '', k.zeile)
+        raute = Teil('frage', text, achse, y, RAUTE, RAUTE, '',
+                     k.zeile, k)
         self.teile.append(raute)
         if letzte is not None:
             self._pfeil(letzte, raute)
@@ -362,19 +381,35 @@ class Aktivitaetsbild:
             punkte = '%.0f,%.0f %.0f,%.0f %.0f,%.0f %.0f,%.0f' % (
                 t.x, t.y, t.x + h / 2.0, t.y + h / 2.0,
                 t.x, t.y + h, t.x - h / 2.0, t.y + h / 2.0)
-            return ['<polygon points="%s" fill="%s" stroke="%s"/>'
-                    % (punkte, fuell, rand)]
+            inhalt = ['<polygon points="%s" fill="%s" stroke="%s"/>'
+                      % (punkte, fuell, rand)]
+            return self._umhuellen(t, inhalt)
         fuell, rand, _t = FARBEN['kasten']
         rund = 22 if t.art == 'ausgang' else 6
-        aus = ['<rect x="%.0f" y="%.0f" width="%d" height="%d" rx="%d" '
-               'fill="%s" stroke="%s"/>' % (t.links, t.y, t.breite, t.hoehe,
-                                            rund, fuell, rand)]
+        inhalt = ['<rect x="%.0f" y="%.0f" width="%d" height="%d" rx="%d" '
+                  'fill="%s" stroke="%s"/>' % (t.links, t.y, t.breite,
+                                               t.hoehe, rund, fuell, rand)]
+        inhalt.extend(self._text(t))
+        return self._umhuellen(t, inhalt)
+
+    def _umhuellen(self, t, inhalt):
+        u"""Die Herkunft als Daten an den Kasten haengen.
+
+        Jeder Kasten und jede Raute — nicht nur die mit einem Ziel: Auch
+        wo der Weg nicht weitergeht, will man wissen, WO das steht. Die
+        Seite baut daraus das Fenster beim Ueberfahren und beim Anklicken.
+        """
+        if t.knoten is None:
+            return inhalt
+        angaben = dict(self.herkunft(t.knoten) or {})
+        angaben.setdefault('zeile', t.zeile)
         if t.ziel:
-            aus.insert(0, '<g data-ziel="%s">' % escape(t.ziel))
-        aus.extend(self._text(t))
-        if t.ziel:
-            aus.append('</g>')
-        return aus
+            angaben['ziel'] = t.ziel
+        felder = ' '.join('data-%s="%s"' % (name, escape(str(wert)))
+                          for name, wert in sorted(angaben.items()) if wert)
+        if not felder:
+            return inhalt
+        return (['<g class="ak-teil" %s>' % felder] + inhalt + ['</g>'])
 
     def _text(self, t):
         u"""Bis zu zwei Zeilen mittig im Kasten."""

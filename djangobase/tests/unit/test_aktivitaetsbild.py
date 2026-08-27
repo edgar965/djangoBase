@@ -175,3 +175,117 @@ class AusgabeIstKeineHandlung(BasisTest):
             "    self.stdout.write(self.style.SUCCESS('fertig'))\n"
             '    self.arbeiten()\n')).lesen()
         self.assertEqual([k.aufruf for k in lauf.knoten], ['arbeiten'])
+
+
+class _EinVerzeichnis:
+    """Ein Verzeichnis mit genau einer bekannten Methode."""
+
+    class _Bezug:
+        # `anzeige` braucht `Ablauf._ziel`, um das Ziel zu benennen.
+        anzeige = 'Dienst.vorbereiten'
+        modul = 'app.dienst'
+        zeile = 42
+        knoten = ast.parse('def vorbereiten(self):\n'
+                           '    """Raeumt auf."""\n'
+                           '    pass\n').body[0]
+
+    klassen = {}
+    funktionen = {}
+
+    def in_klasse(self, _klasse, name):
+        return self._Bezug() if name == 'vorbereiten' else None
+
+    def methode(self, name):
+        return self._Bezug() if name == 'vorbereiten' else None
+
+    @staticmethod
+    def mehrdeutig(_name):
+        return False
+
+
+class _NurEineKlasse:
+    """Ein Verzeichnis, das nur eine KLASSE kennt — keine Methode."""
+
+    klassen = {'Dienst': type('B', (), {
+        # `anzeige` braucht `Ablauf._ziel`, um das Ziel zu benennen.
+        'anzeige': 'Dienst', 'modul': 'app.d', 'zeile': 1,
+        'knoten': ast.parse('class Dienst:\n    pass\n').body[0]})()}
+    funktionen = {}
+
+    @staticmethod
+    def in_klasse(_klasse, _name):
+        return None
+
+    @staticmethod
+    def methode(_name):
+        return None
+
+    @staticmethod
+    def mehrdeutig(_name):
+        return False
+
+
+class JederKastenSagtWoherErKommt(BasisTest):
+    u"""Klasse, Methode und Fundstelle als Daten am Kasten.
+
+        „kannst du hover und popups machen, die bei Klick auf einen
+         Bereich die Klasse und die Methode anzeigt?" (27.08.2026)
+
+    Der Satz im Kasten ist Prosa und sagt darum NICHT, wo das steht.
+    Beides zugleich hineinzuschreiben ginge nicht — dann wäre der Kasten
+    wieder Quelltext. Also hängen die Angaben als Daten daran, und die
+    Seite baut daraus das Fenster.
+    """
+
+    QUELLE = ('def f(self):\n'
+              '    self.service.vorbereiten()\n')
+
+    def _knoten(self):
+        v = _EinVerzeichnis()
+        return Ablauf(_Bezug(self.QUELLE), v).lesen().knoten[0], v
+
+    def test_die_methode_steht_am_kasten(self):
+        knoten, v = self._knoten()
+        self.assertEqual(Beschriftung.herkunft(knoten, v).get('methode'),
+                         'vorbereiten')
+
+    def test_die_fundstelle_der_definition_steht_dabei(self):
+        u"""Wo der AUFRUF steht und wo die Funktion DEFINIERT ist, sind
+        zwei verschiedene Zeilen. Wer springen will, meint die zweite."""
+        knoten, v = self._knoten()
+        angaben = Beschriftung.herkunft(knoten, v)
+        self.assertEqual(angaben.get('modul'), 'app.dienst')
+        self.assertEqual(angaben.get('zielzeile'), 42)
+        self.assertEqual(angaben.get('zeile'), 2)
+
+    def test_die_quellzeile_bleibt_erhalten(self):
+        knoten, v = self._knoten()
+        self.assertIn('vorbereiten',
+                      Beschriftung.herkunft(knoten, v).get('quelle', ''))
+
+    def test_eine_erzeugte_klasse_heisst_nicht_methode(self):
+        u"""``self.x = RecordingService(...)`` stand als „Methode:
+        RecordingService" im Fenster. Hier wird eine KLASSE gebaut, und
+        wer das verwechselt, sucht im falschen Modul."""
+        v = _NurEineKlasse()
+        knoten = Ablauf(_Bezug('def f(self):\n    self.x = Dienst()\n'),
+                        v).lesen().knoten[0]
+        angaben = Beschriftung.herkunft(knoten, v)
+        self.assertEqual(angaben.get('klasse'), 'Dienst')
+        self.assertEqual(angaben.get('erzeugt'), 'ja')
+        self.assertNotIn('methode', angaben)
+
+    def test_im_bild_haengen_die_daten_am_kasten(self):
+        v = _EinVerzeichnis()
+        lauf = Ablauf(_Bezug(self.QUELLE), v).lesen()
+        svg = Aktivitaetsbild(
+            lauf,
+            beschrifter=lambda k: Beschriftung.fuer(k, v),
+            herkunft=lambda k: Beschriftung.herkunft(k, v)).svg()
+        self.assertIn('<g class="ak-teil"', svg)
+        self.assertIn('data-methode="vorbereiten"', svg)
+        self.assertIn('data-modul="app.dienst"', svg)
+
+    def test_ohne_herkunft_erfindet_der_zeichner_nichts(self):
+        svg = Aktivitaetsbild(Ablauf(_Bezug(self.QUELLE)).lesen()).svg()
+        self.assertNotIn('data-modul', svg)

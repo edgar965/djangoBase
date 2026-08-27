@@ -95,7 +95,9 @@ class AblaufView(ZugriffMixin, View):
             return None, ''
         lauf = Ablauf(bezug, verzeichnis).lesen()
         bild = Aktivitaetsbild(
-            lauf, lambda k: Beschriftung.fuer(k, verzeichnis))
+            lauf,
+            beschrifter=lambda k: Beschriftung.fuer(k, verzeichnis),
+            herkunft=lambda k: Beschriftung.herkunft(k, verzeichnis))
         return lauf, bild.svg()
 
     # ── Auswahl (wie bei den Workflows) ─────────────────────────
