@@ -13,6 +13,7 @@ from .review import (ReviewView, ReviewStartView, ReviewNachfassenView,
 from .aktuell import AktuellView, AktuellDatenView, AktuellLeerenView
 from .settings import EinstellungenView, EinstellungenTabsView
 from .klassenmodell import KlassenmodellView
+from .ablaufseite import AblaufView
 from .workflows import WorkflowsDatenView, WorkflowsView
 from .skills import SkillsView
 from .traffic import TrafficView, VerbrauchBeaconView

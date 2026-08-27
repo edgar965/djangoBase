@@ -2,7 +2,7 @@ from django.urls import path
 
 from .views import api_system_stats
 from .views.ki_modelle import KiModelleView
-from .views import (WorkflowsDatenView, WorkflowsView,
+from .views import (AblaufView, WorkflowsDatenView, WorkflowsView,
                     AufzeichnungView, AktuellDatenView, AktuellLeerenView,
                     AktuellView,
                     BenutzerBearbeitenView, BenutzerErstellenView,
@@ -58,6 +58,7 @@ urlpatterns = [
     path("klassenmodell/", KlassenmodellView.as_view(),
          name="klassenmodell"),
     path("workflows/", WorkflowsView.as_view(), name="workflows"),
+    path("ablauf/", AblaufView.as_view(), name="ablauf"),
     path("workflows/daten/", WorkflowsDatenView.as_view(),
          name="workflows_daten"),
     # Skills2 und Skills3 sind UEBERGANGSSEITEN auf dem Weg zur Abschaffung

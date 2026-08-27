@@ -63,6 +63,8 @@ BILDWERKE = (
       'djangobase/umbau/workflowbild.py',
       'djangobase/umbau/workflows.py',
       'djangobase/umbau/wegenetz.py',
+      'djangobase/umbau/ablauf.py',
+      'djangobase/umbau/ablaufbild.py',
       'djangobase/templates/djangobase/hilfe/workflows.html')),
 )
 

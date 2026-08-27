@@ -117,6 +117,11 @@ PFLICHTSEITEN = (
         "oder einem Faden aus tatsächlich gerufen wird — aus dem Quelltext "
         "gelesen, sortiert nach Anzahl der beteiligten Klassen"),
     PflichtEintrag(
+        "Ablauf", "bi-diagram-2", "ablauf",
+        "Was passiert in welcher Reihenfolge? Ein Aktivitätsdiagramm je "
+        "Einstieg — mit Entscheidungen als Rauten und lesbaren Sätzen "
+        "statt Quelltext"),
+    PflichtEintrag(
         "Review", "bi-chat-left-text", "review",
         "Code-Review im Gespräch mit einem zweiten Modell — die Runden "
         "laufen im Hintergrund, eine bis fünf Minuten"),

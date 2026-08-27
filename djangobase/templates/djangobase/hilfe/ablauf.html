@@ -1,0 +1,148 @@
+{% extends djangobase.base_template|default:"djangobase/base.html" %}
+
+{% block title_extra %} · Ablauf{% endblock %}
+{% block topbar_title %}<i class="bi bi-diagram-2"></i> Hilfe · Ablauf{% endblock %}
+
+{% comment %}
+Ein Aktivitätsdiagramm je Einstieg (27.08.2026, auf Ansage und nach
+Vorlage): gefüllter Kreis oben, Mittelachse, abgerundete Kästen mit
+lesbaren Sätzen, Rauten mit beschrifteten Kanten, Doppelkreis unten.
+
+Die Sätze kommen aus dem Docstring der gerufenen Funktion, sonst aus
+ihrem Namen als Wörter gelesen — NICHT übersetzt (siehe
+umbau/beschriftung.py).
+
+/hilfe/workflows/ bleibt daneben bestehen: Dort steht der Quelltext, hier
+die Prosa.
+{% endcomment %}
+
+{% block content %}
+<style>
+.ab-kopf { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;
+           margin-bottom: 0.8rem; }
+.ab-zahl { font-size: 0.82rem; opacity: 0.75; }
+.ab-zahl b { color: var(--ct-accent, #38d4d8); font-weight: 600; }
+.ab-knopf { background: #1f6feb; color: #fff; border: 0; border-radius: 4px;
+            padding: 0.4rem 1rem; font-size: 0.86rem; cursor: pointer; }
+.ab-knopf:hover { background: #2b7ef7; }
+.ab-knopf-matt { background: #2b3540; }
+
+.ab-reiter { display: flex; gap: 0.3rem; flex-wrap: wrap;
+             border-bottom: 1px solid var(--ct-border, #2a3038);
+             margin-bottom: 0.9rem; }
+.ab-reiter button {
+    background: transparent; border: 0; border-bottom: 2px solid transparent;
+    color: var(--ct-text-muted, #8b949e); padding: 0.45rem 0.9rem;
+    font-size: 0.88rem; cursor: pointer; }
+.ab-reiter button.an { color: var(--ct-accent, #38d4d8);
+                       border-bottom-color: var(--ct-accent, #38d4d8); }
+.ab-reiter .ab-n { opacity: 0.6; font-size: 0.78rem; margin-left: 0.3rem; }
+
+.ab-raster { display: grid; grid-template-columns: 300px minmax(0, 1fr);
+             gap: 1rem; align-items: start; }
+@media (max-width: 900px) { .ab-raster { grid-template-columns: 1fr; } }
+
+.ab-liste { border: 1px solid var(--ct-border, #2a3038); border-radius: 5px;
+            overflow: hidden; }
+.ab-liste table { width: 100%; border-collapse: collapse; }
+.ab-liste td { padding: 5px 8px; font-size: 0.8rem; cursor: pointer;
+               border-bottom: 1px solid var(--ct-border, #2a3038); }
+.ab-liste tr:hover td { background: rgba(255,255,255,0.04); }
+.ab-liste tr.an td { background: rgba(56,212,216,0.10); }
+.ab-liste tr.an td:first-child { box-shadow: inset 3px 0 0 #38d4d8; }
+.ab-liste .ab-titel { word-break: break-all; }
+.ab-art { display: inline-block; font-size: 0.68rem; padding: 0 5px;
+          border-radius: 8px; margin-right: 4px; opacity: 0.85; }
+.ab-art-seite  { background: rgba(56,212,216,0.18);  color: #38d4d8; }
+.ab-art-api    { background: rgba(139,123,216,0.18); color: #a99bea; }
+.ab-art-befehl { background: rgba(106,187,106,0.18); color: #6abb6a; }
+.ab-art-faden  { background: rgba(255,193,7,0.14);   color: #ffc107; }
+
+/* Die Bühne ist hell — ein Aktivitätsdiagramm lebt von Weiß. */
+.ab-buehne { background: #ffffff !important; border: 1px solid var(--ct-border, #2a3038);
+             border-radius: 5px; overflow: auto; max-height: 80vh;
+             padding: 0.5rem; }
+.ab-buehne svg { display: block; margin: 0 auto; }
+.ab-buehne [data-ziel] { cursor: pointer; }
+.ab-buehne [data-ziel]:hover rect { fill: #dfe8f0; }
+.ab-fuss { font-size: 0.78rem; opacity: 0.7; margin-top: 0.5rem; }
+</style>
+
+<form method="post" id="ab-form">{% csrf_token %}
+  <input type="hidden" name="reiter" id="ab-reiter" value="{{ offen }}">
+  <input type="hidden" name="weg" id="ab-weg" value="{% if weg %}{{ weg.einstieg.titel }}{% endif %}">
+  <input type="hidden" name="funktion" id="ab-funktion" value="">
+
+  <div class="ab-kopf">
+    <button class="ab-knopf" type="submit" name="neu" value="1">Neu berechnen</button>
+    {% if zurueck %}
+      <button class="ab-knopf ab-knopf-matt" type="submit">← zurück zum Einstieg</button>
+    {% endif %}
+    <span class="ab-zahl">
+      <b>{{ kennzahlen.workflows }}</b> Einstiege &middot;
+      Sätze aus dem Docstring der gerufenen Funktion, sonst aus ihrem Namen
+      &mdash; nicht übersetzt
+      {% if alter %}&middot; gelesen vor {{ alter|floatformat:0 }} s{% endif %}
+    </span>
+  </div>
+
+  <div class="ab-reiter">
+    {% for r in reiter %}
+      <button type="submit" name="reiter" value="{{ r.kuerzel }}"
+              class="{% if r.kuerzel == offen %}an{% endif %}">
+        {{ r.titel }}<span class="ab-n">{{ r.anzahl }}</span>
+      </button>
+    {% endfor %}
+  </div>
+</form>
+
+<div class="ab-raster">
+  <div class="ab-liste">
+    <table><tbody>
+    {% for w in wege %}
+      <tr class="{% if w.aktiv %}an{% endif %}" data-weg="{{ w.titel }}">
+        <td class="ab-titel">
+          <span class="ab-art ab-art-{{ w.art }}">{{ w.art }}</span>
+          {{ w.titel }}
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td>Noch nichts gelesen — „Neu berechnen" drücken.</td></tr>
+    {% endfor %}
+    </tbody></table>
+  </div>
+
+  <div>
+    {% if ablauf %}
+      <div class="ab-zahl" style="margin-bottom:.4rem">
+        <b>{{ ablauf.name }}</b> &middot; {{ ablauf.modul }}:{{ ablauf.zeile }}
+      </div>
+      <div class="ab-buehne" style="background:#ffffff">{{ bild|safe }}</div>
+      <div class="ab-fuss">
+        Ein Kasten mit hellerem Rand beim Überfahren führt weiter: Anklicken
+        zeigt den Ablauf der dort gerufenen Funktion. Rechts oben im Kasten
+        steht die Zeile im Quelltext.
+      </div>
+    {% else %}
+      <div class="ab-zahl">Kein Einstieg gewählt.</div>
+    {% endif %}
+  </div>
+</div>
+
+<script type="module">
+const form = document.getElementById('ab-form');
+document.querySelectorAll('.ab-liste tr[data-weg]').forEach((zeile) => {
+    zeile.addEventListener('click', () => {
+        document.getElementById('ab-weg').value = zeile.dataset.weg;
+        document.getElementById('ab-funktion').value = '';
+        form.submit();
+    });
+});
+document.querySelectorAll('.ab-buehne [data-ziel]').forEach((teil) => {
+    teil.addEventListener('click', () => {
+        document.getElementById('ab-funktion').value = teil.dataset.ziel;
+        form.submit();
+    });
+});
+</script>
+{% endblock %}
