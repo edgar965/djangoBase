@@ -143,36 +143,63 @@ class Beschriftung:
             angaben['modul'] = bezug.modul
             angaben['zielzeile'] = bezug.zeile
             angaben['doku'] = cls('', bezug).aus_doku()
-            angaben['gerufenvon'] = cls._rufer(bezug, verzeichnis)
+            angaben['voll'] = cls._voll(bezug)
+            rufer = cls._ruferliste(bezug, verzeichnis)
+            if rufer:
+                angaben['gerufenvon'] = '|'.join(rufer)
+                angaben['ruferzahl'] = len(rufer)
         return angaben
+
+    @staticmethod
+    def _voll(bezug):
+        u"""Die Kennung, wie man sie nennt: ``Klasse.methode``.
+
+        OBEN STEHT, WORUM ES GEHT (27.08.2026, auf Ansage)
+        =================================================
+            „mach doch oben Klasse.Methode"
+
+        Bei einer freien Funktion gibt es keine Klasse. Dann traegt der
+        LETZTE Teil des Moduls den Gegenstand: ``path_resolver
+        .get_trt_cache_dir``. Der ganze Modulpfad waere zu lang fuer eine
+        Ueberschrift und steht ohnehin darunter.
+        """
+        if getattr(bezug, 'klasse', ''):
+            return '%s.%s' % (bezug.klasse, bezug.name)
+        letzter = str(getattr(bezug, 'modul', '')).rsplit('.', 1)[-1]
+        return '%s.%s' % (letzter, bezug.name) if letzter else bezug.name
 
     #: So viele Rufer nennt das Fenster; darüber wird nur gezählt.
     RUFER = 6
 
     @classmethod
-    def _rufer(cls, bezug, verzeichnis):
-        u"""Wer ruft diese Stelle sonst noch?
+    def _ruferliste(cls, bezug, verzeichnis):
+        u"""Wer ruft diese Stelle sonst noch? — als LISTE, nicht als Satz.
 
-            „auch von wem die aufgerufen wird" (Edgar, 27.08.2026)
+            „auch von wem die aufgerufen wird … darunter, ebenfalls
+             Klasse.Methode" (Edgar, 27.08.2026)
 
         Ein Bild zeigt EINEN Weg. „Wer ruft das hier eigentlich?" ist die
         Frage, die man stellt, bevor man etwas aendert — und die das Bild
-        nicht beantwortet, weil die anderen Rufer eben nicht darin stehen.
+        nicht beantwortet, weil die anderen Rufer nicht darin stehen.
 
-        Bei vielen Rufern wird gekuerzt: Eine Liste mit dreissig Namen
-        beantwortet die Frage auch nicht mehr, sie verdeckt sie.
+        ALS LISTE, NICHT ALS FLIESSTEXT: Vier Namen hintereinander
+        („AdaFaceEmbedder._init_session, Command.handle, TrtWarmupRunner
+        .cache_dir, trt_cache_dir") laufen ueber zwei Zeilen um und sind
+        nicht mehr auseinanderzuhalten. Untereinander liest man sie.
+
+        Gekuerzt wird trotzdem: Dreissig Namen beantworten die Frage auch
+        nicht mehr, sie verdecken sie. Die GESAMTZAHL bleibt daneben
+        stehen — sie sagt, wie weit eine Aenderung reicht.
         """
         try:
             rufer = verzeichnis.rufer(bezug.schluessel)
         except (AttributeError, TypeError):
-            return ''
+            return []
         namen = sorted({r.anzeige for r in rufer})
-        if not namen:
-            return ''
         if len(namen) <= cls.RUFER:
-            return ', '.join(namen)
-        return '%s … und %d weitere' % (', '.join(namen[:cls.RUFER]),
-                                        len(namen) - cls.RUFER)
+            return namen
+        return namen[:cls.RUFER] + [u'… und %d weitere'
+                                    % (len(namen) - cls.RUFER)]
 
     # ── Der Satz ────────────────────────────────────────────────
 

@@ -186,6 +186,8 @@ class _EinVerzeichnis:
         anzeige = 'Dienst.vorbereiten'
         schluessel = 'app.dienst:Dienst.vorbereiten'
         modul = 'app.dienst'
+        klasse = 'Dienst'
+        name = 'vorbereiten'
         zeile = 42
         knoten = ast.parse('def vorbereiten(self):\n'
                            '    """Raeumt auf."""\n'
@@ -211,6 +213,7 @@ class _NurEineKlasse:
     klassen = {'Dienst': type('B', (), {
         # `anzeige` braucht `Ablauf._ziel`, um das Ziel zu benennen.
         'anzeige': 'Dienst', 'modul': 'app.d', 'zeile': 1,
+        'schluessel': 'app.d:Dienst', 'klasse': '', 'name': 'Dienst',
         'knoten': ast.parse('class Dienst:\n    pass\n').body[0]})()}
     funktionen = {}
 
@@ -364,14 +367,6 @@ class DasFensterNenntDieRufer(BasisTest):
             return [type('B', (), {'anzeige': 'Erster.tun'})(),
                     type('B', (), {'anzeige': 'Zweiter.tun'})()]
 
-    def test_die_rufer_stehen_in_den_angaben(self):
-        v = self._MitRufern()
-        knoten = Ablauf(_Bezug('def f(self):\n'
-                               '    self.service.vorbereiten()\n'),
-                        v).lesen().knoten[0]
-        self.assertEqual(Beschriftung.herkunft(knoten, v).get('gerufenvon'),
-                         'Erster.tun, Zweiter.tun')
-
     def test_bei_vielen_rufern_wird_gekuerzt(self):
         u"""Eine Liste mit dreißig Namen beantwortet die Frage nicht mehr,
         sie verdeckt sie."""
@@ -387,11 +382,58 @@ class DasFensterNenntDieRufer(BasisTest):
         text = Beschriftung.herkunft(knoten, v).get('gerufenvon', '')
         self.assertIn('und 14 weitere', text)
 
-    def test_ohne_rufer_bleibt_das_feld_leer(self):
-        u"""Kein „0 Rufer" — ein leeres Feld zeigt die Seite gar nicht an."""
+    def test_ohne_rufer_gibt_es_kein_feld(self):
+        u"""Kein „0 Rufer" — was leer ist, zeigt die Seite gar nicht an."""
         v = _EinVerzeichnis()
         knoten = Ablauf(_Bezug('def f(self):\n'
                                '    self.service.vorbereiten()\n'),
                         v).lesen().knoten[0]
-        self.assertEqual(Beschriftung.herkunft(knoten, v).get('gerufenvon'),
-                         '')
+        self.assertNotIn('gerufenvon', Beschriftung.herkunft(knoten, v))
+
+    def test_die_rufer_kommen_als_liste_nicht_als_satz(self):
+        u"""Vier Namen im Fließtext kann niemand auseinanderhalten."""
+        v = self._MitRufern()
+        knoten = Ablauf(_Bezug('def f(self):\n'
+                               '    self.service.vorbereiten()\n'),
+                        v).lesen().knoten[0]
+        angaben = Beschriftung.herkunft(knoten, v)
+        self.assertEqual(angaben['gerufenvon'].split('|'),
+                         ['Erster.tun', 'Zweiter.tun'])
+        self.assertEqual(angaben['ruferzahl'], 2)
+
+
+class DasFensterSagtNICHTSZweimal(BasisTest):
+    u"""Die Ansage vom 27.08.2026.
+
+        „das Popup ist unübersichtlich und hat zum Teil Infos doppelt.
+         mach doch oben Klasse.Methode"
+
+    Im Fenster stand ``get_trt_cache_dir`` als Überschrift UND darunter
+    nochmal als Zeile „FUNKTION". Dazu „steht in Command.handle (…:80)"
+    und „Aufruf in Zeile 91" — zwei Zeilen für EINE Sache.
+
+    Jetzt trägt die Überschrift die volle Kennung, und jede Angabe steht
+    genau einmal.
+    """
+
+    def test_die_kennung_steht_oben_als_klasse_punkt_methode(self):
+        v = _EinVerzeichnis()
+        knoten = Ablauf(_Bezug('def f(self):\n'
+                               '    self.service.vorbereiten()\n'),
+                        v).lesen().knoten[0]
+        self.assertEqual(Beschriftung.herkunft(knoten, v).get('voll'),
+                         'Dienst.vorbereiten')
+
+    def test_eine_freie_funktion_traegt_ihr_modul_als_gegenstand(self):
+        u"""``get_trt_cache_dir`` allein sagt nicht, wo es herkommt;
+        der ganze Modulpfad wäre als Überschrift zu lang."""
+        class Frei:
+            anzeige = 'get_trt_cache_dir'
+            schluessel = 'app.integrations.path_resolver:get_trt_cache_dir'
+            modul = 'app.integrations.path_resolver'
+            zeile = 259
+            name = 'get_trt_cache_dir'
+            klasse = ''
+            knoten = ast.parse('def get_trt_cache_dir():\n    pass\n').body[0]
+        self.assertEqual(Beschriftung._voll(Frei()),
+                         'path_resolver.get_trt_cache_dir')

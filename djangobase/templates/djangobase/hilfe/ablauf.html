@@ -105,11 +105,26 @@ die Prosa.
                     line-height: 1.6; }
 .ab-fenster-rumpf dt { color: #8b949e; font-size: 0.72rem;
                        text-transform: uppercase; letter-spacing: 0.05em;
-                       margin-top: 0.5rem; }
+                       margin-top: 0.75rem; }
 .ab-fenster-rumpf dt:first-child { margin-top: 0; }
-.ab-fenster-rumpf dd { margin: 0.1rem 0 0; word-break: break-all; }
+.ab-fenster-rumpf dd { margin: 0.15rem 0 0; word-break: break-word; }
 .ab-fenster-rumpf .ab-code { font-family: ui-monospace, monospace;
-                             font-size: 0.76rem; color: #a99bea; }
+                             font-size: 0.76rem; color: #a99bea;
+                             word-break: break-all; }
+/* Was sie tut — ganz oben, ohne Überschrift: Das IST die Antwort auf
+   „was ist das", und eine Überschrift davor wäre nur Lärm. */
+.ab-was { font-size: 0.86rem; line-height: 1.5; color: #e6edf3;
+          padding-bottom: 0.35rem; border-bottom: 1px solid #1e2630;
+          margin-bottom: 0.15rem; }
+.ab-was.leer { color: #8b949e; font-style: italic; }
+.ab-fenster-rumpf .ab-matt { color: #8b949e; font-style: italic; }
+/* Rufer untereinander — vier Namen im Fließtext kann niemand trennen. */
+.ab-rufer { list-style: none; margin: 0.2rem 0 0; padding: 0; }
+.ab-rufer li { padding: 1px 0 1px 0.7rem; position: relative;
+               font-family: ui-monospace, monospace; font-size: 0.78rem; }
+.ab-rufer li::before { content: "·"; position: absolute; left: 0;
+                       color: #8b949e; }
+.ab-zahl-klein { color: #8b949e; font-weight: 400; font-size: 0.72rem; }
 .ab-fenster-fuss { padding: 0 0.8rem 0.8rem; }
 </style>
 
@@ -213,43 +228,71 @@ const fTitel = document.getElementById('ab-fenster-titel');
 const fRumpf = document.getElementById('ab-fenster-rumpf');
 const fHin = document.getElementById('ab-fenster-hin');
 
-/** Die Angaben eines Kastens als Liste von [Beschriftung, Wert, Code?]. */
-function angaben(d) {
-    const zeilen = [];
-    if (d.klasse) zeilen.push([d.erzeugt ? 'Klasse (wird erzeugt)' : 'Klasse',
-                               d.klasse]);
-    if (d.methode) zeilen.push(['Methode', d.methode]);
-    if (d.funktion) zeilen.push(['Funktion', d.funktion]);
-    if (d.modul) zeilen.push(['definiert in',
-                              d.modul + (d.zielzeile ? ':' + d.zielzeile : ''),
-                              true]);
-    // Wo dieser Schritt selbst steht — auch wenn er nirgends hinführt.
-    // Ohne das stand im Fenster nur „Aufruf in Zeile 82" und man wusste
-    // nicht, in welcher Klasse man überhaupt ist.
-    if (d.gehoertzu) zeilen.push(['steht in', d.gehoertzu, true]);
-    if (d.zeile) zeilen.push(['Aufruf in Zeile', d.zeile]);
-    // „Wer ruft das hier eigentlich?" — die Frage vor jeder Änderung.
-    if (d.gerufenvon) zeilen.push(['wird gerufen von', d.gerufenvon]);
-    if (d.doku) zeilen.push(['Beschreibung', d.doku]);
-    if (d.quelle) zeilen.push(['im Quelltext', d.quelle, true]);
-    return zeilen;
+/** Der Titel: Klasse.Methode — und sonst nichts.
+ *
+ * „das Popup ist unübersichtlich und hat zum Teil Infos doppelt"
+ * (27.08.2026). Vorher stand `get_trt_cache_dir` als Titel UND darunter
+ * nochmal als Zeile „FUNKTION". Jetzt trägt der Titel die volle Kennung,
+ * und die Zeile entfällt.
+ */
+function kennung(d) {
+    if (d.voll) return d.voll;
+    if (d.klasse && d.methode) return d.klasse + '.' + d.methode;
+    return d.klasse || d.methode || d.funktion
+        || (d.art === 'frage' ? 'Entscheidung' : 'Schritt');
 }
 
-function kurzTitel(d) {
-    if (d.klasse && d.methode) return d.klasse + '.' + d.methode;
-    return d.klasse || d.methode || d.funktion || (d.art === 'frage'
-        ? 'Entscheidung' : 'Schritt');
+/** Was sie tut, in Kurzform — oder ehrlich: dass es nichts gibt. */
+function kurzform(d) {
+    if (d.doku) return ['ab-was', d.doku];
+    if (d.klasse || d.methode || d.funktion) {
+        return ['ab-was leer', 'Keine Beschreibung im Code.'];
+    }
+    return null;
+}
+
+/** Die übrigen Angaben — jede genau EINMAL.
+ *
+ * „steht in Command.handle (…:80)" und „Aufruf in Zeile 91" waren zwei
+ * Zeilen für EINE Sache: wo dieser Schritt sitzt. Der Ort ist die
+ * Funktion, die Zeile gehört dazu.
+ */
+function angaben(d) {
+    const zeilen = [];
+    if (d.gerufenvon) {
+        zeilen.push(['wird gerufen von', d.gerufenvon.split('|'), 'liste',
+                     d.ruferzahl]);
+    }
+    if (d.gehoertzu) {
+        const ort = d.gehoertzu.replace(/\s*\(.*\)$/, '');
+        zeilen.push(['hier aufgerufen',
+                     ort + (d.zeile ? '  ·  Zeile ' + d.zeile : ''), 'code']);
+    } else if (d.zeile) {
+        zeilen.push(['aufgerufen in Zeile', d.zeile]);
+    }
+    if (d.modul) {
+        zeilen.push(['definiert in',
+                     d.modul + (d.zielzeile ? ':' + d.zielzeile : ''), 'code']);
+    }
+    // „Dann was sie tut in Kurzform" — in DIESER Reihenfolge, auf Ansage.
+    // Erst wer sie ruft und wo sie steht, dann was sie tut: Wer das
+    // Fenster öffnet, sucht meist die Stelle, nicht die Beschreibung.
+    const kurz = kurzform(d);
+    if (kurz) zeilen.push(['was sie tut', kurz[1], kurz[0].includes('leer')
+                                                   ? 'matt' : '']);
+    if (d.quelle) zeilen.push(['im Quelltext', d.quelle, 'code']);
+    return zeilen;
 }
 
 document.querySelectorAll('.ab-buehne .ak-teil').forEach((teil) => {
     const d = teil.dataset;
     teil.addEventListener('mousemove', (ev) => {
         if (fenster.classList.contains('auf')) return;
-        schwebe.innerHTML = '<b>' + kurzTitel(d) + '</b><br>'
-            + angaben(d).slice(0, 3).map(
-                ([k, v, code]) => k + ': '
-                    + (code ? '<span class="ab-code">' + v + '</span>' : v)
-              ).join('<br>');
+        const kurz = kurzform(d);
+        schwebe.innerHTML = '<b>' + kennung(d) + '</b>'
+            + (kurz ? '<br>' + kurz[1] : '')
+            + (d.ruferzahl ? '<br>wird von ' + d.ruferzahl
+                             + ' Stellen gerufen' : '');
         schwebe.style.display = 'block';
         // Nicht über den rechten Rand hinaus.
         const b = schwebe.getBoundingClientRect();
@@ -262,11 +305,21 @@ document.querySelectorAll('.ab-buehne .ak-teil').forEach((teil) => {
     });
     teil.addEventListener('click', () => {
         schwebe.style.display = 'none';
-        fTitel.textContent = kurzTitel(d);
-        fRumpf.innerHTML = '<dl>' + angaben(d).map(
-            ([k, v, code]) => '<dt>' + k + '</dt><dd'
-                + (code ? ' class="ab-code"' : '') + '>' + v + '</dd>'
-          ).join('') + '</dl>';
+        fTitel.textContent = kennung(d);
+        const teile = [];
+        teile.push('<dl>' + angaben(d).map(([k, v, art, zahl]) => {
+            const kopf = '<dt>' + k
+                + (zahl ? ' <span class="ab-zahl-klein">(' + zahl + ')</span>' : '')
+                + '</dt>';
+            if (art === 'liste') {
+                return kopf + '<dd><ul class="ab-rufer">'
+                    + v.map((n) => '<li>' + n + '</li>').join('') + '</ul></dd>';
+            }
+            const klasse = art === 'code' ? ' class="ab-code"'
+                : (art === 'matt' ? ' class="ab-matt"' : '');
+            return kopf + '<dd' + klasse + '>' + v + '</dd>';
+        }).join('') + '</dl>');
+        fRumpf.innerHTML = teile.join('');
         fHin.style.display = d.ziel ? 'inline-block' : 'none';
         fHin.dataset.ziel = d.ziel || '';
         fenster.classList.add('auf');
