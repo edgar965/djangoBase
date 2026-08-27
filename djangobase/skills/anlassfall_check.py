@@ -143,37 +143,13 @@ class Pruefergebnis:
     #: sich an der Sache nichts geaendert hatte (18.08.2026).
     SIEHT = "sieht"            # geprueft, findet seinen Fall
     BLIND = "blind"            # geprueft, findet ihn NICHT
-    AUSNAHME = "ausnahme"      # geprueft, aber auf SCHWEIGEN (mindestens=0)
     ERKLAERT = "erklaert"      # kein Anlassfall moeglich, Grund steht am Werkzeug
     UNGEPRUEFT = "ungeprueft"  # kein Anlassfall, kein Grund
 
     @property
-    def prueft_nur_die_ausnahme(self):
-        u"""Ein Anlassfall mit ``mindestens=0`` verlangt SCHWEIGEN.
-
-        WARUM DAS EIN EIGENER STAND IST (27.08.2026)
-        ============================================
-        ``dokumentation`` meldete bis heute jedes gekürzte Workflow-Bild.
-        Seit das Bild seinen Fußvermerk selbst trägt, ist der Hinweis
-        erledigt — und der alte Anlassfall (``mindestens=1``) fiel um.
-        Auf ``mindestens=0, hoechstens=0`` gestellt, war er sofort wieder
-        grün und stand als „sieht seinen Fall" in der Tabelle.
-
-        Das ist die gefährlichere Lüge: Ein Anlassfall, der nur noch
-        Schweigen verlangt, beweist NICHT, dass das Werkzeug noch etwas
-        sehen kann. Er prüft die andere, ebenso wichtige Hälfte — dass
-        eine Ausnahme greift. Beides ist berechtigt, aber es darf nicht
-        gleich heißen.
-        """
-        return bool(self.anlassfall) and not self.anlassfall.mindestens
-
-    @property
     def stand(self):
         if self.geprueft:
-            if self.grund:
-                return self.BLIND
-            return (self.AUSNAHME if self.prueft_nur_die_ausnahme
-                    else self.SIEHT)
+            return self.BLIND if self.grund else self.SIEHT
         return (self.ERKLAERT if getattr(self.klasse, "ohne_anlassfall_weil", "")
                 else self.UNGEPRUEFT)
 
@@ -185,13 +161,7 @@ class Pruefergebnis:
             grund = getattr(self.klasse, "ohne_anlassfall_weil", "")
             return ("kein Anlassfall nötig: %s" % grund if grund
                     else "UNGEPRÜFT — kein Anlassfall, kein Grund angegeben")
-        if self.grund:
-            return self.grund
-        if self.prueft_nur_die_ausnahme:
-            # Nicht „sieht seinen Fall": Er verlangt Schweigen und beweist
-            # damit gerade NICHT, dass das Werkzeug noch etwas findet.
-            return "prüft die Ausnahme (verlangt Schweigen, nicht Befunde)"
-        return "sieht seinen Fall"
+        return self.grund or "sieht seinen Fall"
 
     @property
     def rot(self):

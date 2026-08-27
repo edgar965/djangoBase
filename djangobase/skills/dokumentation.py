@@ -48,7 +48,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .anlassfall import Anlassfall
 from .befund import Befund, Befundsatz, BefundWerkzeug
 
 #: Was vorhanden sein muss, damit „es gibt ein Bild" mehr ist als eine
@@ -67,17 +66,6 @@ BILDWERKE = (
       'djangobase/umbau/ablaufbild.py',
       'djangobase/templates/djangobase/hilfe/workflows.html')),
 )
-
-#: Eine Kette, die tiefer reicht, als gezeichnet wird — der Beispielfall.
-KETTE = (
-    'class Eins:\n    def a(self):\n        self.x.b()\n\n\n'
-    'class Zwei:\n    def b(self):\n        self.x.c()\n\n\n'
-    'class Drei:\n    def c(self):\n        self.x.d()\n\n\n'
-    'class Vier:\n    def d(self):\n        self.x.e()\n\n\n'
-    'class Fuenf:\n    def e(self):\n        self.x.f()\n\n\n'
-    'class Sechs:\n    def f(self):\n        self.x.g()\n\n\n'
-    'class Sieben:\n    def g(self):\n        return 7\n')
-
 
 class Dokumentation(BefundWerkzeug):
 
@@ -98,20 +86,34 @@ class Dokumentation(BefundWerkzeug):
               u'Umbauten alt und sah unverändert richtig aus.')
     dauer = u'wenige Sekunden'
 
-    anlassfall = Anlassfall(
-        {'urls.py': "from django.urls import path\n"
-                    "from . import views\n"
-                    "urlpatterns = [path('tief/', views.tief, name='tief')]\n",
-         'views.py': 'def tief(request):\n'
-                     '    Eins().a()\n',
-         'kette.py': KETTE},
-        mindestens=0, hoechstens=0,
-        warum=u'Eine Kette über sieben Klassen, gezeichnet wird bis Tiefe '
-              u'fünf. Das Bild zeigt also weniger als den ganzen Weg — und '
-              u'sagt das seit dem 27.08.2026 SELBST, im Fußvermerk. Genau '
-              u'deshalb darf hier KEIN Befund stehen: Der Hinweis ist '
-              u'erledigt, nicht unterdrückt. Meldet das Werkzeug hier '
-              u'wieder etwas, ist der Vermerk aus dem Bild verschwunden.')
+    #: KEIN ANLASSFALL — und warum das seit dem 27.08.2026 so ist.
+    #:
+    #: Bis dahin stand hier eine Kette über sieben Klassen: Gezeichnet
+    #: wird bis Tiefe fünf, das Bild zeigt also weniger als den ganzen
+    #: Weg, und GENAU DAS war der Befund („Bild abgeschnitten").
+    #:
+    #: Seit ``Workflowbild._abschluss`` den Fußvermerk setzt, sagt das
+    #: Bild seine Grenze selbst — der Hinweis ist damit erledigt, und der
+    #: Anlassfall fiel um.
+    #:
+    #: Der verbliebene Befund („Bild verschweigt seine Grenze") hängt am
+    #: ZEICHNER, nicht am geprüften Projekt: Er tritt nur auf, wenn
+    #: ``_abschluss`` den Vermerk NICHT setzt. Der Anlassfall-Mechanismus
+    #: stellt Dateien — damit ist dieser Fall nicht herstellbar.
+    #:
+    #: Ein Anlassfall auf ``mindestens=0`` wäre hier die falsche Antwort
+    #: gewesen (kurz versucht, wieder verworfen): Er verlangt nur noch
+    #: Schweigen und beweist gerade NICHT, dass das Werkzeug etwas sehen
+    #: kann — stünde aber als „sieht seinen Fall" in der Tabelle.
+    #:
+    #: Die Gegenprobe steht deshalb dort, wo sie hingehört: als Testfall
+    #: ``EinBildDasSeineGrenzeVERSCHWEIGT`` in
+    #: ``tests/unit/test_skills_dokumentation.py``. Der schaltet den
+    #: Vermerk ab und verlangt, dass die Befunde zurückkommen.
+    ohne_anlassfall_weil = (
+        u'der verbliebene Befund hängt am Zeichner, nicht am geprüften '
+        u'Projekt — nachgebaut wird er im Testfall '
+        u'EinBildDasSeineGrenzeVERSCHWEIGT')
 
     # ------------------------------------------------------------------
     def pruefen(self, **_argumente):
