@@ -223,7 +223,13 @@ function angaben(d) {
     if (d.modul) zeilen.push(['definiert in',
                               d.modul + (d.zielzeile ? ':' + d.zielzeile : ''),
                               true]);
+    // Wo dieser Schritt selbst steht — auch wenn er nirgends hinführt.
+    // Ohne das stand im Fenster nur „Aufruf in Zeile 82" und man wusste
+    // nicht, in welcher Klasse man überhaupt ist.
+    if (d.gehoertzu) zeilen.push(['steht in', d.gehoertzu, true]);
     if (d.zeile) zeilen.push(['Aufruf in Zeile', d.zeile]);
+    // „Wer ruft das hier eigentlich?" — die Frage vor jeder Änderung.
+    if (d.gerufenvon) zeilen.push(['wird gerufen von', d.gerufenvon]);
     if (d.doku) zeilen.push(['Beschreibung', d.doku]);
     if (d.quelle) zeilen.push(['im Quelltext', d.quelle, true]);
     return zeilen;

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "djangobase"
-version = "0.0.21"
+version = "0.0.22"
 description = "Wiederverwendbare Django-Infrastruktur: Hilfe (Versionen/Logs/Tests/Jobs), Sidebar-Layout (bis 3 Ebenen), Logging."
 requires-python = ">=3.10"
 # Pillow ist PFLICHT, nicht optional: `Provider.logo` und `Teilnehmer.avatar`

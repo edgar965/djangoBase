@@ -68,7 +68,8 @@ class Knoten:
 
     art = 'knoten'
 
-    def __init__(self, text, zeile, ziel='', aufruf='', empfaenger=''):
+    def __init__(self, text, zeile, ziel='', aufruf='', empfaenger='',
+                 merkmal=''):
         self.text = text
         self.zeile = zeile
         #: ``Klasse.methode`` — wenn dieser Schritt etwas Eigenes ruft.
@@ -77,11 +78,23 @@ class Knoten:
         self.aufruf = aufruf
         #: Worauf gerufen wurde (``service``), ohne ``self``.
         self.empfaenger = empfaenger
+        #: Das erste Argument, wenn es ein einfacher Name ist.
+        #:
+        #: WAS ZWEI GLEICHE KAESTEN UNTERSCHEIDET (27.08.2026)
+        #: ==================================================
+        #: ``signal.signal(signal.SIGINT, …)`` und ``signal.signal(
+        #: signal.SIGTERM, …)`` standen beide als „signal: signal"
+        #: untereinander — zwei Kaesten, die dasselbe behaupteten.
+        #:
+        #: Was sie unterscheidet, steht im ERSTEN Argument. Es wird nur
+        #: mitgenommen, wenn es ein Name oder eine Zeichenkette ist:
+        #: Ein ganzer Ausdruck waere wieder Quelltext im Kasten.
+        self.merkmal = merkmal
 
     def als_dict(self):
         return {'art': self.art, 'text': self.text, 'zeile': self.zeile,
                 'ziel': self.ziel, 'aufruf': self.aufruf,
-                'empfaenger': self.empfaenger}
+                'empfaenger': self.empfaenger, 'merkmal': self.merkmal}
 
     def __repr__(self):
         return '<%s %s>' % (self.art, self.text[:30])
@@ -259,7 +272,8 @@ class Ablauf:
         wichtig = [aeusserst]
         erster = wichtig[0]
         return Schritt(self._text(a), a.lineno, self._ziel(erster),
-                       self._aufrufname(erster), self._empfaenger(erster))
+                       self._aufrufname(erster), self._empfaenger(erster),
+                       self._merkmal(erster))
 
     @staticmethod
     def _aeusserster(a):
@@ -277,6 +291,24 @@ class Ablauf:
     def _aufrufname(aufruf):
         return (getattr(aufruf.func, 'attr', None)
                 or getattr(aufruf.func, 'id', ''))
+
+    @staticmethod
+    def _merkmal(aufruf):
+        u"""Das erste Argument — aber nur, wenn es ein einfacher Name ist.
+
+        ``signal.SIGINT`` -> ``SIGINT``; ``'copy'`` -> ``copy``. Ein
+        Ausdruck wie ``options['poll'] or 5`` wird NICHT genommen: Er
+        macht den Kasten wieder zu Quelltext, und genau davon soll das
+        Bild wegkommen.
+        """
+        for wert in list(aufruf.args)[:1]:
+            if isinstance(wert, ast.Attribute):
+                return wert.attr
+            if isinstance(wert, ast.Name):
+                return wert.id
+            if isinstance(wert, ast.Constant) and isinstance(wert.value, str):
+                return wert.value[:24]
+        return ''
 
     @staticmethod
     def _empfaenger(aufruf):

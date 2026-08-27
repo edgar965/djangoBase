@@ -403,6 +403,12 @@ class Aktivitaetsbild:
             return inhalt
         angaben = dict(self.herkunft(t.knoten) or {})
         angaben.setdefault('zeile', t.zeile)
+        # Wo dieser Schritt STEHT — der gezeigte Ablauf selbst. Das ist
+        # immer bekannt, auch wenn der Schritt nirgends hinfuehrt.
+        angaben.setdefault('gehoertzu', '%s (%s:%s)' % (
+            getattr(self.ablauf, 'name', ''),
+            getattr(self.ablauf, 'modul', ''),
+            getattr(self.ablauf, 'zeile', '')))
         if t.ziel:
             angaben['ziel'] = t.ziel
         felder = ' '.join('data-%s="%s"' % (name, escape(str(wert)))

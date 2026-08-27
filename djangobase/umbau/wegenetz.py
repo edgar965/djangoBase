@@ -141,6 +141,8 @@ class Verzeichnis:
         #: ueber solche Felder weiterreicht — gemessen am 27.08.2026 fiel
         #: sie mit vier beteiligten Klassen unter jede Grenze.
         self.felder = {}
+        #: Rueckwaerts-Index, erst auf Nachfrage gebaut.
+        self._rufer = None
         self.dateien = 0
         #: ALLE Klassen, auch namensgleiche in zwei Dateien.
         self.klassen_gesamt = 0
@@ -234,6 +236,39 @@ class Verzeichnis:
 
     def mehrdeutig(self, name):
         return len(self._methoden.get(name, ())) > 1
+
+    def rufer(self, schluessel):
+        u"""Wer ruft diese Definition? — ``[Bezug, …]``.
+
+        DIE ANSAGE (Edgar, 27.08.2026)
+        ==============================
+            „beim Popup schreibe auch die Klasse hinein, nicht nur die
+             Methode, und auch von wem die aufgerufen wird"
+
+        Ein Bild zeigt EINEN Weg. Die Frage „wer ruft das hier
+        eigentlich?" beantwortet es nicht — und gerade die stellt man,
+        wenn man etwas aendern will.
+
+        Gebaut wird der Rueckwaerts-Index EINMAL und erst auf Nachfrage:
+        Er laeuft ueber jede Definition des Projekts, und das kostet
+        ungefaehr so viel wie das Lesen selbst. Wer nur ein Bild ansieht,
+        soll das nicht bezahlen.
+        """
+        if self._rufer is None:
+            self._rufer_bauen()
+        return self._rufer.get(schluessel, [])
+
+    def _rufer_bauen(self):
+        from .wegenetz import Wegsucher      # Ringschluss vermeiden
+        sucher = Wegsucher(self)
+        self._rufer = {}
+        alle = (list(self.klassen.values()) + list(self.funktionen.values())
+                + [b for liste in self._methoden.values() for b in liste])
+        for bezug in alle:
+            for ziel, _grund in sucher._gerufene(bezug, None):
+                if ziel.schluessel == bezug.schluessel:
+                    continue
+                self._rufer.setdefault(ziel.schluessel, []).append(bezug)
 
     def kennzahlen(self):
         u"""NAMEN und ANZAHL sind hier nicht dasselbe (27.08.2026).

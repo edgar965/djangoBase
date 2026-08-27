@@ -181,8 +181,10 @@ class _EinVerzeichnis:
     """Ein Verzeichnis mit genau einer bekannten Methode."""
 
     class _Bezug:
-        # `anzeige` braucht `Ablauf._ziel`, um das Ziel zu benennen.
+        # `anzeige` braucht `Ablauf._ziel`, um das Ziel zu benennen;
+        # `schluessel` braucht die Rufer-Abfrage.
         anzeige = 'Dienst.vorbereiten'
+        schluessel = 'app.dienst:Dienst.vorbereiten'
         modul = 'app.dienst'
         zeile = 42
         knoten = ast.parse('def vorbereiten(self):\n'
@@ -289,3 +291,107 @@ class JederKastenSagtWoherErKommt(BasisTest):
     def test_ohne_herkunft_erfindet_der_zeichner_nichts(self):
         svg = Aktivitaetsbild(Ablauf(_Bezug(self.QUELLE)).lesen()).svg()
         self.assertNotIn('data-modul', svg)
+
+    def test_jeder_kasten_sagt_wo_er_selbst_steht(self):
+        u"""Auch ein Schritt ohne Ziel gehört zu einer Funktion.
+
+        Vorher stand im Fenster nur „Aufruf in Zeile 82", und man wusste
+        nicht, in welcher Klasse man überhaupt war.
+        """
+        v = _EinVerzeichnis()
+        lauf = Ablauf(_Bezug(self.QUELLE), v).lesen()
+        svg = Aktivitaetsbild(
+            lauf, herkunft=lambda k: Beschriftung.herkunft(k, v)).svg()
+        self.assertIn('data-gehoertzu="A.f', svg)
+
+
+class ZweiKaestenDuerfenNichtDasselbeBehaupten(BasisTest):
+    u"""Das Stottern, das Edgar am 27.08.2026 gefunden hat.
+
+        „da läuft noch was schief: zweimal signal:signal"
+
+    ``signal.signal(signal.SIGINT, …)`` und ``signal.signal(signal.
+    SIGTERM, …)`` standen beide als „signal: signal" untereinander — zwei
+    Kästen, die dasselbe behaupteten und den Unterschied verschwiegen.
+
+    Der Code war richtig; die BESCHRIFTUNG war es nicht. Heißt der
+    Empfänger wie der Aufruf, sagt die Wiederholung nichts — dann trägt
+    das erste Argument die Unterscheidung.
+    """
+
+    QUELLE = ('def f(self):\n'
+              '    signal.signal(signal.SIGINT, self._an)\n'
+              '    signal.signal(signal.SIGTERM, self._an)\n')
+
+    def _saetze(self):
+        lauf = Ablauf(_Bezug(self.QUELLE)).lesen()
+        return [Beschriftung.fuer(k) for k in lauf.knoten]
+
+    def test_die_beiden_kaesten_sagen_verschiedenes(self):
+        erste, zweite = self._saetze()
+        self.assertNotEqual(erste, zweite)
+
+    def test_das_unterscheidende_argument_steht_im_kasten(self):
+        erste, zweite = self._saetze()
+        self.assertIn('SIGINT', erste)
+        self.assertIn('SIGTERM', zweite)
+
+    def test_der_name_wird_nicht_verdoppelt(self):
+        u"""„signal: signal" ist der Fehler, um den es geht."""
+        for satz in self._saetze():
+            self.assertNotIn('signal: signal', satz)
+
+    def test_ein_ausdruck_als_argument_kommt_NICHT_in_den_kasten(self):
+        u"""Sonst wäre der Kasten wieder Quelltext — genau davon soll das
+        Bild ja wegkommen."""
+        lauf = Ablauf(_Bezug(
+            'def f(self):\n'
+            "    warte.warte(options['poll'] or 5)\n")).lesen()
+        self.assertEqual(lauf.knoten[0].merkmal, '')
+
+
+class DasFensterNenntDieRufer(BasisTest):
+    u"""„auch von wem die aufgerufen wird" (27.08.2026).
+
+    Ein Bild zeigt EINEN Weg. „Wer ruft das hier eigentlich?" ist die
+    Frage, die man vor jeder Änderung stellt — und die das Bild nicht
+    beantwortet, weil die anderen Rufer nicht darin stehen.
+    """
+
+    class _MitRufern(_EinVerzeichnis):
+        @staticmethod
+        def rufer(_schluessel):
+            return [type('B', (), {'anzeige': 'Erster.tun'})(),
+                    type('B', (), {'anzeige': 'Zweiter.tun'})()]
+
+    def test_die_rufer_stehen_in_den_angaben(self):
+        v = self._MitRufern()
+        knoten = Ablauf(_Bezug('def f(self):\n'
+                               '    self.service.vorbereiten()\n'),
+                        v).lesen().knoten[0]
+        self.assertEqual(Beschriftung.herkunft(knoten, v).get('gerufenvon'),
+                         'Erster.tun, Zweiter.tun')
+
+    def test_bei_vielen_rufern_wird_gekuerzt(self):
+        u"""Eine Liste mit dreißig Namen beantwortet die Frage nicht mehr,
+        sie verdeckt sie."""
+        class Viele(_EinVerzeichnis):
+            @staticmethod
+            def rufer(_schluessel):
+                return [type('B', (), {'anzeige': 'K%02d.tun' % i})()
+                        for i in range(20)]
+        v = Viele()
+        knoten = Ablauf(_Bezug('def f(self):\n'
+                               '    self.service.vorbereiten()\n'),
+                        v).lesen().knoten[0]
+        text = Beschriftung.herkunft(knoten, v).get('gerufenvon', '')
+        self.assertIn('und 14 weitere', text)
+
+    def test_ohne_rufer_bleibt_das_feld_leer(self):
+        u"""Kein „0 Rufer" — ein leeres Feld zeigt die Seite gar nicht an."""
+        v = _EinVerzeichnis()
+        knoten = Ablauf(_Bezug('def f(self):\n'
+                               '    self.service.vorbereiten()\n'),
+                        v).lesen().knoten[0]
+        self.assertEqual(Beschriftung.herkunft(knoten, v).get('gerufenvon'),
+                         '')

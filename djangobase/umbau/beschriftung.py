@@ -59,12 +59,14 @@ class Beschriftung:
         'install signal handlers'
     """
 
-    def __init__(self, name, bezug=None, empfaenger=''):
+    def __init__(self, name, bezug=None, empfaenger='', merkmal=''):
         self.name = name or ''
         #: Die gerufene Definition — fuer den Docstring. Darf fehlen.
         self.bezug = bezug
         #: ``self.service`` -> ``service``; steht als Gegenstand davor.
         self.empfaenger = empfaenger
+        #: Das erste Argument, wenn es die Handlung unterscheidet.
+        self.merkmal = merkmal
 
     @classmethod
     def fuer(cls, knoten, verzeichnis=None):
@@ -88,7 +90,8 @@ class Beschriftung:
             bezug = (verzeichnis.in_klasse(klasse, name) if klasse
                      else verzeichnis.funktionen.get(name))
         return cls(getattr(knoten, 'aufruf', '') or knoten.text, bezug,
-                   getattr(knoten, 'empfaenger', '')).satz()
+                   getattr(knoten, 'empfaenger', ''),
+                   getattr(knoten, 'merkmal', '')).satz()
 
     @classmethod
     def herkunft(cls, knoten, verzeichnis=None):
@@ -140,7 +143,36 @@ class Beschriftung:
             angaben['modul'] = bezug.modul
             angaben['zielzeile'] = bezug.zeile
             angaben['doku'] = cls('', bezug).aus_doku()
+            angaben['gerufenvon'] = cls._rufer(bezug, verzeichnis)
         return angaben
+
+    #: So viele Rufer nennt das Fenster; darüber wird nur gezählt.
+    RUFER = 6
+
+    @classmethod
+    def _rufer(cls, bezug, verzeichnis):
+        u"""Wer ruft diese Stelle sonst noch?
+
+            „auch von wem die aufgerufen wird" (Edgar, 27.08.2026)
+
+        Ein Bild zeigt EINEN Weg. „Wer ruft das hier eigentlich?" ist die
+        Frage, die man stellt, bevor man etwas aendert — und die das Bild
+        nicht beantwortet, weil die anderen Rufer eben nicht darin stehen.
+
+        Bei vielen Rufern wird gekuerzt: Eine Liste mit dreissig Namen
+        beantwortet die Frage auch nicht mehr, sie verdeckt sie.
+        """
+        try:
+            rufer = verzeichnis.rufer(bezug.schluessel)
+        except (AttributeError, TypeError):
+            return ''
+        namen = sorted({r.anzeige for r in rufer})
+        if not namen:
+            return ''
+        if len(namen) <= cls.RUFER:
+            return ', '.join(namen)
+        return '%s … und %d weitere' % (', '.join(namen[:cls.RUFER]),
+                                        len(namen) - cls.RUFER)
 
     # ── Der Satz ────────────────────────────────────────────────
 
@@ -181,8 +213,30 @@ class Beschriftung:
             return self.name
         satz = ' '.join(woerter)
         if self.empfaenger and self.empfaenger not in ('self', 'cls'):
-            return '%s: %s' % (self._gegenstand(), satz)
+            gegenstand = self._gegenstand()
+            # KEIN STOTTERN (27.08.2026, auf Ansage „zweimal signal:signal")
+            # ================================================================
+            # `signal.signal(signal.SIGINT, …)` und `signal.signal(
+            # signal.SIGTERM, …)` standen beide als „signal: signal"
+            # untereinander — zwei Kaesten, die dasselbe behaupteten und
+            # den Unterschied verschwiegen.
+            #
+            # Heisst der Empfaenger wie der Aufruf, sagt die Wiederholung
+            # nichts. Dann traegt das erste Argument die Unterscheidung.
+            if gegenstand.lower() == satz.lower():
+                if self.merkmal:
+                    return '%s: %s' % (satz, self._klarname(self.merkmal))
+                return satz
+            return '%s: %s' % (gegenstand, satz)
+        if self.merkmal and len(woerter) == 1:
+            # Auch ohne Empfaenger kann ein Aufruf nichtssagend sein:
+            # `sleep(0.5)` gegen `sleep(interval)`.
+            return '%s: %s' % (satz, self._klarname(self.merkmal))
         return satz
+
+    def _klarname(self, wert):
+        u"""Das Argument lesbar, aber unveraendert: ``SIGINT`` bleibt."""
+        return ' '.join(self._trennen(wert)) if '_' in str(wert) else str(wert)
 
     def _gegenstand(self):
         return ' '.join(self._trennen(self.empfaenger))
