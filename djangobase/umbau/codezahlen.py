@@ -148,11 +148,25 @@ class Codezahlen:
             # es in den eigenen Pruefungen, die genau dort ablegen; in
             # einem Projekt unter `C:\build\…` waere es dasselbe gewesen.
             teile = self._innen(pfad)
-            if any(teil in AUS for teil in teile):
-                continue
+            # LAUFZEITDATEN ZUERST - sie werden GENANNT, nicht verschwiegen
+            # (27.08.2026).
+            #
+            # ``AUS`` und ``DATEN`` ueberschneiden sich seit ``tmp``/``temp``
+            # in beiden stehen. AUS zuerst zu pruefen liess einen tmp-Ordner
+            # STILL verschwinden: weder gezaehlt noch als ausgelassen
+            # vermerkt. Genau das darf dieses Werkzeug nicht - „1.119 Dateien"
+            # liest sich sonst wie das ganze Verzeichnis.
+            #
+            # Die Ergaenzung von AUS kam aus dem Wegenetz („laesst fremden
+            # Code aus") und ist dort richtig; AUS ist aber eine GETEILTE
+            # Konstante, und der zweite Nutzer hat eine andere Zusage. Die
+            # Reihenfolge hier loest das, ohne einem der beiden etwas
+            # wegzunehmen.
             daten = [t for t in teile[:-1] if t.lower() in self.DATEN]
             if daten:
                 self._auslassen(daten[0])
+                continue
+            if any(teil in AUS for teil in teile):
                 continue
             try:
                 if pfad.stat().st_size > GROESSTE_QUELLDATEI:
