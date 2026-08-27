@@ -211,3 +211,66 @@ class JederSchrittZeigtAufEineStelleImQuelltext(BasisTest):
         for schritt in weg.schritte:
             self.assertTrue(schritt.bezug.datei.exists())
             self.assertGreater(schritt.bezug.zeile, 0)
+
+
+class EinKlassenkastenIstDerKonstruktor(BasisTest):
+    u"""Was ``Klasse()`` auslöst — nicht, was die Klasse alles kann.
+
+        „warum so viele Aufrufe aus dem Konstruktor des LiveOrchestrator,
+         kann das nicht strukturierter vorgehen?" (Edgar, 27.08.2026)
+
+    Konnte es. Der Kasten zeigte **26** Kanten, der Konstruktor rief **9**.
+    Der Rest kam daher, dass für eine Klasse der ganze ``ClassDef``
+    durchlaufen wurde — also auch ``stop()``, ``start_async()`` und
+    ``_publish_offline()``, die beim Erzeugen niemand ruft.
+
+    Das ließ ein sauber gebautes Objekt aussehen wie einen
+    Selbstbedienungsladen. Ein Bild, das mehr behauptet als der Code tut,
+    ist schlimmer als keines: Man diskutiert über einen Missstand, den es
+    nicht gibt.
+    """
+
+    QUELLE = {'a.py':
+              'class BeimBauen:\n'
+              '    def tun(self):\n        return 1\n'
+              '\n\n'
+              'class ErstSpaeter:\n'
+              '    def spaeter(self):\n        return 2\n'
+              '\n\n'
+              'class Ding:\n'
+              '    def __init__(self):\n'
+              '        self.x = BeimBauen()\n'
+              '\n'
+              '    def aufraeumen(self):\n'
+              '        ErstSpaeter().spaeter()\n'
+              '\n\n'
+              'class Nutzer:\n'
+              '    def arbeiten(self):\n'
+              '        Ding()\n'}
+
+    def test_was_der_konstruktor_baut_steht_im_weg(self):
+        weg = _weg(self.QUELLE, 'Nutzer', 'arbeiten')
+        self.assertIn('BeimBauen', weg.klassen)
+
+    def test_was_nur_eine_andere_methode_ruft_bleibt_draussen(self):
+        u"""``aufraeumen`` ruft ``ErstSpaeter`` — aber niemand ruft
+        ``aufraeumen``. Erzeugen löst das nicht aus."""
+        weg = _weg(self.QUELLE, 'Nutzer', 'arbeiten')
+        self.assertNotIn('ErstSpaeter', weg.klassen)
+
+    def test_die_klassenebene_zaehlt_mit(self):
+        u"""``vorgabe = Frueh()`` läuft beim Import, also vor jedem
+        Gebrauch. Ein Kasten, der das verschweigt, wäre wieder
+        unvollständig — diesmal in die andere Richtung."""
+        quelle = {'a.py':
+                  'class Frueh:\n'
+                  '    def tun(self):\n        return 1\n'
+                  '\n\n'
+                  'class Ding:\n'
+                  '    vorgabe = Frueh()\n'
+                  '\n\n'
+                  'class Nutzer:\n'
+                  '    def arbeiten(self):\n'
+                  '        Ding()\n'}
+        weg = _weg(quelle, 'Nutzer', 'arbeiten')
+        self.assertIn('Frueh', weg.klassen)

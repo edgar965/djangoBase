@@ -391,6 +391,43 @@ class Wegsucher:
                 rand.append((ziel, tief + 1))
         return weg
 
+    @staticmethod
+    def _rumpf(bezug):
+        u"""Welche Knoten gehoeren zu diesem Kasten?
+
+        EIN KLASSENKASTEN IST DER KONSTRUKTOR, NICHT DIE GANZE KLASSE
+        =============================================================
+            „warum so viele Aufrufe aus dem Konstruktor des
+             LiveOrchestrator?" (Edgar, 27.08.2026)
+
+        Weil es gar nicht der Konstruktor war. Fuer eine Klasse lag hier
+        der ganze ``ClassDef``, und ``ast.walk`` lief damit ueber JEDE
+        Methode. Der Kasten ``LiveOrchestrator`` zeigte darum 26 Kanten —
+        darunter ``stop``, ``start_async`` und ``_publish_offline``, die
+        beim Erzeugen niemand ruft.
+
+        Gemessen: der Konstruktor allein ruft **9**. Siebzehn Kanten waren
+        erfunden, und sie liessen ein sauber gebautes Objekt aussehen wie
+        einen Selbstbedienungsladen.
+
+        ``Klasse()`` ruft ``__init__``. Alles andere ist nur erreichbar,
+        wenn jemand die Methode ruft — und dann steht diese Methode als
+        eigener Kasten im Bild, mit ihrer eigenen Kante.
+
+        Mitgenommen wird ausserdem, was auf KLASSENEBENE steht
+        (``vorgabe = Fabrik()``): Das laeuft beim Import, also erst recht
+        vor jedem Gebrauch.
+        """
+        if bezug.art != 'klasse':
+            return [bezug.knoten]
+        aus = [k for k in bezug.knoten.body
+               if not isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef))]
+        for k in bezug.knoten.body:
+            if (isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    and k.name == '__init__'):
+                aus.append(k)
+        return aus
+
     def _gerufene(self, bezug, weg):
         u"""Was in diesem Rumpf gerufen wird — aufgeloest, soweit belegbar.
 
@@ -398,8 +435,11 @@ class Wegsucher:
         gerufen wird, ohne die offenen Enden mitzuschreiben.
         """
         aus = []
-        oertlich = self._oertliche_typen(bezug.knoten)
-        for knoten in ast.walk(bezug.knoten):
+        rumpf = self._rumpf(bezug)
+        oertlich = {}
+        for teil in rumpf:
+            oertlich.update(self._oertliche_typen(teil))
+        for knoten in [k for teil in rumpf for k in ast.walk(teil)]:
             if not isinstance(knoten, ast.Call):
                 continue
             ziel = grund = None
