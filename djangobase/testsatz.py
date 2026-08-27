@@ -16,8 +16,7 @@ Auf ``/hilfe/tests/`` stand dagegen dies:
     AliasVerbundTest.test_falte_behaelt_reihenfolge_und_einzelne
 
 Derselbe Satz — nur in Maschinenschrift. Unterstriche statt Leerzeichen,
-``test_`` davor, ``ae`` statt ``ä``, und der Gegenstand steckt im
-Klassennamen ohne Trennung.
+``test_`` davor, und der Gegenstand steckt ungetrennt im Klassennamen.
 
 WARUM DAS REICHT, UND KEINE ZWEITE DATEI NÖTIG IST
 ===================================================
@@ -29,7 +28,7 @@ jemand die eine ändert und die andere vergisst.
 Hier wird stattdessen gelesen, was ohnehin dasteht:
 
     AliasVerbundTest.test_falte_behaelt_reihenfolge_und_einzelne
-    -> „Alias-Verbund: Falte behält Reihenfolge und einzelne"
+    -> „Alias Verbund: Falte behaelt reihenfolge und einzelne"
 
 Damit gilt dieselbe Zusage wie bei Gherkin — lesbar ohne Code — ohne ein
 zweites Rahmenwerk, einen zweiten Testläufer und eine zweite Liste.
@@ -45,96 +44,19 @@ from __future__ import annotations
 
 import re
 
-#: Wörter, die in Bezeichnern ohne Umlaut geschrieben werden müssen — beim
-#: Anzeigen bekommen sie ihn zurück. Keine Regel „ae -> ä": die machte aus
-#: ``Maerz`` ein ``März``, aber auch aus ``Aeon`` ein ``Äon``.
-UMLAUTE = {
-    'behaelt': 'behält', 'faellt': 'fällt', 'haelt': 'hält',
-    'laeuft': 'läuft', 'laesst': 'lässt', 'traegt': 'trägt',
-    'zaehlt': 'zählt', 'waechst': 'wächst', 'haengt': 'hängt',
-    'faehrt': 'fährt', 'schlaegt': 'schlägt', 'traegen': 'trägen',
-    'gezaehlt': 'gezählt', 'gefaehrlich': 'gefährlich',
-    'aendert': 'ändert', 'geaendert': 'geändert', 'aendern': 'ändern',
-    'erklaert': 'erklärt', 'waehrend': 'während', 'waehlt': 'wählt',
-    'ausgewaehlt': 'ausgewählt', 'erhaelt': 'erhält', 'enthaelt': 'enthält',
-    'naechste': 'nächste', 'naechsten': 'nächsten', 'spaeter': 'später',
-    'haeufig': 'häufig', 'taeglich': 'täglich', 'saemtliche': 'sämtliche',
-    'staendig': 'ständig', 'vollstaendig': 'vollständig',
-    'unvollstaendig': 'unvollständig', 'zustaendig': 'zuständig',
-    'verstaendlich': 'verständlich', 'auffaellt': 'auffällt',
-    'auffaellig': 'auffällig', 'anhaengen': 'anhängen',
-    'abhaengig': 'abhängig', 'unabhaengig': 'unabhängig',
-    'ueber': 'über', 'ueberall': 'überall', 'uebernimmt': 'übernimmt',
-    'uebernommen': 'übernommen', 'ueberholt': 'überholt',
-    'ueberschreibt': 'überschreibt', 'uebersprungen': 'übersprungen',
-    'ueberlebt': 'überlebt', 'uebergeben': 'übergeben',
-    'uebrig': 'übrig', 'ueberlappend': 'überlappend',
-    'fuer': 'für', 'fuehrt': 'führt', 'gefuehrt': 'geführt',
-    'zusammenfuehren': 'zusammenführen', 'zusammengefuehrt': 'zusammengeführt',
-    'auffuellt': 'auffüllt', 'erfuellt': 'erfüllt', 'fuellt': 'füllt',
-    'zurueck': 'zurück', 'zurueckgibt': 'zurückgibt',
-    'zurueckgesetzt': 'zurückgesetzt', 'zurueckbleibt': 'zurückbleibt',
-    'grueн': 'grün', 'gruen': 'grün', 'gruene': 'grüne',
-    'prueft': 'prüft', 'pruefung': 'Prüfung', 'geprueft': 'geprüft',
-    'ungeprueft': 'ungeprüft', 'pruefen': 'prüfen',
-    'stueck': 'Stück', 'stuecke': 'Stücke', 'stueckeln': 'stückeln',
-    'muessen': 'müssen', 'muss': 'muss', 'duerfen': 'dürfen',
-    'darf': 'darf', 'wuenscht': 'wünscht', 'genuegt': 'genügt',
-    'unguenstig': 'ungünstig', 'guenstig': 'günstig', 'gueltig': 'gültig',
-    'ungueltig': 'ungültig', 'buendel': 'Bündel', 'schluessel': 'Schlüssel',
-    'luecke': 'Lücke', 'luecken': 'Lücken', 'lueckenlos': 'lückenlos',
-    'stuende': 'stünde', 'koennen': 'können', 'koennte': 'könnte',
-    'moeglich': 'möglich', 'unmoeglich': 'unmöglich',
-    'geloescht': 'gelöscht', 'loescht': 'löscht', 'loeschen': 'löschen',
-    'aufgeloest': 'aufgelöst', 'aufloesung': 'Auflösung',
-    'oeffnet': 'öffnet', 'geoeffnet': 'geöffnet', 'gehoert': 'gehört',
-    'groesse': 'Größe', 'groesser': 'größer', 'groesste': 'größte',
-    'gross': 'groß', 'grosse': 'große', 'grossen': 'großen',
-    'heisst': 'heißt', 'weiss': 'weiß', 'schliesst': 'schließt',
-    'ausser': 'außer', 'ausserhalb': 'außerhalb', 'draussen': 'draußen',
-    'noetig': 'nötig', 'roentgen': 'Röntgen',
-    'entitaet': 'Entität', 'qualitaet': 'Qualität',
-    'komplexitaet': 'Komplexität', 'aktivitaet': 'Aktivität',
-    'faelle': 'Fälle', 'aehnlich': 'ähnlich', 'naehe': 'Nähe',
-    'waere': 'wäre', 'haette': 'hätte', 'gaebe': 'gäbe',
-    'zaehler': 'Zähler', 'raenge': 'Ränge', 'saetze': 'Sätze',
-    'eintraege': 'Einträge', 'auftraege': 'Aufträge',
-    'vorschlaege': 'Vorschläge', 'anlaesse': 'Anlässe',
-    'blaetter': 'Blätter', 'laender': 'Länder', 'raeume': 'Räume',
-    'kaesten': 'Kästen', 'flaechen': 'Flächen', 'schluesseln': 'Schlüsseln',
-    'zaehlbar': 'zählbar', 'erzaehlt': 'erzählt',
-    'aufraeumen': 'aufräumen', 'aufgeraeumt': 'aufgeräumt',
-    'ergaenzt': 'ergänzt', 'verlaesst': 'verlässt',
-    'gefaedelt': 'gefädelt', 'gefaedelte': 'gefädelte',
-    'zurueckgesetzt': 'zurückgesetzt', 'nachtraeglich': 'nachträglich',
-    # Aus der echten Tests-Seite nachgetragen (26.08.2026). Bewusst NICHT
-    # dabei: `quelle`, `dauer`, `neue`, `neuer`, `aktuell`, `zuerst`,
-    # `sequenzen`, `values`, `query`, `true`, `does`, `enqueue` — die
-    # tragen ihr ue/ae zu Recht.
-    'rueckfall': 'Rückfall', 'rueckweg': 'Rückweg', 'menue': 'Menü',
-    'bruecke': 'Brücke', 'bloecke': 'Blöcke', 'unberuehrt': 'unberührt',
-    'kuerzel': 'Kürzel', 'zurueckspulen': 'zurückspulen',
-    'fuellbilder': 'Füllbilder', 'rueckblick': 'Rückblick',
-    'ueberhaupt': 'überhaupt', 'aufloesen': 'auflösen',
-    'schluesselwort': 'Schlüsselwort', 'zurueckblicken': 'zurückblicken',
-    'rueckstand': 'Rückstand', 'waechter': 'Wächter', 'fuenf': 'fünf',
-    'empfaenger': 'Empfänger', 'bestaetigen': 'bestätigen',
-    'uebergaenge': 'Übergänge', 'erklaeren': 'erklären',
-    'erklaertes': 'erklärtes', 'verstaerkt': 'verstärkt',
-    'fuehrende': 'führende', 'fuehrend': 'führend', 'fuehren': 'führen',
-    'raeumt': 'räumt', 'ausdruecklich': 'ausdrücklich',
-    'faengt': 'fängt', 'geraeteliste': 'Geräteliste',
-    'laeufer': 'Läufer', 'hauptaufloesung': 'Hauptauflösung',
-    'verfuegbarkeit': 'Verfügbarkeit', 'uebergangen': 'übergangen',
-    'loesen': 'lösen', 'juengsten': 'jüngsten', 'guete': 'Güte',
-    'stoeren': 'stören', 'verknuepft': 'verknüpft',
-    'vertraegt': 'verträgt', 'uistoerung': 'UI-Störung',
-    'uebrigen': 'übrigen', 'zurueckholen': 'zurückholen',
-    'zusammenfuehrung': 'Zusammenführung', 'noetigen': 'nötigen',
-    'aelter': 'älter', 'hoehe': 'Höhe', 'ende': 'Ende',
-    'uebergebene': 'übergebene', 'uebergebenen': 'übergebenen',
-    'zuordnung': 'Zuordnung',
-}
+#: KEINE UMLAUT-LISTE (26.08.2026)
+#: ================================
+#:     „ich brauche keine umlaute in den testcases"
+#:
+#: Hier stand eine Zuordnung von 230 Wörtern: ``behaelt`` -> ``behält``,
+#: ``groesse`` -> ``Größe`` … Sie machte die Sätze eine Spur hübscher und
+#: kostete dafür Pflege bei JEDER neuen Prüfung — ein Wort, das nicht
+#: darin steht, bleibt ohnehin, wie es ist.
+#:
+#: Der wertvolle Teil bleibt: aus ``AliasVerbundTest.test_falte_behaelt_
+#: reihenfolge`` wird „Alias Verbund: Falte behaelt reihenfolge". Der Satz
+#: ist lesbar, auch ohne ä — der Bezeichner selbst kann ohnehin keins
+#: tragen.
 
 #: Wortanfaenge, die im Klassennamen keine eigene Trennung verdienen —
 #: sonst wird aus ``JsBefunde`` ein „Js Befunde".
@@ -174,7 +96,7 @@ class Testsatz:
 
         >>> Testsatz('app.tests.unit.test_a.AliasVerbundTest'
         ...          '.test_falte_behaelt_reihenfolge').satz()
-        'Alias-Verbund: Falte behält Reihenfolge'
+        'Alias Verbund: Falte behaelt reihenfolge'
     """
 
     #: Was am Anfang einer Prüfmethode wegfällt.
@@ -201,7 +123,7 @@ class Testsatz:
         return rechts or links or self.kennung
 
     def gegenstand(self):
-        u"""Der Klassenname als Wortfolge: ``AliasVerbundTest`` -> ``Alias-Verbund``."""
+        u"""Der Klassenname als Wortfolge: ``AliasVerbundTest`` -> ``Alias Verbund``."""
         name = self.klasse
         for nach in self.NACHSATZ:
             if name.endswith(nach) and len(name) > len(nach):
@@ -209,17 +131,17 @@ class Testsatz:
                 break
         if not name:
             return ''
-        woerter = [self._umlaut(w) for w in self._trennen(name)]
+        woerter = self._trennen(name)
         return ' '.join(self._klein(w, i) for i, w in enumerate(woerter))
 
     def ergebnis(self):
-        u"""Der Methodenname als Satz: ``test_falte_behaelt_x`` -> ``Falte behält x``."""
+        u"""Der Methodenname als Satz: ``test_falte_prueft_x`` -> ``Falte prueft x``."""
         name = self.methode
         if name.startswith(self.VORSATZ):
             name = name[len(self.VORSATZ):]
         if not name:
             return ''
-        woerter = [self._umlaut(w) for w in name.split('_') if w]
+        woerter = [w for w in name.split('_') if w]
         if not woerter:
             return ''
         satz = ' '.join(woerter)
@@ -251,14 +173,3 @@ class Testsatz:
             return wort.lower()
         return wort
 
-    @staticmethod
-    def _umlaut(wort):
-        u"""``behaelt`` -> ``behält``. Nur bekannte Wörter, nie eine Regel."""
-        klein = wort.lower()
-        if klein not in UMLAUTE:
-            return wort
-        richtig = UMLAUTE[klein]
-        # Grossschreibung des Ausgangsworts beibehalten.
-        if wort[:1].isupper():
-            return richtig[:1].upper() + richtig[1:]
-        return richtig

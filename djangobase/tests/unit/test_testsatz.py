@@ -18,7 +18,7 @@ Auf ``/hilfe/tests/`` stand dagegen::
 
 Derselbe Satz, nur in Maschinenschrift. ``Testsatz`` liest ihn zurück:
 
-    „Alias Verbund: Falte behält reihenfolge und einzelne"
+    „Alias Verbund: Falte behaelt reihenfolge und einzelne"
 
 WARUM DAS OHNE ZWEITE DATEI GEHT
 ================================
@@ -59,11 +59,6 @@ class DerSatzIstLesbarOhneCode(BasisTest):
             _satz('m.AliasVerbundTest.test_kette_wird_aufgeloest')
             .startswith('Alias Verbund:'))
 
-    def test_umlaute_kommen_zurueck(self):
-        u"""Ein Bezeichner kann kein ä tragen — der Satz schon."""
-        self.assertIn('behält',
-                      _satz('m.AbcTest.test_falte_behaelt_die_reihenfolge'))
-
     def test_fuellwoerter_bleiben_klein(self):
         u"""``KameraUndPerson`` ist CamelCase, kein englischer Titel."""
         self.assertTrue(_satz('m.KameraUndPerson.test_nur_bekannte')
@@ -82,7 +77,7 @@ class DerSatzNenntGegenstandUndErgebnis(BasisTest):
 
     def test_der_gegenstand_kommt_aus_der_klasse(self):
         self.assertEqual(Testsatz(self.KENNUNG).gegenstand(),
-                         'Aufbewahrung trägt')
+                         'Aufbewahrung traegt')
 
     def test_das_ergebnis_kommt_aus_der_methode(self):
         self.assertEqual(Testsatz(self.KENNUNG).ergebnis(),
@@ -90,7 +85,7 @@ class DerSatzNenntGegenstandUndErgebnis(BasisTest):
 
     def test_beides_steht_mit_doppelpunkt_zusammen(self):
         self.assertEqual(_satz(self.KENNUNG),
-                         'Aufbewahrung trägt: Person bleibt erhalten')
+                         'Aufbewahrung traegt: Person bleibt erhalten')
 
 
 class EineUnvollstaendigeKennungBRICHTNICHT(BasisTest):
@@ -112,24 +107,35 @@ class EineUnvollstaendigeKennungBRICHTNICHT(BasisTest):
         self.assertEqual(_satz('xyz'), 'Xyz')
 
 
-class KeineREGELFUERUmlaute(BasisTest):
-    u"""Der Vorfall aus CLAUDE.md, als Prüfung.
+class DerTextWIRDNICHTUMGESCHRIEBEN(BasisTest):
+    u"""Was im Bezeichner steht, steht auch im Satz.
 
-    Ein Bulk-Replace ``ue -> ü`` machte aus ``value`` ein ``valü``, 333
-    Mal. Deshalb hier eine feste Wortliste und keine Regel — ein Wort, das
-    nicht darin steht, bleibt, wie es ist.
+        „ich brauche keine umlaute in den testcases" (26.08.2026)
+
+    Eine Zwischenfassung ersetzte hier 230 Woerter (``behaelt`` ->
+    ``behält``). Das war eine Spur huebscher und kostete Pflege bei jeder
+    neuen Pruefung — und ein Wort, das nicht in der Liste stand, blieb
+    ohnehin, wie es war.
+
+    Jetzt wird NUR umgebaut, nie umgeschrieben: Unterstriche zu
+    Leerzeichen, ``test_`` weg, Klassenname getrennt. Der Wortlaut bleibt.
     """
 
-    def test_ein_unbekanntes_wort_bleibt_unveraendert(self):
-        # NICHT als erstes Wort: Das wird grossgeschrieben, weil ein Satz
-        # so anfaengt — daran waeren meine ersten zwei Zusicherungen
-        # gescheitert, und zwar zu Recht.
-        self.assertIn('queue', _satz('m.AbcTest.test_die_queue_bleibt_leer'))
+    def test_ein_wort_bleibt_wie_es_dasteht(self):
+        self.assertIn('behaelt',
+                      _satz('m.AbcTest.test_falte_behaelt_die_reihenfolge'))
 
-    def test_englische_woerter_werden_nicht_verdeutscht(self):
+    def test_englische_woerter_bleiben_auch(self):
         satz = _satz('m.AbcTest.test_der_value_bleibt_gleich')
         self.assertIn('value', satz)
         self.assertNotIn('valü', satz)
+
+    def test_es_gibt_keine_wortliste_mehr(self):
+        u"""Gegenprobe: Sonst kaeme sie beim naechsten Mal zurueck."""
+        import djangobase.testsatz as ts
+        self.assertFalse(hasattr(ts, 'UMLAUTE'),
+                         'Die Wortliste ist zurueck — sie war Pflegeaufwand '
+                         'ohne Gegenwert.')
 
 
 class DieTestSeiteZeigtSaetze(BasisTest):
