@@ -89,8 +89,22 @@ JS_FUNKTION = re.compile(
 class Artzahlen:
     u"""Was von EINER Art zusammenkommt."""
 
+    #: ``ausserhalb`` = Anweisungszeilen, die in KEINER Klasse stehen
+    #: (27.08.2026, auf Ansage). Die Spalte „Klassen" sagt, wie viele es
+    #: gibt - nicht, wie viel Code an gar keiner haengt. Genau das ist der
+    #: Massstab aus Kriterium 1 und 18: Modulebene ist Zustand und Ablauf,
+    #: der niemandem gehoert.
+    #:
+    #: NUR PYTHON WIRD GEZAEHLT. Dort sagt der Syntaxbaum die Klassenspanne
+    #: eindeutig (``lineno`` bis ``end_lineno``, samt Dekoratoren). Bei
+    #: JavaScript muesste man Klammern zaehlen und dabei Zeichenketten,
+    #: Vorlagen-Literale und Kommentare auseinanderhalten - eine Zahl, die
+    #: manchmal danebenliegt, ist hier schlimmer als keine. Arten ohne
+    #: Klassenbegriff (HTML, CSS) tragen deshalb ``None``, nicht 0: Die
+    #: Vorlage zeigt dann „-" statt einer Null, die wie ein Messergebnis
+    #: aussaehe.
     __slots__ = ('name', 'dateien', 'zeilen', 'anweisungen', 'kommentar',
-                 'leer', 'klassen', 'funktionen', 'bytes')
+                 'leer', 'klassen', 'funktionen', 'bytes', 'ausserhalb')
 
     def __init__(self, name):
         self.name = name
@@ -102,6 +116,8 @@ class Artzahlen:
         self.klassen = 0
         self.funktionen = 0
         self.bytes = 0
+        #: None = fuer diese Art nicht ermittelbar (siehe __slots__ oben).
+        self.ausserhalb = None
 
     def als_dict(self):
         return dict((f, getattr(self, f)) for f in self.__slots__)
@@ -197,7 +213,8 @@ class Codezahlen:
         """
         zeilen = text.splitlines()
         zahlen.zeilen += len(zeilen)
-        for zeile in zeilen:
+        anweisungszeilen = []
+        for nr, zeile in enumerate(zeilen, start=1):
             blank = zeile.strip()
             if not blank:
                 zahlen.leer += 1
@@ -205,15 +222,42 @@ class Codezahlen:
                 zahlen.kommentar += 1
             else:
                 zahlen.anweisungen += 1
+                anweisungszeilen.append(nr)
         try:
             baum = ast.parse(text)
         except (SyntaxError, ValueError):
+            # Ohne Baum ist die Klassenspanne unbekannt. Die Datei zaehlt
+            # bei den Zeilen mit, aber NICHT bei „ausserhalb" - sonst
+            # zaehlte eine kaputte Datei als lauter globaler Code.
             return
         for knoten in ast.walk(baum):
             if isinstance(knoten, ast.ClassDef):
                 zahlen.klassen += 1
             elif isinstance(knoten, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 zahlen.funktionen += 1
+        innen = Codezahlen._klassenzeilen(baum)
+        if zahlen.ausserhalb is None:
+            zahlen.ausserhalb = 0
+        zahlen.ausserhalb += sum(1 for nr in anweisungszeilen if nr not in innen)
+
+    @staticmethod
+    def _klassenzeilen(baum):
+        u"""Alle Zeilennummern, die INNERHALB einer Klasse liegen.
+
+        Dekoratoren gehoeren dazu: ``@dataclass`` ueber ``class Punkt``
+        steht vor ``lineno`` und ist trotzdem Teil der Klasse. Verschachtelte
+        Klassen brauchen nichts Eigenes - ihre Spanne liegt in der aeusseren.
+        """
+        innen = set()
+        for knoten in ast.walk(baum):
+            if not isinstance(knoten, ast.ClassDef):
+                continue
+            anfang = knoten.lineno
+            for schmuck in getattr(knoten, 'decorator_list', ()):
+                anfang = min(anfang, getattr(schmuck, 'lineno', anfang))
+            ende = getattr(knoten, 'end_lineno', None) or anfang
+            innen.update(range(anfang, ende + 1))
+        return innen
 
     @staticmethod
     def _zeilenweise(text, zahlen, mit_schraegstrich=False):
@@ -262,6 +306,11 @@ class Codezahlen:
                          'leer', 'klassen', 'funktionen', 'bytes'):
                 setattr(summe, feld,
                         getattr(summe, feld) + getattr(zahlen, feld))
+            # ``ausserhalb`` getrennt: None heisst „nicht ermittelbar" und
+            # darf nicht als 0 in die Summe. Bleibt KEINE Art messbar, bleibt
+            # auch die Summe None - eine 0 saehe aus wie „kein globaler Code".
+            if zahlen.ausserhalb is not None:
+                summe.ausserhalb = (summe.ausserhalb or 0) + zahlen.ausserhalb
         return summe.als_dict()
 
     def kennzahlen(self):
@@ -278,6 +327,7 @@ class Codezahlen:
             'py_dateien': py['dateien'],
             'py_zeilen': py['zeilen'],
             'py_klassen': py['klassen'],
+            'py_ausserhalb': py['ausserhalb'],
             'js_dateien': js['dateien'],
             'js_zeilen': js['zeilen'],
             'js_klassen': js['klassen'],

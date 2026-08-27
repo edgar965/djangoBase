@@ -23,6 +23,7 @@ DIE ZWEI FEHLER AUS DEM ERSTEN LAUF
    `zahlen['arten']` war bei „Echte Fehler" eine Liste von Paaren, bei
    „Stil" eine Zahl. Gleicher Name, andere Bauart.
 """
+import unittest
 import tempfile
 from pathlib import Path
 
@@ -51,6 +52,36 @@ FEHLERHAFT = u'import os\nimport sys\n\n\ndef machen():\n    x = 1\n    return 2
 ZU_LANG = u'x = "%s"\n' % ('y' * 120)
 
 
+#: DREI ZUSTAENDE STATT ZWEI (27.08.2026)
+#: ======================================
+#: Diese Faelle brauchen ``radon``, ``pyflakes`` und ``pycodestyle``. Fehlen
+#: sie, lieferte der Lauf bisher 29 rote Faelle mit Meldungen wie
+#: ``KeyError: 'arten'`` - also 29 Meldungen, die aussehen wie ein kaputtes
+#: Projekt und in Wahrheit „pip install fehlt" heissen. Genau so ist es am
+#: 27.08.2026 in shortlongx passiert.
+#:
+#: Die PRODUKTIVSEITE macht es schon richtig: ``umbau/codequalitaet.py``
+#: setzt ``v.fehlt = 'radon'`` und zeigt „nicht gelaufen" statt einer leeren
+#: Liste. Nur die Pruefungen kannten diesen dritten Zustand nicht.
+#:
+#: djangoBase haengt in rund sechs Projekten; keines davon muss die
+#: Werkzeuge haben (sie sind ein optionales Extra, siehe pyproject.toml).
+#: Ein uebersprungener Fall sagt die Wahrheit, ein roter luegt.
+def _fehlendes_werkzeug(*module):
+    u"""Name des ersten fehlenden Moduls - oder '' wenn alle da sind."""
+    import importlib.util
+    for m in module:
+        if importlib.util.find_spec(m) is None:
+            return m
+    return ''
+
+
+FEHLT = _fehlendes_werkzeug('radon', 'pyflakes', 'pycodestyle')
+BRAUCHT_WERKZEUGE = unittest.skipIf(
+    FEHLT, u'%s ist nicht installiert - siehe Extra „codequalitaet"' % FEHLT)
+
+
+@BRAUCHT_WERKZEUGE
 class AlleVierLaufen(BasisTest):
 
     def _namen(self, messung):
@@ -70,6 +101,7 @@ class AlleVierLaufen(BasisTest):
         self.assertEqual(werkzeuge, {'radon', 'pyflakes', 'pycodestyle'})
 
 
+@BRAUCHT_WERKZEUGE
 class JedesVerfahrenFindetSeinen(BasisTest):
 
     def _eines(self, messung, teil):
@@ -130,6 +162,7 @@ class JedesVerfahrenFindetSeinen(BasisTest):
         self.assertEqual(v['zahlen']['gemessen'], 2)
 
 
+@BRAUCHT_WERKZEUGE
 class DieZahlenHabenUeberallDieselbeBauart(BasisTest):
     u"""DER FEHLER (24.08.2026): `TypeError: 'int' object is not iterable`.
 
@@ -152,6 +185,7 @@ class DieZahlenHabenUeberallDieselbeBauart(BasisTest):
                 self.assertEqual(len(eintrag), 2)
 
 
+@BRAUCHT_WERKZEUGE
 class DasProjektSagtWieLangEineZeileSeinDarf(BasisTest):
     u"""``setup.cfg`` schlägt pycodestyles Vorgabe von 79 Zeichen.
 
@@ -207,6 +241,7 @@ class DasProjektSagtWieLangEineZeileSeinDarf(BasisTest):
         self.assertGreaterEqual(stil['zahlen']['gesamt'], 1)
 
 
+@BRAUCHT_WERKZEUGE
 class WasNichtGemessenWird(BasisTest):
 
     def test_laufzeitdaten_bleiben_draussen(self):

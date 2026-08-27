@@ -20,6 +20,22 @@ requires-python = ">=3.10"
 # Fast jedes Konsumenten-Projekt fährt Skripte neben dem laufenden Server.
 dependencies = ["Django>=4.2", "Pillow", "concurrent-log-handler>=0.9.20"]
 
+# OPTIONAL, NICHT PFLICHT (27.08.2026): Die drei Messwerkzeuge hinter
+# Hilfe -> Klassenmodell -> Code-Qualitaet. Sie stehen bewusst NICHT in
+# `dependencies`: Ohne sie startet nichts falsch, der Bericht meldet
+# ordentlich "nicht gelaufen" (umbau/codequalitaet.py setzt `v.fehlt`),
+# und ein Projekt, das die Seite nicht nutzt, soll sie nicht mitschleppen.
+#
+# Warum sie hier trotzdem stehen muessen: Bis heute standen sie NIRGENDS.
+# In shortlongx fehlten alle drei, und der Testlauf ergab 29 rote Faelle
+# mit Meldungen wie `KeyError: 'arten'` - Meldungen, die wie ein kaputtes
+# Projekt aussehen und "pip install fehlt" bedeuten. Ohne einen Ort, an dem
+# die Namen stehen, raet jedes Konsumenten-Projekt neu.
+#
+#     pip install -e "A:/shared/djangoBase[codequalitaet]"
+[project.optional-dependencies]
+codequalitaet = ["radon>=6", "pyflakes>=3", "pycodestyle>=2.11"]
+
 [tool.setuptools]
 include-package-data = true
 

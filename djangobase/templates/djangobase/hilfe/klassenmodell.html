@@ -95,6 +95,19 @@ jede `.py` des Projekts.
 .km-liste code { color: #9ecbff; font-size: 0.82rem; }
 .km-liste tr:hover td { background: #171d24; }
 .km-warn { color: #ffd479; }
+/* Dringlichkeit auf einen Blick - dieselben drei Stufen wie im Bericht. */
+.km-stufe { display: inline-block; padding: 0 .4rem; border-radius: 3px;
+            font-size: .74rem; border: 1px solid transparent; }
+.km-stufe-fehler  { color: #ff9492; border-color: #6b2b2b; background: #2a1618; }
+.km-stufe-warnung { color: #ffd479; border-color: #6b5320; background: #241f14; }
+.km-stufe-hinweis { color: #8b98a5; border-color: #2b3540; background: #171d24; }
+/* Werkzeug-Legende: Die beiden Textspalten tragen den Inhalt, die beiden
+   linken sind Etiketten - ohne feste Breiten zerreisst der Satzbau. */
+.km-werkzeugtabelle td { vertical-align: top; line-height: 1.45; }
+.km-werkzeugtabelle td:nth-child(1) { width: 16%; }
+.km-werkzeugtabelle td:nth-child(2) { width: 13%; white-space: nowrap; }
+.km-werkzeugtabelle td:nth-child(3) { width: 35%; }
+.km-werkzeugtabelle th { position: static; }
 .km-js { color: #8b98a5; font-size: 0.78rem; }
 .km-kategorien { display: grid; gap: 0.6rem; margin-bottom: 1rem;
     grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr)); }
@@ -173,16 +186,84 @@ Bildes — auf „Globale Variablen" also eine Auskunft über Vielfachheiten.
     {% elif reiter == 'qualitaet' %}
     Zwei Fragen, zwei Knöpfe. <b>Statistik</b> zählt aus, wie groß das
     Projekt ist — Dateien, Zeilen und Klassen nach Art getrennt.
-    <b>Qualität prüfen</b> lässt vier etablierte Werkzeuge darüberlaufen
-    (<code>radon</code>, <code>pyflakes</code>, <code>pycodestyle</code>)
-    und zeigt, was sie finden. Laufzeitdaten zählen nicht mit: Was in
-    <code>media/</code> oder <code>logs/</code> liegt, ist kein Quelltext.
+    <b>Qualität prüfen</b> lässt <b>vier Verfahren</b> aus <b>drei
+    etablierten Werkzeugen</b> darüberlaufen — <code>radon</code> liefert
+    zwei davon. Hier ist nichts selbst gebaut; welche Aussage von welchem
+    Werkzeug stammt, steht in der Tabelle darunter. Laufzeitdaten zählen
+    nicht mit: Was in <code>media/</code> oder <code>logs/</code> liegt,
+    ist kein Quelltext.
     {% else %}
     Jede Vorlage mit den Skripten, die sie zieht, und dem, was diese
     ihrerseits importieren — eine Stufe tief. Zwei wären schon ein Netz
     statt eines Baums.
     {% endif %}
 </p>
+
+{% if reiter == 'qualitaet' %}
+{% comment %}
+WELCHE AUSSAGE VON WELCHEM WERKZEUG (27.08.2026, auf Ansage)
+============================================================
+    „schreibe auf der Code-Qualität-Seite hinein, welche Tools (radon usw.)
+     genutzt werden, und welche Aussage von welchem Tool kommt"
+
+Die Werkzeugnamen standen bisher nur im Fließtext der Einleitung und als
+kleine Marke am Ergebnis-Kopf. Wer die Befundliste las, sah eine Zahl und
+einen Satz — aber nicht, WER das behauptet. Das ist der Unterschied
+zwischen „Rang F" und „radon sagt Rang F": Nur das zweite lässt sich
+nachschlagen, bestreiten und gegen die Schwelle halten.
+
+Die Tabelle steht bewusst VOR dem Knopf und nicht erst im Ergebnis: Sie
+sagt, was der Lauf überhaupt beantworten kann, bevor man ihn startet.
+{% endcomment %}
+<div class="km-rahmen">
+    <table class="km-liste km-werkzeugtabelle">
+        <tr>
+            <th>Verfahren</th><th>Werkzeug</th><th>Was es misst</th>
+            <th>Was ein Fund bedeutet</th>
+        </tr>
+        <tr>
+            <td><b>Zyklomatische Komplexität</b></td>
+            <td><code>radon</code> <span class="km-js">(cc)</span></td>
+            <td>Verzweigungen je Funktion — jedes <code>if</code>, jede
+                Schleife, jedes <code>except</code> zählt eins.</td>
+            <td>Eine Funktion, die zu viele Wege hat. Sie ist nicht kaputt,
+                aber kaum vollständig zu prüfen.</td>
+        </tr>
+        <tr>
+            <td><b>Wartbarkeitsindex</b></td>
+            <td><code>radon</code> <span class="km-js">(mi)</span></td>
+            <td>Umfang, Verzweigung und Kommentaranteil einer Datei, zu
+                einer Zahl von 0 bis 100 verrechnet.</td>
+            <td>Eine Datei, in die sich niemand mehr hineintraut — auch
+                wenn jede einzelne Funktion darin harmlos ist.</td>
+        </tr>
+        <tr>
+            <td><b>Echte Fehler</b></td>
+            <td><code>pyflakes</code></td>
+            <td>Namen, die es nicht gibt. Importe, die niemand benutzt.
+                Zweimal dasselbe definiert.</td>
+            <td class="km-warn">Der einzige Block, in dem ein Fund wirklich
+                ein Fehler ist. Alles andere hier ist ein Hinweis.</td>
+        </tr>
+        <tr>
+            <td><b>Stil</b></td>
+            <td><code>pycodestyle</code></td>
+            <td>Abweichungen von PEP 8 — Zeilenlänge, Leerzeichen,
+                Einrückung.</td>
+            <td>Formsache. Zählt im Bericht am wenigsten und darf einen
+                Umbau nie auslösen.</td>
+        </tr>
+    </table>
+    <p class="km-js" style="margin:.5rem 0 0">
+        Die vier widersprechen einander regelmäßig — und genau das ist der
+        Nutzen: Eine Datei kann nach <code>pyflakes</code> fehlerfrei sein
+        und trotzdem einen Wartbarkeitsindex im Keller haben. Dann ist
+        nichts kaputt, aber niemand traut sich hinein. Fehlt ein Werkzeug
+        im Python-Umfeld, meldet sein Block <b>„nicht gelaufen"</b> statt
+        einer leeren Liste, die wie „nichts gefunden" aussähe.
+    </p>
+</div>
+{% endif %}
 
 {% comment %}
 Fünf Sichten auf denselben Bereich (24.08.2026, auf Ansage). Das Klassen-
@@ -268,6 +349,16 @@ zieht.
         <i class="bi bi-123"></i> Statistik erstellen</button>
     <button type="submit" name="was" value="qualitaet" class="km-knopf">
         <i class="bi bi-speedometer2"></i> Qualität prüfen</button>
+    {% comment %}
+    DRITTER KNOPF (27.08.2026, auf Ansage): „ich sehe keine Tabelle zu den
+    Findings der 4 Werkzeuge". Die Verfahrensblöcke zeigen je 15 Treffer und
+    sind nach Werkzeug getrennt — man sieht dort nie, was insgesamt das
+    Dringendste ist. Diese Sicht dreht es um: EINE Tabelle über alle vier,
+    nach Gewicht sortiert, ungekürzt. Sie rechnet nichts Neues, sondern
+    liest dieselbe gespeicherte Messung.
+    {% endcomment %}
+    <button type="submit" name="was" value="befunde" class="km-knopf">
+        <i class="bi bi-list-columns-reverse"></i> Alle Befunde</button>
     {% else %}
     <button type="submit" class="km-knopf">
         <i class="bi bi-diagram-3"></i>
@@ -419,7 +510,52 @@ Ausnahme, Test), von dem, was frei steht, weil es niemand eingehängt hat.
 </div>
 
 {% elif reiter == 'qualitaet' %}
-{% if was == 'qualitaet' %}
+{% if was == 'befunde' %}
+<div class="km-zahlen">
+    <span>gemessen: <b>{{ q_dateien|de }}</b> Python-Dateien</span>
+    <span><b>{{ befunde|length|de }}</b> Befunde aus vier Verfahren</span>
+    {% for stufe, zahl in befund_stufen %}
+    <span class="km-stufe km-stufe-{{ stufe }}">{{ stufe }} <b>{{ zahl|de }}</b></span>
+    {% endfor %}
+    {% if alter %}
+    <span class="km-stand"><i class="bi bi-clock-history"></i>
+        vor {{ alter }} s gemessen — „Neu einlesen" misst frisch</span>
+    {% else %}
+    <span class="km-stand"><i class="bi bi-check2"></i> frisch gemessen</span>
+    {% endif %}
+</div>
+
+<div class="km-rahmen">
+    <table class="km-liste">
+        <tr><th>Stufe</th><th>Werkzeug</th><th>Verfahren</th><th>Wert</th>
+            <th>Stelle</th><th>Datei</th><th>Befund</th></tr>
+        {% for b in befunde %}
+        <tr>
+            <td><span class="km-stufe km-stufe-{{ b.stufe }}">{{ b.stufe }}</span></td>
+            <td><code>{{ b.werkzeug }}</code></td>
+            <td>{{ b.verfahren }}</td>
+            <td class="km-wert">{{ b.wert|de:b.nachkomma }}</td>
+            <td><b>{{ b.name }}</b></td>
+            <td><code>{{ b.datei }}{% if b.zeile %}:{{ b.zeile }}{% endif %}</code></td>
+            <td>{{ b.text }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="km-js">Nichts gefunden — oder es ist noch
+            nicht gemessen worden. <b>Qualität prüfen</b> misst.</td></tr>
+        {% endfor %}
+    </table>
+</div>
+<p class="km-js" style="margin:.5rem .6rem .2rem">
+    Alle vier Verfahren in EINER Liste, nach Dringlichkeit sortiert und
+    <b>ungekürzt</b> — die Blöcke unter <b>Qualität prüfen</b> zeigen je nur
+    15 Treffer und trennen nach Werkzeug. Die Stufe kommt aus derselben
+    Gewichtung wie der Bericht: <b>fehler</b> nur bei <code>pyflakes</code>
+    (undefinierte oder doppelt vergebene Namen) und bei Komplexität über 30;
+    <code>pycodestyle</code> ist immer nur ein <b>hinweis</b> und darf keinen
+    Umbau auslösen.
+</p>
+
+{% elif was == 'qualitaet' %}
 {% comment %}
 Vier Verfahren, die einander widersprechen dürfen — genau das ist der
 Nutzen. Eine Datei kann nach pyflakes fehlerfrei sein und trotzdem einen
@@ -494,7 +630,14 @@ hinter einem stummen `except: continue`, also aus Statistik UND Bericht.
 
     {% if v.treffer %}
     <table class="km-liste">
-        <tr><th>Wert</th><th>Stelle</th><th>Datei</th><th>Befund</th></tr>
+        {% comment %}
+        Das Werkzeug steht im KOPF, nicht in jeder Zeile: Innerhalb eines
+        Blocks ist es fuer alle Treffer dasselbe, und eine Spalte, die
+        200 Mal denselben Wert traegt, ist Rauschen. Im Kopf beantwortet es
+        die Frage, die beim Lesen einer langen Liste aufkommt - wer sagt das?
+        {% endcomment %}
+        <tr><th>Wert</th><th>Stelle</th><th>Datei</th>
+            <th>Befund <span class="km-js">— laut {{ v.werkzeug }}</span></th></tr>
         {% for t in v.treffer %}
         <tr>
             <td class="km-wert">{{ t.wert }}</td>
@@ -537,8 +680,18 @@ zusammen, und lernt nichts.
 
 <div class="km-rahmen">
     <table class="km-liste">
+        {% comment %}
+        „ausserhalb" (27.08.2026, auf Ansage): Die Spalte „Klassen" sagt, wie
+        VIELE es gibt - nicht, wie viel Code an gar keiner haengt. Genau das
+        ist der Massstab aus Kriterium 1 und 18. Nur Python traegt eine Zahl:
+        Dort ist die Klassenspanne im Syntaxbaum eindeutig; bei JavaScript
+        muesste man Klammern zaehlen und Zeichenketten auseinanderhalten.
+        Arten ohne Klassenbegriff zeigen „-", nicht 0 - eine Null saehe aus
+        wie ein Messergebnis.
+        {% endcomment %}
         <tr><th>Art</th><th>Dateien</th><th>Zeilen</th><th>Anweisungen</th>
-            <th>Kommentar</th><th>leer</th><th>Klassen</th><th>Funktionen</th></tr>
+            <th>Kommentar</th><th>leer</th><th>Klassen</th><th>Funktionen</th>
+            <th>außerhalb<br><span class="km-js">von Klassen</span></th></tr>
         {% for a in arten %}
         <tr>
             <td><b>{{ a.name }}</b></td>
@@ -549,6 +702,8 @@ zusammen, und lernt nichts.
             <td class="km-wert">{{ a.leer|de }}</td>
             <td class="km-wert">{{ a.klassen|de }}</td>
             <td class="km-wert">{{ a.funktionen|de }}</td>
+            <td class="km-wert">{% if a.ausserhalb == None %}<span
+                class="km-js">—</span>{% else %}{{ a.ausserhalb|de }}{% endif %}</td>
         </tr>
         {% endfor %}
         <tr class="km-summe">
@@ -560,8 +715,20 @@ zusammen, und lernt nichts.
             <td class="km-wert">{{ arten_gesamt.leer|de }}</td>
             <td class="km-wert">{{ arten_gesamt.klassen|de }}</td>
             <td class="km-wert">{{ arten_gesamt.funktionen|de }}</td>
+            <td class="km-wert">{% if arten_gesamt.ausserhalb == None %}<span
+                class="km-js">—</span>{% else %}{{ arten_gesamt.ausserhalb|de }}{% endif %}</td>
         </tr>
     </table>
+    <p class="km-js" style="margin:.5rem .6rem .2rem">
+        <b>außerhalb von Klassen</b> zählt die Anweisungszeilen, die in keiner
+        Klasse stehen — Modulebene also: Vorgaben, freie Funktionen und
+        Zustand, der niemandem gehört. Die Spalte <b>Klassen</b> sagt nur, wie
+        viele es gibt; erst diese sagt, wie viel Code an gar keiner hängt.
+        Gezählt wird ausschließlich bei <b>Python</b>, wo der Syntaxbaum die
+        Klassenspanne eindeutig hergibt (samt Dekoratoren); Arten ohne
+        Klassenbegriff zeigen „—“ statt einer Null, die wie ein Messergebnis
+        aussähe.
+    </p>
 </div>
 
 {% if ausgelassen %}
