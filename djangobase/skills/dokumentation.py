@@ -105,10 +105,13 @@ class Dokumentation(BefundWerkzeug):
          'views.py': 'def tief(request):\n'
                      '    Eins().a()\n',
          'kette.py': KETTE},
-        mindestens=1, erwartet_in='abgeschnitten',
+        mindestens=0, hoechstens=0,
         warum=u'Eine Kette über sieben Klassen, gezeichnet wird bis Tiefe '
               u'fünf. Das Bild zeigt also weniger als den ganzen Weg — und '
-              u'muss das selbst sagen, statt Vollständigkeit vorzutäuschen')
+              u'sagt das seit dem 27.08.2026 SELBST, im Fußvermerk. Genau '
+              u'deshalb darf hier KEIN Befund stehen: Der Hinweis ist '
+              u'erledigt, nicht unterdrückt. Meldet das Werkzeug hier '
+              u'wieder etwas, ist der Vermerk aus dem Bild verschwunden.')
 
     # ------------------------------------------------------------------
     def pruefen(self, **_argumente):

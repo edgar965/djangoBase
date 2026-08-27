@@ -151,6 +151,8 @@ class Testdeckung(EigenesWerkzeug):
         for name, bezug in sorted(verzeichnis.klassen.items()):
             if self._kommt_vor(erwaehnt, name):
                 continue
+            if self._nur_eine_ausnahme(bezug):
+                continue          # nichts zu prüfen — siehe unten
             wege = gewicht.get(name, 0)
             if not wege:
                 continue          # Randbereich — gezählt, nicht gelistet
@@ -163,6 +165,36 @@ class Testdeckung(EigenesWerkzeug):
                            "Test erwähnt" % (wege, "en" if wege != 1 else ""),
             })
         return aus
+
+    @staticmethod
+    def _nur_eine_ausnahme(bezug):
+        u"""Eine Ausnahme-Klasse ohne eigenen Rumpf ist kein Testziel.
+
+        DER FEHLALARM (27.08.2026, an assistant gefunden)
+        =================================================
+        ``class FreigabeTimeout(Exception): '''…'''`` stand in der Liste
+        der ungeprüften Klassen. Sie hat keine Methode, kein Feld und
+        keine Entscheidung — ein Test dafür könnte nur prüfen, dass sie
+        existiert. Genau solche Zeilen sind es, die eine Befundliste
+        entwerten: Wer sie abarbeitet, schreibt Prüfungen ohne Aussage.
+
+        Von 77 gemeldeten Klassen war es an assistant genau eine — kein
+        großer Posten, aber ein falscher.
+        """
+        knoten = getattr(bezug, 'knoten', None)
+        if knoten is None or not hasattr(knoten, 'bases'):
+            return False
+        basen = [b.id for b in knoten.bases
+                 if getattr(b, 'id', None)]
+        if not basen or not all(
+                b.endswith('Error') or b.endswith('Exception')
+                for b in basen):
+            return False
+        # Rumpf ohne Docstring und ohne ``pass``: dann steht dort etwas.
+        import ast as _ast
+        inhalt = [k for k in knoten.body
+                  if not isinstance(k, (_ast.Expr, _ast.Pass))]
+        return not inhalt
 
     def _routen(self, erwaehnt):
         """Jede Route des Projekts gegen die Testtexte halten."""

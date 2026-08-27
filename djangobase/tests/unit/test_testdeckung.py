@@ -102,3 +102,67 @@ class RoutenTest(BasisTest):
         self.assertTrue(
             Testdeckung._modul(RedirectView.as_view(url="/")).startswith("django."))
         self.assertEqual(Testdeckung._modul(freie_ansicht), PROJEKTMODUL)
+
+
+class _Knoten:
+    u"""So viel Syntaxknoten, wie die Pruefung anfasst."""
+
+    def __init__(self, basen, rumpf):
+        import ast
+        self.bases = [ast.Name(id=b) for b in basen]
+        self.body = rumpf
+
+
+class _Bezug:
+    def __init__(self, knoten):
+        self.knoten = knoten
+
+
+def _ausnahme(basen=("Exception",), mit_rumpf=False):
+    import ast
+    rumpf = [ast.Expr(value=ast.Constant(value="Ein Docstring."))]
+    if mit_rumpf:
+        rumpf.append(ast.FunctionDef(name="tu", args=None, body=[],
+                                     decorator_list=[]))
+    return _Bezug(_Knoten(basen, rumpf))
+
+
+class EineAusnahmeOhneEigenenRumpf(BasisTest):
+    u"""Gegeben: ``class FreigabeTimeout(Exception): '''...'''``
+
+    DER FEHLALARM (27.08.2026, an assistant gefunden): Sie stand in der
+    Liste der ungepruefen Klassen. Ein Test dafuer koennte nur pruefen,
+    dass sie existiert — genau solche Zeilen entwerten eine Befundliste.
+    """
+
+    def test_gilt_nicht_als_testziel(self):
+        self.assertTrue(Testdeckung._nur_eine_ausnahme(_ausnahme()))
+
+    def test_auch_bei_einer_eigenen_fehlerbasis(self):
+        self.assertTrue(
+            Testdeckung._nur_eine_ausnahme(_ausnahme(("BankError",))))
+
+
+class EineAusnahmeMitEigenemVerhalten(BasisTest):
+    u"""Gegeben: Eine Ausnahme, die selbst etwas tut.
+
+    Die Gegenprobe. Wer eine Methode traegt, hat etwas zu pruefen.
+    """
+
+    def test_bleibt_ein_testziel(self):
+        self.assertFalse(
+            Testdeckung._nur_eine_ausnahme(_ausnahme(mit_rumpf=True)))
+
+
+class EineGewoehnlicheKlasse(BasisTest):
+    u"""Gegeben: Eine Klasse, die keine Ausnahme ist."""
+
+    def test_bleibt_ein_testziel(self):
+        self.assertFalse(
+            Testdeckung._nur_eine_ausnahme(_ausnahme(("object",))))
+
+    def test_ohne_basis_ebenfalls(self):
+        self.assertFalse(Testdeckung._nur_eine_ausnahme(_ausnahme(())))
+
+    def test_ein_bezug_ohne_knoten_wirft_nicht(self):
+        self.assertFalse(Testdeckung._nur_eine_ausnahme(_Bezug(None)))

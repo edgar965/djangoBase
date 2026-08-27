@@ -108,6 +108,60 @@ class DasWerkzeugFuehrtSeinenEigenenBeispielfallMit(BasisTest):
         self.assertTrue(Dokumentation.anlassfall.warum)
 
 
+class DerAnlassfallVerlangtSchweigen(BasisTest):
+    u"""Gegeben: Der Anlassfall dieses Werkzeugs, seit dem 27.08.2026.
+
+    WARUM ER SICH GEDREHT HAT
+    =========================
+    Er verlangte ``mindestens=1`` und ``erwartet_in='abgeschnitten'``:
+    Eine Kette über sieben Klassen wird bis Tiefe fünf gezeichnet, das
+    Bild zeigt also weniger als den ganzen Weg — und DAS war der Befund.
+
+    Seit ``Workflowbild._abschluss`` den Fußvermerk setzt, verschweigt
+    das Bild seine Grenze nicht mehr. Der Hinweis ist damit erledigt, und
+    der alte Anlassfall fiel um.
+
+    Auf ``mindestens=0, hoechstens=0`` gestellt, prüft er jetzt die
+    andere Hälfte: Es darf KEIN Befund mehr kommen. Über ``hoechstens``
+    ist das genauso scharf — verschwindet der Vermerk, steht der Befund
+    sofort wieder da, und der Anlassfall wird rot.
+
+    Der Prüfer führt ihn deshalb unter einem eigenen Stand
+    (``ausnahme``) und nicht als „sieht seinen Fall": Ein Anlassfall, der
+    Schweigen verlangt, beweist nicht, dass das Werkzeug noch etwas
+    sehen kann.
+    """
+
+    def test_er_verlangt_kein_befund(self):
+        self.assertEqual(Dokumentation.anlassfall.mindestens, 0)
+        self.assertEqual(Dokumentation.anlassfall.hoechstens, 0)
+
+    def test_schweigen_ist_das_richtige_urteil(self):
+        self.assertEqual(Dokumentation.anlassfall.urteil([]), '')
+
+    def test_ein_befund_macht_ihn_rot(self):
+        u"""Die Gegenprobe: Faellt der Vermerk aus dem Bild, kommt der
+        Hinweis zurueck — und muss hier auffallen."""
+        urteil = Dokumentation.anlassfall.urteil([{'was': 'irgendetwas'}])
+        self.assertIn('zu grob', urteil)
+
+    def test_der_pruefer_nennt_ihn_nicht_sehend(self):
+        from djangobase.skills.anlassfall_check import Pruefergebnis
+        ergebnis = Pruefergebnis(Dokumentation)
+        self.assertTrue(ergebnis.prueft_nur_die_ausnahme)
+        self.assertEqual(ergebnis.stand, Pruefergebnis.AUSNAHME)
+        self.assertIn('Ausnahme', ergebnis.urteil)
+
+    def test_ein_sehender_anlassfall_bleibt_sehend(self):
+        u"""Gegenprobe zum Stand: Ein Werkzeug mit mindestens=1 darf
+        NICHT als Ausnahme gelten."""
+        from djangobase.skills import werkzeug_finden
+        from djangobase.skills.anlassfall_check import Pruefergebnis
+        andere = werkzeug_finden('code-qualitaet')
+        ergebnis = Pruefergebnis(type(andere))
+        self.assertFalse(ergebnis.prueft_nur_die_ausnahme)
+
+
 class _Bezug:
     u"""So viel Bezug, wie das Bild zum Zeichnen braucht."""
 
