@@ -55,6 +55,10 @@ from .kriterien import OHNE_WERKZEUG
 from .lehren import BEREICHE, LEHREN, Lehre, Lehrenstand, als_zeilen, gruppen
 from .netz import Abnahme, Umbaunetz
 from .befund import Befund, Befundsatz, BefundWerkzeug
+from .cachebusting import Cachebusting
+from .cssdubletten import Cssdubletten
+from .nurlesen import NurLesen
+from .pfadpraefix import Pfadpraefix
 from .werkzeug import Ergebnis, Quelldatei, Werkzeug
 from .befund import BefundWerkzeug
 
@@ -314,6 +318,25 @@ BEFUNDBASIERT = [
     Endpunktprobe,
     Endpunktprofil,
     Vorlagenvariablen,
+    # --- 27.08.2026, aus dem 3DTools-Durchgang -----------------------------
+    # Ganz vorn in dieser Vierergruppe: Der Zugriff auf mitgelieferte Daten
+    # ist der einzige davon, der etwas ZERSTOERT. In 3DTools schrumpften die
+    # maennlichen Morphdaten von 437 KB auf 218 KB — halbe Vertexzahl, kein
+    # Fehler, kein Logeintrag.
+    NurLesen,
+    # Dahinter: dieselbe Klasse Fehler, nur eine Ebene frueher. Eine
+    # Pfadpruefung per `startswith` laesst einen Nachbarordner durch
+    # (`media_evil` beginnt mit `media`). Viermal in 3DTools einzeln
+    # gefunden — genau der Grund, warum es ein Werkzeug wird.
+    Pfadpraefix,
+    # Dann die stille Sorte: eine Seite, die laedt und trotzdem eine ALTE
+    # Fassung ausfuehrt. `_shell.html` haengt selbst `?v=` an; dieses
+    # Werkzeug prueft, ob die Vorlagen des Projekts es genauso halten.
+    Cachebusting,
+    # Zuletzt Aufraeumarbeit. Neben `jsstilfassungen` (Inline-Stile AM
+    # Element) und `doppelcode` (gleitendes Zeilenfenster): Welche
+    # VOLLSTAENDIGE CSS-Regel steht in wie vielen Dateien?
+    Cssdubletten,
 ]
 
 #: Nicht anzeigen - von einem neueren Werkzeug abgedeckt (``dateigroesse``
