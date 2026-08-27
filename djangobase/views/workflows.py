@@ -33,6 +33,8 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from django.views import View
 
+from ..umbau.ablauf import Ablauf
+from ..umbau.ablaufbild import Ablaufbild
 from ..umbau.workflowbild import Workflowbild
 from ..umbau.workflows import Workflowspeicher
 from ..mixins import ZugriffMixin
@@ -58,19 +60,59 @@ class WorkflowsView(ZugriffMixin, View):
         faecher = liste.reiter()
         reiter = daten.get('reiter') or (faecher[0][0] if faecher else '')
         gewaehlt = self._weg(liste, faecher, reiter, daten.get('weg', ''))
+        ansicht = daten.get('ansicht') or 'ablauf'
+        bild, ablauf = self._bild(liste, gewaehlt, ansicht,
+                                  daten.get('funktion', ''))
         return render(request, self.vorlage, {
             'aktiv': 'workflows',
             'reiter': [{'kuerzel': k, 'titel': t, 'anzahl': len(w)}
                        for k, t, w in faecher],
             'offen': reiter,
+            'ansicht': ansicht,
             'wege': self._wegliste(faecher, reiter, gewaehlt),
             'weg': gewaehlt,
-            'bild': Workflowbild(gewaehlt).svg() if gewaehlt else '',
+            'bild': bild,
+            'ablauf': ablauf,
             'kennzahlen': liste.kennzahlen,
             'verworfen': liste.verworfen,
             'alter': alter,
             'wurzel': str(wurzel),
         })
+
+    # ── Die zwei Ansichten ──────────────────────────────────────
+
+    @staticmethod
+    def _bild(liste, weg, ansicht, funktion):
+        u"""Landkarte oder Ablauf — zwei Fragen, zwei Bilder.
+
+        DIE ANSAGE (Edgar, 27.08.2026)
+        ==============================
+            „ich brauche einen klaren Workflow, was in welcher Reihenfolge
+             gemacht wird. Kannst du nicht sowas wie ein Ablaufdiagramm
+             machen mit Entscheidungsbäumen?"
+
+        Die Landkarte sagt, WAS beteiligt ist, und ordnet nach Entfernung.
+        Sie beantwortet nicht, was zuerst kommt — und eine Bedingung sieht
+        darin aus wie ein Aufruf.
+
+        Der Ablauf liest denselben Code in seiner Reihenfolge, mit den
+        Verzweigungen. Er ist die Vorgabe, weil das die Frage ist, die man
+        vor fremdem Code zuerst hat.
+        """
+        if weg is None:
+            return '', None
+        if ansicht != 'ablauf':
+            return Workflowbild(weg).svg(), None
+        bezug = weg.start
+        if funktion and liste.verzeichnis is not None:
+            klasse, _punkt, name = funktion.rpartition('.')
+            gesucht = (liste.verzeichnis.in_klasse(klasse, name) if klasse
+                       else liste.verzeichnis.funktionen.get(name))
+            bezug = gesucht or bezug
+        if bezug is None:
+            return '', None
+        lauf = Ablauf(bezug, liste.verzeichnis).lesen()
+        return Ablaufbild(lauf).svg(), lauf
 
     # ── Auswahl ─────────────────────────────────────────────────
 

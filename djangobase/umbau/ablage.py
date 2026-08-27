@@ -161,13 +161,57 @@ class Speicher:
             cls._werte = {}
         return cls._werte
 
+    #: Module, deren INHALT das Ergebnis bestimmt.
+    #:
+    #: DER SPEICHER MUSS MERKEN, WENN SEIN ERZEUGER SICH AENDERT
+    #: ========================================================
+    #:     „ich brauche einen Button zum neu Berechnen, sehe noch den
+    #:      alten Stand" (Edgar, 27.08.2026)
+    #:
+    #: Der Schlüssel war nur der Projektpfad. Wurde die AUSWERTUNG
+    #: geändert — am selben Tag zweimal: der Klassenkasten zeigte die
+    #: ganze Klasse statt den Konstruktor —, blieb das alte Ergebnis
+    #: gültig. Die Seite zeigte weiter die 26 erfundenen Kanten, und nur
+    #: wer den Knopf fand, sah die richtigen neun.
+    #:
+    #: Ein Knopf ist die falsche Antwort auf diese Frage: Er verlangt,
+    #: dass der Leser weiß, dass sich etwas geändert hat. Genau das kann
+    #: er nicht wissen — und genau darum geht es auf dieser Seite.
+    #:
+    #: Wer hier seine Quellmodule einträgt, bekommt bei jeder Änderung an
+    #: ihnen automatisch einen neuen Schlüssel und damit eine neue
+    #: Rechnung. Ohne Eintrag bleibt alles wie bisher.
+    quellen = ()
+
+    @classmethod
+    def abdruck(cls):
+        u"""Ein kurzes Kennzeichen der Quellmodule — leer, wenn keine.
+
+        Gemessen wird Groesse und Aenderungszeit, nicht der Inhalt: Beides
+        aendert sich bei jeder Bearbeitung, und eine Datei zu lesen kostet
+        mehr als sie zu befragen.
+        """
+        if not cls.quellen:
+            return ''
+        teile = []
+        for quelle in cls.quellen:
+            pfad = Path(getattr(quelle, '__file__', quelle))
+            try:
+                stand = pfad.stat()
+                teile.append('%s:%d:%d' % (pfad.name, stand.st_size,
+                                           int(stand.st_mtime)))
+            except OSError:
+                teile.append('%s:fehlt' % pfad.name)
+        return hashlib.md5('|'.join(teile).encode('utf-8')).hexdigest()[:8]
+
     @classmethod
     def holen(cls, wurzel, neu=False):
         u"""``(Wert, Alter in Sekunden oder None)``.
 
         ``None`` als Alter heißt: gerade eben gerechnet.
         """
-        schluessel = str(wurzel)
+        abdruck = cls.abdruck()
+        schluessel = '%s#%s' % (wurzel, abdruck) if abdruck else str(wurzel)
         gemerkt = cls._gemerkt()
         if not neu:
             if schluessel in gemerkt:

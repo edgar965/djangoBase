@@ -28,6 +28,8 @@ Weil die meisten nichts erzaehlen. ``GRENZE`` schneidet ab: Was weniger
 als eine Handvoll Klassen beruehrt, ist kein Workflow, sondern ein
 Handgriff. Was uebrig bleibt, sind die 20 bis 50, nach denen gefragt war.
 """
+from pathlib import Path
+
 from .ablage import Speicher
 from .einstiege import Einstiegssucher
 from .wegenetz import Verzeichnis, Wegsucher
@@ -67,9 +69,13 @@ class Workflowliste:
         self.wege = []
         self.verworfen = 0
         self.kennzahlen = {}
+        #: Bleibt erhalten, damit die Ablauf-Ansicht Ziele aufloesen kann,
+        #: ohne das Projekt ein zweites Mal zu lesen.
+        self.verzeichnis = None
 
     def lesen(self):
         verzeichnis = Verzeichnis(self.wurzel).lesen()
+        self.verzeichnis = verzeichnis
         self.kennzahlen = verzeichnis.kennzahlen()
         sucher = Wegsucher(verzeichnis, tiefe=self.tiefe)
         alle = []
@@ -172,6 +178,14 @@ class Workflowspeicher(Speicher):
     """
 
     bereich = 'workflows'
+
+    #: Aendert sich einer dieser vier, ist das gespeicherte Bild ueberholt
+    #: und wird beim naechsten Aufschlagen NEU gerechnet — ohne dass
+    #: jemand einen Knopf druecken muss.
+    quellen = (__file__,
+               str(Path(__file__).with_name('wegenetz.py')),
+               str(Path(__file__).with_name('einstiege.py')),
+               str(Path(__file__).with_name('workflowbild.py')))
 
     @staticmethod
     def bauen(wurzel):

@@ -24,6 +24,14 @@ nachpruefbar bleibt und nicht zur Behauptung wird.
             padding: 0.4rem 1rem; font-size: 0.86rem; cursor: pointer; }
 .wf-knopf:hover { background: #2b7ef7; }
 
+.wf-schalter { display: inline-flex; border: 1px solid var(--ct-border, #2a3038);
+               border-radius: 5px; overflow: hidden; }
+.wf-schalter button { background: transparent; border: 0; cursor: pointer;
+    color: var(--ct-text-muted, #8b949e); padding: 0.35rem 0.9rem;
+    font-size: 0.84rem; }
+.wf-schalter button.an { background: rgba(56,212,216,0.14);
+                         color: var(--ct-accent, #38d4d8); font-weight: 600; }
+
 .wf-reiter { display: flex; gap: 0.3rem; flex-wrap: wrap;
              border-bottom: 1px solid var(--ct-border, #2a3038);
              margin-bottom: 0.9rem; }
@@ -67,6 +75,14 @@ nachpruefbar bleibt und nicht zur Behauptung wird.
 .wf-buehne svg { display: block; }
 .wf-fuss { font-size: 0.78rem; opacity: 0.7; margin-top: 0.5rem;
            display: flex; gap: 1.1rem; flex-wrap: wrap; }
+.wf-form { display: inline-block; width: 15px; height: 11px;
+           vertical-align: middle; margin-right: 5px; border: 1px solid; }
+.wf-form-schritt  { background: #1a1f26; border-color: #2a3038; border-radius: 2px; }
+.wf-form-frage    { background: #241d33; border-color: #8b7bd8;
+                    transform: skewX(-18deg); }
+.wf-form-ende     { background: #2a1d1d; border-color: #d87b7b; border-radius: 6px; }
+.wf-form-schleife { background: #1a2630; border-color: #38d4d8; border-radius: 2px; }
+.wf-form-sicher   { background: #2a2519; border-color: #d8b45e; border-radius: 2px; }
 .wf-strich { display: inline-block; width: 22px; height: 0;
              border-top: 2px solid; vertical-align: middle;
              margin-right: 4px; }
@@ -75,9 +91,17 @@ nachpruefbar bleibt und nicht zur Behauptung wird.
 <form method="post" id="wf-form">{% csrf_token %}
   <input type="hidden" name="reiter" id="wf-reiter" value="{{ offen }}">
   <input type="hidden" name="weg" id="wf-weg" value="{% if weg %}{{ weg.einstieg.titel }}{% endif %}">
+  <input type="hidden" name="ansicht" id="wf-ansicht" value="{{ ansicht }}">
+  <input type="hidden" name="funktion" id="wf-funktion" value="">
 
   <div class="wf-kopf">
-    <button class="wf-knopf" type="submit" name="neu" value="1">Code neu lesen</button>
+    <button class="wf-knopf" type="submit" name="neu" value="1">Neu berechnen</button>
+    <span class="wf-schalter">
+      <button type="button" data-ansicht="ablauf"
+              class="{% if ansicht == 'ablauf' %}an{% endif %}">Ablauf</button>
+      <button type="button" data-ansicht="karte"
+              class="{% if ansicht != 'ablauf' %}an{% endif %}">Landkarte</button>
+    </span>
     <span class="wf-zahl">
       <b>{{ kennzahlen.workflows }}</b> Workflows aus
       <b>{{ kennzahlen.einstiege }}</b> Einstiegen,
@@ -127,22 +151,35 @@ nachpruefbar bleibt und nicht zur Behauptung wird.
     {% if weg %}
       <div class="wf-zahl" style="margin-bottom:.4rem">
         <b>{{ weg.einstieg.titel }}</b> &middot;
+        {% if ablauf %}Ablauf von <b>{{ ablauf.name }}</b>
+          ({{ ablauf.modul }}:{{ ablauf.zeile }}) &middot;{% endif %}
         {{ weg.klassen|length }} Klassen &middot;
         {{ weg.schritte|length }} Schritte &middot;
         Tiefe {{ weg.tiefe }} &middot;
         {{ weg.einstieg.datei }}:{{ weg.einstieg.zeile }}
       </div>
       <div class="wf-buehne">{{ bild|safe }}</div>
+      {% if ansicht == 'ablauf' %}
+      <div class="wf-fuss">
+        <span><i class="wf-form wf-form-schritt"></i>ein Schritt</span>
+        <span><i class="wf-form wf-form-frage"></i>eine Entscheidung — darunter eingerückt steht, was dann passiert</span>
+        <span><i class="wf-form wf-form-ende"></i>hier ist der Ablauf zu Ende</span>
+        <span><i class="wf-form wf-form-schleife"></i>Wiederholung</span>
+        <span><i class="wf-form wf-form-sicher"></i>Absicherung (try)</span>
+        <span>Rechts steht die Zeile im Quelltext; „→ Ziel" heißt: dieser Schritt ruft etwas Eigenes — anklicken zeigt dessen Ablauf.</span>
+      </div>
+      {% else %}
       <div class="wf-fuss">
         <span><i class="wf-strich" style="border-color:#38d4d8"></i>Aufruf beim Namen</span>
         <span><i class="wf-strich" style="border-color:#8b7bd8"></i>über ein Feld, dessen Typ im Code steht</span>
-        <span><i class="wf-strich" style="border-color:#7a8a99;border-top-style:dashed"></i>über einen im Projekt eindeutigen Methodennamen</span>
+        <span><i class="wf-strich" style="border-color:#7a8a99;border-top-style:dashed"></i>über einen im Projekt eindeutigen Methodennamen — auf WELCHEM Objekt, steht nicht im Code</span>
         {% if weg.offen %}
           <span title="{{ weg.offen|join:', ' }}">
             {{ weg.offen|length }} Namen blieben offen — mehrdeutig, darum nicht verbunden
           </span>
         {% endif %}
       </div>
+      {% endif %}
     {% else %}
       <div class="wf-zahl">Kein Weg gewählt.</div>
     {% endif %}
@@ -156,6 +193,26 @@ const feld = document.getElementById('wf-weg');
 document.querySelectorAll('.wf-liste tr[data-weg]').forEach((zeile) => {
     zeile.addEventListener('click', () => {
         feld.value = zeile.dataset.weg;
+        document.getElementById('wf-funktion').value = '';
+        form.submit();
+    });
+});
+
+// Zwischen Ablauf und Landkarte umschalten.
+const ansicht = document.getElementById('wf-ansicht');
+document.querySelectorAll('.wf-schalter button').forEach((knopf) => {
+    knopf.addEventListener('click', () => {
+        ansicht.value = knopf.dataset.ansicht;
+        form.submit();
+    });
+});
+
+// Ein Schritt mit Ziel fuehrt in dessen Ablauf.
+document.querySelectorAll('.wf-buehne [data-ziel]').forEach((teil) => {
+    teil.style.cursor = 'pointer';
+    teil.addEventListener('click', () => {
+        document.getElementById('wf-funktion').value = teil.dataset.ziel;
+        ansicht.value = 'ablauf';
         form.submit();
     });
 });
