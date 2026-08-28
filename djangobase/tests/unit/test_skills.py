@@ -373,3 +373,39 @@ class LehrenTest(BasisTest):
         mit_werkzeug = {k.kriterium for k in WERKZEUGE}
         doppelt = [nr for nr, _, _ in OHNE_WERKZEUG if nr in mit_werkzeug]
         self.assertFalse(doppelt, "Kriterien mit Werkzeug in OHNE_WERKZEUG: %s" % doppelt)
+
+
+class ModellpaketSichtbarTest(BasisTest):
+    u"""Ein Django-Modellpaket ist Projektcode, kein Gewichte-Ordner.
+
+    BEFUND (29.08.2026, 3DTools): `"models"` stand in `AUSGESCHLOSSEN` —
+    gedacht für Ordner mit ML-Gewichten. Getroffen hat es `core/models/` mit
+    vierzehn Dateien: KEIN Werkzeug des Kastens hat sie je gesehen, und zwar
+    genau, weil das Projekt der Regel folgt, eine zu große `models.py` in ein
+    Paket aufzuteilen.
+    """
+
+    def test_models_ist_nicht_pauschal_ausgeschlossen(self):
+        from djangobase.skills.werkzeug import AUSGESCHLOSSEN
+        self.assertNotIn('models', AUSGESCHLOSSEN)
+
+    def test_ein_modellpaket_wird_gefunden(self):
+        import tempfile
+        from pathlib import Path
+        from djangobase.skills.werkzeug import Werkzeug
+        with tempfile.TemporaryDirectory(prefix='djb-models-') as ordner:
+            paket = Path(ordner) / 'core' / 'models'
+            paket.mkdir(parents=True)
+            (paket / 'auftrag.py').write_text('class Auftrag:\n    pass\n',
+                                              encoding='utf-8')
+            werkzeug = Werkzeug()
+            werkzeug.wurzel = lambda: Path(ordner)
+            namen = [p.name for p in werkzeug.pfade('*.py')]
+        self.assertIn('auftrag.py', namen)
+
+    def test_die_ausnahme_bleibt_projektweise_moeglich(self):
+        u"""Wer einen Gewichte-Ordner `models` hat, nimmt ihn selbst aus —
+        über `DJANGOBASE["skills_ignorieren"]`."""
+        from djangobase.skills.werkzeug import Werkzeug
+        with override_settings(DJANGOBASE={'skills_ignorieren': ['models']}):
+            self.assertIn('models', Werkzeug().ausgeschlossen())

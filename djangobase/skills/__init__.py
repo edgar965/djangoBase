@@ -98,6 +98,7 @@ from .namensvarianten import Namensvarianten
 from .rueckgabedict import RueckgabeDict
 from .rueckgabetupel import RueckgabeTupel
 from .schleifenarbeit import Schleifenarbeit
+from .systemablage import Systemablage
 from .dokumentation import Dokumentation
 from .szenarien import Szenarien
 from .schreibrouten import Schreibrouten
@@ -356,6 +357,12 @@ BEFUNDBASIERT = [
     # IPv4, laeuft jeder Verbindungsaufbau erst in einen Timeout. Gemessen
     # in assistant gegen Ollama: 2.923 ms gegen 840 ms, dreizehn Stellen.
     LangsameAdresse,
+    # Und die Sorte, die nicht langsam macht, sondern die Platte fuellt
+    # (29.08.2026): Zwischendateien ohne `dir=` landen unter Windows auf
+    # C:. Aus dieser Gewohnheit sind in einem Projekt rund 100 GB
+    # Datenmuell entstanden; aufgeraeumt wird meist im `finally`, und das
+    # hilft nur, solange der Prozess lebt.
+    Systemablage,
     # Zuletzt Aufraeumarbeit. Neben `jsstilfassungen` (Inline-Stile AM
     # Element) und `doppelcode` (gleitendes Zeilenfenster): Welche
     # VOLLSTAENDIGE CSS-Regel steht in wie vielen Dateien?
