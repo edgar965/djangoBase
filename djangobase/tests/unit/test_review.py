@@ -236,11 +236,47 @@ class LaufRegisterTest(BasisTest):
         self.assertIsNotNone(r.holen(laeufe[-1].id))
 
 
+#: Wohin die Mitschriften der PRUEFUNG gehen.
+#:
+#: WARUM DAS HIER STEHEN MUSS (Befund 28.08.2026, gemessen in 3DTools)
+#: ===================================================================
+#: `test_nur_konfigurierte_bereiche_zaehlen` faehrt einen ECHTEN Lauf ueber
+#: `review_start` (nur die Modellanfrage ist eine Attrappe). Der Lauf schreibt
+#: seine Mitschrift nach::
+#:
+#:     ablage = c["review_ablage"] or (c["log_verzeichnis"] / "review")
+#:
+#: `@override_settings(DJANGOBASE={...})` ersetzt das GANZE Woerterbuch, also
+#: fehlt darin `log_verzeichnis` — und die Vorgabe dafuer ist `BASE_DIR`. Die
+#: Datei landete damit als `<Projekt>/review/review_<id>_a.md`. Gemessen:
+#: 32 Dateien vor dem Lauf, 33 danach, jedes Mal. In 3DTools lagen so 33
+#: Attrappen a 114 Bytes, 23 davon versehentlich im Repo.
+#:
+#: Dasselbe wie `pruefung-ohne-spuren` in shortlongx: Eine Pruefung, die in
+#: Produktivdaten schreibt, faellt niemandem auf — sie ist ja gruen.
+_ABLAGE = tempfile.TemporaryDirectory(prefix="djb-review-test-")
+
+
 @override_settings(DJANGOBASE={"zugriff": "staff", "review_partner": [PARTNER],
+                               "review_ablage": _ABLAGE.name,
                                "review_bereiche": [
                                    {"slug": "a", "name": "Bereich A", "dateien": []}]})
 class ReviewSeiteTest(BasisTest):
     """Die Seite und ihre beiden POST-Endpunkte."""
+
+    def test_die_pruefung_schreibt_nur_in_ihre_eigene_ablage(self):
+        u"""DER WAECHTER: Ohne ihn faellt der naechste Rueckfall nicht auf.
+
+        Geprueft wird die Vereinbarung selbst — dass die Einstellung, die den
+        Schreibort bestimmt, in diesem Test auf ein Wegwerf-Verzeichnis zeigt
+        und NICHT auf `BASE_DIR`.
+        """
+        from django.conf import settings
+        from djangobase.conf import conf
+        ablage = Path(str(conf()["review_ablage"]))
+        self.assertNotEqual(ablage.resolve(), Path(settings.BASE_DIR).resolve(),
+                            u"Die Mitschriften landen im Projektstamm")
+        self.assertEqual(ablage.resolve(), Path(_ABLAGE.name).resolve())
 
     def test_seite_zeigt_partner_und_bereiche(self):
         a = self.staff_client().get(reverse("djangobase:review"))

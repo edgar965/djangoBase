@@ -90,6 +90,9 @@ from .lehrentreue import Lehrentreue
 from .leserzahl import LeserzahlWerkzeug
 from .modulzustand import ModulZustand
 from .umbaugegenprobe import Umbaugegenprobe
+from .reviewbefunde import ReviewBefunde
+from .vorlagentags import Vorlagentags
+from .proben import Proben
 from .namensvarianten import Namensvarianten
 from .rueckgabedict import RueckgabeDict
 from .rueckgabetupel import RueckgabeTupel
@@ -212,6 +215,12 @@ NEUE = [
     # Modell gar nicht gibt. Ein vorhandener Test fing es; ohne Test waere
     # es durchgegangen.
     Umbaugegenprobe,
+    # --- aus einer parallelen Sitzung (28.08.2026). Von mir am selben Tag
+    # versehentlich OHNE ihre Moduldateien gepusht und wieder entfernt
+    # (b6f84d6); hier lokal wiederhergestellt, damit die Arbeit weiterlaeuft.
+    ReviewBefunde,
+    Proben,
+    Vorlagentags,
     # Ganz vorne, weil nie rot: Ein ``getattr`` mit Vorgabe auf einen falschen
     # Namen faellt nirgends auf. In shortlongx lief der Live-Autotrader deshalb
     # anders als der Backtest daneben.

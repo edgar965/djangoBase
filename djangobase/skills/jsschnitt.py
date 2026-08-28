@@ -26,6 +26,7 @@ Mensch. Das Werkzeug nennt die Stelle, nicht den Grund.
 import re
 
 from .anlassfall import Anlassfall
+from .dateigroesse import Dateigroesse
 from .werkzeug import Ergebnis, Werkzeug
 
 
@@ -90,23 +91,46 @@ class JsSchnitt(Werkzeug):
     dauer = "2–6 s"
     kriterium = 3
 
-    GRENZE = 200
+    #: DIESELBE ZAHL WIE `dateigroesse` (28.08.2026).
+    #:
+    #: Hier stand 200, dort 300 — zwei Zahlen fuer dieselbe Regel. Am
+    #: 22.08.2026 war `dateigroesse.GRENZE_JS` ausdruecklich auf
+    #: `GRENZE_DATEI` gezogen worden, mit der Begruendung: „Die Projektregel
+    #: kennt aber nur EINE Zahl fuer eine Datei … und sie unterscheidet nicht
+    #: nach Sprache" (Ansage Edgar). Dieses Werkzeug hat den Schritt nicht
+    #: mitgemacht.
+    #:
+    #: Die Folge war ein Werkzeugkasten, der sich selbst widerspricht: In
+    #: 3DTools meldete `dateigroesse` NULL Befunde und `jsschnitt` 46 — alle
+    #: 46 Dateien lagen zwischen 201 und 297 Zeilen, also innerhalb der
+    #: Regel. Wer die Liste abarbeitet, zerschneidet 46 Dateien, die in
+    #: Ordnung sind; wer sie stehen laesst, gewoehnt sich an eine rote Zahl.
+    #: Beides ist schlechter als eine Zahl, die stimmt.
+    GRENZE = Dateigroesse.GRENZE_JS
+
     #: Naeher als so viele Zeilen an den Rand wird nicht geschnitten.
     RAND = 40
 
     #: Eine JS-Datei ueber der Grenze, aufgebaut aus zwei klar trennbaren
-    #: Haelften - so muss eine Trennlinie zu finden sein. Je 120 Funktionen:
-    #: Der erste Versuch hatte 122 Zeilen und lag damit UNTER der Grenze von
-    #: 200 - der Check meldete „blind", obwohl das Werkzeug recht hatte.
+    #: Haelften - so muss eine Trennlinie zu finden sein.
+    #:
+    #: DIE GROESSE HAENGT AN DER GRENZE, nicht an einer festen Zahl. Das ist
+    #: hier schon zweimal schiefgegangen: Der erste Versuch hatte 122 Zeilen
+    #: und lag unter der damaligen Grenze von 200; der zweite hatte 242 und
+    #: lag unter der Grenze von 300, als sie am 28.08.2026 an `dateigroesse`
+    #: angeglichen wurde. Beide Male meldete der Check „blind", obwohl das
+    #: Werkzeug recht hatte. Jetzt rechnet die Vorlage mit.
+    HAELFTE = GRENZE          # zwei davon liegen sicher darueber
+
     anlassfall = Anlassfall(
         {"gross.js": "const A = 1;\n"
                      + "".join("export function ersteHaelfte%d() { return A + %d; }\n"
-                               % (i, i) for i in range(120))
+                               % (i, i) for i in range(HAELFTE))
                      + "const B = 2;\n"
                      + "".join("export function zweiteHaelfte%d() { return B + %d; }\n"
-                               % (i, i) for i in range(120))},
+                               % (i, i) for i in range(HAELFTE))},
         erwartet_in="gross.js",
-        warum="Kriterium 3: JS-Module unter 200 Zeilen halten")
+        warum="Kriterium 3: JS-Module unter der Dateigroessen-Grenze halten")
 
     def laufen(self):
         zeilen = []
