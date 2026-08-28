@@ -55,8 +55,15 @@ class _Werkzeug(Doppelcode):
         super().__init__()
         self._ordner = Path(ordner)
 
-    def projektdateien(self, *_endungen):
-        return sorted(self._ordner.rglob('*.py'))
+    def projektdateien(self, endung='.py', **_weitere):
+        u"""Nur die Dateien DIESER Endung.
+
+        Bis zum 28.08.2026 lieferte der Helfer immer alle `.py`-Dateien,
+        egal wonach gefragt wurde — und das dreimal, weil `Doppelcode` je
+        Endung einmal fragt. Ein `.js`-Fall waere hier stumm durchgelaufen
+        („0 Dateien geprueft"), und der Test haette nichts gemessen.
+        """
+        return sorted(self._ordner.rglob('*' + endung))
 
     def kurz(self, datei):
         return Path(datei).name
@@ -93,3 +100,42 @@ class ImportbloeckeTest(SimpleTestCase):
         ergebnis = _lauf({'eins.py': gemischt, 'zwei.py': gemischt})
         self.assertGreaterEqual(len(ergebnis.befunde), 1,
                                 ' | '.join(ergebnis.kopf))
+
+
+class ImportblockMitKommentarkopfTest(SimpleTestCase):
+    u"""Importe PLUS die oeffnende Zeile des Modulkopfs (28.08.2026).
+
+    Drei Module im BVH-Studio (3DTools) bekamen eine Warnung fuer genau das:
+    fuenf gleiche Importzeilen, dann `/**`. Die Ausnahme griff um EINE Zeile
+    nicht weit genug — und ein Befund, der nichts zu tun gibt, verdeckt die,
+    die etwas zu tun geben.
+    """
+
+    KOPF = ("import { state } from './state.js';\n"
+            "import { fn } from '../gemeinsam/registrierung.js';\n"
+            "import { Clip } from './models.js';\n"
+            "import { pushUndo } from './undo.js';\n"
+            "import { Protokoll } from '../gemeinsam/protokoll.js';\n"
+            "\n"
+            "/**\n"
+            " * Was dieses Modul macht.\n"
+            " */\n")
+
+    def test_gleiche_importe_und_kommentaranfang_sind_kein_befund(self):
+        satz = _lauf({'a.js': self.KOPF + 'export function eins() { return 1; }\n',
+                      'b.js': self.KOPF + 'export function zwei() { return 2; }\n'})
+        self.assertEqual(satz.befunde, [],
+                         'Fehlalarm: ' + '; '.join(b.was for b in satz.befunde))
+
+    def test_die_ausnahme_sagt_wie_viel_sie_schluckt(self):
+        u"""Eine Ausnahme, die schweigt, ist ein blinder Fleck."""
+        satz = _lauf({'a.js': self.KOPF + 'export function eins() { return 1; }\n',
+                      'b.js': self.KOPF + 'export function zwei() { return 2; }\n'})
+        self.assertIn('Importbl', ' '.join(satz.kopf))
+
+    def test_echter_code_hinter_den_importen_bleibt_ein_befund(self):
+        u"""Gegenprobe: Die Ausnahme darf nicht anfangen, Code zu schlucken."""
+        rumpf = ('const a = 1;\nconst b = 2;\nconst c = 3;\n'
+                 'const d = 4;\nconst e = 5;\nconst f = 6;\n')
+        satz = _lauf({'a.js': self.KOPF + rumpf, 'b.js': self.KOPF + rumpf})
+        self.assertTrue(satz.befunde, 'echte Dublette nicht mehr gefunden')

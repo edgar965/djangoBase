@@ -72,6 +72,13 @@ class Doppelcode(BefundWerkzeug):
     #: `json` importieren. Ein Befund, der nichts zu tun gibt, verdeckt die,
     #: die etwas zu tun geben.
     #:
+    #: NACHGETRAGEN (28.08.2026, 3DTools): der BEGINN eines
+    #: Blockkommentars. Drei Module im BVH-Studio bekamen eine Warnung
+    #: fuer ihre fuenf gleichen Importzeilen PLUS der oeffnenden Zeile
+    #: ihres Modulkopfs - die Ausnahme griff um genau eine Zeile nicht
+    #: weit genug. Ein Fenster aus Importen und dem Anfang eines
+    #: Kommentars enthaelt keinen Code, den man zusammenfassen koennte.
+    #:
     #: Gezaehlt wird streng: NUR wenn JEDE Zeile des Fensters so aussieht.
     #: Ein Block, der mit Importen anfaengt und mit Code weitergeht, bleibt
     #: ein Befund.
@@ -80,7 +87,7 @@ class Doppelcode(BefundWerkzeug):
         r'import\s|from\s.+\simport\s|'                 # Python und ES
         r'export\s.*\sfrom\s|'                          # ES-Weitergabe
         r'\{%\s*(load|extends)\s|'                      # Django-Vorlagen
-        r'#|//|'                                        # Kommentarzeilen
+        r'#|//|/[*]|[*]|'                                        # Kommentarzeilen
         r'"""$|\'\'\'$'                                 # Ende des Docstrings
         r')')
     #: Hoechstens so viele Stellen anzeigen (die Kappung wird im Kopf genannt).
