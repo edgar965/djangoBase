@@ -71,7 +71,18 @@ AUSGESCHLOSSEN = {".git", "__pycache__", "node_modules", "venv", "pythonVENV",
                   #
                   # Drei Listen fuer dieselbe Frage laufen auseinander; deshalb
                   # steht sie jetzt hier, an der Wurzel.
-                  "vendor", "models", "tmp", "temp", "unsloth_compiled_cache",
+                  # `models` STAND HIER und ist am 29.08.2026 entfallen.
+                  # Gedacht war es fuer Ordner mit ML-Gewichten; getroffen hat
+                  # es Django-Modellpakete. In 3DTools verschwanden so
+                  # `core/models/` mit vierzehn Dateien aus JEDER Pruefung —
+                  # und zwar genau, weil das Projekt der Regel folgt, eine zu
+                  # grosse `models.py` in ein Paket aufzuteilen.
+                  #
+                  # Ein Gewichte-Ordner enthaelt keine `.py`, `.js` oder
+                  # `.html`; die Werkzeuge lesen nur diese drei. Der Ausschluss
+                  # brachte dort also nichts und kostete hier alles. Wer ihn
+                  # doch braucht: `DJANGOBASE["skills_ignorieren"]`.
+                  "vendor", "tmp", "temp", "unsloth_compiled_cache",
                   "media", "logs", "output", "Output", "Datenbank", "fixtures",
                   ".claude", "docs", "htmlcov", ".idea", ".vscode",
                   # Eigenstaendige Programme im Projektbaum, die der

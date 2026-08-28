@@ -1,5 +1,6 @@
 """Doppelcode — gleiche Codeblöcke an mehreren Stellen."""
 
+import ast
 import hashlib
 import re
 from collections import defaultdict
@@ -111,6 +112,9 @@ class Doppelcode(BefundWerkzeug):
         #: Wie viele Fenster nur Importe waren — gehoert in die Kopfzeile,
         #: sonst verschweigt die Ausnahme, wie viel sie schluckt.
         self.nur_importe = 0
+        #: Wie viele Fenster ganz in einem Docstring lagen. Gehoert in die
+        #: Kopfzeile: Eine Ausnahme, die schweigt, ist ein blinder Fleck.
+        self.nur_doku = 0
         try:
             fenster = max(3, int(str(mindestens).strip() or 6))
         except ValueError:
@@ -148,6 +152,9 @@ class Doppelcode(BefundWerkzeug):
             # Nie verschweigen, wie viel die Ausnahme schluckt.
             kopf.append('%d Fenster uebergangen: reine Importbloecke'
                         % self.nur_importe)
+        if self.nur_doku:
+            kopf.append('%d Fenster uebergangen: reiner Docstring'
+                        % self.nur_doku)
         if len(befunde) > self.ZEILEN:
             # Kappung benennen, nicht verschweigen: Sonst liest sich die Liste
             # wie eine vollstaendige Bestandsaufnahme.
@@ -233,8 +240,42 @@ class Doppelcode(BefundWerkzeug):
             fertig.append((startorte, laenge))
         return fertig
 
+    @staticmethod
+    def _docstringzeilen(datei, text):
+        u"""Zeilennummern, die zu einem Docstring gehoeren (nur ``.py``).
+
+        WARUM EXAKT UND NICHT PER MUSTER (29.08.2026): Ein Docstring ist
+        mehrzeiliger Text, und eine zeilenweise Suche sieht darin ganz
+        normale Zeilen. `ast` weiss es genau — und weiss auch, was NUR wie
+        ein Docstring aussieht (eine Zeichenkette mitten im Code ist keiner).
+
+        Bei einem Syntaxfehler wird nichts ausgenommen: Lieber ein Befund zu
+        viel als eine stille Ausnahme, die halbe Dateien schluckt.
+        """
+        if datei.suffix != '.py':
+            return frozenset()
+        try:
+            baum = ast.parse(text)
+        except (SyntaxError, ValueError):
+            return frozenset()
+        zeilen = set()
+        for knoten in ast.walk(baum):
+            if not isinstance(knoten, (ast.Module, ast.ClassDef,
+                                       ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            erster = knoten.body[0] if knoten.body else None
+            if (isinstance(erster, ast.Expr)
+                    and isinstance(erster.value, ast.Constant)
+                    and isinstance(erster.value.value, str)):
+                zeilen.update(range(erster.lineno,
+                                    (erster.end_lineno or erster.lineno) + 1))
+        return frozenset(zeilen)
+
     def _sammeln(self, datei, fenster, bloecke):
-        roh = datei.read_text(encoding='utf-8', errors='replace').split('\n')
+        text = datei.read_text(encoding='utf-8', errors='replace')
+        roh = text.split('\n')
+        #: Zeilen, die zu einem Docstring gehoeren — siehe `_docstringzeilen`.
+        docstring = self._docstringzeilen(datei, text)
         # Normalisiert wird nur die Einrueckung: Wer Leerzeichen mitvergleicht,
         # findet Kopien nicht wieder, die eine Ebene tiefer eingerueckt sind.
         zeilen = [(nummer, z.strip()) for nummer, z in enumerate(roh, 1)]
@@ -245,8 +286,24 @@ class Doppelcode(BefundWerkzeug):
             erste = fensterzeilen[0][1]
             if self.UNINTERESSANT.match(erste):
                 continue
-            if all(self.NUR_HEREINGEHOLT.match(z) for _n, z in fensterzeilen):
-                self.nur_importe += 1
+            # BEIDE AUSNAHMEN ZUSAMMEN, nicht nacheinander (29.08.2026):
+            # Ein Modulkopf ist beides — vier Zeilen Erklaerung, die
+            # schliessenden Anfuehrungszeichen, dann `import uuid`. Getrennt
+            # gefragt ist kein Fenster darueber rein das eine oder das andere,
+            # und die Stellen blieben stehen. Ein Fenster, in dem JEDE Zeile
+            # entweder hereingeholt ODER Docstring ist, enthaelt keinen Code.
+            #
+            # Ein wiederholter Docstring ist ausserdem richtig so: Vier
+            # Modellklassen in vier Dateien duerfen viermal erklaeren, woher
+            # sie kommen. Ein Befund, der verlangt, Dokumentation
+            # zusammenzufassen, gibt nichts zu tun.
+            in_doku = [n in docstring for n, _z in fensterzeilen]
+            if all(self.NUR_HEREINGEHOLT.match(z) or drin
+                   for (_n, z), drin in zip(fensterzeilen, in_doku)):
+                if any(in_doku):
+                    self.nur_doku += 1
+                else:
+                    self.nur_importe += 1
                 continue
             text = '\n'.join(z for _n, z in fensterzeilen)
             schluessel = hashlib.blake2b(text.encode('utf-8'),

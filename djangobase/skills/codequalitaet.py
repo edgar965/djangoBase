@@ -85,8 +85,14 @@ class CodeQualitaet(BefundWerkzeug):
         # Denselben Git-Filter wie jedes andere Werkzeug — sonst
         # misst dieses hier eine andere Menge als `tote-importe`
         # daneben, und die Zahlen sind nicht vergleichbar.
+        # Derselbe Git-Filter UND dieselbe Ausschlussliste wie jedes andere
+        # Werkzeug (29.08.2026): Ohne die zweite meldete dieses hier drei
+        # „Echte Fehler" aus `_anlassfall/`, dem Wegwerf-Verzeichnis des
+        # Anlassfall-Checks — absichtlich kaputter Code, den jedes andere
+        # Werkzeug uebergeht.
         messung = Codequalitaet(self.wurzel(),
-                                gitfilter=self.gitfilter()).messen()
+                                gitfilter=self.gitfilter(),
+                                ausser=self.ausgeschlossen()).messen()
         befunde, kopf = [], ['%d Python-Dateien' % len(messung.dateien)]
         fehlend = []
 

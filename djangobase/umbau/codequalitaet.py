@@ -148,8 +148,18 @@ class Verfahren:
 class Codequalitaet:
     u"""Misst ein Projektverzeichnis mit allen vorhandenen Verfahren."""
 
-    def __init__(self, wurzel, gitfilter=None):
+    def __init__(self, wurzel, gitfilter=None, ausser=None):
         self.wurzel = Path(wurzel)
+        #: Verzeichnisnamen, die nicht zum Projektcode gehoeren.
+        #:
+        #: EINE LISTE, NICHT ZWEI (29.08.2026): Diese Messung hatte mit
+        #: ``klassenmodell.AUS`` eine eigene Meinung, und die kannte
+        #: ``_anlassfall`` nicht — das Wegwerf-Verzeichnis des
+        #: Anlassfall-Checks, in dem absichtlich kaputter Code steht. Drei
+        #: „Echte Fehler" im Bericht kamen von dort. Wer einen Satz
+        #: mitgibt (`Werkzeug.ausgeschlossen()`), misst dieselbe Menge wie
+        #: jedes andere Werkzeug; ohne bleibt es bei ``AUS``.
+        self.ausser = frozenset(ausser) if ausser else frozenset(AUS)
         #: Was ``.gitignore`` ausnimmt, ist nicht der Code des Projekts.
         #:
         #: DEN FILTER GAB ES SCHON (25.08.2026)
@@ -197,7 +207,7 @@ class Codequalitaet:
                 teile = pfad.relative_to(self.wurzel).parts
             except ValueError:
                 teile = pfad.parts
-            if any(t in AUS for t in teile):
+            if any(t in self.ausser for t in teile):
                 continue
             if any(t.lower() in DATEN for t in teile[:-1]):
                 continue

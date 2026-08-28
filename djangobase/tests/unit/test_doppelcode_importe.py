@@ -139,3 +139,64 @@ class ImportblockMitKommentarkopfTest(SimpleTestCase):
                  'const d = 4;\nconst e = 5;\nconst f = 6;\n')
         satz = _lauf({'a.js': self.KOPF + rumpf, 'b.js': self.KOPF + rumpf})
         self.assertTrue(satz.befunde, 'echte Dublette nicht mehr gefunden')
+
+
+class DocstringBlockTest(SimpleTestCase):
+    u"""Ein wiederholter DOCSTRING ist kein wiederholter Code (29.08.2026).
+
+    In 3DTools erklären vier Modellklassen in vier Dateien mit demselben
+    Absatz, woher sie kommen — und das ist richtig so: Jede Datei soll für
+    sich sprechen. Ein Befund, der verlangt, Dokumentation zusammenzufassen,
+    gibt nichts zu tun.
+
+    DER MODULKOPF IST BEIDES, und daran ist der erste Wurf gescheitert: vier
+    Zeilen Erklärung, die schließenden Anführungszeichen, dann `import uuid`.
+    Getrennt gefragt („nur Importe?" ODER „nur Docstring?") ist kein Fenster
+    darüber rein das eine oder das andere.
+    """
+
+    KOPF = ('# -*- coding: utf-8 -*-\n'
+            '"""Ein Modell dieser Anwendung.\n'
+            '\n'
+            'Aus models.py herausgeloest (Umbau 16.08.2026). Die Datei hatte\n'
+            '383 Zeilen mit vier Modellklassen; die Regel im Projekt ist eine\n'
+            'Klasse je Datei. Django findet die Modelle weiter ueber\n'
+            'models/__init__.py — Migrationen bleiben unveraendert.\n'
+            '"""\n'
+            '\n'
+            'import uuid\n'
+            '\n'
+            'from django.db import models\n'
+            '\n'
+            '\n')
+
+    def test_gleicher_modulkopf_ist_kein_befund(self):
+        satz = _lauf({'auftrag.py': self.KOPF + 'class Auftrag:\n    a = 1\n',
+                      'datei.py': self.KOPF + 'class Datei:\n    b = 2\n'})
+        self.assertEqual(satz.befunde, [],
+                         'Fehlalarm: ' + '; '.join(b.was for b in satz.befunde))
+
+    def test_die_ausnahme_sagt_wie_viel_sie_schluckt(self):
+        satz = _lauf({'auftrag.py': self.KOPF + 'class Auftrag:\n    a = 1\n',
+                      'datei.py': self.KOPF + 'class Datei:\n    b = 2\n'})
+        self.assertIn('Docstring', ' '.join(satz.kopf))
+
+    def test_echter_code_hinter_dem_kopf_bleibt_ein_befund(self):
+        u"""Gegenprobe: Die Ausnahme darf nicht anfangen, Code zu schlucken."""
+        rumpf = ('class X:\n    def m(self):\n        a = 1\n'
+                 '        b = 2\n        c = 3\n        return a + b + c\n')
+        satz = _lauf({'auftrag.py': self.KOPF + rumpf,
+                      'datei.py': self.KOPF + rumpf})
+        self.assertTrue(satz.befunde, 'echte Dublette nicht mehr gefunden')
+
+    def test_eine_zeichenkette_mitten_im_code_ist_kein_docstring(self):
+        u"""`ast` weiß den Unterschied — ein Muster wüsste ihn nicht."""
+        rumpf = ('def eins():\n'
+                 '    text = """Vier gleiche Zeilen\n'
+                 '    stehen hier als WERT,\n'
+                 '    nicht als Docstring \u2014 und\n'
+                 '    zaehlen deshalb mit."""\n'
+                 '    return text\n')
+        satz = _lauf({'a.py': rumpf, 'b.py': rumpf})
+        self.assertTrue(satz.befunde,
+                        'Zeichenkette im Code faelschlich als Docstring geschluckt')
