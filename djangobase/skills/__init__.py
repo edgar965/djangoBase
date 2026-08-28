@@ -89,7 +89,9 @@ from .klassenplan import Klassenplan
 from .lehrentreue import Lehrentreue
 from .leserzahl import LeserzahlWerkzeug
 from .modulzustand import ModulZustand
+from .umbaugegenprobe import Umbaugegenprobe
 from .namensvarianten import Namensvarianten
+from .reviewbefunde import ReviewBefunde
 from .rueckgabedict import RueckgabeDict
 from .rueckgabetupel import RueckgabeTupel
 from .schleifenarbeit import Schleifenarbeit
@@ -99,6 +101,7 @@ from .schreibrouten import Schreibrouten
 from .seitenzeiten import Seitenzeiten
 from .uebersprungen import Uebersprungen
 from .vorlagenblock import Vorlagenblock
+from .vorlagentags import Vorlagentags
 from .wachstum import Wachstum
 
 # --- Werkzeuge auf der alten Basis (frueher skills, jetzt ueber AltWerkzeug) --
@@ -121,6 +124,7 @@ from .vorlagenkontext import Vorlagenkontext
 from .vorlagenvariablen import Vorlagenvariablen
 
 # --- Werkzeuge zu den Kriterien 16 und 17 ------------------------------------
+from .proben import Proben
 from .protokoll import Protokoll
 from .testaufbau import Testaufbau
 from .testdeckung import Testdeckung
@@ -205,6 +209,12 @@ KRITERIEN.update(KRITERIEN_ZUSATZ)
 #: Reihenfolge = Anzeigereihenfolge. Vorne, was die teuerste Fehlerklasse
 #: trifft; hinten, was Aufraeumarbeit anzeigt.
 NEUE = [
+    # Ganz vorn beim Umbauen (28.08.2026): Es zeigt, was eine Aenderung an
+    # den Funktionsruempfen WIRKLICH getan hat. Anlass war ein Umbau, bei
+    # dem zwei Ruempfe erfunden statt gelesen wurden - Felder, die es am
+    # Modell gar nicht gibt. Ein vorhandener Test fing es; ohne Test waere
+    # es durchgegangen.
+    Umbaugegenprobe,
     # Ganz vorne, weil nie rot: Ein ``getattr`` mit Vorgabe auf einen falschen
     # Namen faellt nirgends auf. In shortlongx lief der Live-Autotrader deshalb
     # anders als der Backtest daneben.
@@ -261,6 +271,15 @@ NEUE = [
     Protokoll,
     Testaufbau,
     Testdeckung,
+    # Neben Testdeckung (28.08.2026): Beide fragen, was UNGELESEN liegt.
+    # Testdeckung sucht Code ohne Pruefung, ReviewBefunde die Antworten eines
+    # Modells, die niemand aufgemacht hat — im Ursprungsprojekt 1,8 MB in 51
+    # Mitschriften.
+    ReviewBefunde,
+    # Daneben (28.08.2026): Was ausserhalb der Testsuite geprueft wird —
+    # Seitenproben, Cache-Gegenproben, Sabotagelaeufe. Sie beweisen, was kein
+    # Unittest beweisen kann, und lagen bis dahin unauffindbar in einem Ordner.
+    Proben,
     # Zuletzt, weil es ueber die anderen laeuft: Sieht jedes Werkzeug noch den
     # Fall, fuer den es gebaut wurde? Zwei waren blind, ohne dass es auffiel.
     AnlassfallCheck,
@@ -311,6 +330,11 @@ BEFUNDBASIERT = [
     KlassenJeDatei,
     Abhaengigkeiten,
     Vorlagenkontext,
+    # Direkt daneben (28.08.2026): Beide melden Vorlagen, die STILL
+    # etwas anderes tun als dasteht. Ein umbrochenes `{% include %}`
+    # liess in 3DTools auf fuenf Seiten ein Auswahlfeld verschwinden -
+    # Status 200, kein Logeintrag.
+    Vorlagentags,
     ToteImporte,
     Doppelcode,
     Namensdubletten,
@@ -436,5 +460,5 @@ __all__ = [
     "KRITERIEN", "KRITERIEN_ZUSATZ", "OHNE_WERKZEUG", "kriterien",
     "ALT_KRITERIUM", "UEBERSPRINGEN",
     "LEHREN", "BEREICHE", "gruppen", "als_zeilen", "Lehre", "Lehrenstand",
-    "Anlassfall", "Protokoll", "Testaufbau", "Testdeckung",
+    "Anlassfall", "Proben", "Protokoll", "Testaufbau", "Testdeckung",
 ]
