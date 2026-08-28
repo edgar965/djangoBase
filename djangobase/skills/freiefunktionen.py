@@ -342,6 +342,11 @@ class FreieFunktionen(BefundWerkzeug):
                 # verschoben findet `import_string` sie nicht mehr.
                 if knoten.name in vorgeschrieben:
                     continue
+                # Signalhandler, Templatetags, Celery-Aufgaben: Der
+                # Dekorator MELDET sie an. In einer Klasse meldet er
+                # nichts mehr an — siehe `Rahmenvorschrift`.
+                if Rahmenvorschrift.wird_angemeldet(knoten):
+                    continue
                 ende = getattr(knoten, 'end_lineno', knoten.lineno) or knoten.lineno
                 erstes = (knoten.args.args[0].arg if knoten.args.args else '')
                 funktionen.append((knoten.name, knoten.lineno,

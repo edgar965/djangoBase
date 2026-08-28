@@ -39,6 +39,38 @@ class Rahmenvorschrift:
     #: `wsgi.py`/`asgi.py` tragen `application`.
     DATEIEN = ('manage.py', 'wsgi.py', 'asgi.py')
 
+    #: Dekoratoren, die eine Funktion beim Rahmen ANMELDEN. Wer sie in
+    #: eine Klasse verschiebt, meldet nichts mehr an.
+    #:
+    #: DER FEHLALARM (28.08.2026, assistant)
+    #: =====================================
+    #: `mail/signals.py` wurde mit sechs freien Funktionen gemeldet. Alle
+    #: sechs sind `@receiver`-Signalhandler: Django haelt sie ueber eine
+    #: schwache Referenz auf das Funktionsobjekt, und `dispatch_uid`
+    #: unterscheidet sie. Als Methoden waeren sie zwar aufrufbar, aber die
+    #: Anmeldung liefe ueber ein anderes Objekt — und `post_save` fuer
+    #: `Mail` feuerte ins Leere. Bei `mail/signals.py` haengt daran das
+    #: automatische Einbetten, Einsortieren und Verschlagworten JEDER neu
+    #: angelegten Mail.
+    #:
+    #: Dasselbe gilt fuer Templatetags: Django sucht sie beim Namen, den
+    #: `@register.filter` eintraegt.
+    #:
+    #: NICHT in dieser Liste stehen `require_POST`, `csrf_exempt`,
+    #: `contextmanager` und `atomic` — die wirken auch auf Methoden. Sie
+    #: nehmen keine Anmeldung vor, sie umhuellen nur den Aufruf.
+    ANMELDENDE_DEKORATOREN = frozenset((
+        # Django-Signale
+        'receiver',
+        # Django-Templatetags: register.filter / .simple_tag / .tag /
+        # .inclusion_tag
+        'filter', 'simple_tag', 'inclusion_tag', 'tag',
+        # Celery und verwandte Aufgabenplaner
+        'task', 'shared_task', 'periodic_task',
+        # Django-Admin-Aktionen werden ueber den Funktionsnamen gefunden
+        'action', 'display',
+    ))
+
     @staticmethod
     def _aus_einstellungen():
         u"""Alle gepunkteten Pfade, die in den Einstellungen stehen."""
@@ -78,3 +110,29 @@ class Rahmenvorschrift:
         u"""Ist die Datei selbst eine Rahmendatei (`manage.py`, `wsgi.py`)?"""
         name = str(pfad).replace('\\', '/').split('/')[-1]
         return name in Rahmenvorschrift.DATEIEN
+
+    @staticmethod
+    def wird_angemeldet(knoten):
+        u"""Traegt die Funktion einen Dekorator, der sie ANMELDET?
+
+        Erkannt werden alle Schreibweisen, in denen sie vorkommen::
+
+            @receiver(post_save, sender=Mail)      Aufruf mit Argumenten
+            @register.filter                       Attribut ohne Aufruf
+            @register.simple_tag(takes_context=1)  beides
+            @app.task                              Attribut
+
+        Verglichen wird nur der LETZTE Namensteil: ``register`` heisst in
+        jedem Projekt anders, ``filter`` nicht.
+        """
+        import ast
+
+        for dekorator in getattr(knoten, 'decorator_list', ()):
+            teil = dekorator
+            # ``@receiver(...)`` -> der Aufruf, dann die Funktion darin
+            while isinstance(teil, ast.Call):
+                teil = teil.func
+            name = getattr(teil, 'attr', None) or getattr(teil, 'id', None)
+            if name in Rahmenvorschrift.ANMELDENDE_DEKORATOREN:
+                return True
+        return False
