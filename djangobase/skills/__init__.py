@@ -87,6 +87,7 @@ from .kapselung import Kapselung
 from .klassenreif import Klassenreif
 from .klassenplan import Klassenplan
 from .lehrentreue import Lehrentreue
+from .langsameadresse import LangsameAdresse
 from .leserzahl import LeserzahlWerkzeug
 from .modulzustand import ModulZustand
 from .umbaugegenprobe import Umbaugegenprobe
@@ -349,6 +350,12 @@ BEFUNDBASIERT = [
     # Fassung ausfuehrt. `_shell.html` haengt selbst `?v=` an; dieses
     # Werkzeug prueft, ob die Vorlagen des Projekts es genauso halten.
     Cachebusting,
+    # Dieselbe stille Sorte, eine Ebene tiefer (28.08.2026): eine Adresse,
+    # die funktioniert und zwei Sekunden je Verbindung kostet. `localhost`
+    # loest unter Windows zuerst auf `::1` auf; lauscht der Dienst nur auf
+    # IPv4, laeuft jeder Verbindungsaufbau erst in einen Timeout. Gemessen
+    # in assistant gegen Ollama: 2.923 ms gegen 840 ms, dreizehn Stellen.
+    LangsameAdresse,
     # Zuletzt Aufraeumarbeit. Neben `jsstilfassungen` (Inline-Stile AM
     # Element) und `doppelcode` (gleitendes Zeilenfenster): Welche
     # VOLLSTAENDIGE CSS-Regel steht in wie vielen Dateien?
