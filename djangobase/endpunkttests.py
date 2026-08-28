@@ -98,6 +98,39 @@ class EndpunktProbe(TestCase):
 
     # ------------------------------------------------------------------ Proben
 
+    @staticmethod
+    def _heisst_so(funktion, ziel):
+        """Darf ``funktion`` in der Tabelle unter ``ziel`` stehen?
+
+        Zwei Faelle sind richtig:
+
+        1. ``__name__`` ist ``ziel`` — eine freie Funktion, der Normalfall.
+        2. Das Modul, in dem die Funktion steht, haelt unter dem Namen
+           ``ziel`` GENAU DIESE Funktion. Das trifft zu, wenn ein Bereich
+           zu einer Klasse gebuendelt wurde (``freie-funktionen``) und der
+           Modulname als Zuweisung stehen blieb, damit urls.py ihn findet::
+
+               midi_serve_file = MidiSeiten.serve_file
+
+        Nicht ueber Namensaehnlichkeit raten: ``music_serve_file`` und
+        ``midi_serve_file`` enden beide auf ``_serve_file``. Wer das als
+        Treffer durchgehen laesst, macht aus einer vertauschten Route
+        einen gruenen Test.
+        """
+        import sys
+        if getattr(funktion, "__name__", "") == ziel:
+            return True
+        modul = sys.modules.get(getattr(funktion, "__module__", ""))
+        if modul is None:
+            return False
+        gebunden = getattr(modul, ziel, None)
+        # ``is`` genuegt nicht: Bei ``@staticmethod`` liefert der Zugriff
+        # ueber die Klasse und ueber das Modul dieselbe Funktion, bei
+        # gebundenen Methoden aber jedes Mal ein neues Objekt.
+        return gebunden is funktion or (
+            getattr(gebunden, "__func__", None) is not None
+            and gebunden.__func__ is getattr(funktion, "__func__", funktion))
+
     def test_jeder_endpunkt_ist_aufloesbar(self):
         """Zeigt die Route ins Leere? Dann ist der Endpunkt tot."""
         from django.urls import Resolver404, resolve
@@ -109,9 +142,9 @@ class EndpunktProbe(TestCase):
             except Resolver404:
                 tot.append("%s (%s): Route nicht auflösbar" % (ziel, pfad))
                 continue
-            name = getattr(treffer.func, "__name__", "")
-            if name and ziel and name != ziel:
-                tot.append("%s zeigt auf %s, nicht auf %s" % (pfad, name, ziel))
+            if ziel and not self._heisst_so(treffer.func, ziel):
+                tot.append("%s zeigt auf %s, nicht auf %s" % (
+                    pfad, getattr(treffer.func, "__qualname__", "?"), ziel))
         self.assertEqual(tot, [], "Kaputte Routen: %s" % tot)
 
     def test_kein_endpunkt_ist_ohne_anmeldung_erreichbar(self):
