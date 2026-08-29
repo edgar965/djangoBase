@@ -94,6 +94,7 @@ from .leserzahl import LeserzahlWerkzeug
 from .modulzustand import ModulZustand
 from .umbaugegenprobe import Umbaugegenprobe
 from .reviewbefunde import ReviewBefunde
+from .stilnamen import Stilnamen
 from .vorlagentags import Vorlagentags
 from .proben import Proben
 from .namensvarianten import Namensvarianten
@@ -225,6 +226,7 @@ NEUE = [
     # (b6f84d6); hier lokal wiederhergestellt, damit die Arbeit weiterlaeuft.
     ReviewBefunde,
     Proben,
+    Stilnamen,
     Vorlagentags,
     # Ganz vorne, weil nie rot: Ein ``getattr`` mit Vorgabe auf einen falschen
     # Namen faellt nirgends auf. In shortlongx lief der Live-Autotrader deshalb
