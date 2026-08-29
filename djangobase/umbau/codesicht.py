@@ -149,67 +149,126 @@ class Codesicht:
 
     @classmethod
     def _durchlauf(cls, s):
+        """Der Scanner: Zeichen fuer Zeichen, Fresser fuer Fresser.
+
+        BIS ZUM 29.08.2026 STAND ALLES IN DIESER SCHLEIFE (Rang C, Befund
+        `code-qualitaet`). Die Schleife bleibt — sie IST die klarste Form
+        fuer einen Scanner. Was sie tut, hat jetzt Namen.
+
+        Jeder Fresser bekommt `(s, i, letztes)` und liefert
+        `(neue Stelle, Ausgabe, neues letztes)` oder `None`, wenn er nicht
+        zustaendig ist. Die Reihenfolge ist Teil der Bedeutung: Der
+        Kommentar-Fresser muss VOR dem Regex-Fresser fragen, sonst frisst
+        `//` den Rest der Datei als regulaeren Ausdruck.
+        """
         aus = []
         i, n = 0, len(s)
         letztes = '\n'          # letztes bedeutungstragendes Zeichen
+        fresser = (cls._kommentar, cls._regex, cls._zeichenkette, cls._backtick)
         while i < n:
-            c = s[i]
-            # ---- Kommentare
-            if c == '/' and i + 1 < n and s[i + 1] == '/':
-                while i < n and s[i] != '\n':
-                    i += 1
-                continue
-            if c == '/' and i + 1 < n and s[i + 1] == '*':
-                ende = s.find('*/', i + 2)
-                i = n if ende < 0 else ende + 2
-                aus.append(' ')
-                continue
-            # ---- regulaerer Ausdruck
-            if c == '/' and letztes in cls.VOR_REGEX:
-                j, in_klasse = i + 1, False
-                while j < n:
-                    if s[j] == '\\':
-                        j += 2
-                        continue
-                    if s[j] == '[':
-                        in_klasse = True
-                    elif s[j] == ']':
-                        in_klasse = False
-                    elif s[j] == '/' and not in_klasse:
-                        break
-                    elif s[j] == '\n':
-                        j = -1
-                        break
-                    j += 1
-                if j > 0 and j < n:
-                    i = j + 1
-                    while i < n and s[i].isalpha():   # Kennzeichen g, i, m, …
-                        i += 1
-                    aus.append(' ')
-                    letztes = ')'                      # verhaelt sich wie ein Wert
-                    continue
-            # ---- einfache und doppelte Anfuehrungszeichen
-            if c in '"\'':
-                j = i + 1
-                while j < n and s[j] != c:
-                    j += 2 if s[j] == '\\' else 1
-                aus.append(c + c)
-                i = j + 1
-                letztes = ')'
-                continue
-            # ---- Vorlage: nur die Einsetzungen behalten
-            if c == '`':
-                i, teile = cls._vorlage(s, i)
-                aus.extend(teile)
-                letztes = ')'
-                continue
-            aus.append(c)
-            if not c.isspace():
-                letztes = c
-            elif c == '\n':
-                letztes = '\n'
-            i += 1
+            for greift in fresser:
+                ergebnis = greift(s, i, letztes)
+                if ergebnis is not None:
+                    i, teile, letztes = ergebnis
+                    aus.extend(teile)
+                    break
+            else:
+                c = s[i]
+                aus.append(c)
+                if not c.isspace():
+                    letztes = c
+                elif c == '\n':
+                    letztes = '\n'
+                i += 1
         return ''.join(aus)
+
+    # ------------------------------------------------------------- Fresser
+
+    @staticmethod
+    def _kommentar(s, i, letztes):
+        """`//` bis zum Zeilenende, `/* … */` bis zum Abschluss.
+
+        Der Zeilenkommentar wird NICHT durch Leerraum ersetzt: Sein
+        Zeilenumbruch bleibt stehen, weil die Schleife ihn beim naechsten
+        Durchlauf normal anhaengt. Der Blockkommentar wird zu EINEM
+        Leerzeichen — er kann Zeilen verschlucken, und genau deshalb steht
+        die Zeilentreue in `maske` und nicht hier.
+        """
+        n = len(s)
+        if s[i] != '/' or i + 1 >= n:
+            return None
+        if s[i + 1] == '/':
+            j = i
+            while j < n and s[j] != '\n':
+                j += 1
+            return j, [], letztes
+        if s[i + 1] == '*':
+            ende = s.find('*/', i + 2)
+            return (n if ende < 0 else ende + 2), [' '], letztes
+        return None
+
+    @classmethod
+    def _regex(cls, s, i, letztes):
+        """Ein regulaerer Ausdruck — wenn davor kein Wert steht.
+
+        DIE ZWEIDEUTIGE STELLE: `a / b` ist eine Division, `/ab+/g` ein
+        regulaerer Ausdruck. Entschieden wird am letzten bedeutungstragenden
+        Zeichen (`VOR_REGEX`). Innerhalb einer Zeichenklasse `[...]` beendet
+        `/` den Ausdruck nicht, und ein Zeilenumbruch heisst: Es war doch
+        eine Division.
+        """
+        n = len(s)
+        if s[i] != '/' or letztes not in cls.VOR_REGEX:
+            return None
+        j, in_klasse = i + 1, False
+        while j < n:
+            if s[j] == '\\':
+                j += 2
+                continue
+            if s[j] == '[':
+                in_klasse = True
+            elif s[j] == ']':
+                in_klasse = False
+            elif s[j] == '/' and not in_klasse:
+                break
+            elif s[j] == '\n':
+                j = -1
+                break
+            j += 1
+        if not (0 < j < n):
+            return None
+        j += 1
+        while j < n and s[j].isalpha():      # Kennzeichen g, i, m, …
+            j += 1
+        return j, [' '], ')'                 # verhaelt sich wie ein Wert
+
+    @staticmethod
+    def _zeichenkette(s, i, letztes):
+        """`'…'` und `"…"` — leer, aber mit ihren Anfuehrungszeichen.
+
+        Die beiden Zeichen bleiben stehen, damit die Werkzeuge sehen, DASS
+        dort eine Zeichenkette war. Ein `\\` ueberspringt das naechste
+        Zeichen; `'a\\'b'` endet nicht am mittleren Anfuehrungszeichen.
+        """
+        n = len(s)
+        c = s[i]
+        if c not in '"\'':
+            return None
+        j = i + 1
+        while j < n and s[j] != c:
+            j += 2 if s[j] == '\\' else 1
+        return j + 1, [c + c], ')'
+
+    @classmethod
+    def _backtick(cls, s, i, letztes):
+        """Eine Vorlage — nur ihre `${…}`-Einsetzungen bleiben.
+
+        Darin steht echter Code, den die Werkzeuge sehen sollen.
+        """
+        if s[i] != '`':
+            return None
+        neu, teile = cls._vorlage(s, i)
+        return neu, teile, ')'
 
     @classmethod
     def _vorlage(cls, s, i):
