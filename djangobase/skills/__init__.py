@@ -60,7 +60,9 @@ from .cssdubletten import Cssdubletten
 from .nurlesen import NurLesen
 from .pfadpraefix import Pfadpraefix
 from .werkzeug import Ergebnis, Quelldatei, Werkzeug
-from .befund import BefundWerkzeug
+# `BefundWerkzeug` kommt schon aus Zeile 57 mit — der zweite Import stand
+# hier bis zum 29.08.2026 und ueberschrieb ihn mit demselben Objekt
+# (`pyflakes`: RedefinedWhileUnused).
 
 # --- Werkzeuge auf der neuen Basis (frueher skills2) -------------------------
 from .altlast import Altlast
@@ -98,6 +100,7 @@ from .namensvarianten import Namensvarianten
 from .rueckgabedict import RueckgabeDict
 from .rueckgabetupel import RueckgabeTupel
 from .schleifenarbeit import Schleifenarbeit
+from .offenedatei import OffeneDatei
 from .systemablage import Systemablage
 from .dokumentation import Dokumentation
 from .szenarien import Szenarien
@@ -363,6 +366,11 @@ BEFUNDBASIERT = [
     # Datenmuell entstanden; aufgeraeumt wird meist im `finally`, und das
     # hilft nur, solange der Prozess lebt.
     Systemablage,
+    # Dieselbe Familie, andere Ressource (29.08.2026): eine Datei, die
+    # geoeffnet und nie geschlossen wird. Fuenfmal in assistant, viermal
+    # als Abschrift voneinander — Logdatei auf, an `Popen` weiter, nie
+    # zu. Die Ausgabe stimmt trotzdem, deshalb faellt es nicht auf.
+    OffeneDatei,
     # Zuletzt Aufraeumarbeit. Neben `jsstilfassungen` (Inline-Stile AM
     # Element) und `doppelcode` (gleitendes Zeilenfenster): Welche
     # VOLLSTAENDIGE CSS-Regel steht in wie vielen Dateien?
@@ -467,4 +475,10 @@ __all__ = [
     "ALT_KRITERIUM", "UEBERSPRINGEN",
     "LEHREN", "BEREICHE", "gruppen", "als_zeilen", "Lehre", "Lehrenstand",
     "Anlassfall", "Proben", "Protokoll", "Testaufbau", "Testdeckung",
+    # Diese beiden werden im Modul selbst nicht gebraucht — sie gehoeren zur
+    # FASSADE: Ein Konsument schreibt `from djangobase.skills import
+    # Grossdateien`. Im `__all__` steht das als Aussage; ohne den Eintrag
+    # meldet `pyflakes` sie als unbenutzt, und beim naechsten Aufraeumen
+    # fliegen sie raus (29.08.2026).
+    "Befundsatz", "BefundWerkzeug", "Grossdateien",
 ]
