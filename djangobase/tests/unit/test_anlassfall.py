@@ -15,10 +15,19 @@ Der Check stellt jedem Werkzeug seinen Fall hin. Diese Tests stellen sicher, das
 der Check selbst funktioniert - denn ein blinder Blindheits-Pruefer waere die
 teuerste Variante des Fehlers.
 
-DER LAUF DAUERT ~30 SEKUNDEN. Er faehrt jedes Werkzeug zweimal (Anlassfall +
-leeres Verzeichnis) und ist damit der langsamste Unit-Test hier. Das ist
-gewollt: Er ersetzt die Frage „stimmen die Zahlen noch?", die sonst niemand
-stellt.
+DER LAUF DAUERT RUND EINE SEKUNDE (Stand 29.08.2026, 61 gepruefte Werkzeuge).
+Er faehrt jedes Werkzeug zweimal — Anlassfall und leeres Verzeichnis.
+
+DIESE ZAHL IST SCHON EINMAL STILL GEWACHSEN. Hier stand „~30 Sekunden"; am
+29.08.2026 kam der Lauf nach 550 s nicht mehr durch, und `manage.py test
+djangobase` lief in den Zeitablauf. Schuld war EIN Werkzeug: `jsschnitt`
+rechnete die Zirkelfrage je Trennlinie neu und brauchte 186,9 s allein fuer
+seinen eigenen Fall — ausgeloest davon, dass am 28.08.2026 eine Grenze von
+200 auf 300 gezogen wurde und die Vorlage mitrechnet. Behoben in
+`skills/jszirkel.py`, nachgerechnet in `test_jszirkel.py`.
+
+Wer diese Zahl deutlich ueberschreiten sieht, sucht nicht nach „ist halt
+viel", sondern nach dem einen Werkzeug: `Probelauf` je Klasse messen.
 """
 from djangobase.skills import WERKZEUGE
 from djangobase.skills.anlassfall import Anlassfall

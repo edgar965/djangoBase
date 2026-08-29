@@ -195,7 +195,7 @@ class AnlassfallCheck(Werkzeug):
     # Kriterium 19 (26.08.2026): „BDD ohne Gherkin" — dieses Werkzeug IST
     # die Zusicherung, dass jede Regel ein Beispiel hat.
     kriterium = 19
-    dauer = "10–30 s"
+    dauer = "1–3 s"
 
     #: DAS EINZIGE WERKZEUG OHNE EIGENEN ANLASSFALL — und zwar begruendet
     #: (26.08.2026). Es stand vorher schweigend da, und ein Schweigen sieht
