@@ -99,11 +99,21 @@ class GlobalerZustand(BefundWerkzeug):
         'urlpatterns', 'app_name', 'admin', 'register', 'router',
         'logger', 'log', 'application', 'default_app_config',
         'handler400', 'handler403', 'handler404', 'handler500',
+        # Channels sucht diesen Namen auf Modulebene von `routing.py` —
+        # genau wie Django `urlpatterns`. Ein Pflichtname des Rahmenwerks
+        # ist nie ein Befund (29.08.2026, 3DTools).
+        'websocket_urlpatterns',
     })
 
     #: Dateien, deren Modulebene die Datenstruktur IST.
     DATEIEN_AUS = ('settings.py', 'conf.py', 'urls.py', 'kriterien.py',
                    'apps.py', 'wsgi.py', 'asgi.py', 'manage.py', '__init__.py')
+
+    #: Ordner, in denen JEDE Datei die Datenstruktur ist. Wer seine
+    #: Einstellungen aufteilt (`ui/settings/pfade.py`, `…/protokoll.py`),
+    #: bekommt sonst genau dafuer einen Befund — obwohl er der Regel „eine
+    #: Datei, ein Thema" gefolgt ist (29.08.2026, 3DTools).
+    ORDNER_AUS = ('settings', 'conf', 'einstellungen')
 
     #: Aufrufe, deren Ergebnis eine Typdefinition ist, kein Zustand.
     TYP_AUFRUFE = frozenset({'namedtuple', 'NamedTuple', 'TypeVar', 'Enum',
@@ -134,7 +144,8 @@ class GlobalerZustand(BefundWerkzeug):
 
         sichten, skripte = [], 0
         for datei in self.projektdateien('.py'):
-            if datei.name in self.DATEIEN_AUS:
+            if (datei.name in self.DATEIEN_AUS
+                    or datei.parent.name in self.ORDNER_AUS):
                 continue
             sicht = self._modul(datei)
             if sicht is None:
@@ -148,8 +159,17 @@ class GlobalerZustand(BefundWerkzeug):
         for sicht in sorted(sichten, key=lambda s: -s.gewicht):
             gesamt = len(sicht.veraenderlich) + len(sicht.konstanten)
             # Geschriebener Zustand ist IMMER ein Befund - auch bei einem
-            # einzigen Namen. Die Grenze gilt nur fuer die Menge.
-            if not sicht.global_stellen and gesamt < grenze:
+            # einzigen Namen. Die Grenze gilt nur fuer die MENGE an
+            # Konstanten.
+            #
+            # SEIT DEM 29.08.2026 GILT DAS AUCH FUER `veraenderlich`: Vorher
+            # hiess so jede kleingeschriebene Modulzuweisung, auch eine
+            # Django-Ansicht — die Grenze hat den Bericht vor dieser Menge
+            # geschuetzt. Jetzt steht dort nur noch, was wirklich ein
+            # veraenderlicher Behaelter ist, und EIN `_cache = {}` ist der
+            # Fund, um den es geht.
+            if (not sicht.global_stellen and not sicht.veraenderlich
+                    and gesamt < grenze):
                 continue
             befunde.append(Befund(sicht.pfad, self._kopf(sicht),
                                   self._rat(sicht),
@@ -206,6 +226,15 @@ class GlobalerZustand(BefundWerkzeug):
         except (SyntaxError, OSError):
             return None
         veraenderlich, konstanten, klassen = [], [], 0
+        # ``global x`` steht IN Funktionen - dafuer der ganze Baum. Wird
+        # frueher gebraucht als frueher: Es entscheidet mit darueber, ob eine
+        # kleingeschriebene Zuweisung Zustand ist.
+        global_stellen = [(name, knoten.lineno)
+                          for knoten in ast.walk(baum)
+                          if isinstance(knoten, ast.Global)
+                          for name in knoten.names]
+        geschrieben = {name for name, _z in global_stellen}
+        mehrfach = self._mehrfach_zugewiesen(baum)
         for knoten in baum.body:              # NUR Modulebene, nicht ast.walk
             if isinstance(knoten, ast.ClassDef):
                 klassen += 1
@@ -217,18 +246,68 @@ class GlobalerZustand(BefundWerkzeug):
                     continue
                 if name.isupper():
                     konstanten.append((name, knoten.lineno))
-                else:
+                elif (self._ist_behaelter(knoten) or name in geschrieben
+                      or name in mehrfach):
                     veraenderlich.append((name, knoten.lineno,
                                           self._art(knoten)))
-        # ``global x`` steht IN Funktionen - dafuer der ganze Baum.
-        global_stellen = [(name, knoten.lineno)
-                          for knoten in ast.walk(baum)
-                          if isinstance(knoten, ast.Global)
-                          for name in knoten.names]
+                # Sonst: eine DEFINITION, kein Zustand. Siehe
+                # `_ist_behaelter`.
         if not (veraenderlich or konstanten or global_stellen):
             return None
         return Modulzustaende(self.kurz(datei), veraenderlich, konstanten,
                               global_stellen, klassen, self._ist_skript(baum))
+
+    #: Aufrufe, die einen veraenderlichen Behaelter liefern.
+    BEHAELTERRUFE = frozenset({'dict', 'list', 'set', 'defaultdict',
+                               'OrderedDict', 'deque', 'Counter'})
+
+    @classmethod
+    def _ist_behaelter(cls, knoten):
+        u"""Haelt diese Zuweisung etwas, das man SPAETER aendern kann?
+
+        WARUM DIE UNTERSCHEIDUNG (29.08.2026, 3DTools): Bis hierher galt jede
+        kleingeschriebene Zuweisung auf Modulebene als „veraenderlicher
+        Zustand". In `core/api/seiten.py` stehen so dreizehn Django-Ansichten:
+
+            character_viewer = Vorlagenseite.ansicht('character_viewer.html', …)
+
+        Das ist eine DEFINITION — dasselbe wie ein `def`, nur aus einer
+        Fabrikmethode. Niemand schreibt sie, niemand veraendert sie, `urls.py`
+        liest sie einmal. Sie zu melden heisst, dem Leser dreizehn Zeilen
+        anzubieten, an denen nichts zu tun ist; der echte Fund daneben
+        (`_cache = {}`) geht darin unter.
+
+        `x = 0` bleibt uebrigens draussen: Eine Zahl laesst sich nicht
+        veraendern, nur NEU ZUWEISEN — und dafuer braucht es `global` oder eine
+        zweite Zuweisung. Beides wird getrennt geprueft.
+        """
+        wert = knoten.value
+        if isinstance(wert, (ast.Dict, ast.List, ast.Set, ast.DictComp,
+                             ast.ListComp, ast.SetComp)):
+            return True
+        if isinstance(wert, ast.Call):
+            gerufen = wert.func
+            name = (gerufen.attr if isinstance(gerufen, ast.Attribute)
+                    else getattr(gerufen, 'id', ''))
+            return name in cls.BEHAELTERRUFE
+        return False
+
+    @staticmethod
+    def _mehrfach_zugewiesen(baum):
+        """Namen, die auf Modulebene mehr als einmal zugewiesen werden."""
+        gesehen, mehrfach = set(), set()
+        for knoten in baum.body:
+            if not isinstance(knoten, (ast.Assign, ast.AnnAssign)):
+                continue
+            ziele = (knoten.targets if isinstance(knoten, ast.Assign)
+                     else [knoten.target])
+            for ziel in ziele:
+                if not isinstance(ziel, ast.Name):
+                    continue
+                if ziel.id in gesehen:
+                    mehrfach.add(ziel.id)
+                gesehen.add(ziel.id)
+        return mehrfach
 
     @staticmethod
     def _ist_skript(baum):
