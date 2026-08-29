@@ -42,6 +42,13 @@ WAS NICHT GEMELDET WIRD
 =======================
 * ``startswith`` auf offensichtlichen Nicht-Pfaden: ``'morph_'``, ``'#'``,
   ``'http'``.
+* ADRESSEN statt Pfade (29.08.2026): ``pfad.startswith(str(settings.MEDIA_URL))``
+  vergleicht URL-Praefixe. ``Path.is_relative_to`` gibt es dafuer nicht, und
+  die Luecke, um die es hier geht, ist zu: Djangos Systempruefung ``urls.E006``
+  erzwingt den Schraegstrich am Ende von ``MEDIA_URL``/``STATIC_URL``, also
+  besteht ``/mediathek/x`` den Vergleich mit ``/media/`` NICHT. Erkannt an
+  einem Namen, der auf ``url`` endet, oder an einer Zeichenkette, die auf
+  ``/`` endet.
 * Die eigene Datei und ``safe_paths.py`` — dort steht der Vergleich als
   Gegenbeispiel im Docstring.
 """
@@ -78,6 +85,12 @@ class Pfadpraefix(BefundWerkzeug):
             "\n"
             "def erlaubt(ziel, wurzel):\n"
             "    return str(ziel).startswith(os.path.normpath(wurzel))\n"),
+         "adresse.py": (
+            "from django.conf import settings\n"
+            "\n"
+            "\n"
+            "def ist_medium(pfad):\n"
+            "    return pfad.startswith(str(settings.MEDIA_URL))\n"),
          "sauber.py": (
             "from pathlib import Path\n"
             "\n"
@@ -88,8 +101,9 @@ class Pfadpraefix(BefundWerkzeug):
         warum="In 3DTools viermal einzeln gefunden: `media_evil` beginnt mit "
               "`media`, `poseData_evil` mit `poseData`. Dahinter lagen "
               "Endpunkte, die schreiben, ueberschreiben und loeschen. "
-              "`sauber.py` steht daneben, damit die richtige Schreibweise "
-              "nicht mitgemeldet wird.")
+              "`sauber.py` und `adresse.py` stehen daneben: die richtige "
+              "Schreibweise und ein URL-Vergleich, der wie einer "
+              "aussieht und keiner ist.")
 
     #: Namensenden, die auf einen Pfad deuten.
     PFADNAMEN = re.compile(r"(pfad|path|dir|wurzel|root|ordner|ziel|datei)$",
@@ -134,6 +148,8 @@ class Pfadpraefix(BefundWerkzeug):
             if not (self._nach_pfad(knoten.func.value)
                     and self._nach_pfad(knoten.args[0])):
                 continue
+            if self._ist_adresse(knoten.args[0]):
+                continue
             raus.append(Befund(
                 "%s:%d" % (name, knoten.lineno),
                 "startswith(…) als Pfadpruefung",
@@ -141,6 +157,24 @@ class Pfadpraefix(BefundWerkzeug):
                 "`Path.is_relative_to` vergleicht Pfadteile statt Zeichen.",
                 Befund.FEHLER))
         return raus
+
+    def _ist_adresse(self, knoten):
+        """Wird hier ein URL-Praefix verglichen statt ein Pfad?
+
+        Zwei Formen zaehlen: ein Name, der auf ``url`` endet (Djangos
+        ``MEDIA_URL``/``STATIC_URL`` muessen laut ``urls.E006`` auf ``/``
+        enden — damit ist die Luecke zu), und eine Zeichenkette, die selbst
+        auf ``/`` endet. Alles andere bleibt ein Befund.
+        """
+        if isinstance(knoten, ast.Call):
+            return any(self._ist_adresse(a) for a in knoten.args)
+        if isinstance(knoten, ast.Name):
+            return knoten.id.lower().endswith("url")
+        if isinstance(knoten, ast.Attribute):
+            return knoten.attr.lower().endswith("url")
+        if isinstance(knoten, ast.Constant) and isinstance(knoten.value, str):
+            return knoten.value.endswith("/")
+        return False
 
     def _nach_pfad(self, knoten):
         """Sieht dieser Ausdruck nach einem Pfad aus?"""
