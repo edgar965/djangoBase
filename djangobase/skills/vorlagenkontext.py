@@ -179,7 +179,18 @@ NICHT_ABSTEIGEN = {
 
 #: Knoten, unterhalb derer ein Name wahlfrei ist. `{% if %}` deckt auch
 #: `{% elif %}`/`{% else %}` ab — Django baut daraus EINEN `IfNode`.
-BEDINGTE_KNOTEN = frozenset({'IfNode', 'IfChangedNode', 'IfEqualNode'})
+#:
+#: `FirstOfNode` (29.08.2026, 3DTools): `{% firstof JS_VERSION STATIC_V
+#: djangobase.statik_v %}` nimmt den ersten Namen, den es GIBT — jeder
+#: einzelne darf fehlen, das ist der Zweck des Tags. Django loest ihn mit
+#: `ignore_failures=True` auf und wirft dabei nicht.
+#:
+#: Ohne diese Zeile meldete die Pruefung in 3DTools ACHT „FEHLEND: STATIC_V"
+#: als Fehler — die Kennung heisst dort schlicht anders, und die Kette faengt
+#: das ab. Genau dafuer steht sie im `_shell.html` von djangoBase, und dort
+#: steht auch, warum es `firstof` sein muss und kein `|default:`.
+BEDINGTE_KNOTEN = frozenset({'IfNode', 'IfChangedNode', 'IfEqualNode',
+                             'FirstOfNode'})
 
 #: Filter, die einen Ersatzwert liefern. Wer sie schreibt, hat das
 #: Fehlen des Namens eingeplant.
