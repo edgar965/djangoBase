@@ -22,7 +22,8 @@ from django.test import override_settings
 
 from djangobase.skills import (KRITERIEN, LEHREN, OHNE_WERKZEUG, WERKZEUGE,
                                 gruppen, werkzeug_finden, werkzeuge)
-from djangobase.skills.werkzeug import Ergebnis, Werkzeug
+from djangobase.skills.werkzeug import (AUSGESCHLOSSEN, Ergebnis,
+                                        Werkzeug)
 
 from ..base import BasisTest
 
@@ -386,13 +387,9 @@ class ModellpaketSichtbarTest(BasisTest):
     """
 
     def test_models_ist_nicht_pauschal_ausgeschlossen(self):
-        from djangobase.skills.werkzeug import AUSGESCHLOSSEN
         self.assertNotIn('models', AUSGESCHLOSSEN)
 
     def test_ein_modellpaket_wird_gefunden(self):
-        import tempfile
-        from pathlib import Path
-        from djangobase.skills.werkzeug import Werkzeug
         with tempfile.TemporaryDirectory(prefix='djb-models-') as ordner:
             paket = Path(ordner) / 'core' / 'models'
             paket.mkdir(parents=True)
@@ -406,6 +403,5 @@ class ModellpaketSichtbarTest(BasisTest):
     def test_die_ausnahme_bleibt_projektweise_moeglich(self):
         u"""Wer einen Gewichte-Ordner `models` hat, nimmt ihn selbst aus —
         über `DJANGOBASE["skills_ignorieren"]`."""
-        from djangobase.skills.werkzeug import Werkzeug
         with override_settings(DJANGOBASE={'skills_ignorieren': ['models']}):
             self.assertIn('models', Werkzeug().ausgeschlossen())

@@ -11,7 +11,7 @@ from datetime import timedelta
 
 from django.db.models import Count, Q, Sum
 from django.db.models.functions import TruncDate, TruncMonth, TruncWeek
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse
 from django.shortcuts import render
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -79,6 +79,13 @@ class TrafficView(ZugriffMixin, View):
     """Benutzer → Traffic: Kennzahlen + Diagramme + Tabellen."""
 
     def get(self, request):
+        """Die Seite — sechs Auswertungen, jede in ihrer eigenen Methode.
+
+        BIS ZUM 29.08.2026 STAND ALLES HIER (Rang C, Befund
+        `code-qualitaet`). Jeder Teil ist fuer sich einfach; sie standen nur
+        alle untereinander. Geschnitten ist an den Kommentaren, die ohnehin
+        schon da waren.
+        """
         g = request.GET.get("g")
         if g not in GRANULARITAETEN:
             g = "tag"
@@ -91,8 +98,47 @@ class TrafficView(ZugriffMixin, View):
         qs = Seitenaufruf.objects.filter(zeit__gte=start, bot=False)
         seiten_qs = qs.filter(typ="html")
 
-        # ---- Zeitreihe: Aufrufe + Besucher (nur Seiten) und MB (alles) ----
-        # TruncDate liefert date, TruncWeek/-Month datetime → auf date normieren
+        labels, aufrufe, besucher, mbs = self._zeitreihe(
+            qs, trunc, g, heute, perioden)
+        kpi = self._kennzahlen(jetzt, start, mbs)
+        laender, laender_roh = self._laender(seiten_qs)
+        gesamt = sum(r["n"] for r in laender_roh) or 1
+        kpi["laender_anzahl"] = len([r for r in laender_roh if r["land"]])
+
+        return render(request, "djangobase/hilfe/traffic.html", {
+            "aktiv": "traffic",
+            "verbrauch": self._dienste(start),
+            "g": g,
+            "fenster_label": fenster_label,
+            "granularitaeten": [("tag", "Tag"), ("woche", "Woche"),
+                                ("monat", "Monat")],
+            "kpi": kpi,
+            "chart_daten": {
+                "labels": labels, "aufrufe": aufrufe,
+                "besucher": besucher, "mb": mbs,
+                "geraete": self._geraete(seiten_qs),
+            },
+            "laender": laender,
+            "seiten": self._seiten(seiten_qs, gesamt),
+            "referrer": self._referrer(seiten_qs),
+            "erfasst_seit": Seitenaufruf.objects.order_by("zeit")
+                            .values_list("zeit", flat=True).first(),
+        })
+
+    # ------------------------------------------------------------ Zeitreihe
+
+    @staticmethod
+    def _zeitreihe(qs, trunc, g, heute, perioden):
+        """Aufrufe, Besucher und MB je Periode — rueckwaerts bis `perioden`.
+
+        LUECKEN MUESSEN NULL SEIN, nicht fehlen: Die Datenbank liefert nur
+        Perioden, in denen etwas passiert ist. Wer die Liste daraus baut,
+        bekommt ein Diagramm, das stille Tage einfach ueberspringt — und
+        damit eine Kurve, die steiler aussieht, als sie ist.
+
+        `TruncDate` liefert ein `date`, `TruncWeek`/`-Month` ein `datetime`;
+        beides wird auf `date` gebracht, sonst findet der Nachschlag nichts.
+        """
         reihe = {}
         for r in (qs.annotate(p=trunc("zeit")).values("p")
                     .annotate(aufrufe=Count("id", filter=Q(typ="html")),
@@ -105,124 +151,149 @@ class TrafficView(ZugriffMixin, View):
 
         labels, aufrufe, besucher, mbs = [], [], [], []
         for i in range(perioden - 1, -1, -1):
-            if g == "monat":
-                # Monatsanfänge rückwärts (timedelta kennt keine Monate)
-                jahr, monat = heute.year, heute.month - i
-                while monat < 1:
-                    monat += 12
-                    jahr -= 1
-                p = heute.replace(year=jahr, month=monat, day=1)
-                labels.append(p.strftime("%b %y"))
-            elif g == "woche":
-                p = heute - timedelta(days=heute.weekday()) - timedelta(weeks=i)
-                labels.append("KW " + p.strftime("%V"))
-            else:
-                p = heute - timedelta(days=i)
-                labels.append(p.strftime("%d.%m."))
+            p, label = TrafficView._periode(g, heute, i)
+            labels.append(label)
             r = reihe.get(p) or {}
             aufrufe.append(r.get("aufrufe") or 0)
             besucher.append(r.get("besucher") or 0)
             mbs.append(_mb(r.get("bytes")))
+        return labels, aufrufe, besucher, mbs
 
-        # ---- Kennzahlen ---------------------------------------------------
-        def _zahlen(von):
-            s = Seitenaufruf.objects.filter(zeit__gte=von, bot=False, typ="html")
+    @staticmethod
+    def _periode(g, heute, i):
+        """Der Anfang der `i`-ten Periode rueckwaerts, plus ihre Beschriftung.
+
+        Monate rechnet `timedelta` nicht — es kennt nur feste Laengen.
+        Deshalb hier von Hand, mit Jahresuebertrag.
+        """
+        if g == "monat":
+            jahr, monat = heute.year, heute.month - i
+            while monat < 1:
+                monat += 12
+                jahr -= 1
+            p = heute.replace(year=jahr, month=monat, day=1)
+            return p, p.strftime("%b %y")
+        if g == "woche":
+            p = heute - timedelta(days=heute.weekday()) - timedelta(weeks=i)
+            return p, "KW " + p.strftime("%V")
+        p = heute - timedelta(days=i)
+        return p, p.strftime("%d.%m.")
+
+    # ----------------------------------------------------------- Kennzahlen
+
+    @staticmethod
+    def _kennzahlen(jetzt, start, mbs):
+        """Heute, sieben Tage, dreissig Tage — Aufrufe und Besucher."""
+        def zahlen(von):
+            s = Seitenaufruf.objects.filter(zeit__gte=von, bot=False,
+                                            typ="html")
             return (s.count(), s.values("besucher").distinct().count())
 
-        heute_aufrufe, heute_besucher = _zahlen(
+        heute_aufrufe, heute_besucher = zahlen(
             jetzt.replace(hour=0, minute=0, second=0, microsecond=0))
-        w7_aufrufe, w7_besucher = _zahlen(jetzt - timedelta(days=7))
-        w30_aufrufe, w30_besucher = _zahlen(jetzt - timedelta(days=30))
-        bot_anzahl = Seitenaufruf.objects.filter(zeit__gte=start, bot=True).count()
+        w7_aufrufe, w7_besucher = zahlen(jetzt - timedelta(days=7))
+        w30_aufrufe, w30_besucher = zahlen(jetzt - timedelta(days=30))
+        return {
+            "heute_aufrufe": heute_aufrufe, "heute_besucher": heute_besucher,
+            "w7_aufrufe": w7_aufrufe, "w7_besucher": w7_besucher,
+            "w30_aufrufe": w30_aufrufe, "w30_besucher": w30_besucher,
+            "mb_fenster": round(sum(mbs), 1),
+            "bot_anzahl": Seitenaufruf.objects.filter(zeit__gte=start,
+                                                      bot=True).count(),
+        }
 
-        # ---- Länder -------------------------------------------------------
-        laender_roh = (seiten_qs.values("land")
-                       .annotate(n=Count("id"),
-                                 besucher=Count("besucher", distinct=True))
-                       .order_by("-n"))
-        gesamt = sum(r["n"] for r in laender_roh) or 1
+    # --------------------------------------------------------------- Tabellen
+
+    @staticmethod
+    def _laender(seiten_qs):
+        """Die zwoelf haeufigsten Laender — und die Rohliste fuer die Summe.
+
+        Die Rohliste geht mit zurueck, weil zwei Kennzahlen daran haengen:
+        die Gesamtzahl (Nenner der Prozente) und „wie viele Laender ueberhaupt".
+        Sie zweimal abzufragen waere eine zweite Abfrage fuer dieselbe Zeile.
+        """
+        roh = list(seiten_qs.values("land")
+                   .annotate(n=Count("id"),
+                             besucher=Count("besucher", distinct=True))
+                   .order_by("-n"))
+        gesamt = sum(r["n"] for r in roh) or 1
         laender = [{
             "iso": r["land"] or "?",
             "flagge": _flagge(r["land"] or ""),
             "name": LAENDER_NAMEN.get(r["land"], r["land"] or "Unbekannt"),
             "n": r["n"], "besucher": r["besucher"],
             "prozent": round(100 * r["n"] / gesamt, 1),
-        } for r in laender_roh[:12]]
+        } for r in roh[:12]]
+        return laender, roh
 
-        # ---- Meistbesuchte Seiten ----------------------------------------
-        seiten_roh = (seiten_qs.values("pfad")
-                      .annotate(n=Count("id"),
-                                besucher=Count("besucher", distinct=True),
-                                bytes=Sum("groesse"))
-                      .order_by("-n")[:25])
-        seiten_max = max((r["n"] for r in seiten_roh), default=1)
-        seiten = [{
+    @staticmethod
+    def _seiten(seiten_qs, gesamt):
+        """Die 25 meistbesuchten Seiten, mit Balkenlaenge."""
+        roh = (seiten_qs.values("pfad")
+               .annotate(n=Count("id"),
+                         besucher=Count("besucher", distinct=True),
+                         bytes=Sum("groesse"))
+               .order_by("-n")[:25])
+        groesste = max((r["n"] for r in roh), default=1)
+        return [{
             "pfad": r["pfad"], "n": r["n"], "besucher": r["besucher"],
             "mb": _mb(r["bytes"]),
-            "balken": round(100 * r["n"] / seiten_max),
+            "balken": round(100 * r["n"] / groesste),
             "prozent": round(100 * r["n"] / gesamt, 1),
-        } for r in seiten_roh]
+        } for r in roh]
 
-        # ---- Referrer + Geräte -------------------------------------------
-        referrer = list(seiten_qs.exclude(referrer="")
-                        .values("referrer")
-                        .annotate(n=Count("id"),
-                                  besucher=Count("besucher", distinct=True))
-                        .order_by("-n")[:15])
-        geraete_roh = dict(seiten_qs.values_list("geraet")
-                           .annotate(n=Count("id")).order_by())
-        geraete = [(label, geraete_roh.get(key, 0))
-                   for key, label in Seitenaufruf.GERAETE]
+    @staticmethod
+    def _referrer(seiten_qs):
+        """Die fuenfzehn haeufigsten Verweise von aussen."""
+        return list(seiten_qs.exclude(referrer="")
+                    .values("referrer")
+                    .annotate(n=Count("id"),
+                              besucher=Count("besucher", distinct=True))
+                    .order_by("-n")[:15])
 
-        # ---- Externe Dienste: Kartendaten + Navigation -------------------
+    @staticmethod
+    def _geraete(seiten_qs):
+        """Aufrufe je Geraeteart — JEDE Art, auch die mit null.
+
+        Die Reihenfolge kommt aus `Seitenaufruf.GERAETE` und nicht aus der
+        Datenbank: Ein Diagramm, dessen Balken die Plaetze tauschen, sobald
+        eine Art einmal fehlt, ist nicht lesbar.
+        """
+        roh = dict(seiten_qs.values_list("geraet")
+                   .annotate(n=Count("id")).order_by())
+        paare = [(label, roh.get(key, 0))
+                 for key, label in Seitenaufruf.GERAETE]
+        return {"labels": [l for l, _ in paare],
+                "werte": [n for _, n in paare]}
+
+    # ------------------------------------------------------ Externe Dienste
+
+    @staticmethod
+    def _dienste(start):
+        """Kartenkacheln und Navigation — Anzahl und geschaetzte Menge."""
         vb = Verbrauch.objects.filter(zeit__gte=start)
-        kacheln = vb.filter(typ="tile").aggregate(
-            n=Sum("anzahl"), b=Sum("bytes"))
+        kacheln = vb.filter(typ="tile").aggregate(n=Sum("anzahl"),
+                                                  b=Sum("bytes"))
         kachel_n = kacheln["n"] or 0
         kachel_b = kacheln["b"] or 0
         # Cache-Treffer liefern transferSize 0 → für die nicht gemessenen
         # Kacheln den Schätzwert ergänzen, damit die MB realistisch bleiben.
-        gemessen = vb.filter(typ="tile", bytes__gt=0).aggregate(n=Sum("anzahl"))["n"] or 0
+        gemessen = vb.filter(typ="tile", bytes__gt=0).aggregate(
+            n=Sum("anzahl"))["n"] or 0
         kachel_mb = _mb(kachel_b + max(0, kachel_n - gemessen) * KACHEL_BYTES)
 
-        route_roh = (vb.filter(typ="route").values("detail")
-                     .annotate(n=Sum("anzahl"), b=Sum("bytes")).order_by("-n"))
-        route_n = sum(r["n"] or 0 for r in route_roh)
-        route_b = sum(r["b"] or 0 for r in route_roh)
-        routing = [{
-            "modus": ROUTING_MODI.get(r["detail"], ("🧭", r["detail"] or "—"))[1],
-            "icon": ROUTING_MODI.get(r["detail"], ("🧭", ""))[0],
-            "n": r["n"] or 0,
-        } for r in route_roh]
-
-        return render(request, "djangobase/hilfe/traffic.html", {
-            "aktiv": "traffic",
-            "verbrauch": {
-                "kachel_n": kachel_n, "kachel_mb": kachel_mb,
-                "route_n": route_n, "route_mb": _mb(route_b),
-                "routing": routing,
-                "hat_daten": bool(kachel_n or route_n),
-            },
-            "g": g,
-            "fenster_label": fenster_label,
-            "granularitaeten": [("tag", "Tag"), ("woche", "Woche"), ("monat", "Monat")],
-            "kpi": {
-                "heute_aufrufe": heute_aufrufe, "heute_besucher": heute_besucher,
-                "w7_aufrufe": w7_aufrufe, "w7_besucher": w7_besucher,
-                "w30_aufrufe": w30_aufrufe, "w30_besucher": w30_besucher,
-                "mb_fenster": round(sum(mbs), 1),
-                "laender_anzahl": len([r for r in laender_roh if r["land"]]),
-                "bot_anzahl": bot_anzahl,
-            },
-            "chart_daten": {
-                "labels": labels, "aufrufe": aufrufe,
-                "besucher": besucher, "mb": mbs,
-                "geraete": {"labels": [l for l, _ in geraete],
-                            "werte": [n for _, n in geraete]},
-            },
-            "laender": laender,
-            "seiten": seiten,
-            "referrer": referrer,
-            "erfasst_seit": Seitenaufruf.objects.order_by("zeit")
-                            .values_list("zeit", flat=True).first(),
-        })
+        roh = (vb.filter(typ="route").values("detail")
+               .annotate(n=Sum("anzahl"), b=Sum("bytes")).order_by("-n"))
+        route_n = sum(r["n"] or 0 for r in roh)
+        route_b = sum(r["b"] or 0 for r in roh)
+        return {
+            "kachel_n": kachel_n, "kachel_mb": kachel_mb,
+            "route_n": route_n, "route_mb": _mb(route_b),
+            "routing": [{
+                "modus": ROUTING_MODI.get(r["detail"],
+                                          ("🧭", r["detail"] or "—"))[1],
+                "icon": ROUTING_MODI.get(r["detail"], ("🧭", ""))[0],
+                "n": r["n"] or 0,
+            } for r in roh],
+            "hat_daten": bool(kachel_n or route_n),
+        }
