@@ -10,27 +10,36 @@ auskommentierten Block, in einem regulären Ausdruck. `Codesicht.maske`
 ersetzt genau diese Bereiche durch Leerraum und lässt die Zeilen- und
 Spaltenzahlen stehen.
 
-ZWEI SCANNER FÜR DIESELBEN REGELN
-=================================
-`Codesicht` hat davon ZWEI, und das ist beim Schreiben dieser Tests
-aufgefallen:
+ZWEI SCANNER WAREN ES — UND SIE WIDERSPRACHEN SICH
+==================================================
+Bis zum 29.08.2026 hatte `Codesicht` zwei getrennt ausgeschriebene Scanner
+für dieselben Regeln: `_nichtcode` für `maske` und `_durchlauf` für `.code`.
+Beim Schreiben dieser Tests kam heraus, dass sie nicht nur doppelt waren,
+sondern verschiedene Antworten gaben:
 
-    maske(s)   -> `_nichtcode`  liefert BEREICHE, die geleert werden;
-                                die Länge bleibt, Zeilen stimmen weiter
-    Codesicht(s).code -> `_durchlauf`  baut den Text neu, verdichtet
+    quelle : const s = `Wert: ${an ? 'fn.geheim' : 'Aus'} Ende`;
+    maske  : const s =          an ? 'fn.geheim' : 'Aus'       ;
+    code   : const s =  an ? '' : '' ;
 
-Beide kennen dieselben Regeln (`VOR_REGEX`, Escape, Vorlagen) und haben sie
-getrennt ausgeschrieben. Wer eine Regel ändert, muss es zweimal tun.
+`maske` ließ die Zeichenketten INNERHALB einer Vorlagen-Einsetzung stehen.
+Wer mit ihr nach `fn.X` sucht — und genau dafür ist sie da — findet dort
+einen Treffer, den es nicht gibt.
+
+Jetzt liefert EIN Scanner (`_teile`) typisierte Bereiche; `maske` leert sie,
+`.code` setzt je Art ihren Platzhalter. Eine Regel, zwei Sichten. Deshalb
+prüft hier jeder Fall BEIDE Wege — sie können nicht mehr auseinanderlaufen,
+aber sie können weiterhin verschieden falsch sein.
 
 WARUM DIESE TESTS ERST JETZT ENTSTEHEN (29.08.2026)
 ===================================================
-`_durchlauf` ist ein handgeschriebener Scanner mit Rang C — der einzige
+`_durchlauf` war ein handgeschriebener Scanner mit Rang C — der einzige
 verbliebene „Echte Fehler" von `code-qualitaet` in djangoBase. Bevor man
 einen Scanner umbaut, braucht man Fälle, die den Umbau bewachen.
 
 DER ERSTE ANLAUF HAT DEN FALSCHEN BEWACHT: Er prüfte nur `maske` — und die
-benutzt `_durchlauf` nicht. Zwei Sabotagen am umgebauten Scanner blieben
-deshalb grün. Seither prüft jeder Fall BEIDE Wege.
+benutzte `_durchlauf` gar nicht. Zwei Sabotagen am umgebauten Scanner blieben
+deshalb grün. Auch der Fingerabdruck über 389 echte JS-Dateien, mit dem der
+Umbau belegt schien, war über den falschen Weg genommen.
 
 DIE FÄLLE, DIE WEHTUN
 =====================
@@ -48,6 +57,11 @@ DIE FÄLLE, DIE WEHTUN
 from django.test import SimpleTestCase
 
 from djangobase.umbau.codesicht import Codesicht
+
+#: Zeilenumbruch und Einsetzungsbeginn als Namen — so bleiben die
+#: Zusicherungen unten lesbar und die Datei frei von Escapes.
+NL = chr(10)
+EIN = chr(36) + chr(123)
 
 
 class MaskeTest(SimpleTestCase):
@@ -101,6 +115,17 @@ class MaskeTest(SimpleTestCase):
         self.assertIn('fn.sichtbar', maske)
         self.assertNotIn('Ende', maske)
 
+    def test_zeichenkette_in_einer_einsetzung_verschwindet_auch(self):
+        u"""DER Widerspruch, an dem die Zusammenlegung haengt: Bis zum
+        29.08.2026 liess `maske` genau diese Zeichenkette stehen, waehrend
+        `.code` sie leerte. Ein Werkzeug, das hier nach `fn.X` sucht, fand
+        einen Treffer, den es nicht gibt."""
+        quelle = "const s = `Wert: ${an ? 'fn.geheim' : 'Aus'} Ende`;\n"
+        maske = Codesicht.maske(quelle)
+        self.assertNotIn('geheim', maske)
+        self.assertIn('an ?', maske)          # der Code drumherum bleibt
+        self.assertNotIn('geheim', Codesicht(quelle).code)
+
     def test_zeichenkette_mit_schraegstrich(self):
         maske = Codesicht.maske('const p = "/api/geheim/";\nconst a = 1;\n')
         self.assertNotIn('geheim', maske)
@@ -118,12 +143,14 @@ class MaskeTest(SimpleTestCase):
 
 
 class CodeTest(SimpleTestCase):
-    u"""Derselbe Stoff, aber über `Codesicht(quelle).code` — den ZWEITEN
-    Scanner (`_durchlauf`).
+    u"""Derselbe Stoff über `Codesicht(quelle).code` — die zweite SICHT.
 
-    Er verdichtet statt zu leeren: Eine Zeichenkette wird zu ihren beiden
-    Anführungszeichen, ein Kommentar verschwindet ganz. Die Länge bleibt
-    also NICHT erhalten — dafür gibt es `maske`.
+    Sie verdichtet, statt zu leeren: Eine Zeichenkette wird zu ihren beiden
+    Anführungszeichen, ein Zeilenkommentar verschwindet ganz. Die Länge
+    bleibt also NICHT erhalten — dafür gibt es `maske`.
+
+    Seit dem 29.08.2026 kommen beide aus demselben Scanner; die Fälle hier
+    unterscheiden sich von denen oben nur noch im Platzhalter.
     """
 
     @staticmethod
@@ -172,6 +199,24 @@ class CodeTest(SimpleTestCase):
         code = self._code('const s = "// kein Kommentar";\n'
                           'fn.sichtbar = 1;\n')
         self.assertIn('fn.sichtbar = 1;', code)
+
+    def test_die_platzhalter_stehen_fest(self):
+        u"""Die genaue Form ist Vertrag, nicht Geschmack.
+
+        Zwei Werkzeuge lesen `.code` mit regulären Ausdrücken
+        (`exportlisten`, `unbekanntenamen`). Ob an der Stelle eines
+        Kommentars nichts oder ein Leerzeichen steht, entscheidet darüber,
+        ob zwei Namen zusammenkleben. Ohne diesen Fall bleibt eine Änderung
+        daran unbemerkt — nachgestellt am 29.08.2026: Platzhalter vertauscht,
+        alle anderen Fälle blieben grün.
+        """
+        self.assertEqual(self._code('a = 1; // weg' + NL + 'b = 2;' + NL),
+                         'a = 1; ' + NL + 'b = 2;' + NL)
+        self.assertEqual(self._code('a = /* weg */ 1;' + NL),
+                         'a =   1;' + NL)
+        self.assertEqual(self._code('a = /re/g;' + NL), 'a =  ;' + NL)
+        self.assertEqual(self._code('a = `x' + EIN + 'b}y`;' + NL),
+                         'a =  b ;' + NL)
 
     def test_leere_quelle(self):
         self.assertEqual(self._code(''), '')
