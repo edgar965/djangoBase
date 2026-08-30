@@ -46,6 +46,41 @@ class Fund:
                 "text": self.text}
 
 
+#: Wo ein Blockkommentar anfaengt und wo er aufhoert.
+#:
+#: WARUM (30.08.2026, 3DTools): Zwei Meldungen der Regel `InlineStil` standen
+#: in einem CSS-Kommentar, der die alte Lage BESCHREIBT::
+#:
+#:     /* Aus dem innerHTML des Spurmenues — achtmal `style="width:16px;…"`
+#:        und dreimal … */
+#:
+#: Ein Werkzeug, das seine eigene Aufraeum-Notiz als Befund meldet, ist die
+#: unangenehmste Sorte Fehlalarm: Wer ihn beheben will, loescht die
+#: Begruendung. Die zeilenweise Ausnahme (`nicht`) trifft das nicht — sie
+#: sieht nur den Anfang einer Zeile, und hier steht der Kommentar mittendrin.
+BLOCKANFANG = (("/*", "*/"), ("{% comment %}", "{% endcomment %}"),
+               ("{#", "#}"), ("<!--", "-->"))
+
+
+def kommentarzeilen(zeilen):
+    """Zeilennummern (1-basiert), die ganz in einem Blockkommentar liegen."""
+    drin = set()
+    offen = None
+    for nummer, zeile in enumerate(zeilen, 1):
+        if offen:
+            drin.add(nummer)
+            if offen in zeile:
+                offen = None
+            continue
+        for anfang, ende in BLOCKANFANG:
+            stelle = zeile.find(anfang)
+            if stelle >= 0 and ende not in zeile[stelle:]:
+                offen = ende
+                drin.add(nummer)
+                break
+    return drin
+
+
 class Regel:
     """Eine Prüfung über die Zeilen einer Datei."""
 
@@ -56,10 +91,15 @@ class Regel:
     nicht = None
     #: True = prueft JavaScript. In HTML gilt sie nur in <script>-Bloecken.
     nur_javascript = True
+    #: True = Zeilen in Blockkommentaren uebergehen.
+    ohne_kommentare = False
 
     def pruefen(self, datei, zeilen):
         gefunden = []
+        kommentar = kommentarzeilen(zeilen) if self.ohne_kommentare else ()
         for nummer, zeile in enumerate(zeilen, 1):
+            if nummer in kommentar:
+                continue
             if self.nicht and self.nicht.search(zeile):
                 continue
             if self.muster.search(zeile):
@@ -67,23 +107,112 @@ class Regel:
         return gefunden
 
 
-class InlineStil(Regel):
+#: Zeichen, an denen ein Wert erst zur LAUFZEIT entsteht.
+#:
+#: WARUM DAS EINE AUSNAHME IST (30.08.2026, 3DTools)
+#: =================================================
+#: `style="width:${prozent}%"` an einem Fortschrittsbalken ist kein Aussehen,
+#: das ins CSS gehoerte — es ist ein ZUSTAND. Eine Klasse kann „47 Prozent"
+#: nicht ausdruecken; wer es trotzdem verlangt, verlangt hundert Klassen oder
+#: eine CSS-Variable, die genauso im JavaScript gesetzt wird.
+#:
+#: Das Schwesterwerkzeug `jsstilfassungen` macht die Unterscheidung seit jeher
+#: (`DYNAMISCH`) und nennt die Zahl der uebergangenen Faelle. Diese Regel tat
+#: es nicht: Von 323 gemeldeten Inline-Stilen in 3DTools waren 289 statisch —
+#: die uebrigen liessen sich nicht beheben, ohne den Balken kaputtzumachen,
+#: standen aber in derselben Zahl.
+#:
+#: DIESELBE LISTE WIE DORT, damit die beiden Werkzeuge nicht verschiedene
+#: Zahlen fuer dieselbe Frage liefern.
+DYNAMISCH = ("{{", "{%", "${", '" +', "' +", '"+', "'+", "` +", "`+")
+
+
+class Stilregel(Regel):
+    """Basis der beiden Stil-Regeln: berechnete Werte zaehlen nicht.
+
+    `ohne_kommentare` ist hier an: Eine Notiz, die den alten Zustand
+    beschreibt, ist kein Inline-Stil.
+
+    `dynamisch` zaehlt, wie viele Stellen die Ausnahme geschluckt hat.
+    `JsBefunde` setzt den Zaehler vor jedem Lauf zurueck und nennt die Zahl
+    in der Zusammenfassung — eine Ausnahme, die schweigt, ist ein blinder
+    Fleck (dieselbe Lehre wie bei `uebersprungen`).
+    """
+
+    ohne_kommentare = True
+
+    def __init__(self):
+        self.dynamisch = 0
+
+    def _berechnet(self, text):
+        return any(marke in text for marke in DYNAMISCH)
+
+    def pruefen(self, datei, zeilen):
+        gefunden = []
+        for fund in super().pruefen(datei, zeilen):
+            # ENDET DIE ZEILE MIT `=`, steht der Wert eine Zeile tiefer
+            # (30.08.2026). Ohne die naechste Zeile sah jede mehrzeilige
+            # Zuweisung wie ein fester Wert aus — `farbfleck.style
+            # .backgroundColor =` mit der Farbe aus den Daten darunter.
+            text = fund.text
+            if text.rstrip().endswith('=') and fund.zeile < len(zeilen):
+                text += ' ' + zeilen[fund.zeile].strip()
+            if self._berechnet(text):
+                self.dynamisch += 1
+                continue
+            gefunden.append(fund)
+        return gefunden
+
+
+class InlineStil(Stilregel):
     nur_javascript = False   # style="" gilt auch im Markup
     art = "Inline-Stil"
     warum = ("Aussehen gehört ins CSS. Im JavaScript ist es weder über ein "
-             "Theme aenderbar noch im Browser auffindbar.")
+             "Theme aenderbar noch im Browser auffindbar. Werte, die erst zur "
+             "Laufzeit entstehen (`${…}`, `{{ … }}`), sind ausgenommen — die "
+             "kann keine Klasse tragen.")
     muster = re.compile(r"""\.style\.cssText\s*=|style\s*=\s*['"][^'"]*:""")
     nicht = re.compile(r"^\s*(//|\*|/\*)")
 
 
-class StilZuweisung(Regel):
+class StilZuweisung(Stilregel):
     art = "Einzelne Stilzuweisung im JavaScript"
     warum = ("Ein Wert, der das Aussehen bestimmt (Farbe, Größe, Abstand), "
              "gehört in eine CSS-Klasse; display/visibility zum Ein- und "
-             "Ausblenden sind ausgenommen.")
+             "Ausblenden sowie berechnete Werte sind ausgenommen.")
     muster = re.compile(r"\.style\.(color|background\w*|width|height|fontSize"
                         r"|margin\w*|padding\w*|border\w*|opacity)\s*=")
     nicht = re.compile(r"^\s*(//|\*|/\*)")
+
+    #: Groessen, die den ZUSTAND anzeigen statt das Aussehen: die Breite
+    #: eines Fortschrittsbalkens, die Hoehe eines aufgezogenen Rahmens.
+    #:
+    #: WARUM AUSGENOMMEN (30.08.2026): `balken.style.width = '85%'` ist
+    #: dieselbe Sache wie `= prozent + '%'` — nur dass der Schritt hier fest
+    #: ist. Eine CSS-Klasse kann „85 Prozent" nicht ausdruecken, ohne fuer
+    #: jeden Schritt eine eigene zu bekommen. Ebenso `= ''` und `= '0px'`:
+    #: Das ist ein Zuruecksetzen, kein Aussehen.
+    ZUSTANDSGROESSEN = ("width", "height")
+
+    def _berechnet(self, text):
+        """Auch: alles, was rechts vom `=` KEINE feste Zeichenkette ist.
+
+        `b.style.width = prozent + '%'` und `el.style.color = farbe` sind
+        Zustand, nicht Aussehen. `el.style.color = '#e94560'` dagegen ist ein
+        fester Wert und bleibt ein Befund.
+        """
+        if super()._berechnet(text):
+            return True
+        if "=" not in text:
+            return False
+        links, wert = text.split("=", 1)
+        wert = wert.strip().rstrip(";").strip()
+        eigenschaft = links.rsplit(".", 1)[-1].strip()
+        if eigenschaft in self.ZUSTANDSGROESSEN:
+            roh = wert.strip("'\"`")
+            if not roh or roh.endswith("%") or roh in ("0", "0px", "auto"):
+                return True
+        return bool(wert) and wert[:1] not in ("'", '"', "`")
 
 
 class Dauerlaeufer(Regel):

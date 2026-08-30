@@ -73,6 +73,12 @@ export async function laden(url) {
     def laufen(self):
         gruppen = {}
         dateien = 0
+        # Die Stil-Regeln zaehlen mit, wie viele berechnete Werte sie
+        # uebergehen. Vor jedem Lauf zuruecksetzen: Die Regeln sind
+        # Einzelstuecke in `REGELN` und leben laenger als ein Lauf.
+        for regel in REGELN:
+            if hasattr(regel, 'dynamisch'):
+                regel.dynamisch = 0
         for pfad in self._quellen():
             dateien += 1
             zeilen = pfad.read_text(encoding="utf-8",
@@ -96,10 +102,16 @@ export async function laden(url) {
             for fund in funde[:JsBefunde.JE_ART]:
                 zeilen_aus.append(fund.als_zeile())
         gesamt = sum(len(f) for f in gruppen.values())
+        dynamisch = sum(getattr(r, 'dynamisch', 0) for r in REGELN)
+        satz = ("%d Befunde in %d Arten, %d Dateien geprüft"
+                % (gesamt, len(gruppen), dateien))
+        if dynamisch:
+            # Nie verschweigen, wie viel die Ausnahme schluckt.
+            satz += ("; %d Stil-Stellen uebergangen (Wert erst zur Laufzeit)"
+                     % dynamisch)
         return Ergebnis(
             ["art", "ort", "text"], zeilen_aus,
-            zusammenfassung="%d Befunde in %d Arten, %d Dateien geprüft"
-                            % (gesamt, len(gruppen), dateien),
+            zusammenfassung=satz,
             hinweis="Je Art die ersten %d Stellen; die Zahl in Klammern ist die "
                     "vollstaendige." % JsBefunde.JE_ART)
 

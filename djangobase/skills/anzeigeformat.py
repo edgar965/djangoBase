@@ -91,12 +91,24 @@ class Anzeigeformat(Werkzeug):
               "Auftrag nimmt sie selbst aus („geht es als JSON an den Browser, "
               "bleibt es ein Dictionary“).")
     abhilfe = ("Bei hoher Quote: Vermerk „Dictionary gewollt: <wohin>“ setzen "
-               "und nicht umbauen. Bei null Treffern ist es eine interne Kette "
-               "— dort lohnt die Klasse.")
+               "und nicht umbauen — das Werkzeug liest ihn und urteilt dann "
+               "„belegt“. Bei null Treffern ist es eine interne Kette — dort "
+               "lohnt die Klasse.")
     dauer = "5–12 s"
     kriterium = 11
 
     MIN_SCHLUESSEL = 4
+    #: Der Vermerk, den `abhilfe` seit jeher empfiehlt — gelesen wird er erst
+    #: seit dem 30.08.2026. Bis dahin stand die Empfehlung „Vermerk setzen und
+    #: nicht umbauen" im Werkzeug, und wer sie befolgte, bekam denselben Befund
+    #: beim naechsten Lauf wieder. Zwei Faelle in 3DTools trugen ihn: ein
+    #: `garment.json`, das unveraendert als DATEI in die Bibliothek geht, und
+    #: eine Testhuelle fuer ein altes Format. Beide sind keine Anzeigeformate —
+    #: ihre Schluessel stehen zu Recht nicht im Frontend.
+    #: Derselbe Marker wie in `rueckgabedict`; er darf nicht auseinanderlaufen.
+    MARKER = "Dictionary gewollt"
+    #: So viele Zeilen ueber der `return`-Zeile zaehlen als Begruendung.
+    VERMERK_ZEILEN = 7
     #: Schluessel, die ueberall vorkommen und deshalb nichts belegen.
     ZU_HAEUFIG = {"ok", "error", "name", "key", "value", "date", "id", "type",
                   "label", "data", "text", "url", "status", "title", "n", "count"}
@@ -134,13 +146,15 @@ class Anzeigeformat(Werkzeug):
         zeilen.sort(key=lambda z: (z["urteil"] != "Kette → Klasse", -z["schlüssel"]))
         kette = [z for z in zeilen if z["urteil"] == "Kette → Klasse"]
         anzeige = [z for z in zeilen if z["urteil"] == "Anzeigeformat"]
+        belegt = [z for z in zeilen if z["urteil"] == "belegt"]
         return Ergebnis(
             ["datei", "zeile", "funktion", "schlüssel", "im frontend", "urteil"],
             zeilen,
-            "%d Rückgabe-Dictionaries — %d Anzeigeformat, %d Kette, %d gemischt "
-            "(Frontend: %d Dateien)"
-            % (len(zeilen), len(anzeige), len(kette),
-               len(zeilen) - len(anzeige) - len(kette), frontend.dateien),
+            "%d Rückgabe-Dictionaries — %d Anzeigeformat, %d Kette, %d belegt, "
+            "%d gemischt (Frontend: %d Dateien)"
+            % (len(zeilen), len(anzeige), len(kette), len(belegt),
+               len(zeilen) - len(anzeige) - len(kette) - len(belegt),
+               frontend.dateien),
             "„Kette → Klasse“ ist die Liste, die Arbeit macht. „Anzeigeformat“ "
             "nimmt der Auftrag selbst aus — dort genügt der Vermerk im Code.")
 
@@ -157,9 +171,18 @@ class Anzeigeformat(Werkzeug):
             return None
         treffer = [s for s in aussagekraeftig if frontend.kennt(s)]
         anteil = len(treffer) / len(aussagekraeftig)
-        urteil = ("Anzeigeformat" if anteil >= self.SCHWELLE
-                  else ("Kette → Klasse" if anteil == 0 else "gemischt"))
+        if self._begruendet(d, ret.lineno):
+            urteil = "belegt"
+        else:
+            urteil = ("Anzeigeformat" if anteil >= self.SCHWELLE
+                      else ("Kette → Klasse" if anteil == 0 else "gemischt"))
         return {"datei": d.name, "zeile": ret.lineno, "funktion": funktion.name,
                 "schlüssel": len(feste),
                 "im frontend": "%d / %d" % (len(treffer), len(aussagekraeftig)),
                 "urteil": urteil}
+
+    def _begruendet(self, d, zeile):
+        """Steht ueber dem `return` der Vermerk „Dictionary gewollt"?"""
+        zeilen = d.text.splitlines()
+        von = max(0, zeile - self.VERMERK_ZEILEN)
+        return any(self.MARKER in z for z in zeilen[von:zeile])

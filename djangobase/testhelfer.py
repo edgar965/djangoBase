@@ -167,6 +167,17 @@ class Webmodul:
             letzte = (lauf.stdout or "").strip().splitlines()
             if not letzte:
                 raise WebmodulFehler("node hat nichts ausgegeben")
-            return json.loads(letzte[-1])
+            try:
+                return json.loads(letzte[-1])
+            except ValueError as fehler:
+                # Ohne die Ausgabe daneben ist die Meldung wertlos: Ein Skript,
+                # das `console.log('OK')` statt JSON schreibt, erzeugt nur ein
+                # nacktes „Expecting value: line 1 column 1" — und man sucht
+                # den Fehler im Modul statt im Testskript.
+                raise WebmodulFehler(
+                    "letzte Zeile ist kein JSON (%s): %r%s"
+                    % (fehler, letzte[-1],
+                       "" if len(letzte) == 1
+                       else " — davor %d weitere Zeile(n)" % (len(letzte) - 1)))
         finally:
             self.wegwerfen()
