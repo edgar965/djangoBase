@@ -454,6 +454,26 @@ class Objektwurzeln(BefundWerkzeug):
         Gezaehlt wird deshalb JEDE Erwaehnung des Namens: als Attribut
         (``Klasse.methode``), als Wert (an eine Funktion übergeben), als
         Oberklasse. Nur wer nirgends vorkommt, gilt noch als tot.
+
+        DREI WEITERE FEHLALARME (30.08.2026, 3DTools)
+        =============================================
+        Die drei letzten Meldungen des Projekts waren alle drei falsch, und
+        jede aus einem eigenen Grund::
+
+            Formularwert              `from .formularwert import Formularwert as F`
+            TestCharacterConsumer     `consumers.TestCharacterConsumer.as_asgi()`
+            GleicherUrsprungMiddleware `'ui.same_origin.GleicherUrsprungMiddleware'`
+
+        1. **Ein Import unter anderem Namen** erzeugt im Baum kein ``Name``,
+           sondern ein ``alias``. Sechs Module holten die Klasse als ``F``.
+        2. **Der Klassenname als ATTRIBUT hinten** (``modul.Klasse``): Der
+           Traeger heisst ``consumers`` und ist klein — geprueft wurde nur er.
+        3. **Der Name als Zeichenkette.** Middleware, Anwendungen und Router
+           stehen in Django als gepunkteter Pfad in den Einstellungen; im
+           Quelltext kommt der Name dann nirgends als Name vor.
+
+        Alle drei sind die teure Sorte: Sie schlagen vor, lebenden Code zu
+        loeschen (siehe Regel `analysewerkzeuge`).
         """
         for knoten in ast.walk(baum):
             if isinstance(knoten, ast.Attribute):
@@ -461,9 +481,22 @@ class Objektwurzeln(BefundWerkzeug):
                 if (isinstance(traeger, ast.Name)
                         and Objektwurzeln._wie_eine_klasse(traeger.id)):
                     hinein.add(traeger.id)
+                # Auch der Attributname selbst: `consumers.TestConsumer`
+                # traegt den Klassennamen HINTEN, und `consumers` ist klein.
+                if Objektwurzeln._wie_eine_klasse(knoten.attr):
+                    hinein.add(knoten.attr)
             elif isinstance(knoten, ast.Name):
                 if Objektwurzeln._wie_eine_klasse(knoten.id):
                     hinein.add(knoten.id)
+            elif isinstance(knoten, (ast.Import, ast.ImportFrom)):
+                for eintrag in knoten.names:
+                    if Objektwurzeln._wie_eine_klasse(eintrag.name):
+                        hinein.add(eintrag.name)
+            elif (isinstance(knoten, ast.Constant)
+                    and isinstance(knoten.value, str)):
+                name = Objektwurzeln._aus_pfadtext(knoten.value)
+                if name:
+                    hinein.add(name)
 
     def _erzeugt(self, baum, hinein: set) -> None:
         u"""Jede Stelle, an der ueberhaupt ``Klasse(...)`` steht."""
@@ -547,6 +580,23 @@ class Objektwurzeln(BefundWerkzeug):
                             and isinstance(ziel.value, ast.Name)
                             and ziel.value.id == 'self'):
                         hinein.setdefault(name, set()).add(knoten.name)
+
+    @staticmethod
+    def _aus_pfadtext(text: str) -> str:
+        u"""Der Klassenname aus einem gepunkteten Pfad — oder ``''``.
+
+        ``'ui.same_origin.GleicherUrsprungMiddleware'`` -> der letzte Teil.
+        Nur MIT Punkt und nur aus Bezeichnerzeichen: Sonst zaehlte jeder
+        Satz, der mit einem grossen Wort beginnt, als Verwendung.
+        """
+        if '.' not in text or len(text) > 200:
+            return ''
+        if not all(z.isalnum() or z in '._' for z in text):
+            return ''
+        letzter = text.rsplit('.', 1)[-1]
+        if not letzter.isidentifier():
+            return ''
+        return letzter if Objektwurzeln._wie_eine_klasse(letzter) else ''
 
     @staticmethod
     def _wie_eine_klasse(name: str) -> bool:

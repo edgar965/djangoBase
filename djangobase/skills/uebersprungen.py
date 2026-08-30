@@ -105,7 +105,7 @@ class Sprungstelle:
         """
         if self.art == 'umgebung':
             return Befund.FEHLER
-        if self.art == 'rumpf':
+        if self.art in ('rumpf', 'versteckt'):
             return Befund.WARNUNG
         return Befund.HINWEIS
 
@@ -117,6 +117,10 @@ class Sprungsucher(ast.NodeVisitor):
         self.datei = datei
         self.stellen = []
         self._wobei = []
+        #: (Zeile, Spalte) der Aufrufe, die schon als Dekorator gemeldet
+        #: wurden. `generic_visit` laeuft danach noch einmal durch die
+        #: Dekoratorliste — ohne diese Menge staende jeder zweimal da.
+        self._gemeldet = set()
 
     # ── Dekoratoren ─────────────────────────────────────────────
 
@@ -186,6 +190,7 @@ class Sprungsucher(ast.NodeVisitor):
             art = 'dauerhaft'
             if name in ('skipIf', 'skipUnless'):
                 art = 'umgebung' if self._liest_umgebung(deko) else 'bedingt'
+            self._gemeldet.add((deko.lineno, deko.col_offset))
             self.stellen.append(Sprungstelle(
                 self.datei, deko.lineno, art,
                 '.'.join(self._wobei + [knoten.name]), self._text(deko)))
@@ -203,6 +208,7 @@ class Sprungsucher(ast.NodeVisitor):
         self._wobei.pop()
 
     def visit_Call(self, knoten):
+        self._versteckter_waechter(knoten)
         if self._name(knoten.func) in RUMPFAUFRUFE:
             # `x.skip(...)` nur, wenn es nach unittest/pytest aussieht —
             # sonst faengt man jedes `warteschlange.skip()` mit.
@@ -215,6 +221,48 @@ class Sprungsucher(ast.NodeVisitor):
                     self.datei, knoten.lineno, 'rumpf',
                     '.'.join(self._wobei) or '?', self._text(knoten)))
         self.generic_visit(knoten)
+
+    def _versteckter_waechter(self, knoten):
+        u"""``unittest.skipUnless(...)`` als RUECKGABEWERT einer Hilfsfunktion.
+
+        DER BLINDE FLECK (30.08.2026, 3DTools)
+        ======================================
+        Das Projekt hatte neun JS-Tests hinter einem Node-Waechter. Gemeldet
+        wurden ZWEI — die beiden, die den Dekorator ausgeschrieben trugen. Die
+        anderen sieben standen als::
+
+            class Jsmodul:
+                @staticmethod
+                def ohne_node():
+                    return unittest.skipUnless(shutil.which('node'), 'node fehlt')
+
+            @Jsmodul.ohne_node()
+            class KoerpernetzTest(unittest.TestCase):
+
+        Fuer den Dekorator-Zweig heisst der Dekorator ``ohne_node`` und steht
+        nicht in der Liste; der Rumpf-Zweig kannte nur ``skipTest``/``skip``.
+        Ein Werkzeug, das sieben von neun Stillegungen uebersieht, meldet eine
+        Zahl, die niemand nachrechnet — und die verbliebenen zwei sehen aus wie
+        Einzelfaelle.
+
+        Gemeldet wird als ``versteckt`` (WARNUNG): Der Waechter ist da, aber an
+        der Klasse, die ihn traegt, ist er nicht zu sehen.
+        """
+        # NUR die BEDINGTEN Formen: `pytest.skip(...)` im Rumpf faengt der
+        # Zweig darunter schon (RUMPFAUFRUFE), und beide zusammen meldeten
+        # dieselbe Stelle zweimal — der eigene Test hat es gefangen.
+        name = self._name(knoten.func)
+        if name not in ('skipIf', 'skipUnless'):
+            return
+        if (knoten.lineno, knoten.col_offset) in self._gemeldet:
+            return
+        eigner = getattr(knoten.func, 'value', None)
+        if not (isinstance(eigner, ast.Name)
+                and eigner.id in ('unittest', 'pytest')):
+            return
+        self.stellen.append(Sprungstelle(
+            self.datei, knoten.lineno, 'versteckt',
+            '.'.join(self._wobei) or '?', self._text(knoten)))
 
 
 class Uebersprungen(BefundWerkzeug):

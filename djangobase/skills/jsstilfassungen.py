@@ -31,6 +31,15 @@ from .werkzeug import Ergebnis, Werkzeug
 __all__ = ["JsStilfassungen"]
 
 STIL = re.compile(r'style\s*=\s*"([^"]*)"')
+
+#: Ein Blockkommentar — sein Inhalt ist Prosa, kein Markup.
+KOMMENTAR = re.compile(r'/\*.*?\*/|\{%\s*comment\s*%\}.*?\{%\s*endcomment\s*%\}'
+                       r'|\{#.*?#\}|<!--.*?-->', re.S)
+
+
+def kommentarfrei(text):
+    """Derselbe Text ohne Blockkommentare."""
+    return KOMMENTAR.sub(' ', text)
 #: Werte mit diesen Zeichen stehen erst zur Laufzeit fest.
 DYNAMISCH = ("{{", "{%", "${", '" +', "' +")
 
@@ -66,9 +75,19 @@ class JsStilfassungen(Werkzeug):
         fassungen = Counter()
         dateien = Counter()
         dynamisch = 0
+        #: Stellen in Blockkommentaren. Sie beschreiben den ALTEN Zustand und
+        #: sind kein Inline-Stil (30.08.2026): Drei der letzten Meldungen in
+        #: 3DTools standen in Aufraeum-Notizen — „dieselbe
+        #: `style="width:100%;padding:4px;…"`-Kette teils". Wer so einen
+        #: Befund behebt, loescht die Begruendung.
+        kommentiert = 0
         for pfad, kurz in self._quellen():
             text = pfad.read_text(encoding="utf-8", errors="replace")
+            ohne_kommentar = kommentarfrei(text)
             for wert in STIL.findall(text):
+                if wert not in ohne_kommentar:
+                    kommentiert += 1
+                    continue
                 gestrafft = " ".join(wert.split()).strip()
                 if not gestrafft.strip(";"):
                     continue
@@ -91,7 +110,8 @@ class JsStilfassungen(Werkzeug):
                                mehrfach, dynamisch),
             hinweis="Oben die haeufigsten Fassungen, darunter die Dateien mit "
                     "den meisten Stellen. Was nur einmal vorkommt, lohnt keine "
-                    "eigene Klasse.")
+                    "eigene Klasse. %d Stellen in Kommentaren uebergangen."
+                    % kommentiert)
 
     #: Ausschlussliste und Suche stehen seit dem 17.08.2026 in
     #: ``Frontendquellen`` — vorher hatte sie jedes JS-Werkzeug einzeln,
