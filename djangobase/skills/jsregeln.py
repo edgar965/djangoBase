@@ -360,6 +360,44 @@ class LangeZeile(Regel):
              "hat.")
     muster = re.compile(r"^.{121,}$")
     nicht = re.compile(r"^\s*(//|\*|/\*)|https?://")
+    #: Ein Beispielaufruf in einem `{% comment %}`-Block ist Erklaertext.
+    #: Belegt (31.08.2026, 3DTools): `_einstellungen_speichern.html`
+    #: erklaert im Kopf, wie man den zweiten Knopf anfordert, und wurde
+    #: fuer die Beispielzeile gemeldet. Wer dem Befund folgt, kuerzt die
+    #: BEGRUENDUNG.
+    ohne_kommentare = True
+
+    #: Ein einzelnes `{% … %}`. Nicht gierig, damit zwei Tags in einer
+    #: Zeile getrennt bleiben.
+    TAG = re.compile(r"\{%.*?%\}")
+
+    #: Wie viele Zeilen die Tag-Ausnahme uebergangen hat.
+    unteilbar = 0
+
+    def pruefen(self, datei, zeilen):
+        u"""Wie die Basis — aber ohne die Zeilen, die an EINEM Tag haengen.
+
+        DJANGOS LEXER KENNT KEIN DOTALL: Ein `{% … %}` ueber zwei Zeilen
+        wird STUMM zu Text. Die Seite antwortet weiter mit 200, das Element
+        fehlt, und im Log steht nichts (3DTools, 28.08.2026 — vier Module
+        liefen bei jedem Seitenaufruf dreimal in eine 404, gefunden hat es
+        eine Browserprobe, nicht das Fehlerlog).
+
+        Eine Zeile, die ohne ihren laengsten Tag unter der Grenze laege,
+        ist deshalb NICHT kuerzbar. Abgezogen wird nur der laengste
+        einzelne Tag: Wer fuenf kurze Tags in einer Zeile hat, hat sehr
+        wohl mehrere Anweisungen hintereinander — und die trennt man.
+        """
+        raus = []
+        for fund in super().pruefen(datei, zeilen):
+            zeile = zeilen[fund.zeile - 1]
+            laengster = max((len(t) for t in self.TAG.findall(zeile)),
+                            default=0)
+            if laengster and len(zeile) - laengster <= 120:
+                self.unteilbar += 1
+                continue
+            raus.append(fund)
+        return raus
 
 
 class TodoImCode(Regel):

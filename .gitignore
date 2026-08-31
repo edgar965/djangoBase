@@ -9,3 +9,7 @@ dist/
 # Wegwerf-Ordner des Anlassfall-Checks (skills2). Er raeumt selbst auf; bricht
 # ein Lauf ab, bleibt er liegen und gehoert trotzdem nicht ins Repo.
 _anlassfall/
+# Pruefverzeichnisse, siehe djangobase/tests/wegwerfordner.py
+# (Kommentar in EIGENER Zeile: git kennt kein Inline-#, sonst waere der
+#  Text Teil des Musters und der Ordner nicht ignoriert.)
+_wegwerf/

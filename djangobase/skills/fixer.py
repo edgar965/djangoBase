@@ -34,6 +34,8 @@ from pathlib import Path
 
 from django.conf import settings
 
+from .pfadteile import Pfadteile
+
 __all__ = ["Fixer", "Vorschau", "Aenderung"]
 
 
@@ -142,9 +144,19 @@ class Fixer:
                 | {str(x) for x in eigen})
 
     @classmethod
-    def erlaubt(cls, pfad):
-        """Darf in diese Datei geschrieben werden?"""
-        return not (set(Path(pfad).parts) & cls.raus())
+    def erlaubt(cls, pfad, wurzel=None):
+        """Darf in diese Datei geschrieben werden?
+
+        GEGEN DIE TEILE UNTERHALB DER WURZEL (Befund CodeRabbit, 31.08.2026):
+        ``pfade()`` sucht seit dem Umbau mit ``Pfadteile.trifft`` relativ zur
+        Wurzel, dieser Schreibschutz pruefte weiter den ABSOLUTEN Pfad. Liegt
+        das Projekt unterhalb eines Ordners namens ``vendor``, liefert die
+        Suche also Dateien, die der Schutz danach ALLE als fremden Code
+        ablehnt — die Vorschau zeigt Aenderungen, das Anwenden tut nichts.
+        Zwei Fassungen derselben Regel, genau wie in ``pfadteile.py``
+        beschrieben.
+        """
+        return not (set(Pfadteile.unter(pfad, wurzel)) & cls.raus())
 
     def wurzel(self):
         """Die REPO-Wurzel, nicht nur der Django-Teil - wie bei ``Werkzeug``.
@@ -179,8 +191,12 @@ class Fixer:
         """
         raus = self.raus()
         git = self.gitfilter()
-        return [p for p in sorted(self.wurzel().rglob(muster))
-                if not (set(p.parts) & raus) and git.erlaubt(p)]
+        wurzel = self.wurzel()
+        # Gegen die Teile UNTERHALB der Wurzel — siehe `pfadteile.py`.
+        # Gegen den absoluten Pfad geprueft, faellt jede Datei heraus,
+        # deren WEG zur Wurzel zufaellig einen dieser Namen traegt.
+        return [p for p in sorted(wurzel.rglob(muster))
+                if not Pfadteile.trifft(p, wurzel, raus) and git.erlaubt(p)]
 
     @property
     def sicherung(self):
@@ -221,7 +237,7 @@ class Fixer:
             # 17.08.2026 versagt. Ein Riegel an der Stelle, an der wirklich
             # geschrieben wird, gilt fuer JEDEN Fixer, auch fuer den naechsten,
             # den jemand ohne Ausschlussliste baut.
-            if not self.erlaubt(a.pfad):
+            if not self.erlaubt(a.pfad, self.wurzel()):
                 aus["uebersprungen"].append(
                     {"datei": a.name,
                      "grund": "fremder Code — kein Fixer schreibt dorthin"})

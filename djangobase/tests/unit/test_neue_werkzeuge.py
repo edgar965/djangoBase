@@ -33,9 +33,16 @@ class Wegwerfprojekt:
             ziel.write_text(inhalt, encoding='utf-8')
 
     def fahren(self, klasse, **argumente):
-        """Das Werkzeug mit DIESEM Ordner als Projektwurzel — Befundzeilen."""
-        werkzeug = klasse()
-        werkzeug.wurzel = lambda: self.ordner
+        """Das Werkzeug mit DIESEM Ordner als Projektwurzel — Befundzeilen.
+
+        `Wegwerfordner.ansetzen` oeffnet dabei die beiden Siebe
+        (Ausschlussliste, `.gitignore`). Ohne das findet ein Werkzeug null
+        Dateien, sobald der Ordner INNERHALB des Projekts liegt — und das
+        tut er seit der `Ablageumleitung`.
+        """
+        from ..wegwerfordner import Wegwerfordner
+
+        werkzeug = Wegwerfordner.ansetzen(klasse(), self.ordner)
         return werkzeug.laufen(**argumente).zeilen
 
 
@@ -94,6 +101,64 @@ class CssdublettenTest(WerkzeugBasis):
         self.assertEqual(projekt.fahren(Cssdubletten), [])
         # Mit `ab=2` ist derselbe Bestand ein Befund.
         self.assertEqual(len(projekt.fahren(Cssdubletten, ab='2')), 1)
+
+    def test_zwei_animationen_mit_gleichem_schritt_sind_keine_dublette(self):
+        u"""DER FEHLALARM (31.08.2026, assistant).
+
+        ``REGEL`` kennt keine geschachtelten Klammern und fand in
+        ``@keyframes spin{from{…}to{…}}`` nicht den Block, sondern seine
+        Schritte — ohne den Namen der Animation. Damit galt
+        ``to{transform:rotate(360deg)}`` als dieselbe Regel in jeder
+        Datei, die irgendetwas dreht: ``@keyframes sync-spin`` wurde als
+        Dublette von ``@keyframes spin`` gemeldet.
+        """
+        dreh = ('@keyframes %s{from{transform:rotate(0deg);}'
+                'to{transform:rotate(360deg);}}')
+        projekt = self.projekt({
+            'templates/a.html': '<style>%s</style>' % (dreh % 'spin'),
+            'templates/b.html': '<style>%s</style>' % (dreh % 'sync-spin'),
+            'templates/c.html': '<style>%s</style>' % (dreh % 'lade-dreh'),
+        })
+        self.assertEqual(projekt.fahren(Cssdubletten), [])
+
+    def test_dieselbe_animation_dreimal_ist_sehr_wohl_eine(self):
+        u"""DIE GEGENPROBE: gleicher Name, gleicher Rumpf — ein Befund."""
+        dreh = ('@keyframes spin{from{transform:rotate(0deg);}'
+                'to{transform:rotate(360deg);}}')
+        projekt = self.projekt({
+            'templates/a.html': '<style>%s</style>' % dreh,
+            'templates/b.html': '<style>%s</style>' % dreh,
+            'templates/c.html': '<style>%s</style>' % dreh,
+        })
+        zeilen = projekt.fahren(Cssdubletten)
+        self.assertEqual(len(zeilen), 1, zeilen)
+        self.assertIn('@keyframes spin', zeilen[0]['befund'])
+
+    def test_eine_regel_im_media_block_ist_nicht_die_basisregel(self):
+        u"""Dieselbe Klasse: eine Ueberschreibung ist keine Dublette.
+
+        ``@media print{.karte{…}}`` und ``.karte{…}`` daneben sagen
+        Verschiedenes — die eine gilt beim Drucken, die andere immer.
+        """
+        projekt = self.projekt({
+            'templates/a.html':
+                '<style>@media print{.karte{padding:0}}</style>',
+            'templates/b.html': '<style>.karte{padding:0}</style>',
+            'templates/c.html': '<style>.karte{padding:0}</style>',
+        })
+        self.assertEqual(projekt.fahren(Cssdubletten), [])
+
+    def test_aber_dieselbe_media_regel_dreimal_zaehlt(self):
+        u"""DIE GEGENPROBE: gleiche Bedingung, gleiche Regel."""
+        stueck = '<style>@media print{.karte{padding:0}}</style>'
+        projekt = self.projekt({
+            'templates/a.html': stueck,
+            'templates/b.html': stueck,
+            'templates/c.html': stueck,
+        })
+        zeilen = projekt.fahren(Cssdubletten)
+        self.assertEqual(len(zeilen), 1, zeilen)
+        self.assertIn('@media print', zeilen[0]['befund'])
 
 
 class NurLesenTest(WerkzeugBasis):

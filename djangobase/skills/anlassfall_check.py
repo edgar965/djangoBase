@@ -83,7 +83,13 @@ class Probelauf:
             # gerufen und nie `anwenden()` — geschrieben wird also nichts,
             # und ohne diese Zeile verwirft jeder Fixer seinen eigenen
             # Anlassfall, weil dessen Ordner `_anlassfall` heisst.
-            werkzeug.erlaubt = lambda p: not (set(Path(p).parts) & frei)
+            # ZWEI Parameter, seit `Fixer.erlaubt` die Wurzel kennt
+            # (31.08.2026): Die Aufrufer geben sie mit
+            # (`self.erlaubt(d.pfad, self.wurzel())`), und eine
+            # Attrappe mit nur einem Parameter wirft dort TypeError —
+            # der Check meldete `fix-ausnahme` daraufhin als blind.
+            werkzeug.erlaubt = (
+                lambda p, _wurzel=None: not (set(Path(p).parts) & frei))
             return self._fixerlauf(werkzeug)
         # UND es muss hier auch hinsehen duerfen. ``_anlassfall`` steht in der
         # Ausschlussliste, damit die Werkzeuge im NORMALEN Lauf nicht ihre

@@ -59,9 +59,19 @@ __all__ = ["TABU", "dateien", "wurzel", "ausnahmen"]
 #: Konformitaetspruefungen fielen im GESAMTLAUF durch und liefen einzeln
 #: gruen — der teuerste Fehlerbericht, den es gibt, weil er beim Nachstellen
 #: verschwindet.
+#: ``_wegwerf`` kam am 31.08.2026 dazu — DERSELBE Fall, ein zweites Mal.
+#: Seit die ``Ablageumleitung`` die Pruefverzeichnisse ins Projekt holt
+#: (statt in den System-Zwischenspeicher, wo 1.761 Ordner lagen), liegen
+#: dort waehrend des ganzen Laufs Attrappen. Gefallen sind wieder genau
+#: zwei Pruefungen — ``test_erb_ketten_enden_bei_djangobase`` (fand
+#: ``seite.html`` -> ``grund.html``) und ``test_eigene_statik_traegt_eine_
+#: kennung`` (fand ``{% static 'gibts/nicht.js' %}``) — und wieder liefen
+#: sie einzeln gruen.
+#: Der zweite Riegel (``p.exists()`` unten) greift hier NICHT: Geraeumt
+#: wird per ``atexit``, also erst nach dem letzten Prueffall.
 TABU = {"node_modules", "__pycache__", "venv", ".venv", "pythonVENV", ".git",
         "site-packages", "migrations", ".mypy_cache", ".pytest_cache", ".tox",
-        "sicherung", "backup", "_anlassfall"}
+        "sicherung", "backup", "_anlassfall", "_wegwerf"}
 
 #: Wurzel des djangoBase-Pakets — Konsumenten-Regeln gelten nicht für es selbst.
 PAKET = Path(__file__).resolve().parents[2]

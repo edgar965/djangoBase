@@ -403,6 +403,8 @@ def schlucken(fall):
         # das `fix-ausnahme` deshalb nicht ruhigstellen konnte.
         if self.MELDUNG_AN_NUTZER.search(quelle):
             return []
+        if self._meldet_im_ergebnis(k):
+            return []
         stumm = all(isinstance(x, (ast.Pass, ast.Continue, ast.Break)) or
                     (isinstance(x, ast.Return) and x.value is None) for x in rumpf)
         art = "Ausnahme verschluckt" if stumm else "Ausnahme ohne Log"
@@ -644,6 +646,55 @@ def schlucken(fall):
                       "HttpResponseBadRequest": 400, "HttpResponseGone": 410,
                       "HttpResponseServerError": 500,
                       "HttpResponseNotAllowed": 405}
+
+    #: Felder, in denen ein Ergebnis-Woerterbuch seinen Fehlertext fuehrt.
+    FEHLERTEXT = ("log", "error", "fehler", "message", "meldung", "detail")
+
+    #: Felder, die den Fehlschlag als Schalter fuehren.
+    FEHLERSCHALTER = ("ok", "success", "erfolg")
+
+    @classmethod
+    def _meldet_im_ergebnis(cls, k):
+        u"""Gibt der Block ein Ergebnis mit Fehlerfeld zurueck?
+
+        IM ERGEBNIS GEMELDET IST GEMELDET (31.08.2026, 3DTools). Die
+        Kollisions-Pipelines antworten so::
+
+            except FileNotFoundError:
+                return {'ok': False, 'output': '',
+                        'log': f'Blender not found at {BLENDER_EXE}'}
+
+        Die Ausnahme verschwindet dabei nicht — sie reist im Rueckgabewert.
+        BELEGT bis zur Oberflaeche: `dienste/stoffexportlauf.py` reicht
+        `ergebnis.get('log', '')` weiter, und `static/viewer/bvh_studio/
+        export1.js` zeigt es dem Nutzer (`log: ${(data.log || '')
+        .slice(-200)}`). Dieselbe Ueberlegung wie bei 4xx und
+        Django-Messages, nur fuer eine Bibliothek ohne HTTP-Schicht.
+
+        VERLANGT WIRD BEIDES: ein Schalter auf `False` UND ein nicht
+        leeres Textfeld. `return {'ok': False}` allein sagt nichts darueber,
+        WAS schiefging — das bleibt ein Befund.
+        """
+        for knoten in ast.walk(k):
+            if not isinstance(knoten, ast.Return):
+                continue
+            if not isinstance(knoten.value, ast.Dict):
+                continue
+            schalter, text = False, False
+            for schluessel, wert in zip(knoten.value.keys,
+                                        knoten.value.values):
+                if not isinstance(schluessel, ast.Constant):
+                    continue
+                name = str(schluessel.value).lower()
+                if name in cls.FEHLERSCHALTER:
+                    schalter = (isinstance(wert, ast.Constant)
+                                and wert.value is False)
+                elif name in cls.FEHLERTEXT:
+                    text = not (isinstance(wert, ast.Constant)
+                                and not wert.value)
+            if schalter and text:
+                return True
+        return False
 
     @classmethod
     def _fehlerstatus(cls, knoten):
