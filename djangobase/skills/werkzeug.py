@@ -19,6 +19,7 @@ import ast
 from pathlib import Path
 
 from django.conf import settings
+from .pfadteile import Pfadteile
 
 __all__ = ["Werkzeug", "Ergebnis", "Quelldatei"]
 
@@ -37,6 +38,10 @@ AUSGESCHLOSSEN = {".git", "__pycache__", "node_modules", "venv", "pythonVENV",
                   # die Werkzeuge im normalen Lauf ihre eigenen Testdateien -
                   # und meldeten absichtlich kaputten Code als Befund.
                   "_anlassfall",
+                  # Pruefverzeichnisse aus `tests/wegwerfordner.py` —
+                  # im NORMALEN Lauf unsichtbar, im Prueflauf sieht der
+                  # Helfer selbst hin (er erleichtert die Liste).
+                  "_wegwerf",
                   # FREMDER CODE, der in gewachsenen Projekten NEBEN dem
                   # Quelltext liegt (belegt am 17.08.2026 im Projekt assistant:
                   # 34 % ALLER Befunde kamen von dort).
@@ -263,7 +268,7 @@ class Werkzeug:
         raus = self.ausgeschlossen()
         git = self.gitfilter()
         return [p for p in sorted(Path(unter or wurzel).rglob(muster))
-                if not any(teil in raus for teil in p.parts) and git.erlaubt(p)]
+                if not Pfadteile.trifft(p, wurzel, raus) and git.erlaubt(p)]
 
     def dateien(self, endung=".py"):
         """Alle Quelldateien des Projekts - ohne venv, Migrationen, Fremdcode."""

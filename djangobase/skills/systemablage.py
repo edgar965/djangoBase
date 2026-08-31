@@ -31,6 +31,11 @@ Ein Aufruf von ``mkstemp``, ``mkdtemp``, ``NamedTemporaryFile``,
 ``TemporaryFile``, ``SpooledTemporaryFile`` oder ``TemporaryDirectory``
 OHNE ``dir=``-Angabe.
 
+Dazu ``gettempdir()`` (31.08.2026): Es legt nichts an, sondern NENNT den
+Ort — und ``os.path.join(gettempdir(), "out.mp4")`` landet genauso auf C:.
+Vier ``mkstemp``-Stellen einer Datei wurden gemeldet, die fuenfte Zeile
+mit derselben Wirkung nicht.
+
 WAS NICHT GEMELDET WIRD
 =======================
 * **Tests.** Ein Wegwerf-Verzeichnis in einer Pruefung verschwindet mit
@@ -38,11 +43,23 @@ WAS NICHT GEMELDET WIRD
 * ``dir=`` vorhanden — egal, was drinsteht. Wohin genau, entscheidet
   das Projekt.
 * Kommentare und Docstrings (der Syntaxbaum kennt sie nicht als Aufruf).
+* Eine Stelle mit dem Vermerk ``Lehre gilt hier nicht
+  ("keine-temp-dateien-im-system")`` — siehe ``vermerk.py``.
+
+  NACHGETRAGEN (31.08.2026): Dieses Werkzeug kannte gar keine
+  Einzelfall-Ausnahme, nur eine Liste von Dateinamen. Im Projekt
+  ``assistant`` steht eine Stelle, die den Vermerk ordnungsgemaess
+  traegt und deren Grund nachlesbar stimmt: ACE-Step prueft den
+  uebergebenen Pfad mit ``commonpath(...) == gettempdir()`` und weist
+  jeden anderen mit einem Fehler ab. Eine belegte Ausnahme, die
+  trotzdem jedes Mal gemeldet wird, macht die Liste unbrauchbar.
 """
 import ast
 
 from .anlassfall import Anlassfall
 from .befund import Befund, Befundsatz, BefundWerkzeug
+from .pruefdatei import Pruefdatei
+from .vermerk import Vermerk
 
 __all__ = ["Systemablage"]
 
@@ -89,47 +106,122 @@ class Systemablage(BefundWerkzeug):
     ANLEGER = ("mkstemp", "mkdtemp", "NamedTemporaryFile", "TemporaryFile",
                "SpooledTemporaryFile", "TemporaryDirectory")
 
+    #: `gettempdir()` legt selbst nichts an — es NENNT den Ort, und was
+    #: danach kommt (`os.path.join(gettempdir(), "out.mp4")`), landet
+    #: genauso auf C:. Gefunden am 31.08.2026 in
+    #: `HumanBody/collision/test_collision.py`, direkt neben vier
+    #: `mkstemp`-Stellen: Die vier meldete das Werkzeug, die fuenfte nicht.
+    #: Ein `dir=` gibt es hier nicht — jeder Aufruf ist ein Befund.
+    ORTSNENNER = ("gettempdir", "gettempdirb")
+
     #: Diese Datei beschreibt den Fehler, statt ihn zu machen.
     AUSNAHMEN = ("systemablage.py",)
+
+    #: Anleger, die ihren Ordner NIE von selbst raeumen — bei ihnen gilt die
+    #: Ausnahme fuer Pruefungen nicht.
+    #:
+    #: DER BELEG (31.08.2026, Projekt 3DTools): Im Systemtemp lagen **1.761
+    #: Verzeichnisse** aus Pruefungen — 1.717 `kr_*` aus
+    #: `test_skills_klassenreif.py`, 44 `kk_*` aus
+    #: `test_skills_klassenkandidat.py`, das aelteste fuenf Tage alt. Beide
+    #: riefen `tempfile.mkdtemp(prefix=…)` je Prueffall und raeumten nie.
+    #:
+    #: Die Ausnahme `_ist_test` hat das gedeckt, mit der Begruendung „ein
+    #: Wegwerf-Verzeichnis in einer Pruefung verschwindet mit ihr". Das
+    #: stimmt fuer `TemporaryDirectory` in einem `with` — und fuer
+    #: `mkdtemp` gerade nicht: Es gibt einen Pfad zurueck und vergisst ihn.
+    #: Die Ausnahme deckte damit genau den Schaden, den das Werkzeug
+    #: verhindern soll. Es ist dieselbe Klasse wie die 779
+    #: `mail_test_archive_*` im Projekt `assistant`.
+    #:
+    #: Abhilfe im Projekt: `djangobase/tests/wegwerfordner.py`.
+    OHNE_SELBSTAUFRAEUMEN = ("mkdtemp", "mkstemp")
+
+    #: Der Name, unter dem diese Lehre in einem Vermerk steht.
+    LEHRE = "keine-temp-dateien-im-system"
 
     def pruefen(self, **_argumente):
         befunde = []
         dateien = 0
+        #: Wie viele Stellen ein Vermerk ausgenommen hat. Gehoert in die
+        #: Kopfzeile: Eine Ausnahme, die schweigt, ist ein blinder Fleck.
+        self.ausgenommen = 0
         for pfad in self.projektdateien(".py"):
-            if pfad.name in self.AUSNAHMEN or self._ist_test(pfad):
+            if pfad.name in self.AUSNAHMEN:
                 continue
-            baum = self._baum(pfad)
-            if baum is None:
+            quelle = self._quelle(pfad)
+            if quelle is None:
+                continue
+            try:
+                baum = ast.parse(quelle)
+            except (SyntaxError, ValueError):
                 continue
             dateien += 1
-            befunde += self._aus_baum(baum, self.kurz(pfad))
+            gefunden = self._aus_baum(baum, self.kurz(pfad),
+                                      Vermerk(quelle))
+            if self._ist_test(pfad):
+                # In Pruefungen bleibt, was nie selbst aufraeumt — und die
+                # Ortsnennung, die ueberhaupt nichts anlegt und deshalb
+                # auch nichts aufraeumen KANN.
+                bleibt = self.OHNE_SELBSTAUFRAEUMEN + self.ORTSNENNER
+                gefunden = [b for b in gefunden
+                            if any(a in b.was for a in bleibt)]
+            befunde += gefunden
         kopf = ["%d Python-Dateien gelesen" % dateien,
                 "%d Zwischendateien ohne `dir=`" % len(befunde)]
+        if self.ausgenommen:
+            kopf.append("%d Stelle(n) durch Vermerk ausgenommen"
+                        % self.ausgenommen)
         return Befundsatz(self.titel, kopf, befunde)
 
-    @staticmethod
-    def _ist_test(pfad):
-        u"""Ein Wegwerf-Verzeichnis in einer Pruefung verschwindet mit ihr."""
-        return (pfad.name.startswith("test_")
-                or "tests" in pfad.parts
-                or "test" in pfad.parts)
+    def _ist_test(self, pfad):
+        u"""Liegt die Datei in einer Pruefung?
+
+        Fuer `TemporaryDirectory`/`NamedTemporaryFile` heisst das:
+        uebergehen — sie raeumen am Ende des `with`-Blocks. Fuer `mkdtemp`
+        und `mkstemp` heisst es NICHTS; siehe `OHNE_SELBSTAUFRAEUMEN`.
+
+        Die Frage selbst steht in `pruefdatei.py` — sie wird von mehr als
+        einem Werkzeug gestellt.
+
+        MIT DER WURZEL (Befund CodeRabbit, 31.08.2026): Ohne sie zaehlte der
+        ABSOLUTE Pfad. Ein Projekt unter einem Ordner namens ``tests`` haette
+        damit ausschliesslich Pruefungen enthalten — und dieses Werkzeug
+        haette fast alle Befunde unterdrueckt, ohne dass etwas auffaellt.
+        """
+        return Pruefdatei.ist_es(pfad, self.wurzel())
 
     @staticmethod
-    def _baum(pfad):
+    def _quelle(pfad):
         try:
-            return ast.parse(pfad.read_text(encoding="utf-8", errors="replace"))
-        except (OSError, SyntaxError):
+            return pfad.read_text(encoding="utf-8", errors="replace")
+        except OSError:
             return None
 
-    def _aus_baum(self, baum, name):
+    def _aus_baum(self, baum, name, vermerk):
         raus = []
         for knoten in ast.walk(baum):
             if not isinstance(knoten, ast.Call):
                 continue
             gerufen = self._name(knoten.func)
+            if gerufen in self.ORTSNENNER:
+                if vermerk.gilt_nicht(knoten.lineno, self.LEHRE):
+                    self.ausgenommen += 1
+                    continue
+                raus.append(Befund(
+                    "%s:%d" % (name, knoten.lineno),
+                    "`%s()` nennt den System-Zwischenspeicher" % gerufen,
+                    "Was von hier aus zusammengesetzt wird, landet unter "
+                    "Windows auf C: — genauso wie ein `mkstemp()` ohne "
+                    "`dir=`.",
+                    Befund.WARNUNG))
+                continue
             if gerufen not in self.ANLEGER:
                 continue
             if any(k.arg == "dir" for k in knoten.keywords):
+                continue
+            if vermerk.gilt_nicht(knoten.lineno, self.LEHRE):
+                self.ausgenommen += 1
                 continue
             raus.append(Befund(
                 "%s:%d" % (name, knoten.lineno),

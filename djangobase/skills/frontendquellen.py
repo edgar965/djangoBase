@@ -49,6 +49,8 @@ dem Vite-Buendel - Code, den niemand geschrieben hat, und dessen Quelle
 import re
 from pathlib import Path
 
+from .pfadteile import Pfadteile
+
 __all__ = ["Frontendquellen"]
 
 
@@ -150,14 +152,15 @@ class Frontendquellen:
     # ------------------------------------------------------------------ Filter
 
     def _ueberspringen(self, pfad):
-        if any(teil in self.raus for teil in pfad.parts):
+        if Pfadteile.trifft(pfad, self.wurzel, self.raus):
             return True
         # ZUERST git fragen: Der Arbeitsordner eines Testlaeufers laedt
         # naturgemaess niemand, und fremder Code geht das Projekt nichts an.
         # In shortlongx waren 21 von 63 „Waisen" genau das (18.08.2026).
         if self.gitfilter is not None and not self.gitfilter.erlaubt(pfad):
             return True
-        if any(teil in Frontendquellen.NICHT_IM_PFAD for teil in pfad.parts):
+        if Pfadteile.trifft(pfad, self.wurzel,
+                            Frontendquellen.NICHT_IM_PFAD):
             return True
         if ".min." in pfad.name:
             return True

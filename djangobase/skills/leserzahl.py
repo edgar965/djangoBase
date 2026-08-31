@@ -34,6 +34,7 @@ import ast
 from collections import Counter
 
 from .anlassfall import Anlassfall
+from .pruefdatei import Pruefdatei
 from .werkzeug import Ergebnis, Werkzeug
 
 
@@ -151,9 +152,22 @@ def pruefen(werte):
 
     def laufen(self):
         baeume = {}
+        #: Wie viele Pruefdateien draussen bleiben — eine Ausnahme, die
+        #: schweigt, ist ein blinder Fleck.
+        pruefungen = 0
         for d in self.dateien(".py"):
-            if d.baum is not None:
-                baeume[d.name] = d.baum
+            if d.baum is None:
+                continue
+            # EIN PRUEFFALL IST KEIN ZWEITER LESER (31.08.2026): Sonst
+            # macht ein guter Test aus einem lokalen Zwischenergebnis
+            # einen „Datentyp mit zwei Lesern" — und das Werkzeug belohnt,
+            # wer WENIGER prueft. Belegt an `_pipelines_verfuegbar`: ein
+            # neuer Prueffall liess die Leserzahl von 1 auf 2 springen.
+            if Pruefdatei.ist_es(d.name):
+                pruefungen += 1
+                continue
+            baeume[d.name] = d.baum
+        self._pruefungen = pruefungen
         zaehlung = Leserzaehlung(baeume)
         zeilen, verteilung = [], Counter()
         for name, baum in baeume.items():
@@ -180,7 +194,10 @@ def pruefen(werte):
         return Ergebnis(
             list(self.SPALTEN), zeilen,
             "%d Rückgabe-Wörterbücher mit mindestens %d Schlüsseln; %d davon "
-            "haben zwei oder mehr Leser und erfüllen Kriterium 11 wirklich."
-            % (len(zeilen), self.MIN_SCHLUESSEL, mehrere),
+            "haben zwei oder mehr Leser und erfüllen Kriterium 11 wirklich"
+            "%s."
+            % (len(zeilen), self.MIN_SCHLUESSEL, mehrere,
+               "; %d Prüfdateien zählen nicht mit" % self._pruefungen
+               if self._pruefungen else ""),
             "Ein einzelner Leser ist kein Datentyp: Dort bleibt das Dictionary "
             "ein lokales Zwischenergebnis.")

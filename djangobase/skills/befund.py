@@ -27,6 +27,7 @@ Arbeit ohne Ertrag — und jede Umschreibung ein Anlass für neue Fehler.
 """
 import time
 
+from .pfadteile import Pfadteile
 from .werkzeug import Ergebnis, Werkzeug
 
 __all__ = ["Befund", "Befundsatz", "BefundWerkzeug"]
@@ -141,7 +142,7 @@ class BefundWerkzeug(Werkzeug):
         raus = set(ausser or ())
         for eintrag in self.dateien(endung):
             pfad = getattr(eintrag, "pfad", eintrag)
-            if raus and any(teil in raus for teil in pfad.parts):
+            if Pfadteile.trifft(pfad, self.wurzel(), raus):
                 continue
             yield pfad
 
