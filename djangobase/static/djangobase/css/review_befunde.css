@@ -1,0 +1,83 @@
+/* Befund-Tafel auf Hilfe -> Review
+   ===============================
+   Die Farben sind die der Review-Seite (review.html): Karte #142136, Rand
+   #1e3a5f, Grund #0f1d31, Text #e9f0f8, gedämpft #7f9bbb.
+
+   JEDE Textfarbe steht ausdrücklich da. Ein <pre> oder <code> ohne `color`
+   erbt hier nicht den hellen Text, sondern die dunkle Vorgabe des Browsers und
+   steht dann dunkel auf dunkel — dieselbe Falle, die auf den Befund-Seiten
+   schon zugeschlagen hat. */
+
+.rb-tafel { margin-top: 14px; }
+
+/* ---------------------------------------------------------------- Leiste */
+
+.rb-leiste { display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    padding-bottom: 10px; border-bottom: 1px solid #1e3a5f; }
+.rb-laufwahl { max-width: 340px; }
+.rb-summe { color: #cfe0f2; font-size: .86rem; margin-right: auto; }
+.rb-warnung { color: #fbbf24; font-size: .8rem; }
+
+.rb-filter { background: #0f1d31; color: #7f9bbb; border: 1px solid #1e3a5f;
+    border-radius: 999px; padding: 3px 12px; font-size: .8rem; cursor: pointer; }
+.rb-filter:hover { color: #e9f0f8; border-color: #2a5c96; }
+.rb-filter.rb-an { background: #15406e; color: #fff; border-color: #2a5c96; }
+
+.rb-meldung { display: block; margin: 10px 0 0; color: #7f9bbb; font-size: .85rem; }
+.rb-meldung.rb-fehler { color: #f87171; }
+
+/* ----------------------------------------------------------------- Karte */
+
+.rb-liste { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+
+.rb-karte { background: #0f1d31; border: 1px solid #1e3a5f; border-left-width: 3px;
+    border-radius: 8px; padding: 10px 12px; }
+.rb-karte[data-grad="critical"] { border-left-color: #f87171; }
+.rb-karte[data-grad="major"]    { border-left-color: #fb923c; }
+.rb-karte[data-grad="minor"]    { border-left-color: #fbbf24; }
+
+.rb-kopf { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+.rb-grad { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em;
+    padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; }
+.rb-grad-critical { color: #f87171; }
+.rb-grad-major    { color: #fb923c; }
+.rb-grad-minor    { color: #fbbf24; }
+.rb-grad-nit, .rb-grad-unbekannt { color: #7f9bbb; }
+
+.rb-kategorie { color: #7f9bbb; font-size: .8rem; }
+
+/* Die Stelle ist ein Knopf (Klick kopiert), soll aber wie Text aussehen —
+   ein Schaltflächen-Rahmen an dieser Stelle würde die Karte zerreißen. */
+.rb-stelle { margin-left: auto; background: none; border: none; padding: 0;
+    color: #7dd3fc; font-family: ui-monospace, Consolas, monospace;
+    font-size: .8rem; cursor: pointer; text-align: right; }
+.rb-stelle:hover { color: #bae6fd; text-decoration: underline; }
+
+.rb-titel { margin: 8px 0 0; font-size: .95rem; color: #e9f0f8; font-weight: 600; }
+
+.rb-text { margin: 6px 0 0; color: #cfe0f2; font-size: .85rem; line-height: 1.5; }
+.rb-text p { margin: 0 0 6px; }
+.rb-text p:last-child { margin-bottom: 0; }
+.rb-text ul { margin: 0 0 6px; padding-left: 20px; }
+.rb-text strong { color: #e9f0f8; }
+.rb-text code { background: #142136; color: #7dd3fc; border-radius: 4px;
+    padding: 1px 5px; font-family: ui-monospace, Consolas, monospace; font-size: .82rem; }
+
+/* Ein Codeblock im Befundtext (kommt vor, wenn der Vorschlag nur dort steht).
+   Farbe ausdruecklich: ein <pre> ohne `color` steht hier dunkel auf dunkel. */
+.rb-code { margin: 6px 0; padding: 8px 10px; background: #142136;
+    border: 1px solid #1e3a5f; border-radius: 6px; color: #cfe0f2;
+    font-size: .78rem; line-height: 1.45; overflow-x: auto; white-space: pre; }
+
+/* ------------------------------------------------------------ Vorschlag */
+
+.rb-diff { margin-top: 8px; }
+.rb-diff summary { color: #7f9bbb; font-size: .8rem; cursor: pointer; }
+.rb-diff summary:hover { color: #e9f0f8; }
+.rb-diff pre { margin: 6px 0 0; padding: 8px 10px; background: #142136;
+    border: 1px solid #1e3a5f; border-radius: 6px; color: #cfe0f2;
+    font-size: .78rem; line-height: 1.45; overflow-x: auto; }
+.rb-dz { display: block; white-space: pre; }
+.rb-plus  { color: #86efac; }
+.rb-minus { color: #fca5a5; }

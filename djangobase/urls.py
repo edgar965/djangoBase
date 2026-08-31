@@ -9,7 +9,7 @@ from .views import (AblaufView, WorkflowsDatenView, WorkflowsView,
                     BenutzerInlineView, BenutzerListeView, BenutzerLoeschenView,
                     BenutzerStatusView, EinstellungenTabsView, EinstellungenView,
                     JobsView, KlassenmodellView, LogsClearView, LogsView,
-                    ReviewNachfassenView,
+                    ReviewBefundeView, ReviewNachfassenView,
                     ReviewStartView, ReviewStatusView, ReviewView,
                     SkillsView, TestDauerView, TestsView,
                     TestNummerView, TestStromView,
@@ -81,6 +81,11 @@ urlpatterns = [
     path("review/<str:lauf_id>/nachfassen/", ReviewNachfassenView.as_view(),
          name="review_nachfassen"),
     path("review/<str:lauf_id>/status/", ReviewStatusView.as_view(), name="review_status"),
+    # DIE GESPEICHERTEN Befunde eines Pruefwerkzeugs - ohne einen Lauf zu
+    # starten. ``<slug>`` ist der Partner aus der Konfiguration, NIE ein
+    # Pfad: Welches Verzeichnis gelesen wird, entscheidet der Server.
+    path("review/werkzeug/<str:slug>/befunde/", ReviewBefundeView.as_view(),
+         name="review_befunde"),
     # Haupt-Einstellungen: Profil-Combobox + alle Gruppen als Tabs.
     path("einstellungen/", EinstellungenTabsView.as_view(), name="einstellungen"),
     # Einzelseiten je Gruppe (Rueckwaerts-Kompatibilitaet / Deep-Links).

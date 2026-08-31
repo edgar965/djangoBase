@@ -10,6 +10,7 @@ from .ki_modelle import KiModelleView
 from .jobs import JobsView
 from .review import (ReviewView, ReviewStartView, ReviewNachfassenView,
                      ReviewStatusView)
+from .review_befunde import ReviewBefundeView
 from .aktuell import AktuellView, AktuellDatenView, AktuellLeerenView
 from .settings import EinstellungenView, EinstellungenTabsView
 from .klassenmodell import KlassenmodellView
@@ -26,6 +27,7 @@ __all__ = [
     "KiModelleView",
     "api_system_stats","LogsView", "LogsClearView", "VersionsView", "TestsView", "AufzeichnungView", "TestDauerView", "TestStromView", "TestNummerView", "TestVerschiebenView", "JobsView",
            "ReviewView", "ReviewStartView", "ReviewNachfassenView", "ReviewStatusView",
+           "ReviewBefundeView",
            "AktuellView", "AktuellDatenView", "AktuellLeerenView",
            "EinstellungenView", "EinstellungenTabsView", "SkillsView",
            "KlassenmodellView", 
