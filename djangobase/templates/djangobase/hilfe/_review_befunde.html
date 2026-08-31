@@ -1,0 +1,35 @@
+{% comment %}
+Die gespeicherten Befunde EINES Prüfwerkzeugs — als Karten statt als Textblock.
+
+DIE ANSAGE (Edgar, 31.08.2026)
+    „teste das mal, mach unter review ein neues UI"
+
+WAS DARAN NEU IST
+=================
+Der Kasten darüber zeigt, was der laufende Aufruf gerade auf den Bildschirm
+schreibt. Das ist richtig, solange etwas läuft — und danach nutzlos: Nach einem
+Serverneustart ist das Lauf-Register leer, und mit ihm die Seite, obwohl die
+Befunde auf der Platte liegen.
+
+Diese Tafel liest deshalb die Ablage der CLI selbst
+(`djangobase/review/befund_lager.py`). Der Unterschied ist nicht nur hübscher:
+
+  * Sie kostet KEINEN Lauf — im kostenlosen Plan sind es drei je Stunde.
+  * Sie zeigt beim Öffnen den letzten Stand, ohne dass jemand etwas anstößt.
+    Genau das verlangt die Projektregel „Seiten rechnen nie von selbst".
+  * Jeder Befund ist ein Datensatz: Schweregrad, Kategorie, Datei mit
+    Zeilenspanne, Text und der Änderungsvorschlag als Diff — filterbar, und
+    die Stelle wandert per Klick in die Zwischenablage.
+
+DER ROHTEXT BLEIBT
+==================
+`<pre class="rv-wz-ausgabe">` darüber wird nicht ersetzt. Was hier gelesen wird,
+ist das undokumentierte Innenleben eines fremden Werkzeugs; ändert es sich, ist
+die Tafel leer — und dann muss der Weg zum Original noch da sein.
+{% endcomment %}
+<div class="rb-tafel" data-slug="{{ w.slug }}"
+     data-adresse="{% url 'djangobase:review_befunde' w.slug %}">
+    <div class="rb-leiste"></div>
+    <span class="rb-meldung" hidden></span>
+    <div class="rb-liste"></div>
+</div>

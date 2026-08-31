@@ -1,3 +1,4 @@
+{% load static %}
 {% comment %}
 Eigener Bereich für Prüfwerkzeuge — ganz oben auf Hilfe → Review.
 
@@ -42,10 +43,12 @@ Projekten ohne ein solches ändert sich an der Seite nichts.
             <strong>Was das Werkzeug an seinen Dienst schickt, verlässt den Rechner.</strong>
         </p>
         <pre class="rv-wz-ausgabe" hidden></pre>
+        {% include "djangobase/hilfe/_review_befunde.html" %}
     </div>
     {% endfor %}
 </div>
 
+<link rel="stylesheet" href="{% static 'djangobase/css/review_befunde.css' %}">
 <style>
 .rv-werkzeuge { border-color: #2a5c96; }
 .rv-wz + .rv-wz { margin-top: 14px; padding-top: 14px; border-top: 1px solid #1e3a5f; }
@@ -145,6 +148,14 @@ Projekten ohne ein solches ändert sich an der Seite nichts.
                         const s = runde && runde.sekunden ? " · " + runde.sekunden + " s" : "";
                         this.status.textContent = "fertig" + s;
                     }
+                    /* Erst JETZT liegt in der Ablage der CLI etwas Neues. Die
+                       Befund-Tafel darunter hoert auf dieses Ereignis; ohne es
+                       zeigte sie bis zum naechsten Seitenaufruf den Stand von
+                       vorher - und der frische Befund saehe aus wie ein alter.
+                       Auch im Fehlerfall gefeuert: Ein abgebrochener Lauf kann
+                       Befunde geschrieben haben, bevor er scheiterte. */
+                    document.dispatchEvent(new CustomEvent("review-werkzeug-fertig",
+                        { detail: { slug: this.slug, status: faden.status } }));
                 }
             } catch (e) {
                 /* Netzaussetzer: Zustand stehen lassen und beim nächsten Takt
@@ -164,5 +175,12 @@ Projekten ohne ein solches ändert sich an der Seite nichts.
 
     wurzel.querySelectorAll(".rv-wz").forEach(el => new Werkzeugkasten(el));
 })();
+</script>
+
+<script type="module">
+/* Die Tafeln melden sich selbst an und laden sofort - das ist ein LESEZUGRIFF
+   auf die Platte, kein Lauf. */
+import { BefundTafel } from "{% static 'djangobase/js/review_befunde.js' %}?v={{ djangobase.statik_v }}";
+BefundTafel.starten();
 </script>
 {% endif %}
