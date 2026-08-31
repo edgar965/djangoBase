@@ -200,3 +200,50 @@ class DocstringBlockTest(SimpleTestCase):
         satz = _lauf({'a.py': rumpf, 'b.py': rumpf})
         self.assertTrue(satz.befunde,
                         'Zeichenkette im Code faelschlich als Docstring geschluckt')
+
+
+class NurSchliessendesMarkupTest(SimpleTestCase):
+    u"""Fenster, die nur zumachen (31.08.2026, assistant).
+
+    Jede Tabelle im Projekt endet gleich::
+
+        </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+        </table>
+        </div>
+
+    Sechs Zeilen, in dieser Reihenfolge, in jeder Vorlage mit einer
+    Tabelle — und nichts davon laesst sich zusammenfassen. Solche
+    Fenster stellten acht der damals 53 HTML-Befunde und gaben nichts
+    zu tun.
+    """
+
+    NUR_ZU = ('                    </td>\n'
+              '                </tr>\n'
+              '                {% endfor %}\n'
+              '            </tbody>\n'
+              '        </table>\n'
+              '    </div>\n')
+
+    def test_ein_reines_tabellenende_ist_kein_befund(self):
+        satz = _lauf({'a.html': self.NUR_ZU, 'b.html': self.NUR_ZU})
+        self.assertEqual(satz.befunde, [], ' | '.join(satz.kopf))
+
+    def test_die_zahl_steht_in_der_kopfzeile(self):
+        u"""Eine Ausnahme, die niemand sieht, ist eine Hintertuer."""
+        satz = _lauf({'a.html': self.NUR_ZU, 'b.html': self.NUR_ZU})
+        self.assertIn('schliessen nur Markup',
+                      ' '.join(' '.join(satz.kopf).split()))
+
+    def test_eine_einzige_inhaltszeile_macht_es_zum_befund(self):
+        u"""DIE GEGENPROBE: streng gezaehlt, nicht ungefaehr.
+
+        Steht im Fenster auch nur EINE Zeile, die etwas sagt, ist es
+        wieder ein Befund — dort gaebe es etwas zu teilen.
+        """
+        gemischt = ('                    <td>{{ zeile.summe }}</td>\n'
+                    + self.NUR_ZU)
+        satz = _lauf({'a.html': gemischt, 'b.html': gemischt})
+        self.assertTrue(satz.befunde, ' | '.join(satz.kopf))

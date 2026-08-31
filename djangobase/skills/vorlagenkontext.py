@@ -209,7 +209,32 @@ VORLAGE_AUS_EINSTELLUNG = ('sidebar_template', 'nav_template',
                            'shell_template', 'kopf_template')
 
 _INCLUDE_VARIABEL = re.compile(r"{%\s*include\s+([^\"'%\s][^%]*?)%}")
-_DEFAULT_WERT = re.compile(r'default:"([^"]+)"')
+_DEFAULT_WERT = re.compile(r"""default:['"]([^'"]+)['"]""")
+
+#: ``{% extends %}`` und ``{% include %}`` mit festem Namen. Django nimmt
+#: EINFACHE wie doppelte Anfuehrungszeichen; wer nur eine Sorte kennt,
+#: sieht den halben Vorlagenbaum nicht.
+#:
+#: DER FALL (30.08.2026, Projekt assistant)
+#: ========================================
+#: Das Muster hier las nur ``"…"``. Von 569 Einbindungen im Projekt stehen
+#: aber 381 in ``'…'`` — darunter gleich die erste Zeile jeder Seite
+#: (``{% extends 'bank/_base_bank.html' %}``). Fuer diese Seiten begann die
+#: Kette gar nicht erst, also war JEDER uebergebene Wert "von keiner
+#: beteiligten Vorlage gelesen": 49 der 51 Warnungen. Dazu vier Vorlagen,
+#: die als VERWAIST galten, obwohl ``chat.html`` sie einbindet.
+_FESTE_VORLAGE = re.compile(
+    r"""{%\s*(?:extends|include)\s+(?:"([^"]+)"|'([^']+)')""")
+
+#: ``{% include … with a=1 %}`` — der Name davor in beiden Schreibweisen.
+_INCLUDE_MIT = re.compile(
+    r"""{%\s*include\s+(?:"[^"]+"|'[^']+')\s+with\s+([^%]+)%}""")
+
+
+def feste_vorlagen(quelle):
+    """Die fest benannten Vorlagen aus ``extends``/``include``."""
+    return {treffer.group(1) or treffer.group(2)
+            for treffer in _FESTE_VORLAGE.finditer(quelle)}
 
 
 def _ueber_variable(quelle):
@@ -263,12 +288,10 @@ class Vorlagensicht:
 
     def _sammeln(self, vorlage):
         quelle = vorlage.source
-        for treffer in re.finditer(r'{%\s*(?:extends|include)\s+"([^"]+)"', quelle):
-            self.eingebunden.add(treffer.group(1))
+        self.eingebunden |= feste_vorlagen(quelle)
         for name in _ueber_variable(quelle):
             self.eingebunden.add(name)
-        for muster in (r'{%\s*with\s+([^%]+)%}',
-                       r'{%\s*include\s+"[^"]+"\s+with\s+([^%]+)%}'):
+        for muster in (r'{%\s*with\s+([^%]+)%}', _INCLUDE_MIT):
             for treffer in re.finditer(muster, quelle):
                 for stueck in treffer.group(1).split():
                     if '=' in stueck:
@@ -558,9 +581,8 @@ class Vorlagenkontext(BefundWerkzeug):
         for ordner in self._alle_vorlagenordner():
             for datei in Path(ordner).rglob('*.html'):
                 quelle = datei.read_text(encoding='utf-8', errors='replace')
-                for treffer in re.finditer(
-                        r'{%\s*(?:extends|include)\s+"([^"]+)"', quelle):
-                    erreichbar.add(treffer.group(1))
+                erreichbar |= feste_vorlagen(quelle)
+                erreichbar |= _ueber_variable(quelle)
         for datei in self.projektdateien('.py'):
             quelle = datei.read_text(encoding='utf-8', errors='replace')
             for treffer in re.finditer(r'["\']([\w/_.-]+\.html)["\']', quelle):

@@ -83,14 +83,58 @@ class Doppelcode(BefundWerkzeug):
     #: Gezaehlt wird streng: NUR wenn JEDE Zeile des Fensters so aussieht.
     #: Ein Block, der mit Importen anfaengt und mit Code weitergeht, bleibt
     #: ein Befund.
+    #: NACHGETRAGEN (30.08.2026, assistant): der Modul-Logger.
+    #:
+    #: Vier ``basis.py`` bekamen eine Warnung fuer ihren Modulkopf — drei
+    #: Zeilen Erklaerung, zwei Importe und::
+    #:
+    #:     logger = logging.getLogger(__name__)
+    #:
+    #: Die eine Zeile machte aus einem uebergangenen Fenster einen Befund.
+    #: Sie laesst sich so wenig zusammenfassen wie ein Import: ``__name__``
+    #: ist in jeder Datei ein anderer, und genau darum steht sie dort. Wer
+    #: dem Befund folgt, nimmt den Modulen ihren eigenen Logger — und die
+    #: Regel „Logger statt print, je Modul einer" faellt.
     NUR_HEREINGEHOLT = re.compile(
         r'^\s*('
         r'import\s|from\s.+\simport\s|'                 # Python und ES
         r'export\s.*\sfrom\s|'                          # ES-Weitergabe
         r'\{%\s*(load|extends)\s|'                      # Django-Vorlagen
         r'#|//|/[*]|[*]|'                                        # Kommentarzeilen
+        r'\w+\s*=\s*logging\.getLogger\(__name__\)|'    # Modul-Logger
         r'"""$|\'\'\'$'                                 # Ende des Docstrings
         r')')
+    #: Ein Fenster, das nur noch ZUMACHT.
+    #:
+    #: DER FALL (31.08.2026, assistant)
+    #: ================================
+    #: Jede Tabelle im Projekt endet gleich::
+    #:
+    #:     </td>
+    #:     </tr>
+    #:     {% endfor %}
+    #:     </tbody>
+    #:     </table>
+    #:     </div>
+    #:
+    #: Sechs Zeilen, in dieser Reihenfolge, in jeder Vorlage mit einer
+    #: Tabelle — und nichts davon laesst sich zusammenfassen: So endet
+    #: eine HTML-Tabelle. Solche Fenster stellten einen grossen Teil der
+    #: HTML-Befunde und gaben nichts zu tun.
+    #:
+    #: Gezaehlt wird streng: NUR wenn JEDE Zeile des Fensters allein
+    #: zumacht. Ein Fenster mit einer einzigen Inhaltszeile bleibt ein
+    #: Befund — dort steht dann etwas, das man teilen koennte.
+    NUR_SCHLIESSEND = re.compile(
+        r'^\s*('
+        r'(</[A-Za-z][\w-]*>\s*)+|'                  # </td></tr> …
+        r'\{%\s*end\w+\s*%\}|'                       # {% endfor %} …
+        r'\{%\s*(else|empty)\s*%\}|'                 # {% else %}
+        r'-->|'                                      # Ende eines Kommentars
+        r'[)}\];,]+|'                                # Klammern und Kommas
+        r'\)?\);?|\}\);?'                            # }); und Verwandte
+        r')\s*$')
+
     #: Hoechstens so viele Stellen anzeigen (die Kappung wird im Kopf genannt).
     ZEILEN = 200
 
@@ -115,6 +159,8 @@ class Doppelcode(BefundWerkzeug):
         #: Wie viele Fenster ganz in einem Docstring lagen. Gehoert in die
         #: Kopfzeile: Eine Ausnahme, die schweigt, ist ein blinder Fleck.
         self.nur_doku = 0
+        #: Wie viele Fenster nur Markup geschlossen haben.
+        self.nur_zu = 0
         try:
             fenster = max(3, int(str(mindestens).strip() or 6))
         except ValueError:
@@ -155,6 +201,9 @@ class Doppelcode(BefundWerkzeug):
         if self.nur_doku:
             kopf.append('%d Fenster uebergangen: reiner Docstring'
                         % self.nur_doku)
+        if self.nur_zu:
+            kopf.append('%d Fenster uebergangen: schliessen nur Markup'
+                        % self.nur_zu)
         if len(befunde) > self.ZEILEN:
             # Kappung benennen, nicht verschweigen: Sonst liest sich die Liste
             # wie eine vollstaendige Bestandsaufnahme.
@@ -304,6 +353,10 @@ class Doppelcode(BefundWerkzeug):
                     self.nur_doku += 1
                 else:
                     self.nur_importe += 1
+                continue
+            # Ein Fenster, das nur zumacht, enthaelt nichts zum Teilen.
+            if all(self.NUR_SCHLIESSEND.match(z) for _n, z in fensterzeilen):
+                self.nur_zu += 1
                 continue
             text = '\n'.join(z for _n, z in fensterzeilen)
             schluessel = hashlib.blake2b(text.encode('utf-8'),
