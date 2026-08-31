@@ -12,10 +12,12 @@ aus ``ollama list``, die Bewertung aus Messungen an den Modellen selbst. Die
 Frage „welches Modell taugt als Sparringspartner, was kostet es, passt es auf
 diese Karte" stellt sich in jedem Projekt gleich.
 
-ZWEI DATEIEN, ZWEI HALTBARKEITEN
+VIER DATEIEN, ZWEI HALTBARKEITEN
 ================================
-    ``modelle.py``    Katalogdaten - Parameter, Kontext, Preis, Plattenbedarf.
-                      Aendern sich woechentlich, kommen deshalb live.
+    ``modelle.py``    Onlinekatalog - Preis und Kontext von OpenRouter.
+    ``ollama.py``     die Modelle auf DIESEM Rechner.
+    ``modellname.py`` was im Namen steht: Parameterzahl, Plattenbedarf.
+                      Diese drei aendern sich woechentlich, kommen deshalb live.
     ``messungen.py``  Das eigene Urteil - Note, Zeit je Frage, Treffer.
                       Einmal gemessen, bleibt gueltig.
 
@@ -24,6 +26,9 @@ Django, kein numpy, keine Projektpfade. Der einzige veraenderliche Teil ist das
 Cache-Verzeichnis, das der Aufrufer uebergibt.
 """
 from .messungen import BEFUNDE, Bestenliste
-from .modelle import GB_JE_MRD, ModellKatalog
+from .modelle import ModellKatalog
+from .modellname import GB_JE_MRD, Modellname
+from .ollama import OllamaModelle
 
-__all__ = ["ModellKatalog", "GB_JE_MRD", "Bestenliste", "BEFUNDE"]
+__all__ = ["ModellKatalog", "OllamaModelle", "Modellname", "GB_JE_MRD",
+           "Bestenliste", "BEFUNDE"]

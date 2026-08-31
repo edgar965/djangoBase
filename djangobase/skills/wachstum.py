@@ -14,13 +14,21 @@ vervierfachter Durchlaufzahl - linear waere Faktor 4, quadratisch 16:
     liste += [x]                 Faktor  3,0   linear
     liste.append(x)              Faktor  3,6   linear
     liste = liste + [x]          Faktor 15,0   QUADRATISCH
-    s += "…"                     Faktor  4,4   linear
-    s += "…" (zweite Referenz)   Faktor  5,9   linear
+    s += "…"                     Faktor  4,0   linear
+    s += "…" (zweite Referenz)   Faktor 14,3   QUADRATISCH
     "".join(teile)               Faktor  5,3   linear
 
 ``list.__iadd__`` mutiert IN PLACE - es ist ``extend``, kein Kopieren. Und
-CPython optimiert ``s += x``, solange der String nur eine Referenz hat.
-Quadratisch ist allein die NEUZUWEISUNG, die eine neue Liste erzeugt.
+CPython optimiert ``s += x``, solange der String nur EINE Referenz hat.
+Quadratisch ist die NEUZUWEISUNG, die eine neue Liste erzeugt - und die
+Textform, sobald jemand den String nebenher festhaelt.
+
+DIE ZEILE MIT DER ZWEITEN REFERENZ WAR SELBST FALSCH GEMESSEN (30.08.2026):
+Sie stand hier als „Faktor 5,9 linear“ - und die Messfunktion hielt den String
+nur bei jedem 500. Durchlauf fest. Damit mass sie weder den einen noch den
+anderen Fall, landete bei 7,9 direkt auf der Urteilsschwelle (8) und wechselte
+je nach Lauf zwischen zwei Urteilen. Ein Werkzeug, das gegen unbelegte Zahlen
+antritt, hatte selbst eine.
 
 Dieses Werkzeug misst es NACH - auf der Maschine, auf der es laeuft. Wer die
 Regel uebernimmt, soll die Zahl dazu haben und sie nicht glauben muessen.
@@ -100,13 +108,28 @@ def _text_join(n):
 
 
 def _text_gehalten(n):
-    """Eine zweite Referenz verhindert die CPython-Optimierung."""
-    s, halten = "", []
-    for i in range(n):
+    """Eine zweite Referenz verhindert die CPython-Optimierung.
+
+    BEI JEDEM DURCHLAUF, nicht bei jedem 500. (Befund 30.08.2026). Vorher
+    stand hier ``if i % 500 == 0: halten.append(s)`` - damit fiel die
+    Referenzzahl zwischen den Haltepunkten sofort wieder auf 1, und CPython
+    optimierte 499 von 500 Durchlaeufen weiter weg. Gemessen, je fuenf Runden
+    abwechselnd, Faktor bei vervierfachter Groesse:
+
+        ohne zweite Referenz            4,0    linear
+        jede 500. gehalten              7,9    weder noch
+        bei jedem Durchlauf gehalten   14,3    QUADRATISCH
+
+    Die mittlere Zeile lag genau auf der Urteilsschwelle (8) - deshalb hiess
+    dieselbe Bauform mal „linear“, mal „dazwischen“. Das sah nach Rauschen aus
+    und war es nicht: Die Messung zeigte einen Zwischenzustand, den die
+    Beschriftung nicht kannte.
+    """
+    s, halten = "", None
+    for _i in range(n):
+        halten = s                # <- die zweite Referenz, JETZT
         s += "x" * 20
-        if i % 500 == 0:
-            halten.append(s)
-    return s
+    return s if halten is None else s
 
 
 class Wachstum(Werkzeug):
@@ -127,7 +150,11 @@ class Wachstum(Werkzeug):
         ("liste = liste + [x]", _liste_neuzuweisung, 2000, "QUADRATISCH"),
         ("s += '…'", _text_plusgleich, 4000, "linear"),
         ("''.join(teile)", _text_join, 4000, "linear"),
-        ("s += '…' (2. Referenz)", _text_gehalten, 4000, "linear"),
+        # QUADRATISCH und nicht „linear“ (30.08.2026): Genau das ist die
+        # Aussage der Bauform — wer den String festhaelt, nimmt CPython die
+        # Optimierung weg. Die alte Erwartung widersprach der Lehre, die das
+        # Werkzeug selbst erteilt.
+        ("s += '…' (2. Referenz)", _text_gehalten, 4000, "QUADRATISCH"),
     )
 
     #: Kein Anlassfall - und das ist in Ordnung:

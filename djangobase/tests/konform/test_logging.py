@@ -231,6 +231,65 @@ class AufzeichnungFindetDasLogTest(SimpleTestCase):
                          % (geschrieben, gelesen))
 
 
+class LogQuellenTest(SimpleTestCase):
+    u"""Zeigt Hilfe -> Logs auch die Datei, die das Projekt WIRKLICH schreibt?
+
+    DER FUND (HumanBodyWeb, 30.08.2026)
+    ===================================
+    ``DJANGOBASE["log_sources"]`` fuehrte weiter ``errors.log``, waehrend der
+    Handler ``error_file`` seit der Umstellung auf ``dblog.config`` nach
+    ``error.log`` schreibt. Gemessen an dem Tag:
+
+        Quelle „Fehler (aggregiert)"  ->  errors.log   3.268 Bloecke,
+                                          alle aus 19 Minuten des 27.08.
+        error_file schreibt           ->  error.log      317 Bloecke des
+                                          laufenden Tages - in KEINER Quelle
+
+    Die Seite sah dabei vollstaendig aus. Sie zeigte nur alte Fehler, und die
+    frischen standen nirgends. Das ist schlimmer als ein leerer Reiter: Ein
+    leerer laesst nachfragen, ein gefuellter nicht.
+
+    Geprueft wird die Richtung, die weh tut: Jede Datei, in die das Projekt
+    schreibt, muss ueber die Logseite erreichbar sein. Die Gegenrichtung
+    (eine Quelle, die kein Handler schreibt) bleibt erlaubt - Projekte
+    fuehren dort auch Dateien fremder Prozesse.
+    """
+
+    def _quellen(self):
+        konf = getattr(settings, "DJANGOBASE", {}) or {}
+        return list(konf.get("log_sources") or [])
+
+    def test_jede_geschriebene_datei_steht_in_den_quellen(self):
+        quellen = self._quellen()
+        if not quellen:
+            self.skipTest("Projekt fuehrt keine log_sources")
+        genannt = set()
+        for eintrag in quellen:
+            for name in eintrag[2:4]:
+                if name:
+                    genannt.add(Path(str(name)).name)
+        fehlt = sorted(set(_handler_dateien()) - genannt)
+        self.assertEqual(
+            fehlt, [],
+            u"Diese Dateien schreibt das Projekt, aber Hilfe -> Logs zeigt sie "
+            u"nie: %s. In DJANGOBASE['log_sources'] eintragen." % ", ".join(fehlt))
+
+    def test_jede_quelle_nennt_eine_datei(self):
+        u"""Ein Eintrag ohne Dateinamen ist ein Reiter, der nie etwas zeigt.
+
+        MIT DERSELBEN NACHSICHT WIE DER TEST DARUEBER (Befund CodeRabbit,
+        31.08.2026): ``log_sources`` kommt aus dem Projekt. Feste Indizes
+        ``e[2]``/``e[3]`` brachen bei einem kuerzeren Tupel mit IndexError ab —
+        eine Konformitaetspruefung, die an einer plausibel aussehenden
+        Konfiguration abstuerzt, verdeckt die Regel, die sie pruefen soll. Der
+        Test darueber benutzt schon ``eintrag[2:4]``; beide waren sich also
+        uneinig, welche Form erlaubt ist.
+        """
+        leer = [e[0] for e in self._quellen()
+                if e and e[0] != "all" and not any(e[2:4])]
+        self.assertEqual(leer, [], u"Quellen ohne Datei: %s" % ", ".join(leer))
+
+
 class GegenprobeTest(SimpleTestCase):
     u"""Schlagen die Regeln überhaupt an?
 
@@ -268,3 +327,13 @@ class GegenprobeTest(SimpleTestCase):
     def test_nicht_rotierender_handler_faellt_auf(self):
         u"""``logging.FileHandler`` rotiert nicht und sperrt unter Windows."""
         self.assertNotEqual("logging.FileHandler", handler_class())
+
+    def test_veralteter_quellenname_faellt_auf(self):
+        u"""Genau der Fall vom 30.08.2026: Quelle heisst ``errors.log``,
+        geschrieben wird ``error.log``."""
+        quellen = [("django", "Django", "django.log", None),
+                   ("errors", "Fehler", "errors.log", None)]
+        genannt = {Path(str(n)).name for e in quellen for n in e[2:4] if n}
+        self.assertNotIn("error.log", genannt,
+                         u"Die Regel muss den alten Namen als Luecke sehen - "
+                         u"sonst prueft test_jede_geschriebene_datei nichts")

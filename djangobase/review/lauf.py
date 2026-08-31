@@ -25,6 +25,7 @@ from pathlib import Path
 
 from .faden import ReviewFaden
 from .partner import ReviewPartner
+from .werkzeug_partner import WerkzeugPartner
 
 logger = logging.getLogger(__name__)
 
@@ -79,10 +80,15 @@ class ReviewLauf:
     MAX_ZEICHEN_PAKET = 400_000
 
     def __init__(self, modus, partner_cfg, *, wurzel, ablage, rolle=None,
-                 schluessel_datei=None, ollama_url=None, online_url=None):
+                 schluessel_datei=None, ollama_url=None, online_url=None,
+                 auswahl=""):
         self.id = uuid.uuid4().hex[:12]
         self.modus = modus
         self.partner_cfg = partner_cfg
+        #: Nur fuer Werkzeug-Partner: WELCHER Git-Stand geprueft wird. Der
+        #: Browser schickt hier einen Schluessel aus der Konfiguration, nie ein
+        #: Kommandozeilen-Argument (siehe werkzeug_partner.py).
+        self.auswahl = auswahl
         self.wurzel = Path(wurzel).resolve()
         self.ablage = Path(ablage)
         self.rolle = rolle or ROLLE
@@ -98,16 +104,26 @@ class ReviewLauf:
 
     def starten(self, *, bereiche=(), frage="", titel=""):
         """Faeden anlegen und die erste Runde im Hintergrund stellen."""
-        self.titel = titel or (bereiche[0]["name"] if bereiche else "Freie Frage")
-        if bereiche:
+        # EIN Werkzeug, EIN Faden — auch wenn drei Bereiche angeklickt sind.
+        # Das Werkzeug liest den Diff des ganzen Repositorys; drei Faeden
+        # waeren dreimal dasselbe Ergebnis, dreimal die Wartezeit und beim
+        # kostenlosen CodeRabbit-Kontingent (drei Laeufe je Stunde) waere die
+        # Stunde nach einem Klick aufgebraucht.
+        if self.ist_werkzeug:
+            self.titel = titel or self.partner_cfg.get("name") or "Pruefwerkzeug"
+            bereiche = ()
+            self._faden_anlegen("werkzeug", self.titel)
+        elif bereiche:
+            self.titel = titel or bereiche[0]["name"]
             for b in bereiche:
                 self._faden_anlegen(b["slug"], b["name"])
         else:
+            self.titel = titel or "Freie Frage"
             self._faden_anlegen("frage", "Freie Frage")
 
         for i, slug in enumerate(self.reihenfolge):
             bereich = bereiche[i] if bereiche else None
-            text = self._paket(bereich, frage)
+            text = self._paket(bereich, frage, self.faeden[slug].partner)
             faden = self.faeden[slug]
             faden.beansprucht()          # frisch angelegt, gewinnt immer
             threading.Thread(target=faden.fragen,
@@ -116,8 +132,30 @@ class ReviewLauf:
                              daemon=True).start()
         return self
 
+    @property
+    def ist_werkzeug(self):
+        u"""Haengt hinten ein Pruefwerkzeug statt eines Modells?"""
+        return (self.partner_cfg or {}).get("ziel") == WerkzeugPartner.ZIEL
+
     def _faden_anlegen(self, slug, titel):
         p = self.partner_cfg
+        if self.ist_werkzeug:
+            # Die Wurzel des Werkzeugs darf von ``review_wurzel`` abweichen:
+            # Geprueft wird ein GIT-Repository, und das ist nicht zwingend der
+            # Ordner, aus dem die Bereichs-Dateien gelesen werden.
+            partner = WerkzeugPartner(
+                slug=p.get("slug", "werkzeug"), name=p.get("name", ""),
+                befehl=p.get("befehl") or [], wurzel=p.get("wurzel") or self.wurzel,
+                modell=p.get("modell", ""), timeout=p.get("timeout"),
+                auswahl=self.auswahl, auswahlen=p.get("auswahlen"),
+                schluessel_datei=p.get("schluessel_datei"),
+                schluessel_argument=p.get("schluessel_argument"),
+                umgebung=p.get("umgebung"))
+            self.faeden[slug] = ReviewFaden(
+                slug, titel, partner,
+                mitschrift=self.ablage / ("review_%s_%s.md" % (self.id, slug)))
+            self.reihenfolge.append(slug)
+            return
         partner = ReviewPartner(
             slug=p.get("slug", "partner"), name=p.get("name", ""),
             ziel=p.get("ziel", "lokal"), modell=p.get("modell", ""),
@@ -152,8 +190,14 @@ class ReviewLauf:
 
     # -------------------------------------------------------------------- Paket
 
-    def _paket(self, bereich, frage):
-        """Die erste Nachricht: Frage + echter Quelltext."""
+    def _paket(self, bereich, frage, partner=None):
+        """Die erste Nachricht: Frage + echter Quelltext.
+
+        Bei einem Werkzeug-Partner gibt es kein Paket: Das Werkzeug liest
+        selbst. Statt eines Quelltext-Stapels steht dann der AUFTRAG im
+        Verlauf — welcher Aufruf in welchem Verzeichnis."""
+        if partner is not None and getattr(partner, "ziel", "") == WerkzeugPartner.ZIEL:
+            return partner.auftrag(frage)
         teile = []
         if bereich:
             teile.append("# Codebereich: %s\n" % bereich["name"])
@@ -313,6 +357,11 @@ class ReviewLauf:
         return {
             "id": self.id, "modus": self.modus, "titel": self.titel,
             "partner": self.partner_cfg.get("name") or self.partner_cfg.get("slug"),
+            # Damit die Seite die Nachfass-Vorlagen ausblenden kann: „Widerlege
+            # dich selbst" hat gegenueber einem Pruefwerkzeug keinen Sinn — es
+            # fuehrt kein Gespraech, ein zweiter Aufruf prueft nur erneut.
+            "werkzeug": self.ist_werkzeug,
+            "auswahl": self.auswahl,
             "fehler": self.fehler,
             "laeuft": any(f.status == "laeuft" for f in self.faeden.values()),
             "faeden": [self.faeden[s].zustand(mit_text) for s in self.reihenfolge],

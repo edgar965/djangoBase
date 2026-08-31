@@ -27,24 +27,15 @@ Sekunden Frist blockierte jeden `base_url()`-Aufruf.
 
 Der Fehler steckte im Zustand, nicht in der Funktionszahl.
 """
-import tempfile
-from pathlib import Path
 
-from djangobase.skills import werkzeug_finden
 from djangobase.skills.befund import Befund
 
 from ..base import BasisTest
+from ..wegwerfordner import Wegwerfordner
 
 
 def _lauf(dateien):
-    ordner = Path(tempfile.mkdtemp(prefix='kr_'))
-    for name, inhalt in dateien.items():
-        ziel = ordner / name
-        ziel.parent.mkdir(parents=True, exist_ok=True)
-        ziel.write_text(inhalt, encoding='utf-8')
-    werkzeug = werkzeug_finden('klassenreif')
-    werkzeug.wurzel = lambda: ordner
-    return werkzeug.pruefen()
+    return Wegwerfordner.werkzeug('klassenreif', dateien).pruefen()
 
 
 def _fragen(satz):
@@ -352,3 +343,39 @@ class DasGewichtFolgtDerSchwere(BasisTest):
         satz = _lauf({})
         self.assertEqual(satz.befunde, [])
         self.assertTrue(satz.kopf)
+
+
+class AngemeldeteEmpfaenger(BasisTest):
+    u"""Was ein Dekorator beim Rahmenwerk anmeldet, faedelt nichts.
+
+    DER FEHLALARM (30.08.2026, assistant): `mail/signals.py` wurde mit
+    „5 Funktionen faedeln dieselben Werte: (sender, instance)" gemeldet.
+    Das ist kein ungeschriebener Konstruktor, sondern die Signatur, die
+    Django dem Empfaenger vorschreibt — und in eine Klasse duerfen die
+    fuenf ohnehin nicht: `@receiver` haelt eine Referenz auf das
+    Funktionsobjekt, als Methode meldet der Dekorator nichts mehr an.
+    Dieselbe Liste (`Rahmenvorschrift.ANMELDENDE_DEKORATOREN`) nimmt
+    `freie-funktionen` seit dem 28.08.2026 aus.
+    """
+
+    EMPFAENGER = (
+        'from django.db.models.signals import post_save\n'
+        'from django.dispatch import receiver\n\n\n'
+        "@receiver(post_save, dispatch_uid='a')\n"
+        'def _eins(sender, instance, **kwargs):\n    return 1\n\n\n'
+        "@receiver(post_save, dispatch_uid='b')\n"
+        'def _zwei(sender, instance, **kwargs):\n    return 2\n\n\n'
+        "@receiver(post_save, dispatch_uid='c')\n"
+        'def _drei(sender, instance, **kwargs):\n    return 3\n')
+
+    def test_drei_empfaenger_sind_kein_konstruktor(self):
+        satz = _lauf({'signals.py': self.EMPFAENGER})
+        self.assertNotIn(2, _fragen(satz).get('signals.py', set()))
+
+    def test_ohne_den_dekorator_bleibt_es_ein_befund(self):
+        u"""Die Gegenprobe: Der Pruefer ist nicht einfach still geworden."""
+        satz = _lauf({'tore.py': self.EMPFAENGER.replace(
+            "@receiver(post_save, dispatch_uid='a')\n", '').replace(
+            "@receiver(post_save, dispatch_uid='b')\n", '').replace(
+            "@receiver(post_save, dispatch_uid='c')\n", '')})
+        self.assertIn(2, _fragen(satz).get('tore.py', set()))

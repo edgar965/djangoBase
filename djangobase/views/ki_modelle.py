@@ -73,9 +73,10 @@ class KiModelleView(View):
         try:
             frei, bezahlt = katalog.tabellen(
                 anbieter=tuple(self._konf("ki_anbieter", ANBIETER)))
-            # EINMAL holen und diese Liste weiterreichen: ``lokal()`` baut bei
-            # jedem Aufruf eine neue Liste, ein Update auf einer Zwischenkopie
-            # waere wirkungslos gewesen.
+            # EINMAL holen und diese Liste weiterreichen. Seit dem 30.08.2026
+            # merkt der Katalog sie sich selbst (``ModellKatalog.lokal``) - bis
+            # dahin baute jeder Aufruf frische Wörterbücher, und die Messwerte
+            # weiter unten landeten auf einer Zwischenkopie.
             lokal = katalog.lokal()
             beste = Bestenliste(katalog).zeilen()
             # DIE MESSWERTE IN DIE KATALOG-TABELLEN (Ansage Edgar, 11.08.2026):

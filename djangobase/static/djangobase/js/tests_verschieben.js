@@ -38,6 +38,12 @@
      *  alten Bereich in `data-bereich`. Was gemeint ist, sagt `was` dem Server
      *  (Ansage 17.08.2026: „der Bereich und die Kategorie können bei jedem test
      *  in der Tabelle per Combo Box geändert werden"). */
+    /** Welcher Testfall - aus der Zeile, in der die Box steht. */
+    function kennung(box) {
+        var tr = box.closest ? box.closest('tr') : null;
+        return tr && tr.dataset ? (tr.dataset.id || '') : '';
+    }
+
     async function verschieben(box) {
         var ziel = box.value;
         var istBereich = box.classList.contains('ts-ber');
@@ -56,7 +62,9 @@
                           'X-CSRFToken': csrf()},
                 credentials: 'same-origin',
                 body: JSON.stringify({
-                    id: box.dataset.testId, ziel: ziel,
+                    // Die Kennung steht auf der Zeile, nicht an der Box
+                    // (siehe `_tabelle.html`, `data-id`).
+                    id: kennung(box), ziel: ziel,
                     was: istBereich ? 'bereich' : 'kategorie',
                 }),
             });

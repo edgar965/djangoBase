@@ -73,12 +73,20 @@ class Namensdubletten(BefundWerkzeug):
     dauer = 'Sekunden'
 
     #: Namen, die absichtlich ueberall gleich heissen.
+    #:
+    #: ``Command`` ist Djangos PFLICHTNAME fuer ein Verwaltungskommando —
+    #: ``BaseCommand`` wird ueber genau diesen Namen im Modul gesucht. In
+    #: assistant stand er mit 56 Vorkommen an der Spitze der Liste
+    #: (30.08.2026); wer dem Befund folgt, macht das Projekt kaputt.
+    #: Dieselbe Klasse Fehlalarm wie ``Meta`` und ``Migration``, die schon
+    #: hier standen (``~/.claude/rules/analysewerkzeuge.md``, Punkt 1).
     ERLAUBT = {
         'main', 'setUp', 'setUpClass', 'tearDown', 'tearDownClass', 'handle',
         'ready', 'get', 'post', 'save', 'clean', '__init__', 'Meta', 'Migration',
-        'Config', 'apps', 'models', 'views', 'urls', 'admin', 'tests', 'forms',
-        'utils', 'conf', 'signals', 'setUpTestData', 'get_context_data',
-        'get_queryset', 'form_valid', 'dispatch', '__str__', 'pruefen',
+        'Command', 'Config', 'apps', 'models', 'views', 'urls', 'admin',
+        'tests', 'forms', 'utils', 'conf', 'signals', 'setUpTestData',
+        'get_context_data', 'get_queryset', 'form_valid', 'dispatch',
+        '__str__', 'pruefen',
     }
 
     anlassfall = Anlassfall(

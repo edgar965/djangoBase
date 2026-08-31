@@ -105,24 +105,93 @@ class Stilnamen(BefundWerkzeug):
                        ("%s-%s" % (merkmal, wert)).lower()).strip("-")
         return bool(teile) and name.lower().endswith(teile)
 
+    #: At-Regeln, die einen eigenen Geltungsbereich aufmachen.
+    AT_BEREICH = re.compile(r"@(?:media|supports|container|layer|scope)\b"
+                            r"[^{;]*")
+
+    @classmethod
+    def _bereiche(cls, css, praefix=""):
+        u"""[(Bereich, Stueck)] — die oberste Ebene und jeder At-Block einzeln.
+
+        WARUM (30.08.2026, assistant): ``REGEL`` kennt keine geschachtelten
+        Klammern. ``@media print{.noprint{display:none}}`` las sich fuer sie
+        wie eine ZWEITE Regel ``.noprint`` auf derselben Ebene — und damit
+        galt jede Druck- und Umbruch-Ansicht als Namensstreit. Alle 30
+        Fehler-Befunde des Projekts waren genau das: eine Basisregel und
+        ihre Ueberschreibung fuer Druck oder schmale Fenster. Wer dem folgt,
+        nimmt jeder Seite ihre Druckansicht.
+
+        Innerhalb EINES Bereichs gilt die Pruefung unveraendert: zweimal
+        derselbe Name im selben ``@media``-Block ist weiter ein Fehler.
+        """
+        oben, stelle = [], 0
+        for treffer in cls.AT_BEREICH.finditer(css):
+            if treffer.start() < stelle:
+                continue                       # schon in einem At-Block
+            anfang = css.find("{", treffer.end() - 1)
+            if anfang < 0:
+                continue
+            ende = cls._blockende(css, anfang)
+            oben.append(css[stelle:treffer.start()])
+            kopf = (praefix + " " + " ".join(treffer.group(0).split())).strip()
+            # REKURSIV (Befund CodeRabbit, 31.08.2026): Ein At-Block INNERHALB
+            # eines At-Blocks wurde uebersprungen, sein Inhalt blieb aber im
+            # Rumpf des aeusseren. Eine Regel unter ``@media … { @supports … }``
+            # bekam damit denselben Bereich wie eine daneben — der Pruefer
+            # meldete zwei verschiedene Regeln fuer denselben Namen, obwohl die
+            # eine nur unter ``@supports`` gilt.
+            for unterbereich, stueck in cls._bereiche(css[anfang + 1:ende], kopf):
+                yield unterbereich, stueck
+            stelle = ende + 1
+        oben.append(css[stelle:])
+        yield praefix, "\n".join(oben)
+
+    @staticmethod
+    def _blockende(css, anfang):
+        u"""Stelle der schliessenden Klammer — Zeichenketten zaehlen nicht mit.
+
+        Dieselbe Falle wie in ``cssdubletten`` (31.08.2026): ``content: "}"``
+        haette den Block hier zu frueh beendet.
+        """
+        tiefe, zeichenkette, i = 0, None, anfang
+        while i < len(css):
+            z = css[i]
+            if zeichenkette:
+                if z == "\\":
+                    i += 2
+                    continue
+                if z == zeichenkette:
+                    zeichenkette = None
+            elif z in "\"'":
+                zeichenkette = z
+            elif z == "{":
+                tiefe += 1
+            elif z == "}":
+                tiefe -= 1
+                if tiefe == 0:
+                    return i
+            i += 1
+        return len(css) - 1
+
     def _regeln(self, text):
-        u"""[(Name, Rumpf)] — nur Einzelnamen, Gruppen bleiben draussen."""
+        u"""[(Bereich, Name, Rumpf)] — nur Einzelnamen, Gruppen bleiben draussen."""
         aus = []
         gruppennamen = set()
         for block in Stilnamen.STIL.finditer(text):
-            for r in Stilnamen.REGEL.finditer(block.group(1)):
-                wahl = " ".join(r.group(1).split()).split("*/")[-1].strip()
-                rumpf = " ".join(r.group(2).split())
-                if "," in wahl:
-                    for teil in wahl.split(","):
-                        treffer = Stilnamen.EINZELNAME.match(teil.strip())
-                        if treffer:
-                            gruppennamen.add(treffer.group(1))
-                    continue
-                treffer = Stilnamen.EINZELNAME.match(wahl)
-                if treffer:
-                    aus.append((treffer.group(1), rumpf))
-        return [(n, r) for n, r in aus if n not in gruppennamen]
+            for bereich, stueck in self._bereiche(block.group(1)):
+                for r in Stilnamen.REGEL.finditer(stueck):
+                    wahl = " ".join(r.group(1).split()).split("*/")[-1].strip()
+                    rumpf = " ".join(r.group(2).split())
+                    if "," in wahl:
+                        for teil in wahl.split(","):
+                            treffer = Stilnamen.EINZELNAME.match(teil.strip())
+                            if treffer:
+                                gruppennamen.add(treffer.group(1))
+                        continue
+                    treffer = Stilnamen.EINZELNAME.match(wahl)
+                    if treffer:
+                        aus.append((bereich, treffer.group(1), rumpf))
+        return [(b, n, r) for b, n, r in aus if n not in gruppennamen]
 
     def pruefen(self, **argumente):
         befunde = []
@@ -131,21 +200,22 @@ class Stilnamen(BefundWerkzeug):
         for pfad in dateien:
             text = pfad.read_text(encoding="utf-8", errors="replace")
             in_datei = defaultdict(set)
-            for name, rumpf in self._regeln(text):
-                in_datei[name].add(rumpf)
-                ueber_dateien[name][rumpf].add(self.kurz(pfad))
-            for name, saetze in sorted(in_datei.items()):
+            for bereich, name, rumpf in self._regeln(text):
+                in_datei[(bereich, name)].add(rumpf)
+                ueber_dateien[(bereich, name)][rumpf].add(self.kurz(pfad))
+            for (bereich, name), saetze in sorted(in_datei.items()):
                 if len(saetze) < 2:
                     continue
                 befunde.append(Befund(
                     self.kurz(pfad),
-                    u"`.%s` steht %d× mit verschiedenem Inhalt"
-                    % (name, len(saetze)),
+                    u"`.%s` steht %d× mit verschiedenem Inhalt%s"
+                    % (name, len(saetze),
+                       (u" in `%s`" % bereich) if bereich else u""),
                     u"Beide Regeln gelten — bei gleichem Merkmal gewinnt die "
                     u"spätere, sonst addieren sie sich",
                     Befund.FEHLER))
 
-        for name, fassungen in sorted(ueber_dateien.items()):
+        for (bereich, name), fassungen in sorted(ueber_dateien.items()):
             if len(fassungen) < 2:
                 continue
             if not any(self._ist_erzeugt(name, r) for r in fassungen):
@@ -155,8 +225,9 @@ class Stilnamen(BefundWerkzeug):
                 continue                       # schon oben als Fehler gemeldet
             befunde.append(Befund(
                 orte[0],
-                u"`.%s` bedeutet in %d Vorlagen %d Verschiedenes"
-                % (name, len(orte), len(fassungen)),
+                u"`.%s` bedeutet in %d Vorlagen %d Verschiedenes%s"
+                % (name, len(orte), len(fassungen),
+                   (u" (in `%s`)" % bereich) if bereich else u""),
                 u"auch: %s — wer einen dieser Blöcke in eine gemeinsame Datei "
                 u"zieht, gibt allen dieselbe Fassung" % ", ".join(orte[1:4]),
                 Befund.HINWEIS))

@@ -310,6 +310,41 @@ Klasse nennt die Ausgangslage (`EinBestandVonGestern`), die Methode das
 erwartete Verhalten (`test_wird_beim_lesen_neu_ermittelt`). Helfer in
 `tests/unit/jobwerkzeug.py`.
 
+### Hilfe → Review: Werkzeug statt Modell (31.08.2026)
+
+`review_partner` kennt neben `ziel: "lokal"|"online"` jetzt **`ziel: "werkzeug"`**
+(`djangobase/review/werkzeug_partner.py`). Statt eines Chat-Endpunkts wird ein
+lokales Programm gestartet, das den **Git-Stand** liest und Befunde ausgibt —
+eingerichtet ist die CodeRabbit-CLI in shortlongx.
+
+```python
+{"slug": "coderabbit", "name": "CodeRabbit", "ziel": "werkzeug",
+ "modell": "CodeRabbit CLI",
+ "befehl": [r"C:\Users\<du>\AppData\Local\Programs\coderabbit\cr.exe", "review"],
+ "wurzel": r"A:\meinprojekt",          # das Repository, nicht review_wurzel
+ "auswahlen": [{"wert": "uncommitted", "name": "Arbeitsstand",
+                "argumente": ["--uncommitted"]}, …],
+ "umgebung": {"LOCALAPPDATA": r"C:\Users\<du>\AppData\Local"},
+ "schluessel_datei": r"C:\Users\<du>\.coderabbit_key",   # Rückfall
+ "schluessel_argument": "--api-key"}
+```
+
+Vier Dinge, die dabei Zeit gekostet haben und in jedem Projekt wiederkommen:
+
+- **Bereiche gelten nicht.** Das Werkzeug liest den Diff, nicht die
+  Bereichsdateien. Die Seite blendet Bereiche und Nachfass-Vorlagen aus und
+  zeigt stattdessen die Auswahl, WELCHER Stand geprüft wird. Ein Häkchen, das
+  nichts bewirkt, ist schlimmer als keins.
+- **EIN Werkzeug, EIN Faden** — auch bei drei angehakten Bereichen. Sonst
+  dreimal dasselbe Ergebnis und dreimal Kontingent (CodeRabbit frei: 3 Läufe/h,
+  Pro 5, Pro+ 10).
+- **Läuft der Server als Dienst, ist `Path.home()` das Dienstkonto-Profil**
+  (`C:\Windows\system32\config\systemprofile`). Befehlspfade nie daraus
+  ableiten, und die Anmeldung des Werkzeugs liegt dort auch nicht — dafür
+  `umgebung` mit `LOCALAPPDATA` auf das echte Profil.
+- **Aus dem Browser kommt nur der Schlüssel einer vorbereiteten Auswahl**, nie
+  ein Argument. Der Befehl steht ausschließlich in der Konfiguration.
+
 ### Neue DJANGOBASE-Schlüssel
 
 `skills2_register` (Vorgabe `["fn"]`), `skills2_abrufklassen`

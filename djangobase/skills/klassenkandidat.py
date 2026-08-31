@@ -232,11 +232,14 @@ class Klassenkandidat(BefundWerkzeug):
             for name in schreibt:
                 schreiber[name].append(fn.name)
 
+        registrierungen = self._registrierungsnamen(freie, modulnamen)
         kandidaten = []
         vergeben = set()
         for name, namen in sorted(nutzer.items(), key=lambda p: -len(p[1])):
             if len(namen) < grenze or name.isupper():
                 continue                      # Konstanten sind kein Zustand
+            if name in registrierungen:
+                continue                      # Rahmenwerk-Registrierung
             kandidaten.append(Kandidat(self.kurz(datei), name, namen,
                                        schreiber.get(name, []),
                                        sorte_je_name.get(name, 'klasse')))
@@ -245,6 +248,38 @@ class Klassenkandidat(BefundWerkzeug):
         # Utility-Kandidaten nur aus den Funktionen, die KEINEN Zustand teilen.
         rest = [fn for fn in freie if fn.name not in vergeben]
         return kandidaten, self._utilities(datei, rest, grenze)
+
+    @staticmethod
+    def _registrierungsnamen(funktionen, modulnamen):
+        u"""Modulnamen, die als DEKORATOR dienen — Rahmenwerk-Registrierungen.
+
+        AM ECHTEN PROJEKT GEMESSEN (30.08.2026, 3DTools): Gemeldet wurde
+        ``core/templatetags/einstellungszeile.py`` — „Instanz *register*
+        liegt frei, 2 Funktionen benutzen sie". Der Vorschlag lautete, sie
+        in die Kontext-Klasse des Projekts zu verschieben.
+
+        Das haette das Modul zerstoert. ``register = template.Library()``
+        ist Djangos PFLICHTNAME: ``import_library`` sucht im Modul das
+        Attribut ``register`` und wirft ``InvalidTemplateLibrary``, wenn es
+        fehlt — jede Seite mit ``{%% load %%}`` waere danach tot. Es ist
+        derselbe Fall wie ``Command`` bei Management-Commands: ein Name, den
+        nicht der Autor vergibt, sondern das Rahmenwerk.
+
+        ERKANNT WIRD ES AM GEBRAUCH, nicht am Ordnernamen: Wer als Dekorator
+        dient (``@register.inclusion_tag(…)``), sammelt Funktionen fuer ein
+        Rahmenwerk ein. Das trifft genauso ``@app.route`` (Flask),
+        ``@app.get`` (FastAPI) und ``@celery.task`` — und eben nicht die
+        Zaehler-Instanz, die zwei Funktionen von Hand hochzaehlen.
+        """
+        raus = set()
+        for fn in funktionen:
+            for schmuck in fn.decorator_list:
+                knoten = schmuck.func if isinstance(schmuck, ast.Call) else schmuck
+                while isinstance(knoten, ast.Attribute):
+                    knoten = knoten.value
+                if isinstance(knoten, ast.Name) and knoten.id in modulnamen:
+                    raus.add(knoten.id)
+        return raus
 
     def _utilities(self, datei, funktionen, grenze):
         u"""Bündel gleichen Namensanfangs OHNE geteilten Zustand."""

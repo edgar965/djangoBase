@@ -12,36 +12,31 @@ WOHER DIE ZAHLEN KOMMEN - und wo sie unsicher sind
 --------------------------------------------------
 PREIS und KONTEXT  aus der OpenRouter-API (``/api/v1/models``). Belastbar, das
                    ist die Rechnungsgrundlage des Anbieters.
-PLATTE lokal       aus ``ollama list``. Belastbar - echter Plattenplatz.
-PARAMETERZAHL      aus dem MODELLNAMEN gelesen (``27b``, ``550b-a55b``). Sie steht
-                   dort nur, wenn der Hersteller die Gewichte veroeffentlicht;
-                   bei geschlossenen Modellen (Gemini, GPT, Claude, qwen-max)
-                   gibt es sie nicht - dort steht ``k.A.`` und NICHT eine
-                   Schaetzung. Ein Modell ohne Parameterzahl im Namen gilt hier
-                   deshalb als geschlossen. Das ist eine Faustregel, keine
-                   Garantie: ``llama-4-scout`` etwa ist offen und traegt trotzdem
-                   keine Zahl im Namen.
-PLATTE online      GESCHAETZT aus der Parameterzahl, siehe ``gb_aus_parametern``.
-                   In der Anzeige mit ``~`` gekennzeichnet.
+PLATTE lokal       aus der Ollama-API. Belastbar - echter Plattenplatz.
+PARAMETERZAHL      aus dem MODELLNAMEN gelesen - siehe ``modellname.Modellname``.
+PLATTE online      GESCHAETZT aus der Parameterzahl (``Modellname.gb``). In der
+                   Anzeige mit ``~`` gekennzeichnet.
 
-MoE-SCHREIBWEISE ``550b-a55b`` = 550 Mrd. Parameter gesamt, davon 55 Mrd. je Token
-aktiv. Fuer Tempo und Speicherbedarf zaehlt die zweite Zahl, fuer die Faehigkeiten
-eher die erste. Deshalb stehen beide.
+DREI DATEIEN SEIT DEM 30.08.2026. Hier stand alles zusammen und die Datei war
+ueber 300 Zeilen lang. Getrennt ist jetzt, was getrennte Fehlerbilder hat:
+
+    ``modelle.py``     der Onlinekatalog - eine Datei, ein Netzabruf, Preise
+    ``ollama.py``      die lokale Installation - ein Dienst auf Port 11434
+    ``modellname.py``  die Namensdeutung - reine Zeichenketten, kein Zugriff
 """
 import json
 import os
-import re
 import time
 import urllib.request
 
+from .modellname import GB_JE_MRD, Modellname
+from .ollama import OllamaModelle
+
 MODELLE_URL = "https://openrouter.ai/api/v1/models"
 
-#: Plattenbedarf je Mrd. Parameter in der ueblichen 4-Bit-Quantisierung (Q4_K_M).
-#: NICHT aus der Bit-Rechnung hergeleitet, sondern an drei echten Ollama-Downloads
-#: kalibriert: 27B = 17 GB (0,63), 26B = 16 GB (0,62), 9B = 6,6 GB (0,73). Kleine
-#: Modelle liegen darueber, weil Einbettungstabellen und Vokabular kaum mit der
-#: Modellgroesse schrumpfen - die Formel unterschaetzt sie also.
-GB_JE_MRD = 0.63
+#: Weitergereicht, damit ``from .modelle import GB_JE_MRD`` weiter geht - der
+#: Wert und seine Herleitung stehen in ``modellname.py``.
+__all__ = ["ModellKatalog", "GB_JE_MRD", "MODELLE_URL"]
 
 
 class ModellKatalog:
@@ -59,36 +54,11 @@ class ModellKatalog:
         self.timeout = timeout
         self.quelle = "unbekannt"      #: "netz", "cache" oder "cache (Netz-Fehler)"
         self.stand = None              #: Unix-Zeit der gezeigten Daten
-        #: Je Modell EIN ``/api/show``-Aufruf - die Seite fragt den Kontext sonst
-        #: mehrfach ab (Katalog-Tabelle und Bestenliste).
-        self._kontext_cache = {}
-
-    # ---------------------------------------------------------------- Bausteine
-
-    @staticmethod
-    def parameter_aus_name(kennung):
-        """('550B', '55B') aus einem Modellnamen - oder (None, None).
-
-        Die zweite Zahl ist nur bei MoE-Modellen gesetzt (aktive Parameter)."""
-        name = (kennung or "").lower()
-        moe = re.search(r"(\d+(?:\.\d+)?)b-a(\d+(?:\.\d+)?)b", name)
-        if moe:
-            return "%sB" % moe.group(1), "%sB" % moe.group(2)
-        einfach = re.findall(r"(?<![\d.])(\d+(?:\.\d+)?)b(?![a-z0-9])", name)
-        if einfach:
-            return "%sB" % einfach[-1], None
-        return None, None
-
-    @staticmethod
-    def gb_aus_parametern(param):
-        """Geschaetzter Plattenbedarf in GB aus '27B' - oder None."""
-        if not param:
-            return None
-        try:
-            mrd = float(param.rstrip("Bb"))
-        except ValueError:
-            return None
-        return round(mrd * GB_JE_MRD, 1)
+        #: Die lokale Seite. Eigenes Objekt, eigene Merker - siehe ``ollama.py``.
+        self.ollama = OllamaModelle(timeout=timeout)
+        #: Je Katalog EIN Zugriff auf die Datei. Siehe ``online_roh``:
+        #: ``Bestenliste`` fragt sie je Messzeile erneut.
+        self._roh_cache = None
 
     # ------------------------------------------------------------------- Quellen
 
@@ -124,92 +94,50 @@ class ModellKatalog:
 
         FAELLT AUF DEN CACHE ZURUECK, wenn das Netz nicht antwortet: Eine
         Hilfeseite, die bei Netzausfall leer ist, ist schlechter als eine mit
-        Zahlen von gestern - solange dransteht, dass sie von gestern sind."""
+        Zahlen von gestern - solange dransteht, dass sie von gestern sind.
+
+        JE KATALOG NUR EINMAL (Messung 30.08.2026). ``Bestenliste._katalogdaten``
+        durchsucht diese Liste je Messzeile - und rief damit je Zeile die Methode
+        erneut auf. Auf ``/hilfe/ki-modelle/`` waren das 21 Aufrufe: die Datei mit
+        396 Modellen wurde einundzwanzigmal gelesen und geparst, 326 der 664 ms
+        der Bestenliste. Der Katalog lebt nur fuer die Dauer einer Anfrage - die
+        Frische entscheidet weiterhin ``cache_stunden`` ueber der Datei, nicht
+        dieser Merker."""
+        if self._roh_cache is not None:
+            return self._roh_cache
         daten, alter = self._aus_cache()
         if daten and alter and (time.time() - alter) < self.cache_stunden * 3600:
             self.quelle, self.stand = "cache", alter
+            self._roh_cache = daten
             return daten
         try:
             with urllib.request.urlopen(MODELLE_URL, timeout=self.timeout) as r:
                 frisch = json.loads(r.read().decode("utf-8"))["data"]
             self._in_cache(frisch)
             self.quelle, self.stand = "netz", time.time()
+            self._roh_cache = frisch
             return frisch
         except Exception:                                        # noqa: BLE001
             if daten:
                 self.quelle, self.stand = "cache (Netz-Fehler)", alter
+                self._roh_cache = daten
                 return daten
             self.quelle, self.stand = "nicht erreichbar", None
+            self._roh_cache = []
             return []
 
     def lokal(self):
-        """[{kennung, gb, param_gesamt, param_aktiv, quant}] der Ollama-Modelle.
+        """Die lokal installierten Modelle - siehe ``ollama.OllamaModelle``.
 
-        UEBER DIE HTTP-API, nicht ueber ``ollama list`` (Befund 11.08.2026): Der
-        Django-Dienst laeuft als SYSTEM, und ``ollama.exe`` liegt im Benutzerprofil
-        - im Suchpfad von SYSTEM steht es nicht, der Aufruf lief ins Leere und die
-        Seite zeigte gar keine lokalen Modelle. Die API loest das nicht nur, sie
-        liefert auch mehr: die ECHTE Parameterzahl des Modells (27.8B) statt der
-        gerundeten aus dem Namen (27b), dazu die Quantisierungsstufe.
-
-        Leer, wenn Ollama nicht laeuft - das ist kein Fehler, sondern der
-        Normalfall auf einem Rechner ohne lokale Modelle."""
-        try:
-            with urllib.request.urlopen("http://127.0.0.1:11434/api/tags",
-                                        timeout=self.timeout) as r:
-                roh = json.loads(r.read().decode("utf-8")).get("models") or []
-        except Exception:                                        # noqa: BLE001
-            return []
-        aus = []
-        for m in roh:
-            einzel = m.get("details") or {}
-            ges, aktiv = self.parameter_aus_name(m.get("name", ""))
-            bytes_ = m.get("size") or 0
-            kennung = m.get("name", "")
-            aus.append({
-                "kennung": kennung,
-                "gb": round(bytes_ / 1e9, 1) if bytes_ else None,
-                # Die Angabe des Modells schlaegt den Namen: ``27b`` im Namen sind
-                # in Wahrheit 27,8 Mrd. Parameter.
-                "param_gesamt": einzel.get("parameter_size") or ges,
-                "param_aktiv": aktiv,
-                "quant": einzel.get("quantization_level") or "",
-                "kontext": self.kontext(kennung),
-            })
-        aus.sort(key=lambda z: -(z["gb"] or 0))
-        return aus
-
-    def kontext(self, kennung):
-        """Kontextlaenge eines lokalen Modells - oder None.
-
-        Steht NICHT in ``/api/tags`` (Rueckfrage 11.08.2026: „der Kontext fehlt
-        auch bei den lokalen"), sondern nur in ``/api/show`` unter
-        ``model_info.<architektur>.context_length``. Der Praefix wechselt je
-        Modell (``qwen35.``, ``gemma4.``), deshalb wird nach der Endung gesucht
-        statt nach einem festen Schlüssel."""
-        if kennung in self._kontext_cache:
-            return self._kontext_cache[kennung]
-        wert = None
-        try:
-            daten = json.dumps({"model": kennung}).encode("utf-8")
-            req = urllib.request.Request(
-                "http://127.0.0.1:11434/api/show", data=daten,
-                headers={"Content-Type": "application/json"})
-            with urllib.request.urlopen(req, timeout=self.timeout) as r:
-                info = json.loads(r.read().decode("utf-8")).get("model_info") or {}
-            for schluessel, v in info.items():
-                if schluessel.endswith(".context_length"):
-                    wert = int(v)
-                    break
-        except Exception:                                        # noqa: BLE001
-            wert = None
-        self._kontext_cache[kennung] = wert
-        return wert
+        Bleibt als Durchreicher stehen, weil ``Bestenliste`` und die Ansicht den
+        Katalog halten und nicht wissen muessen, dass die lokale Seite ein
+        eigenes Objekt ist."""
+        return self.ollama.liste()
 
     # -------------------------------------------------------------------- Zeilen
 
     def _zeile(self, m):
-        ges, aktiv = self.parameter_aus_name(m["id"])
+        ges, aktiv = Modellname.parameter(m["id"])
         preise = m.get("pricing") or {}
         ein = float(preise.get("prompt") or 0) * 1e6
         aus = float(preise.get("completion") or 0) * 1e6
@@ -224,7 +152,7 @@ class ModellKatalog:
             # gerechnet wird mit den aktiven. Beleg aus einem echten Download:
             # gemma4 26B-a4B belegt 16 GB - das sind 0,62 je Mrd. GESAMT, waehrend
             # 16 GB fuer 4 Mrd. aktive Parameter (4,0 je Mrd.) unsinnig waere.
-            "gb": self.gb_aus_parametern(ges),
+            "gb": Modellname.gb(ges),
             "preis_ein": ein, "preis_aus": aus,
             # Ein Modell mit Parameterzahl im Namen hat in aller Regel offene
             # Gewichte - nur dann ist der Plattenbedarf ueberhaupt eine Frage.
@@ -259,16 +187,7 @@ class ModellKatalog:
                 frei.append(z)
             else:
                 bezahlt.append(z)
-        frei.sort(key=lambda z: (-(_mrd(z["param_gesamt"]) or 0), z["kennung"]))
+        frei.sort(key=lambda z: (-(Modellname.mrd(z["param_gesamt"]) or 0),
+                                 z["kennung"]))
         bezahlt.sort(key=lambda z: (z["preis_ein"], z["preis_aus"]))
         return frei, bezahlt
-
-
-def _mrd(param):
-    """'550B' -> 550.0; None -> None. Nur zum Sortieren."""
-    if not param:
-        return None
-    try:
-        return float(param.rstrip("Bb"))
-    except ValueError:
-        return None

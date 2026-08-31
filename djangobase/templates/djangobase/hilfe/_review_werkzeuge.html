@@ -1,0 +1,168 @@
+{% comment %}
+Eigener Bereich für Prüfwerkzeuge — ganz oben auf Hilfe → Review.
+
+DIE ANSAGE (Edgar, 31.08.2026)
+    „mach bei /hilfe/review/ einen extra bereich für Coderabbit, ganz oben"
+
+WARUM GETRENNT VOM MODELL-WÄHLER: Ein Werkzeug bedient sich anders als ein
+Modell. Es liest den Git-Stand selbst, kennt keine Codebereiche und führt kein
+Gespräch. Solange beides in derselben Auswahlliste stand, wechselte beim
+Umschalten die halbe Oberfläche — Bereiche verschwanden, eine Auswahl kam dazu.
+Zwei Bedienungen in einem Wähler sind eine Zumutung; zwei Kästen sind ehrlich.
+
+EIGENE ANZEIGE, GEMEINSAME ENDPUNKTE: Start und Zustand laufen über dieselben
+Adressen wie beim Modell-Teil (``review_start`` / ``review_status``) — es gibt
+keine zweite Wahrheit über Läufe. Nur die Darstellung ist eigen, damit ein
+laufendes Werkzeug den Gesprächsverlauf darunter nicht überschreibt.
+
+Der Bereich erscheint NUR, wenn ein Werkzeug-Partner konfiguriert ist. In den
+Projekten ohne ein solches ändert sich an der Seite nichts.
+{% endcomment %}
+{% if werkzeuge %}
+<div class="rv-card rv-werkzeuge" id="rv-werkzeuge"
+     data-start="{% url 'djangobase:review_start' %}"
+     data-status="{% url 'djangobase:review_status' 'LAUFID' %}">
+    {% for w in werkzeuge %}
+    <div class="rv-wz" data-slug="{{ w.slug }}">
+        <div class="rv-zeile rv-wz-kopf">
+            <span class="rv-wz-name"><i class="bi bi-search"></i> {{ w.name|default:w.slug }}</span>
+            <span class="rv-wz-modell">{{ w.modell }}</span>
+            <select class="rv-select rv-wz-auswahl" aria-label="Was geprüft wird">
+                {% for a in w.auswahl_liste %}
+                <option value="{{ a.wert }}">{{ a.name }}</option>
+                {% endfor %}
+            </select>
+            <button type="button" class="rv-knopf rv-primaer rv-wz-start">
+                <i class="bi bi-play-fill"></i> Prüfen lassen</button>
+            <span class="rv-status rv-wz-status"></span>
+        </div>
+        <p class="rv-fuss rv-wz-fuss">
+            Läuft auf diesem Rechner und liest den Git-Stand von
+            <code>{{ w.wurzel }}</code> — nicht die Codebereiche weiter unten.
+            <strong>Was das Werkzeug an seinen Dienst schickt, verlässt den Rechner.</strong>
+        </p>
+        <pre class="rv-wz-ausgabe" hidden></pre>
+    </div>
+    {% endfor %}
+</div>
+
+<style>
+.rv-werkzeuge { border-color: #2a5c96; }
+.rv-wz + .rv-wz { margin-top: 14px; padding-top: 14px; border-top: 1px solid #1e3a5f; }
+.rv-wz-kopf { flex-wrap: wrap; }
+.rv-wz-name { font-weight: 600; color: #e9f0f8; }
+.rv-wz-modell { color: #7f9bbb; font-size: .85rem; }
+.rv-wz-fuss { margin: 8px 0 0; }
+/* Die Ausgabe ist Werkzeug-Text: feste Breite, aber umbrechend — CodeRabbit
+   schreibt Zeilen mit Dateipfaden, die sonst waagerecht scrollen. Farbe
+   ausdrücklich gesetzt: ein <pre> ohne color steht sonst dunkel auf dunkel
+   (dieselbe Falle wie auf den Befund-Seiten). */
+.rv-wz-ausgabe { margin: 10px 0 0; padding: 10px 12px; background: #0f1d31;
+    border: 1px solid #1e3a5f; border-radius: 8px; color: #cfe0f2;
+    font-size: .82rem; line-height: 1.45; white-space: pre-wrap;
+    word-break: break-word; max-height: 60vh; overflow-y: auto; }
+</style>
+
+<script>
+(function () {
+    "use strict";
+    const wurzel = document.getElementById("rv-werkzeuge");
+    if (!wurzel) return;
+    const START = wurzel.dataset.start;
+    const STATUS_MUSTER = wurzel.dataset.status;
+
+    function csrf() {
+        const m = document.cookie.match(/csrftoken=([^;]+)/);
+        return m ? m[1] : "";
+    }
+
+    /* Ein Werkzeug, ein Kasten, ein Lauf. Mehrere Kästen stören einander
+       nicht: Jeder haelt seine eigene Lauf-Kennung und seinen eigenen Takt. */
+    class Werkzeugkasten {
+        constructor(el) {
+            this.el = el;
+            this.slug = el.dataset.slug;
+            this.auswahl = el.querySelector(".rv-wz-auswahl");
+            this.knopf = el.querySelector(".rv-wz-start");
+            this.status = el.querySelector(".rv-wz-status");
+            this.ausgabe = el.querySelector(".rv-wz-ausgabe");
+            this.laufId = null;
+            this.takt = null;
+            this.knopf.addEventListener("click", () => this.starten());
+        }
+
+        async starten() {
+            if (this.takt) clearInterval(this.takt);
+            this.knopf.disabled = true;
+            this.status.textContent = "startet …";
+            this.ausgabe.hidden = true;
+            this.ausgabe.textContent = "";
+            try {
+                const antwort = await fetch(START, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "X-CSRFToken": csrf() },
+                    body: JSON.stringify({
+                        modus: "dialog", partner: this.slug, bereiche: [], frage: "",
+                        auswahl: this.auswahl ? this.auswahl.value : ""
+                    })
+                });
+                const d = await antwort.json();
+                if (!antwort.ok) { this.fehler(d.fehler || ("HTTP " + antwort.status)); return; }
+                /* Antwort ohne Kennung ist ein Fehler, kein Start (Befund
+                   CodeRabbit, 31.08.2026): Sonst bliebe laufId undefiniert,
+                   der Takt liefe weiter ins Leere und der Knopf bis zum
+                   Neuladen der Seite gesperrt. */
+                if (!d.id) { this.fehler("Antwort ohne Lauf-Kennung"); return; }
+                this.laufId = d.id;
+                this.status.textContent = "läuft — ein Review dauert 1–5 Minuten";
+                this.abfragen();
+                this.takt = setInterval(() => this.abfragen(), 3000);
+            } catch (e) {
+                this.fehler(e.message);
+            }
+        }
+
+        async abfragen() {
+            if (!this.laufId) return;
+            try {
+                const r = await fetch(STATUS_MUSTER.replace("LAUFID", this.laufId));
+                if (!r.ok) return;               // stiller Aussetzer: nächster Takt
+                const d = await r.json();
+                const faden = (d.faeden || [])[0];
+                if (!faden) return;
+                const runde = (faden.runden || [])[faden.runden.length - 1];
+                if (runde && runde.antwort) {
+                    this.ausgabe.hidden = false;
+                    this.ausgabe.textContent = runde.antwort;
+                }
+                if (faden.status === "fertig" || faden.status === "fehler") {
+                    clearInterval(this.takt);
+                    this.takt = null;
+                    this.knopf.disabled = false;
+                    if (faden.status === "fehler") {
+                        this.fehler(faden.fehler || "unbekannter Fehler");
+                    } else {
+                        const s = runde && runde.sekunden ? " · " + runde.sekunden + " s" : "";
+                        this.status.textContent = "fertig" + s;
+                    }
+                }
+            } catch (e) {
+                /* Netzaussetzer: Zustand stehen lassen und beim nächsten Takt
+                   erneut fragen. Ein Abbruch hier hätte einen laufenden Review
+                   für den Betrachter verschwinden lassen. */
+            }
+        }
+
+        fehler(text) {
+            if (this.takt) { clearInterval(this.takt); this.takt = null; }
+            this.knopf.disabled = false;
+            this.status.textContent = "Fehler";
+            this.ausgabe.hidden = false;
+            this.ausgabe.textContent = text;
+        }
+    }
+
+    wurzel.querySelectorAll(".rv-wz").forEach(el => new Werkzeugkasten(el));
+})();
+</script>
+{% endif %}

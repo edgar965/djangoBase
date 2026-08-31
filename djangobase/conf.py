@@ -90,6 +90,22 @@ DEFAULTS = {
     #     "modell": "gemma4:26b-a4b-it-qat", "num_ctx": 32768}]
     # `ziel`: "lokal" = Ollama auf diesem Rechner, "online" = OpenAI-kompatibler
     # Endpunkt. Bei "online" verlaesst der gesendete Quelltext den Rechner.
+    #
+    # DRITTE SORTE: ein PRUEFWERKZEUG statt eines Modells (31.08.2026). Es
+    # fuehrt kein Gespraech, sondern liest den Git-Stand seines Verzeichnisses
+    # und meldet Befunde. Der Befehl steht NUR hier - aus dem Browser kommt
+    # allein der Schluessel einer der `auswahlen`:
+    #   {"slug": "coderabbit", "name": "CodeRabbit", "ziel": "werkzeug",
+    #    "modell": "CodeRabbit CLI",
+    #    "befehl": ["cr", "review"],
+    #    "wurzel": "A:\\meinprojekt",          # das Git-Repository
+    #    "timeout": 900,
+    #    "auswahlen": [
+    #        {"wert": "uncommitted", "name": "Noch nicht committet",
+    #         "argumente": ["--uncommitted"]},
+    #        {"wert": "committed", "name": "Committet, noch nicht gepusht",
+    #         "argumente": ["--committed"]},
+    #    ]}
     "review_partner": [],
     # Die Codebereiche, ueber die gesprochen werden kann. Dateien relativ zu
     # `review_wurzel`. Nur DIESE Dateien werden gesendet — die Seite nimmt keine

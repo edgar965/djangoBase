@@ -39,9 +39,11 @@
         });
     }
 
+    /** Die Kennung steht auf der ZEILE (`data-id`), nicht am Feld.
+        Seit 30.08.2026: Sie stand vorher an jedem Bedienelement der Zeile —
+        dreimal dieselben 80 Zeichen, 178 KB auf der Seite. */
     function kennung(tr) {
-        var feld = tr.querySelector('input.ts-nr');
-        return feld ? feld.dataset.testId : '';
+        return tr && tr.dataset ? (tr.dataset.id || '') : '';
     }
 
     /** Meldung direkt am Feld — dort wurde getippt. */

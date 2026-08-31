@@ -32,13 +32,13 @@ class RegelnLesenTest(BasisTest):
 
     def test_einfacher_name_zaehlt(self):
         self.assertEqual(
-            [('a', 'color: red')],
+            [('', 'a', 'color: red')],
             _finden('<style>.a { color: red }</style>'))
 
     def test_vervielfachter_name_ist_derselbe(self):
         u"""`.x.x.x` ist die Schreibweise der Umsteller für Spezifität."""
         self.assertEqual(
-            [('x', 'color: red')],
+            [('', 'x', 'color: red')],
             _finden('<style>.x.x.x { color: red }</style>'))
 
     def test_gruppen_bleiben_draussen(self):
@@ -57,7 +57,7 @@ class RegelnLesenTest(BasisTest):
                 '.a { padding: 4px }\n'
                 '.d { margin: 0 }\n'
                 '</style>')
-        self.assertEqual([('d', 'margin: 0')], _finden(text))
+        self.assertEqual([('', 'd', 'margin: 0')], _finden(text))
 
     def test_verschachtelter_ausdruck_zaehlt_nicht(self):
         self.assertEqual([], _finden('<style>.a .b { color: red }</style>'))
@@ -133,3 +133,60 @@ class BefundeTest(BasisTest):
             'b.html': '<style>.hb-width-100 { width: 100% }</style>',
         })
         self.assertEqual([], befunde)
+
+
+class AtBloeckeTest(BasisTest):
+    u"""Eine Ueberschreibung fuer Druck oder schmale Fenster ist kein Streit.
+
+    DER FALL (30.08.2026, assistant): Alle 30 Fehler-Befunde des Projekts
+    hatten dieselbe Form — eine Basisregel und daneben ihre Fassung in
+    @media print oder @media (max-width: …). Der Ausdruck REGEL
+    kennt keine geschachtelten Klammern und las die zweite als Regel auf
+    derselben Ebene. Wer dem folgt, nimmt jeder Seite ihre Druckansicht.
+    """
+
+    #: Die Druckansicht, wie sie in jeder zweiten Vorlage steht.
+    DRUCKSEITE = ('<style>\n'
+                  '.noprint { margin-bottom: 1rem }\n'
+                  '@media print { .noprint { display: none }'
+                  ' body { margin: 0 } }\n'
+                  '</style>')
+
+    def _lauf(self, dateien):
+        import shutil
+        import tempfile
+        from pathlib import Path
+        ordner = Path(tempfile.mkdtemp(prefix='stilnamen_at_'))
+        self.addCleanup(shutil.rmtree, str(ordner), True)
+        for name, inhalt in dateien.items():
+            (ordner / name).write_text(inhalt, encoding='utf-8')
+        werkzeug = Stilnamen()
+        werkzeug.wurzel = lambda: ordner
+        return werkzeug.pruefen().befunde
+
+    def test_die_beiden_ebenen_werden_getrennt_gelesen(self):
+        gefunden = Stilnamen()._regeln(self.DRUCKSEITE)
+        self.assertEqual(['', '@media print'],
+                         sorted(b for b, _n, _r in gefunden))
+
+    def test_die_druckfassung_ist_kein_befund(self):
+        self.assertEqual([], self._lauf({'a.html': self.DRUCKSEITE}))
+
+    def test_auch_ein_umbruch_ist_keiner(self):
+        self.assertEqual([], self._lauf({'a.html': (
+            '<style>\n'
+            '.hb-width-100 { width: 100%; padding: 4px }\n'
+            '@media (max-width: 900px) {'
+            ' .hb-width-100 { width: 100%; padding: 2px } }\n'
+            '</style>')}))
+
+    def test_zweimal_im_selben_media_block_bleibt_ein_fehler(self):
+        u"""Die Gegenprobe: Der Pruefer ist nicht einfach still geworden."""
+        befunde = self._lauf({'a.html': (
+            '<style>@media print {\n'
+            '.hb-margin-top-20px { margin-top: 20px; color: #4fc1ff }\n'
+            '.hb-margin-top-20px { margin-top: 20px; color: #ff9940 } }\n'
+            '</style>')})
+        self.assertEqual(1, len(befunde))
+        self.assertEqual(Befund.FEHLER, befunde[0].gewicht)
+        self.assertIn('@media print', befunde[0].was)

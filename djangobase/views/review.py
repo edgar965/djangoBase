@@ -20,11 +20,14 @@ import json
 
 from django.http import JsonResponse
 from django.shortcuts import render
+from django.utils.decorators import method_decorator
 from django.views import View
+from django.views.decorators.csrf import ensure_csrf_cookie
 
 from ..conf import conf
 from ..mixins import ZugriffMixin
-from ..review import NACHFASSEN, REGISTER, ReviewLauf
+from ..review import (NACHFASSEN, REGISTER, ReviewFehler, ReviewLauf,
+                      WerkzeugPartner)
 
 
 def _einstellungen():
@@ -71,11 +74,51 @@ class ReviewView(ZugriffMixin, View):
             })
         return aufbereitet
 
+    @staticmethod
+    def _partner_anzeigen(partner):
+        u"""Partner fuers Template — mit Kennzeichen und Auswahlen.
+
+        Ein Werkzeug-Partner bekommt statt der Bereichsliste eine Auswahl,
+        WELCHER Git-Stand geprueft wird. Ohne dieses Kennzeichen zeigte die
+        Seite ihm die Bereichsauswahl und behauptete damit etwas, das nicht
+        stimmt (das Werkzeug liest den Diff, nicht die Bereichsdateien).
+        """
+        raus = []
+        for p in partner:
+            ist_werkzeug = p.get("ziel") == WerkzeugPartner.ZIEL
+            raus.append(dict(
+                p, ist_werkzeug=ist_werkzeug,
+                auswahl_liste=(WerkzeugPartner.anzeige_auswahlen(p)
+                               if ist_werkzeug else [])))
+        return raus
+
+    @method_decorator(ensure_csrf_cookie)
     def get(self, request):
+        u"""Die Seite — und ausdruecklich MIT CSRF-Cookie.
+
+        WARUM DER DEKORATOR (31.08.2026): Diese Seite rendert kein Formular;
+        ihre POSTs baut das JavaScript und holt den Token aus dem Cookie
+        (``csrf()`` im Template). Django setzt dieses Cookie aber nur, wenn es
+        jemand anfordert. Im Browser fiel das nicht auf, weil eine andere Seite
+        es vorher gesetzt hatte — ein frischer Client (erste Seite nach dem
+        Start, ein Skript, ein anderes Profil) bekam dagegen „CSRF cookie not
+        set" und konnte gar nichts starten. Ein Zustand, der von der Reihenfolge
+        der besuchten Seiten abhaengt, ist keiner, auf den man bauen kann.
+        """
         e = _einstellungen()
+        alle = self._partner_anzeigen(e["partner"])
+        # WERKZEUGE OBEN, GETRENNT VOM MODELL-WAEHLER (Ansage Edgar,
+        # 31.08.2026: „mach einen extra bereich für Coderabbit, ganz oben").
+        #
+        # Vorher stand das Werkzeug als vierter Eintrag in derselben
+        # Partner-Liste wie die drei Modelle - und beim Umschalten wechselte
+        # die halbe Bedienung (Bereiche weg, Auswahl da). Zwei Dinge, die sich
+        # so verschieden bedienen, gehoeren nicht in dieselbe Auswahlliste.
+        werkzeuge = [p for p in alle if p["ist_werkzeug"]]
         return render(request, "djangobase/hilfe/review.html", {
             "aktiv": "review",
-            "partner": e["partner"],
+            "werkzeuge": werkzeuge,
+            "partner": [p for p in alle if not p["ist_werkzeug"]],
             "bereiche": self._bereiche_anzeigen(e["bereiche"]),
             "nachfassen": [{"slug": k, "text": v} for k, v in NACHFASSEN.items()],
             "wurzel": str(e["wurzel"]),
@@ -105,20 +148,52 @@ class ReviewStartView(ZugriffMixin, View):
 
         # Nur konfigurierte Bereiche — keine Pfade aus dem Request.
         gewaehlt = [b for b in e["bereiche"] if b.get("slug") in (daten.get("bereiche") or [])]
-        if modus in ("dialog", "bereiche") and not gewaehlt:
-            return JsonResponse({"fehler": "Kein Bereich gewaehlt"}, status=400)
-        if modus == "dialog":
-            gewaehlt = gewaehlt[:1]
         frage = (daten.get("frage") or "").strip()
-        if modus == "frage" and not frage:
-            return JsonResponse({"fehler": "Keine Frage eingegeben"}, status=400)
+        # WERKZEUG-PARTNER: Es liest den Git-Stand selbst, deshalb braucht es
+        # weder Bereich noch Frage. Aus dem Browser kommt nur der SCHLUeSSEL
+        # einer in der Konfiguration hinterlegten Auswahl — nie ein Argument
+        # der Kommandozeile. Ein unbekannter Schluessel wird abgewiesen statt
+        # stillschweigend durch die Vorgabe ersetzt: Sonst prueft der Lauf
+        # etwas anderes, als auf der Seite steht.
+        auswahl = ""
+        if partner.get("ziel") == WerkzeugPartner.ZIEL:
+            # DIESELBE Normalisierung wie im Partner — die Konfiguration darf
+            # Liste oder Dict sein, und ein `in` auf einer Liste von Dicts
+            # haette JEDE Auswahl abgelehnt.
+            auswahlen = WerkzeugPartner._auswahlen_lesen(partner.get("auswahlen"))
+            # TYP PRUEFEN, BEVOR ``.strip()`` (Befund CodeRabbit, 31.08.2026):
+            # ``auswahl`` kommt aus JSON und kann eine Zahl, Liste oder ein
+            # Objekt sein. ``.strip()`` haette dann einen AttributeError
+            # geworfen - HTTP 500 statt einer verstaendlichen Absage.
+            roh_auswahl = daten.get("auswahl") or ""
+            if not isinstance(roh_auswahl, str):
+                return JsonResponse({"fehler": "Ungueltige Auswahl"}, status=400)
+            auswahl = roh_auswahl.strip()
+            if auswahl and auswahl not in auswahlen:
+                return JsonResponse({"fehler": "Unbekannte Auswahl"}, status=400)
+            gewaehlt = []
+        else:
+            if modus in ("dialog", "bereiche") and not gewaehlt:
+                return JsonResponse({"fehler": "Kein Bereich gewaehlt"}, status=400)
+            if modus == "dialog":
+                gewaehlt = gewaehlt[:1]
+            if modus == "frage" and not frage:
+                return JsonResponse({"fehler": "Keine Frage eingegeben"}, status=400)
 
         lauf = ReviewLauf(modus, partner, wurzel=e["wurzel"], ablage=e["ablage"],
                           rolle=e["rolle"], schluessel_datei=e["schluessel_datei"],
-                          ollama_url=e["ollama_url"], online_url=e["online_url"])
+                          ollama_url=e["ollama_url"], online_url=e["online_url"],
+                          auswahl=auswahl)
         REGISTER.hinzu(lauf)
-        lauf.starten(bereiche=gewaehlt, frage=frage,
-                     titel=daten.get("titel", ""))
+        # EIN KONFIGURATIONSFEHLER IST KEINE 500 (31.08.2026): Der
+        # Werkzeug-Partner weist beim Anlegen zurueck, was er nicht ausfuehren
+        # kann (leerer Befehl, unbekannte Auswahl). Ohne diesen Zweig kaeme im
+        # Browser ein nackter Serverfehler an, und der Grund staende nur im Log.
+        try:
+            lauf.starten(bereiche=gewaehlt, frage=frage,
+                         titel=daten.get("titel", ""))
+        except ReviewFehler as fehler:
+            return JsonResponse({"fehler": str(fehler)}, status=400)
         return JsonResponse({"id": lauf.id, "zustand": lauf.zustand(mit_text=False)})
 
 

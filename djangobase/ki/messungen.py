@@ -35,6 +35,8 @@ DREI TREFFER MIT NUR EINEM LAUF: Jede Zeile ist EINE Messung. Wie wenig das
 traegt, zeigt nemotron: dieselbe Frage, zwei Laeufe, einmal 2/2 und einmal 0/2.
 """
 
+from .modellname import Modellname
+
 #: GRAFIKSPEICHER der lokalen Modelle: (gesamt GB, davon auf der GPU, Rest im
 #: Hauptspeicher). Gemessen mit ``werkzeug/ollama_vram.py``.
 #:
@@ -615,7 +617,7 @@ class Bestenliste:
                 # Dictionary gewollt: geht als JSON an hilfe_ki_modelle.html, offscreen_compiled.js, architektur_gpu.html (5 von 5 Schlüsseln stehen dort wörtlich, geprüft mit Skills2 → Anzeigeformat).
                 return {"param_gesamt": z["param_gesamt"], "param_aktiv": z["param_aktiv"],
                         "kontext": z.get("kontext"), "gb": z["gb"], "gb_geschaetzt": False}
-        ges, aktiv = self.katalog.parameter_aus_name(kennung)
+        ges, aktiv = Modellname.parameter(kennung)
         # Dictionary gewollt: geht als JSON an hilfe_ki_modelle.html, offscreen_compiled.js, architektur_gpu.html (5 von 5 Schlüsseln stehen dort wörtlich, geprüft mit Skills2 → Anzeigeformat).
         return {"param_gesamt": ges, "param_aktiv": aktiv, "kontext": None,
                 "gb": None, "gb_geschaetzt": False}
