@@ -1,0 +1,92 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+#
+# CodeRabbit fuer djangoBase (eingerichtet 31.08.2026)
+# ===================================================
+# Anlass: Der erste Lauf ueber dieses Repo brachte 14 Befunde - und ein Teil
+# davon nur, weil das Werkzeug die Regeln dieses Pakets nicht kannte. Ein
+# Pruefer ohne Kontext meldet Geschmack als Fehler, und das verdeckt die
+# echten Befunde (siehe ~/.claude/rules/analysewerkzeuge.md).
+#
+# DIESES PAKET IST BESONDERS: Es haengt als editable Install in rund sechs
+# Projekten (assistant, WalkHop, NoiseSpy, HumanBodyWeb, shortlongx, CamTrack).
+# Jede Aenderung wirkt SOFORT ueberall - deshalb wiegt hier schwerer als
+# anderswo, ob eine Aenderung rueckwaertskompatibel ist.
+
+language: de-DE
+
+tone_instructions: >-
+  Antworte auf Deutsch, sachlich und knapp. Nenne bei jedem Befund die Datei
+  und die Zeile. Keine Lobhudelei, keine Zusammenfassung des Offensichtlichen.
+
+reviews:
+  profile: assertive
+
+  path_filters:
+    - "!**/migrations/**"
+    - "!**/*.log"
+    - "!**/__pycache__/**"
+    - "!_wegwerf/**"
+
+  path_instructions:
+    - path: "djangobase/skills/**/*.py"
+      instructions: >-
+        Pruefwerkzeuge fuer fremde Projekte. Der teuerste Fehler hier ist der
+        FEHLALARM, nicht der uebersehene Befund: Ein Werkzeug, das Geschmack
+        meldet, macht seine echten Treffer unsichtbar, und wer ihm folgt, baut
+        funktionierenden Code kaputt. Achte deshalb besonders auf: Regeln, die
+        gegen den ABSOLUTEN Pfad statt gegen die Teile unterhalb der
+        Projektwurzel pruefen (siehe pfadteile.py); Ausschlusslisten, die ein
+        Werkzeug doppelt fuehrt; und Pruefer, die nicht rot werden koennen.
+        Jeder Fixer schreibt in fremden Code - fuer ihn gilt die
+        Ausschlussliste doppelt.
+
+    - path: "djangobase/tests/**/*.py"
+      instructions: >-
+        Diese Faelle laufen in JEDEM Konsumentenprojekt mit. Ein Testfall darf
+        keine Produktivdaten schreiben und keinen Ordner ausserhalb seines
+        eigenen Wegwerfordners anfassen. Achte auf Zusicherungen, die den
+        Fehler gar nicht mehr erkennen koennen (assertNotIn auf einen festen
+        Startwert, der sich durch den Lauf ohnehin veraendert), und auf
+        gemeinsame Verzeichnisse, die bei parallelen Testprozessen kollidieren.
+
+    - path: "djangobase/review/**/*.py"
+      instructions: >-
+        Die Seite Hilfe -> Review. Der WerkzeugPartner startet lokale
+        Programme: Der Befehl kommt AUSSCHLIESSLICH aus der Konfiguration, aus
+        dem Browser nur der Schluessel einer vorbereiteten Auswahl - nie ein
+        Argument. Ein Zugangsschluessel darf in die Kommandozeile, aber nie in
+        die Mitschrift auf der Platte und nie ins HTML. Anzeige und Wirklichkeit
+        muessen zusammenpassen: Was der Zustand meldet, muss das sein, was
+        wirklich geprueft wurde.
+
+    - path: "djangobase/templates/**/*.html"
+      instructions: >-
+        Diese Vorlagen erben rund sechs Projekte. Aenderungen an den
+        Shell-Templates (base.html, base_app.html, _shell.html, _sidebar.html)
+        muessen additiv oder opt-in sein - eine Umbenennung bricht Projekte,
+        die die Seite nie angefasst haben. Bausteine erscheinen nur, wenn ihre
+        Konfiguration da ist; ohne sie darf sich nichts aendern.
+
+    - path: "djangobase/skills/vermerk.py"
+      instructions: >-
+        NICHT MELDEN, der Vermerk duerfe nur in Python-Kommentar-Tokens stehen.
+        Das wurde am 31.08.2026 geprueft und verworfen: Der belegte Anlassfall
+        (_vorlage_kopieren in assistant) traegt seinen Vermerk IM DOCSTRING,
+        und tests/unit/test_systemablage.MIT_VERMERK sichert genau dieses
+        Verhalten ab - ein Umbau auf Kommentare wuerde die Ausnahme aufheben
+        und den Prueffall rot machen. Die Enge kommt anderswoher: Der Vermerk
+        gilt nur fuer die Lehre, die er beim Namen nennt, und nur im
+        umgebenden Bereich.
+
+    - path: "**/*.js"
+      instructions: >-
+        ES-Module. Die teuerste Fehlerklasse hier ist der STUMME Fehler: Die
+        Seite laedt mit 200, die Konsole schweigt, die Funktion tut nichts.
+        Achte auf Zugriffe auf Namen, die nur im Inline-Block der Vorlage
+        leben, auf verschluckte Rueckmeldungen (leeres catch, .catch(() => {}),
+        Abbruch bei fehlendem Element) und auf ueberholte Antworten, die einen
+        neueren Zustand ueberschreiben.
+
+  auto_review:
+    enabled: true
+    drafts: false

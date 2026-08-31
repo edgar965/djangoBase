@@ -1,0 +1,146 @@
+# -*- coding: utf-8 -*-
+u"""Die Modelle, die auf DIESEM Rechner liegen - gelesen ueber die Ollama-API.
+
+Herausgeloest aus ``modelle.py`` (30.08.2026): Dort standen der Onlinekatalog
+(OpenRouter, eine JSON-Datei, Preise) und die lokale Installation (ein Dienst auf
+Port 11434, Plattenplatz, Quantisierung) in einer Klasse. Zwei Quellen, zwei
+Fehlerbilder, ein Umbau - die Datei war ueber 300 Zeilen.
+
+UEBER DIE HTTP-API, NICHT ueber ``ollama list`` (Befund 11.08.2026): Der
+Django-Dienst laeuft als SYSTEM, und ``ollama.exe`` liegt im Benutzerprofil - im
+Suchpfad von SYSTEM steht es nicht, der Aufruf lief ins Leere und die Seite
+zeigte gar keine lokalen Modelle. Die API loest das nicht nur, sie liefert auch
+mehr: die ECHTE Parameterzahl (27.8B) statt der gerundeten aus dem Namen (27b),
+dazu die Quantisierungsstufe.
+
+Ist Ollama nicht da, ist die Liste leer. Das ist kein Fehler, sondern der
+Normalfall auf einem Rechner ohne lokale Modelle.
+"""
+import json
+import urllib.request
+from concurrent.futures import ThreadPoolExecutor
+
+from .modellname import Modellname
+
+#: NICHT ``localhost`` (Regel ``zeit-messen``): Unter Windows loest der Name zu
+#: ``['::1', '127.0.0.1']`` auf, Ollama lauscht nur auf IPv4 - der Aufschlag von
+#: rund zwei Sekunden faellt JE VERBINDUNG an. Gemessen am 28.08.2026 in
+#: ``assistant``: Median 2.923 ms gegen 840 ms.
+BASIS = "http://127.0.0.1:11434"
+
+#: So viele ``/api/show``-Abrufe gleichzeitig. Sie sind voneinander unabhaengig
+#: und dauern je 6-30 ms; nacheinander summierten sich acht Modelle am
+#: 30.08.2026 auf 105 ms. Vier statt acht Faeden, damit ein Rechner mit dreissig
+#: Modellen den Dienst nicht mit dreissig Verbindungen bewirft.
+FAEDEN = 4
+
+
+class OllamaModelle:
+    u"""Liste und Kontextlaenge der lokal installierten Modelle.
+
+    Ein Objekt gilt fuer EINE Anfrage: Beide Merker leben nur, solange es lebt,
+    danach wird wieder frisch gefragt. Ein prozessweiter Speicher waere schneller
+    und wuerde nach einem ``ollama pull`` alte Zahlen zeigen, ohne dass man es
+    der Seite ansieht.
+    """
+
+    def __init__(self, timeout=20):
+        self.timeout = timeout
+        #: Je Modell EIN ``/api/show``-Aufruf - der Kontext wird an zwei Stellen
+        #: gebraucht (Katalog-Tabelle und Bestenliste).
+        self._kontexte = {}
+        self._liste = None
+
+    # ------------------------------------------------------------------- Abruf
+
+    def _holen(self, pfad, nutzlast=None):
+        u"""Die Antwort von ``pfad`` als Wörterbuch - oder ``{}``, wenn nichts kommt."""
+        if nutzlast is None:
+            ziel = BASIS + pfad
+        else:
+            ziel = urllib.request.Request(
+                BASIS + pfad, data=json.dumps(nutzlast).encode("utf-8"),
+                headers={"Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(ziel, timeout=self.timeout) as r:
+                return json.loads(r.read().decode("utf-8"))
+        except Exception:                                        # noqa: BLE001
+            return {}
+
+    # ------------------------------------------------------------------ Zeilen
+
+    def liste(self):
+        u"""[{kennung, gb, param_gesamt, param_aktiv, quant, kontext}], groesste zuerst.
+
+        IMMER DIESELBE Liste (Messung 30.08.2026). ``Bestenliste._katalogdaten``
+        sucht hier jede Messzeile, die online nicht steht - auf
+        ``/hilfe/ki-modelle/`` zwoelf Stueck, also zwoelf Abrufe von ``/api/tags``
+        fuer immer dieselben acht Modelle: 294 der 664 ms. Dass es dieselben
+        Wörterbücher sind, ist gewollt: Die Ansicht traegt die Messwerte in die
+        Zeilen ein (``zeile.update(note=...)``), und ein zweiter Aufruf gab
+        bisher frische Kopien ohne diese Werte zurueck.
+        """
+        if self._liste is not None:
+            return self._liste
+        roh = self._holen("/api/tags").get("models") or []
+        if not roh:
+            # NICHT merken: Ollama kann gleich laufen, und ein leerer Merker
+            # saehe aus wie „nachgesehen, es gibt keine".
+            return []
+        self._kontexte_vorholen([m.get("name", "") for m in roh])
+        aus = [self._zeile(m) for m in roh]
+        aus.sort(key=lambda z: -(z["gb"] or 0))
+        self._liste = aus
+        return aus
+
+    def _zeile(self, m):
+        einzel = m.get("details") or {}
+        kennung = m.get("name", "")
+        ges, aktiv = Modellname.parameter(kennung)
+        bytes_ = m.get("size") or 0
+        # Dictionary gewollt: Tabellenzeile der Seite Hilfe > KI-Modelle; gelesen
+        # in ``ki_modelle.html`` und in ``Bestenliste._katalogdaten``.
+        return {
+            "kennung": kennung,
+            "gb": round(bytes_ / 1e9, 1) if bytes_ else None,
+            # Die Angabe des Modells schlaegt den Namen: ``27b`` im Namen sind
+            # in Wahrheit 27,8 Mrd. Parameter.
+            "param_gesamt": einzel.get("parameter_size") or ges,
+            "param_aktiv": aktiv,
+            "quant": einzel.get("quantization_level") or "",
+            "kontext": self.kontext(kennung),
+        }
+
+    # ----------------------------------------------------------------- Kontext
+
+    def _kontexte_vorholen(self, kennungen):
+        u"""Die ``/api/show``-Abrufe nebeneinander statt nacheinander."""
+        offen = [k for k in kennungen if k and k not in self._kontexte]
+        if len(offen) < 2:
+            return
+        with ThreadPoolExecutor(max_workers=min(FAEDEN, len(offen))) as pool:
+            for kennung, wert in zip(offen, pool.map(self._kontext_holen, offen)):
+                self._kontexte[kennung] = wert
+
+    def kontext(self, kennung):
+        u"""Kontextlaenge eines lokalen Modells - oder None."""
+        if kennung not in self._kontexte:
+            self._kontexte[kennung] = self._kontext_holen(kennung)
+        return self._kontexte[kennung]
+
+    def _kontext_holen(self, kennung):
+        u"""Der eine Abruf dahinter.
+
+        Die Laenge steht NICHT in ``/api/tags`` (Rueckfrage 11.08.2026: „der
+        Kontext fehlt auch bei den lokalen"), sondern nur in ``/api/show`` unter
+        ``model_info.<architektur>.context_length``. Der Praefix wechselt je
+        Modell (``qwen35.``, ``gemma4.``), deshalb wird nach der Endung gesucht
+        statt nach einem festen Schluessel."""
+        info = self._holen("/api/show", {"model": kennung}).get("model_info") or {}
+        for schluessel, wert in info.items():
+            if schluessel.endswith(".context_length"):
+                try:
+                    return int(wert)
+                except (TypeError, ValueError):
+                    return None
+        return None

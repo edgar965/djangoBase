@@ -62,6 +62,7 @@ import ast
 
 from .anlassfall import Anlassfall
 from .befund import Befund, Befundsatz, BefundWerkzeug
+from .rahmenvorschrift import Rahmenvorschrift
 
 __all__ = ['Klassenreif']
 
@@ -445,6 +446,26 @@ class Klassenreif(BefundWerkzeug):
                          ', '.join(str(z) for z in sorted(
                              sicht.zustand.values()))))
 
+    @staticmethod
+    def _meldet_an(funktion):
+        u"""Meldet ein Dekorator diese Funktion beim Rahmenwerk an?
+
+        DER FEHLALARM (30.08.2026, assistant): `mail/signals.py` wurde mit
+        „5 Funktionen fädeln dieselben Werte: (sender, instance)" gemeldet.
+        Das ist kein ungeschriebener Konstruktor — es ist die SIGNATUR,
+        die Django dem Empfaenger vorschreibt. Und in eine Klasse duerfen
+        sie ohnehin nicht: `@receiver` haelt eine Referenz auf das
+        Funktionsobjekt; als Methode meldet der Dekorator nichts mehr an,
+        und `post_save` fuer `Mail` feuert ins Leere. Genau dieselbe Liste
+        nimmt `freie-funktionen` seit dem 28.08.2026 aus.
+        """
+        for schmuck in getattr(funktion, 'decorator_list', ()):
+            knoten = schmuck.func if isinstance(schmuck, ast.Call) else schmuck
+            name = getattr(knoten, 'attr', None) or getattr(knoten, 'id', None)
+            if name in Rahmenvorschrift.ANMELDENDE_DEKORATOREN:
+                return True
+        return False
+
     # ── 2. Dieselben Werte durch viele Funktionen ───────────────────
     @staticmethod
     def _frage2_gefaedelt(fund, sicht, quellen=None):
@@ -455,6 +476,8 @@ class Klassenreif(BefundWerkzeug):
         """
         koepfe = {}
         for funktion in sicht.funktionen:
+            if Klassenreif._meldet_an(funktion):
+                continue
             namen = tuple(a.arg for a in funktion.args.args)
             if len(namen) < GEMEINSAM_AB:
                 continue

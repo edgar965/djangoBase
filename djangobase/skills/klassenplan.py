@@ -107,13 +107,34 @@ def bericht(konto, kurse):
         warum="Kriterium 1: was mehrfach durchgereicht wird, ist ein Feld — "
               "was nur einmal vorkommt, bleibt Parameter")
 
+    #: NICHT GEZAEHLT WERDEN DEKORIERTE FUNKTIONEN auf Modulebene.
+    #:
+    #: AM ECHTEN PROJEKT GEMESSEN (31.08.2026, 3DTools): Gemeldet wurde
+    #: ``core/templatetags/einstellungszeile.py`` — „3 Funktionen, Felder
+    #: context (3x), kennung (3x)", Vorschlag: Klasse ``Einstellungszeile``.
+    #: Die Klasse GAB ES SCHON und stand zwei Zeilen darueber; die drei
+    #: Funktionen sind ``@register.inclusion_tag``-Marken, die Django unter
+    #: ihrem Namen im Modul sucht. In eine Klasse verschoben, findet
+    #: ``{% load %}`` sie nicht mehr — jede Seite, die sie benutzt, wirft
+    #: ``TemplateSyntaxError``.
+    #:
+    #: Ein Dekorator auf Modulebene heisst fast immer „ein Rahmenwerk ruft
+    #: das hier": Django-Views (``@csrf_exempt``), Celery-Tasks
+    #: (``@task``), Flask/FastAPI-Routen (``@app.get``), pytest-Fixtures.
+    #: Der gemeinsame Parameter ist bei ihnen kein Feld, sondern die
+    #: Signatur, die das Rahmenwerk vorschreibt — ``context`` steht in
+    #: ``einstellungszeile.py`` dreimal, weil Django ihn dreimal so haben
+    #: will. Dieselbe Regel steckt in ``klassenkandidat`` als
+    #: ``_ruft_das_framework``.
+
     def laufen(self):
         zeilen = []
         for d in self.dateien():
             if d.baum is None:
                 continue
             funktionen = [k for k in d.baum.body
-                          if isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef))]
+                          if isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef))
+                          and not k.decorator_list]
             if len(funktionen) < self.AB_FUNKTIONEN:
                 continue
             args = self._argumente(funktionen)

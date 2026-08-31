@@ -132,7 +132,7 @@ class FixAusnahme(Fixer):
         aus = []
         gesamt = 0
         for d in self.pruefer().dateien():
-            if d.baum is None or not self.erlaubt(d.pfad):
+            if d.baum is None or not self.erlaubt(d.pfad, self.wurzel()):
                 continue
             if any(t in d.name for t in self.NICHT_HIER):
                 continue

@@ -81,15 +81,17 @@ class Testtabelle:
         # stand bis 17.08.2026 als „Verschieben" ganz rechts; sie gehört nach
         # vorn zu der anderen Einteilung, mit der man arbeitet.
         {"label": "Kategorie", "key": "kategorie", "sortAus": True,
-         "titel": "Kategorie des Falls — Auswahl verschiebt seine Testdatei in "
-                  "den Ordner der Zielkategorie"},
+         "titel": "Kategorie des Falls — die Auswahl verschiebt seine "
+                  "Testdatei in den Ordner der Zielkategorie; weitere Fälle in "
+                  "derselben Datei gehen mit"},
         # Die ZWEITE Einteilung neben der Kategorie (Ansage 17.08.2026:
         # „einmal Kategorien (unit, usw.), einmal Bereich (wie Chat usw.)").
         # Sie steht vorn, weil die Zeilen danach vorsortiert sind — eine
         # Gruppierung, die man rechts sucht, ist keine.
         {"label": "Bereich", "key": "bereich",
          "titel": "Was getestet wird — vom Projekt angegeben "
-                  "(Einstellungen → djangoBase → Test-Bereiche)"},
+                  "(Einstellungen → djangoBase → Test-Bereiche). Die Auswahl "
+                  "verschiebt die Testdatei; weitere Fälle darin gehen mit"},
         {"label": "Testcase", "key": "name"},
         {"label": "Ziel", "key": "ziel"},
         {"label": "letzte", "key": "letzte", "num": True,
@@ -290,6 +292,13 @@ class Testtabelle:
         return {
             "klasse": "aktiv" if self.aktiver_slug == e.kennung else "",
             "bereich": b_slug, "bereich_name": b_name,
+            # EINMAL je Zeile (30.08.2026). Vorher trug jedes Bedienelement die
+            # Kennung selbst: Nummernfeld, Kategorie-Box, Bereichs-Box. Bei 742
+            # Zeilen und 80 Zeichen je Kennung sind das 178 KB Verdrahtung in
+            # einer Seite von 1,66 MB - fuer dieselbe Zeichenkette, dreimal in
+            # derselben <tr>. `tests_nummer.js` und `tests_verschieben.js`
+            # lesen sie jetzt ueber `closest('tr').dataset.id`.
+            "id": e.kennung,
             "zellen": [
                 {"html": '<input type="checkbox" class="ts-wahl" value="%s" '
                          'aria-label="auswählen">' % escape(e.kennung),
@@ -299,8 +308,7 @@ class Testtabelle:
                 # der Platz nicht bekannt, weil die Abschnittszeilen dazwischen
                 # neu bei 1 beginnen).
                 {"html": '<input type="number" class="ts-nr" min="1" '
-                         'value="{{nr}}" data-test-id="%s" '
-                         'aria-label="Platz in der Tabelle">' % escape(e.kennung),
+                         'value="{{nr}}" aria-label="Platz in der Tabelle">',
                  "klasse": "ts-nr-zelle"},
                 {"html": self._kategorie(e)},
                 # Der Bereich - als Combo-Box, wo er wechselbar ist (Ansage
@@ -350,13 +358,13 @@ class Testtabelle:
         _slug, datei = self.verschieber.bereich_moeglich(e.kennung)
         if datei is None:
             return marke
-        return ('<select class="ts-ber ts-lazy" data-test-id="%s" '
-                'data-bereich="%s" data-liste="ts-ber-optionen" '
-                'title="verschiebt %s in den Ordner des gewählten Bereichs — '
-                'weitere Fälle in derselben Datei gehen mit">'
+        # Kennung: siehe `data-id` auf der Zeile. Tooltip: nur das, was sich
+        # je Zeile unterscheidet - was die Spalte tut, steht im Spaltenkopf.
+        return ('<select class="ts-ber ts-lazy" data-bereich="%s" '
+                'data-liste="ts-ber-optionen" '
+                'title="%s — weitere Fälle darin gehen mit">'
                 '<option value="%s" selected>%s</option></select>'
-                % (escape(e.kennung), escape(slug), escape(datei.name),
-                   escape(slug), escape(name)))
+                % (escape(slug), escape(datei.name), escape(slug), escape(name)))
 
     def _kategorie(self, e, kategorie_name=""):
         u"""Die Combo-Box „Verschieben" - oder nur der Name der Kategorie.
@@ -381,7 +389,7 @@ class Testtabelle:
             return ('<span class="ts-kat-fest ts-kat-fremd" title="Testfall aus '
                     'djangoBase selbst — gehört der Bibliothek, nicht diesem '
                     'Projekt. Ein-/ausblenden über Einstellungen → djangoBase → '
-                    '„djangoBase-Testcases sichtbar".">%s</span>'
+                    '„djangoBase-Testcases sichtbar“.">%s</span>'
                     % escape(Verschieber.EIGENE_KATEGORIE))
         art, datei = self.verschieber.moeglich(e.kennung)
         wahl = Verschieber.auswahl(art, datei is not None)
@@ -394,13 +402,12 @@ class Testtabelle:
         # DOM. Gemessen am 18.08.2026: 2.750 Zeilen x 21 Optionen sind rund
         # 58.000 `<option>` und damit über die Hälfte der 4,4 MB, die die Seite
         # wog — für Auswahlfelder, von denen man eines benutzt.
-        return ('<select class="ts-kat ts-lazy" data-test-id="%s" data-art="%s" '
+        return ('<select class="ts-kat ts-lazy" data-art="%s" '
                 'data-liste="ts-kat-optionen" '
-                'title="verschiebt %s in den Ordner der gewählten Kategorie — '
-                'weitere Fälle in derselben Datei gehen mit">'
+                'title="%s — weitere Fälle darin gehen mit">'
                 '<option value="%s" selected>%s</option></select>'
-                % (escape(e.kennung), escape(art), escape(datei.name),
-                   escape(art), escape(Verschieber.NAMEN.get(art, art))))
+                % (escape(art), escape(datei.name), escape(art),
+                   escape(Verschieber.NAMEN.get(art, art))))
 
     def optionen(self):
         u"""Die vollstaendigen Auswahllisten - EINMAL je Seite.

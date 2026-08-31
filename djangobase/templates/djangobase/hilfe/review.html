@@ -52,6 +52,8 @@
         </div>
     </details>
 
+    {% include "djangobase/hilfe/_review_werkzeuge.html" %}
+
     {% if not partner %}
     {% comment %}
     Kein Partner konfiguriert. Die Seite erscheint trotzdem in jedem Projekt
@@ -97,7 +99,7 @@
             <label class="rv-label" for="rv-partner">Partner</label>
             <select id="rv-partner" class="rv-select">
                 {% for p in partner %}
-                <option value="{{ p.slug }}">{{ p.name|default:p.slug }} — {{ p.modell }}{% if p.ziel == 'online' %} (online){% else %} (lokal){% endif %}</option>
+                <option value="{{ p.slug }}">{{ p.name|default:p.slug }} — {{ p.modell }}{% if p.ist_werkzeug %} (Werkzeug){% elif p.ziel == 'online' %} (online){% else %} (lokal){% endif %}</option>
                 {% endfor %}
             </select>
             <span class="rv-hinweis" id="rv-ziel-hinweis"></span>
@@ -122,7 +124,7 @@
         <div class="rv-zeile rv-zeile-oben">
             <label class="rv-label" for="rv-frage">Frage</label>
             <textarea id="rv-frage" class="rv-textarea" rows="3"
-                placeholder="Bei „Einfache Frage" Pflicht. Bei den Dialog-Arten optional — ohne Text werden die im Bereich hinterlegten Fragen gestellt."></textarea>
+                placeholder="Bei „Einfache Frage“ Pflicht. Bei den Dialog-Arten optional — ohne Text werden die im Bereich hinterlegten Fragen gestellt."></textarea>
         </div>
 
         <div class="rv-knoepfe">
@@ -160,7 +162,7 @@
 
     {# ------------------------------------------------ Nachfassen ----------- #}
     <div class="rv-card rv-nachfass" id="rv-nachfass" hidden>
-        <div class="rv-zeile">
+        <div class="rv-zeile" id="rv-vorlagen-zeile">
             <label class="rv-label">Nachfassen</label>
             <div class="rv-vorlagen">
                 {% for n in nachfassen %}
@@ -171,7 +173,7 @@
         </div>
         <div class="rv-zeile rv-zeile-oben">
             <textarea id="rv-nachfrage" class="rv-textarea" rows="2"
-                placeholder="Eigene Nachfrage — am wirksamsten mit einer Messung: „Gegenprobe ergab X. Zieh zurück oder liefere einen auslösenden Fall.""></textarea>
+                placeholder="Eigene Nachfrage — am wirksamsten mit einer Messung: „Gegenprobe ergab X. Zieh zurück oder liefere einen auslösenden Fall.“"></textarea>
             <button type="button" class="rv-knopf rv-primaer" id="rv-senden">
                 <i class="bi bi-send"></i> An alle Fäden</button>
         </div>

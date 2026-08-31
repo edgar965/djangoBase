@@ -21,6 +21,13 @@ ERWARTETE STRUKTUR (``tabelle``):
       ],
       "zeilen": [
         {"klasse": "hervor",             optional: Klasse der <tr>
+         "id": "core.tests…",            optional -> data-id auf der <tr>. Fuer
+                                         Bedienelemente IN der Zeile, die wissen
+                                         muessen, worauf sie sich beziehen -
+                                         einmal je Zeile statt einmal je
+                                         Element. Auf der Tests-Seite waren das
+                                         742 x 3 Kopien einer 80 Zeichen langen
+                                         Kennung (30.08.2026).
          "zellen": [
            {"html": "<b>x</b>",          Anzeige (HTML erlaubt)
             "sort": 17.4,                ROHWERT zum Sortieren - ohne ihn wird
@@ -80,9 +87,7 @@ zeigen, nicht die Aufmerksamkeit binden.
     (gemessen 18.08.2026). Wer `zellen` liefert, wird weiter wie bisher
     gerendert: Die Tabelle steht in mehreren Projekten.
     {% endcomment %}
-    <tr{% if z.klasse %} class="{{ z.klasse }}"{% endif %}
-       {% if z.gruppe %} data-gruppe="1"{% endif %}
-       {% if z.bereich %} data-bereich="{{ z.bereich }}"{% endif %}>{% if z.html %}{{ z.html|safe }}{% else %}
+    <tr{% if z.klasse %} class="{{ z.klasse }}"{% endif %}{% if z.gruppe %} data-gruppe="1"{% endif %}{% if z.bereich %} data-bereich="{{ z.bereich }}"{% endif %}{% if z.id %} data-id="{{ z.id }}"{% endif %}>{% if z.html %}{{ z.html|safe }}{% else %}
       {% for c in z.zellen %}
       <td{% if c.klasse %} class="{{ c.klasse }}"{% endif %}
          {% if c.colspan %} colspan="{{ c.colspan }}"{% endif %}
