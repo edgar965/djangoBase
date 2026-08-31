@@ -21,6 +21,25 @@ Sonst wandert der Kommentarblock ueber einer Regel in den „Selektor". In
 3DTools steht ueber jedem erzeugten Stilblock derselbe Herkunftsvermerk — der
 erste Wurf meldete diesen Vermerk als haeufigste Dublette (achtmal), und die
 echten Regeln standen darunter.
+
+AT-BLOECKE KOMMEN ALS GANZES (31.08.2026)
+=========================================
+``REGEL`` kennt keine geschachtelten Klammern. Bei::
+
+    @keyframes spin { from { … } to { transform: rotate(360deg); } }
+
+fand sie nicht den Block, sondern seine SCHRITTE — mit den Selektoren
+``from`` und ``to``, ohne den Namen der Animation. Damit galt
+``to{transform:rotate(360deg)}`` als dieselbe Regel in jeder Datei, die
+IRGENDEINE Drehung animiert: Im Projekt assistant wurde
+``@keyframes sync-spin`` als Dublette von ``@keyframes spin`` gemeldet.
+
+Dasselbe gilt fuer ``@media``: die Regeln darin sind Ueberschreibungen
+und nicht dasselbe wie die Basisregel gleichen Namens.
+
+Deshalb wird jetzt klammerbewusst zerlegt: Ein ``@keyframes``-Block ist
+EINE Regel (Name + ganzer Rumpf), und in einem ``@media``-Block traegt
+jede Regel ihre Bedingung im Schluessel.
 """
 import re
 from collections import defaultdict
@@ -99,14 +118,102 @@ class Cssdubletten(BefundWerkzeug):
         for pfad in self.projektdateien(".css"):
             yield pfad
 
+    #: Ein At-Block mit eigenem Rumpf. ``@keyframes`` kommt als Ganzes,
+    #: bei den uebrigen wird hineingegangen und die Bedingung vorangestellt.
+    AT_BLOCK = re.compile(r"@[\w-]+[^{;]*(?=\{)")
+    #: Diese At-Regeln sind EINE Regel — ihre Schritte bedeuten einzeln nichts.
+    AM_STUECK = ("@keyframes", "@font-face", "@counter-style", "@property")
+
+    @classmethod
+    def _am_stueck(cls, kopf):
+        u"""Ist diese At-Regel EINE Regel — auch mit Herstellervorsatz?
+
+        MIT VORSATZ (Befund CodeRabbit, 31.08.2026): ``@-webkit-keyframes``
+        stand nicht in der Liste. Seine ``from``/``to``-Schritte wurden dann
+        als eigenstaendige Regeln ausgegeben — und zwei verschiedene
+        Animationen mit gleichen Schritten galten als Dublette. Genau die
+        Sorte Fehlalarm, die echte Befunde zudeckt.
+        """
+        erstes = kopf.split()[0].lower() if kopf.split() else ""
+        if erstes in cls.AM_STUECK:
+            return True
+        # ``@-webkit-keyframes``, ``@-moz-keyframes``, … — der Name endet auf
+        # denselben Bezeichner, nur mit Herstellervorsatz davor.
+        return any(erstes.endswith(name[1:]) for name in cls.AM_STUECK)
+
     def _regeln(self, pfad, text):
         """(Selektor, Rumpf) — aus ``<style>``-Bloecken bzw. der ganzen Datei."""
         if pfad.suffix == ".css":
-            return self.REGEL.findall(self.KOMMENTAR.sub("", text))
+            return self._zerlegen(self.KOMMENTAR.sub("", text))
         raus = []
         for block in self.STILBLOCK.findall(text):
-            raus += self.REGEL.findall(self.KOMMENTAR.sub("", block))
+            raus += self._zerlegen(self.KOMMENTAR.sub("", block))
         return raus
+
+    @classmethod
+    def _zerlegen(cls, css, praefix=""):
+        """Regeln einer Ebene — At-Bloecke klammerbewusst behandelt.
+
+        ``praefix`` ist die Bedingung des umgebenden At-Blocks; sie steht
+        im Selektor, damit ``.karte`` aus ``@media print`` nicht als
+        dieselbe Regel gilt wie ``.karte`` daneben.
+        """
+        raus, rest, stelle = [], [], 0
+        for treffer in cls.AT_BLOCK.finditer(css):
+            if treffer.start() < stelle:
+                continue
+            anfang = css.find("{", treffer.end() - 1)
+            ende = cls._blockende(css, anfang)
+            if anfang < 0 or ende < 0:
+                continue
+            rest.append(css[stelle:treffer.start()])
+            kopf = " ".join(treffer.group(0).split())
+            rumpf = css[anfang + 1:ende]
+            if cls._am_stueck(kopf):
+                # Als EINE Regel: der Name gehoert zum Rumpf.
+                raus.append((kopf, " ".join(rumpf.split())))
+            else:
+                raus += cls._zerlegen(rumpf, "%s %s" % (praefix, kopf))
+            stelle = ende + 1
+        rest.append(css[stelle:])
+        for selektor, rumpf in cls.REGEL.findall("".join(rest)):
+            raus.append(((praefix + " " + selektor).strip(), rumpf))
+        return raus
+
+    @staticmethod
+    def _blockende(css, anfang):
+        """Die Stelle der schliessenden Klammer — oder -1.
+
+        KLAMMERN IN ZEICHENKETTEN ZAEHLEN NICHT (Befund CodeRabbit,
+        31.08.2026): ``content: "}"`` beendete den Block hier vorzeitig. Ein
+        ``@media``-Block wird damit zu frueh geschlossen, und ``_zerlegen``
+        verliert oder verstuemmelt die Regeln dahinter — ohne Fehlermeldung,
+        nur mit falschen Dubletten.
+        """
+        if anfang < 0:
+            return -1
+        tiefe = 0
+        zeichenkette = None          # das offene Anfuehrungszeichen oder None
+        i = anfang
+        while i < len(css):
+            z = css[i]
+            if zeichenkette:
+                # In CSS maskiert der Rueckstrich auch das Anfuehrungszeichen.
+                if z == "\\":
+                    i += 2
+                    continue
+                if z == zeichenkette:
+                    zeichenkette = None
+            elif z in "\"'":
+                zeichenkette = z
+            elif z == "{":
+                tiefe += 1
+            elif z == "}":
+                tiefe -= 1
+                if tiefe == 0:
+                    return i
+            i += 1
+        return -1
 
     @classmethod
     def _normal(cls, selektor, rumpf):
@@ -121,8 +228,12 @@ class Cssdubletten(BefundWerkzeug):
         """
         sel = " ".join(selektor.split())
         koerper = ";".join(cls._angabe(t) for t in rumpf.split(";") if t.strip())
-        if not sel or not koerper or sel.startswith("@"):
+        if not sel or not koerper:
             return ""
+        # ``@``-Selektoren fielen bis zum 31.08.2026 pauschal heraus. Seit
+        # ``_zerlegen`` klammerbewusst arbeitet, sind es genau zwei
+        # sinnvolle Formen: ein ganzer ``@keyframes``-Block und eine Regel
+        # MIT ihrer ``@media``-Bedingung. Beide gehoeren gezaehlt.
         return "%s{%s}" % (sel, koerper)
 
     @staticmethod

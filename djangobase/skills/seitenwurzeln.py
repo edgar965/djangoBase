@@ -110,6 +110,9 @@ class Seitenwurzeln(BefundWerkzeug):
 
     #: Bausteine des Browsers — keine eigenen Klassen. Ohne diese Liste
     #: meldet das Werkzeug `new Date()` als Wurzel des Objektmodells.
+    #: NACHGETRAGEN (31.08.2026, assistant): ``FileReader`` und die
+    #: uebrigen Datei-, Ton- und Zeichenbausteine. ``midi_create.html``
+    #: bekam ihretwegen zwei Wurzeln zuviel gezaehlt.
     FREMD = frozenset({
         'Date', 'URL', 'URLSearchParams', 'CustomEvent', 'Event', 'Map',
         'Set', 'WeakMap', 'WeakSet', 'Promise', 'Image', 'Audio', 'Blob',
@@ -117,7 +120,23 @@ class Seitenwurzeln(BefundWerkzeug):
         'IntersectionObserver', 'ResizeObserver', 'MutationObserver',
         'Intl', 'RegExp', 'Error', 'TextDecoder', 'TextEncoder',
         'MediaSource', 'RTCPeerConnection', 'WebSocket', 'Worker',
+        'FileReader', 'File', 'DOMParser', 'XMLHttpRequest', 'EventSource',
+        'BroadcastChannel', 'Notification', 'AudioContext', 'MediaRecorder',
+        'SpeechSynthesisUtterance', 'Option', 'Range', 'Path2D',
+        'OffscreenCanvas', 'ArrayBuffer', 'DataView', 'Uint8Array',
+        'Int8Array', 'Uint16Array', 'Int16Array', 'Uint32Array',
+        'Int32Array', 'Float32Array', 'Float64Array', 'Function', 'Proxy',
     })
+
+    #: ``let X = window.Y;`` — ein Name, der eine FREMDE Klasse haelt.
+    #:
+    #: DER FEHLALARM (31.08.2026, assistant): ``midi_create.html`` holt
+    #: sich mit ``let MidiClass = window.Midi;`` die Klasse aus einer
+    #: eingebundenen Bibliothek und ruft ``new MidiClass(buffer)``. Das
+    #: ist keine Wurzel der Seite, sondern ein Objekt der Bibliothek —
+    #: eine Seiten-Klasse koennte daran nichts aendern.
+    AUS_FENSTER = re.compile(
+        r'(?:const|let|var)\s+(\w+)\s*=\s*window\.\w+')
 
     #: Eine geratene Reihenfolge.
     WARTEN = re.compile(r'setTimeout\s*\(')
@@ -181,8 +200,9 @@ class Seitenwurzeln(BefundWerkzeug):
     def _wurzeln(self, text: str) -> list:
         u"""``[(name, zeile)]`` — was diese Vorlage selbst erzeugt."""
         raus = []
+        geliehen = set(self.AUS_FENSTER.findall(text))
         for treffer in self.NEU.finditer(text):
-            if treffer.group(1) in self.FREMD:
+            if treffer.group(1) in self.FREMD or treffer.group(1) in geliehen:
                 continue
             raus.append((treffer.group(1),
                          text.count('\n', 0, treffer.start()) + 1))

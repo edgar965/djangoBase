@@ -200,3 +200,54 @@ class DasWerkzeugAmEchtenProjekt(BasisTest):
             {'a.html': '{% if is_edit %}{{ camera.name }}{% endif %}'})
         self.assertFalse([b for b in satz.befunde if 'camera' in b.was],
                          [b.was for b in satz.befunde])
+
+    # -------------------------------------------------- Anfuehrungszeichen
+    # DER FALL (30.08.2026, Projekt assistant): Das Muster fuer
+    # ``extends``/``include`` las nur ``"…"``. Von 569 Einbindungen im
+    # Projekt stehen 381 in ``'…'`` — darunter die erste Zeile jeder Seite
+    # (``{% extends 'bank/_base_bank.html' %}``). Fuer diese Seiten begann
+    # die Kette gar nicht erst, also galt JEDER uebergebene Wert als tot:
+    # 49 der 51 Warnungen. Dazu vier Vorlagen als VERWAIST, obwohl
+    # ``chat.html`` sie einbindet.
+
+    def test_einfach_gequotetes_extends_setzt_die_kette_fort(self):
+        satz = self._lauf(
+            "def x(request):\n"
+            "    return render(request, 'a.html', {'wert': 1})\n",
+            {'a.html': "{% extends 'basis.html' %}",
+             'basis.html': '<p>{{ wert }}</p>'})
+        self.assertFalse([b for b in satz.befunde if 'TOT: wert' in b.was],
+                         [b.was for b in satz.befunde])
+
+    def test_einfach_gequotetes_include_setzt_die_kette_fort(self):
+        satz = self._lauf(
+            "def x(request):\n"
+            "    return render(request, 'a.html', {'wert': 1})\n",
+            {'a.html': "{% include 'teil.html' %}",
+             'teil.html': '<p>{{ wert }}</p>'})
+        self.assertFalse([b for b in satz.befunde if 'TOT: wert' in b.was],
+                         [b.was for b in satz.befunde])
+
+    def test_einfach_gequotet_eingebunden_ist_nicht_verwaist(self):
+        satz = self._lauf(
+            "def x(request):\n"
+            "    return render(request, 'a.html', {})\n",
+            {'a.html': "{% include 'teil.html' %}",
+             'teil.html': '<p>fest</p>'})
+        self.assertFalse([b for b in satz.befunde if 'teil.html' in b.ort],
+                         [b.ort for b in satz.befunde])
+
+    def test_gegenprobe_der_tote_name_bleibt_auch_einfach_gequotet_tot(self):
+        u"""Das Werkzeug ist nicht einfach still geworden.
+
+        Dieselbe Kette wie oben, nur liest sie NIEMAND — der Befund muss
+        stehen bleiben. Ohne diese Gegenprobe waere ein Muster, das gar
+        nichts mehr findet, ebenfalls gruen.
+        """
+        satz = self._lauf(
+            "def x(request):\n"
+            "    return render(request, 'a.html', {'ungenutzt': 1})\n",
+            {'a.html': "{% extends 'basis.html' %}",
+             'basis.html': '<p>nichts</p>'})
+        self.assertTrue(any('TOT: ungenutzt' in b.was for b in satz.befunde),
+                        [b.was for b in satz.befunde])

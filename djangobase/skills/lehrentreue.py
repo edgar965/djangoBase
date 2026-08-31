@@ -40,6 +40,7 @@ import ast
 
 from .anlassfall import Anlassfall
 from .befund import Befund, Befundsatz, BefundWerkzeug
+from .vermerk import Vermerk
 
 #: Wie ein Wegwerf-Verzeichnis angelegt wird, ohne ``dir=`` zu setzen.
 TEMP_RUFE = ('mkdtemp', 'mkstemp', 'gettempdir', 'NamedTemporaryFile',
@@ -112,9 +113,9 @@ class Regelsucher(ast.NodeVisitor):
         self.zeilen = quelle.splitlines()
         #: (erste, letzte) Zeile jeder Funktion — gefuellt beim Durchgang.
         self.funktionen = []
-        #: Bis hierhin gilt ein Vermerk fuer die ganze Datei: der Kopf vor
-        #: der ersten Definition.
-        self.kopfzeilen = self._kopfende()
+        #: Die Vermerke der Datei. Seit dem 31.08.2026 in ``vermerk.py``,
+        #: weil ``systemablage`` dieselbe Ausnahme anerkennen muss.
+        self.vermerk = Vermerk(quelle)
         #: Nur wo cKDTree vorkommt, ist ein ``.query()`` eine Nachbarsuche.
         self.hat_kdtree = 'KDTree' in quelle
 
@@ -148,27 +149,10 @@ class Regelsucher(ast.NodeVisitor):
 
     def _vermerkt(self, zeile, lehre):
         u"""Nimmt ein Vermerk diese Stelle von DIESER Lehre aus?"""
-        for von, bis in self._bereiche(zeile):
-            block = '\n'.join(self.zeilen[von:bis])
-            for absatz in block.split(self.VERMERK)[1:]:
-                # Der Name der Lehre steht im selben oder im naechsten Satz.
-                if lehre in absatz[:self.VERMERK_REICHWEITE]:
-                    return True
-            if lehre in block and self.VERMERK in block:
-                # Auch die Schreibweise „Lehre gilt hier nicht" VOR dem
-                # Namen zaehlt — beides steht dann in derselben Erklaerung.
-                return True
-        return False
+        return self.vermerk.gilt_nicht(zeile, lehre)
 
     #: So viele Zeichen hinter dem Vermerk darf der Name der Lehre stehen.
-    VERMERK_REICHWEITE = 400
-
-    def _bereiche(self, zeile):
-        u"""Erst die umgebende Funktion, dann die Datei als Ganzes."""
-        for von, bis in self.funktionen:
-            if von <= zeile <= bis:
-                yield von - 1, bis
-        yield 0, self.kopfzeilen
+    VERMERK_REICHWEITE = Vermerk.REICHWEITE
 
     def visit_FunctionDef(self, knoten):
         self._merken(knoten)
@@ -243,14 +227,6 @@ class Regelsucher(ast.NodeVisitor):
                     gesehen_order = True
                 knoten = knoten.func
         return gesehen_values and not gesehen_order
-
-
-    def _kopfende(self):
-        u"""Die letzte Zeile vor der ersten `def`/`class` — der Dateikopf."""
-        for nr, zeile in enumerate(self.zeilen):
-            if zeile.startswith(('def ', 'class ', 'async def ')):
-                return nr
-        return len(self.zeilen)
 
 
 class Lehrentreue(BefundWerkzeug):
