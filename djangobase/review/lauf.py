@@ -210,6 +210,8 @@ class ReviewLauf:
                 "%d. %s" % (i + 1, f) for i, f in enumerate(bereich["fragen"])) + "\n")
 
         dateien = list((bereich or {}).get("dateien") or [])
+        dateien = self._verzeichnisse_auffalten(
+            dateien, self._bereichs_wurzel(bereich))
         if dateien:
             teile.append("## Quelltext (vollständig, von der Platte gelesen)\n")
             gesamt = 0
@@ -302,6 +304,64 @@ class ReviewLauf:
         except OSError:
             logger.warning("Review: Bereichs-Wurzel nicht aufloesbar: %r", eigen)
             return self.wurzel
+
+    #: Endungen, die beim Auffalten eines Verzeichnisses mitgenommen werden.
+    PAKET_ENDUNGEN = (".py", ".js", ".css", ".html")
+
+    #: Mehr Dateien nimmt ein aufgefaltetes Verzeichnis nicht mit. Die
+    #: Paketgrenze (`MAX_ZEICHEN_PAKET`) faengt den Rest ohnehin ab; diese
+    #: Schranke steht davor, damit ein versehentlich genanntes grosses
+    #: Verzeichnis nicht erst 400 Dateien von der Platte liest.
+    PAKET_HOECHSTENS = 40
+
+    def _verzeichnisse_auffalten(self, dateien, wurzel):
+        """Verzeichnis-Eintraege durch ihre Dateien ersetzen.
+
+        WARUM ES DAS GIBT (31.08.2026)
+        ==============================
+        Ein Review-Bereich nannte
+        ``humanbody_core/skeleton/formats.py`` — 504 Zeilen, acht
+        Skelett-Formate in einer Datei. Beim Aufteilen in ein Paket
+        (eine Klasse je Datei) zeigte der Eintrag ins Leere: Der Bereich
+        haette weiter geladen, nur ohne Quelltext, mit einem „Nicht
+        lesbar" mitten im Paket. Genau die Sorte Fehler, die niemand
+        bemerkt — die Seite baut sich auf, das Modell antwortet, es
+        hatte nur den Code nicht gesehen.
+
+        Wer Dateien in Pakete schneidet, soll den Bereich nicht bei
+        jedem Schnitt nachpflegen muessen. Ein Verzeichnis meint alle
+        Quelldateien darin.
+
+        NICHT REKURSIV, mit Absicht: Ein Unterpaket ist eine eigene
+        Einheit und gehoert als eigener Eintrag genannt. Rekursiv waere
+        aus einem Tippfehler schnell der halbe Projektbaum geworden.
+        """
+        raus = []
+        for eintrag in dateien:
+            rel, funktionen = self._eintrag_zerlegen(eintrag)
+            if funktionen or not rel:
+                raus.append(eintrag)
+                continue
+            try:
+                ziel = (wurzel / rel).resolve()
+            except OSError:
+                raus.append(eintrag)
+                continue
+            if not ziel.is_dir():
+                raus.append(eintrag)
+                continue
+            kinder = sorted(
+                p for p in ziel.iterdir()
+                if p.is_file() and p.suffix in self.PAKET_ENDUNGEN
+                and not p.name.startswith('.'))
+            if len(kinder) > self.PAKET_HOECHSTENS:
+                logger.warning(
+                    "Review: %s hat %d Dateien, nur die ersten %d werden "
+                    "gelesen", rel, len(kinder), self.PAKET_HOECHSTENS)
+                kinder = kinder[:self.PAKET_HOECHSTENS]
+            stamm = rel.rstrip('/\\')
+            raus.extend('%s/%s' % (stamm, p.name) for p in kinder)
+        return raus
 
     def _datei_lesen(self, rel, wurzel=None, kuerzen=True):
         """Datei unterhalb der Wurzel lesen. Gibt (text, hinweis) zurueck.

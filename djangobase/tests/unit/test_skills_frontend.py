@@ -118,6 +118,58 @@ class JsWaisenTest(FrontendBasis):
         })
         self.assertIn("tot.js", self.orte(ergebnis))
 
+    #: Zwei Ordner, beide mit `index.js` - nur einer wird geladen.
+    ZWEI_INDEX = {
+        "templates/seite.html":
+            "{% load static %}\n"
+            "<script type=\"module\" src=\"{% static 'geladen/index.js' %}\">"
+            "</script>\n",
+        "static/geladen/index.js": "import './teil.js';\n",
+        "static/geladen/teil.js": "export const a = 1;\n",
+        "static/tot/index.js": "import './alt.js';\n",
+        "static/tot/alt.js": "export function nie() { return 1; }\n",
+    }
+
+    def test_gleicher_dateiname_in_anderem_ordner_zaehlt_nicht_als_ladung(self):
+        u"""Der Fall aus dem Projekt assistant (31.08.2026).
+
+        Verglichen wurde nur der letzte Pfadteil. ``index.js`` ist aber der
+        haeufigste Dateiname ueberhaupt - im assistant gibt es vier davon,
+        drei laedt eine Vorlage. Der vierte galt damit als geladen, und mit
+        ihm die sechs Module, die er importiert: sieben tote Dateien, und
+        das Werkzeug meldete null Waisen.
+
+        Wird dieser Test rot, weil `tot/index.js` fehlt, ist der Vergleich
+        wieder auf den blossen Dateinamen zurueckgefallen.
+        """
+        ergebnis = self.laufen("jswaisen", dict(self.ZWEI_INDEX))
+        orte = self.orte(ergebnis)
+        self.assertIn("tot", orte)
+        self.assertIn("index.js", orte)
+        # Und die Kette dahinter: `alt.js` haengt nur an `tot/index.js`.
+        self.assertIn("alt.js", orte)
+
+    def test_die_wirklich_geladene_bleibt_ohne_befund(self):
+        u"""Gegenrichtung: Die Verschaerfung darf nichts Lebendes melden."""
+        orte = self.orte(self.laufen("jswaisen", dict(self.ZWEI_INDEX)))
+        self.assertNotIn("geladen", orte)
+
+    def test_blanker_dateiname_laedt_weiter_alle_gleichnamigen(self):
+        u"""Ohne Ordner in der Angabe bleibt es beim alten Verhalten.
+
+        Nennt eine Vorlage nur ``index.js``, ist nicht zu entscheiden,
+        welche gemeint ist. Dann gelten alle als geladen: Ein uebersehener
+        Befund ist besser als ein Loeschvorschlag fuer lebenden Code.
+        """
+        ergebnis = self.laufen("jswaisen", {
+            "templates/seite.html":
+                "{% load static %}\n"
+                "<script src=\"{% static 'index.js' %}\"></script>\n",
+            "static/eins/index.js": "export const a = 1;\n",
+            "static/zwei/index.js": "export const b = 2;\n",
+        })
+        self.assertEqual(ergebnis.zeilen, [], self.orte(ergebnis))
+
 
 class FrontendadressenTest(FrontendBasis):
     u"""Der Fall: acht Aufrufe auf eine Adresse, die es nicht gibt.

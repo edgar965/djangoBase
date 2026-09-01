@@ -59,6 +59,45 @@ from django.test import SimpleTestCase, TestCase
 # haette - der vorhandene Fixer war sogar gruendlicher.
 from .werkzeugkatalog import GrundtestWerkzeugkatalog  # noqa: F401
 
+
+#: Verzeichnisnamen, die nie Projektcode sind. NUR die Notbremse — die
+#: eigentliche Antwort gibt :func:`_projektdateien` über git.
+FREMDE_ORDNER = ("node_modules", "venv", "pythonVENV", ".venv", "site-packages")
+
+
+def _projektdateien(muster):
+    u"""Dateien unter ``BASE_DIR``, die zum Projekt gehören.
+
+    WARUM NICHT NUR DIE NAMENSLISTE (31.08.2026)
+    ============================================
+    Hier stand zweimal dieselbe feste Liste (`node_modules`, `venv`, …).
+    Sie kennt nur, was jemand aufgeschrieben hat — und übersah damit
+    ``_wegwerf/``, den Ordner, in den ``Ablageumleitung`` die
+    Zwischendateien der Testläufe umlenkt, damit sie nicht auf C: landen.
+
+    Darin liegen Attrappen: winzige ``static/app/js/start.js``, die
+    absichtlich auf ein fehlendes Nachbarmodul zeigen, weil ein Test
+    genau diesen Fall prüft. ``GrundtestEsModule`` las sie als echten
+    Projektcode und meldete vier JS-Importe ins Leere — ein Fehlalarm,
+    der jeden Gesamtlauf rot machte. Ein Test, der aus eigenen Resten
+    rot wird, wird nach der zweiten Woche ignoriert.
+
+    ``.gitignore`` wusste es die ganze Zeit: ``_wegwerf/`` steht dort in
+    Zeile 67. Also wird git gefragt statt einer zweiten Liste. Antwortet
+    git nicht (kein Repo, kein git im Pfad), filtert ``GitFilter``
+    nichts — dann greift die Namensliste als Notbremse, wie bisher.
+    """
+    from .skills.gitfilter import GitFilter
+
+    basis = Path(str(settings.BASE_DIR))
+    filter_ = GitFilter(basis)
+    for pfad in sorted(basis.rglob(muster)):
+        if any(t in pfad.parts for t in FREMDE_ORDNER):
+            continue
+        if not filter_.erlaubt(pfad):
+            continue
+        yield pfad
+
 __all__ = ["GrundtestWerkzeugkatalog",
            "GrundtestSeiten", "GrundtestUrls", "GrundtestModule",
            "GrundtestMigrationen", "GrundtestVorlagen", "GrundtestSystemcheck",
@@ -185,12 +224,8 @@ class GrundtestVorlagen(SimpleTestCase):
     def test_alle_vorlagen_kompilieren(self):
         from django.template import TemplateSyntaxError
         from django.template.loader import get_template
-        basis = Path(str(settings.BASE_DIR))
         fehler = []
-        for pfad in sorted(basis.rglob("templates/**/*.html")):
-            if any(t in pfad.parts for t in ("node_modules", "venv", "pythonVENV",
-                                             ".venv", "site-packages")):
-                continue
+        for pfad in _projektdateien("templates/**/*.html"):
             teile = pfad.parts
             name = "/".join(teile[teile.index("templates") + 1:])
             try:
@@ -277,13 +312,9 @@ class GrundtestEsModule(SimpleTestCase):
 
     def test_relative_importe_zeigen_auf_dateien(self):
         import re
-        basis = Path(str(settings.BASE_DIR))
         muster = re.compile(r"""import\s+[^;'"]*?from\s*['"](\.[^'"]+)['"]""")
         fehlt = []
-        for pfad in sorted(basis.rglob("static/**/*.js")):
-            if any(t in pfad.parts for t in ("node_modules", "venv", "pythonVENV",
-                                             ".venv", "site-packages")):
-                continue
+        for pfad in _projektdateien("static/**/*.js"):
             try:
                 text = pfad.read_text(encoding="utf-8", errors="replace")
             except OSError:

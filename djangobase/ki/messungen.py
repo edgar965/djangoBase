@@ -76,50 +76,134 @@ VRAM_3060 = {
     "qwen3.8:27b":           (18.2, 9.0, 9.1),
 }
 
-#: DURCHSATZ je lokalem Modell: Token je Sekunde beim Erzeugen der Antwort, aus
-#: den Zaehlern des Ollama-Antwort-JSON. Gemessen mit ``werkzeug/gpu_nutzen.py``.
+#: WANN DIESES MODELL ZULETZT IM SPARRING WAR (Ansage Edgar, 01.09.2026:
+#: „eine zusaetzliche Spalte: Letzer Lauf").
 #:
-#: STAND 24.08.2026 - RTX PRO 4500 BLACKWELL (32 GB), Mittel aus ZWEI Durchgaengen,
-#: alle Modelle vollstaendig im Grafikspeicher, Streuung 1-13 %.
+#: Die Daten stammen aus den Mitschriften ``werkzeug/sparring_*.md`` - je
+#: Modell die juengste Datei, die es nennt. Sie stehen hier als ANGABE und
+#: werden NICHT zur Laufzeit aus Dateizeitstempeln gelesen: Ein Datum, das
+#: am mtime haengt, wandert beim Kopieren des Ordners, und dann zeigt die
+#: Seite einen Lauf, den es nie gab.
 #:
-#: DIESE ZAHLEN SIND DIE ERSTEN BELASTBAREN. Alle frueheren - auch die der 3060 -
-#: entstanden mit einem Skript, das die Modelle nach der Messung NICHT entlud.
-#: Ollama haelt ein benutztes Modell fuenf Minuten geladen; bei sieben Modellen
-#: hintereinander lagen drei gleichzeitig auf der Karte, und das zuletzt gemessene
-#: bekam den Rest. gpt-oss:20b hatte dabei 1,1 statt 13,6 GB und kam auf 3,1
-#: Token/s - sauber gemessen sind es 140,3, also Faktor 45. Wer alte Zahlen dieser
-#: Seite mit neuen vergleicht, vergleicht zwei verschiedene Messfehler.
+#: WOZU DIE SPALTE: Die Note eines Modells ist so alt wie ihr Lauf. Bei
+#: gemini-2.5-pro liegt er drei Wochen zurueck - in dieser Zeit sind zwei
+#: Modelle aus dem Katalog verschwunden und eines um den Faktor 6
+#: eingebrochen. Ohne Datum sieht eine alte Bewertung aus wie eine frische.
 #:
-#: WAS DIE ZAHLEN ZEIGEN:
-#: 1. MoE SCHLAEGT DICHT, und zwar deutlich: gemma4 (26 Mrd. gesamt, 4 aktiv)
-#:    127,8 Token/s gegen qwen3.8:27b (dicht) 38,5 - Faktor 3,3 bei fast gleicher
-#:    Modellgroesse. qwen3.6:35b-a3b (35 Mrd., 3 aktiv) liegt mit 105,2 ebenfalls
-#:    weit vorn. Fuer das Tempo zaehlt die AKTIVE Parameterzahl, fuer den Speicher
-#:    die gesamte.
-#: 2. QUANTISIERUNG KOSTET TEMPO UND SPEICHER: dasselbe Modell qwen3.8:27b
-#:    liefert in Q4 38,5 und in Q8 26,2 Token/s bei 17,5 gegen 30,1 GB. Ob Q8
-#:    dafuer inhaltlich mehr kann, ist NICHT gemessen: Der Pruefstein laeuft mit
-#:    temperature 0,5 ohne Seed, und dieselbe Fassung streut zwischen zwei
-#:    Laeufen um denselben Betrag wie die beiden Fassungen untereinander.
-#: 3. EIN 70B PASST, IN Q2: nemotron:70b-instruct-q2_K belegt 26,4 GB und laeuft
-#:    mit 23,7 Token/s. Es laedt allerdings nur mit OLLAMA_FLASH_ATTENTION=1 und
-#:    OLLAMA_KV_CACHE_TYPE=q8_0; mit den Vorgaben scheitert es am KV-Cache.
+#: ``qwen3:14b`` fehlt: keine Mitschrift mehr vorhanden.
+SPARRING_STAND = {
+    "nvidia/nemotron-3-ultra-550b-a55b:free":  "2026-08-11",
+    "google/gemini-3-flash-preview":           "2026-08-11",
+    "gemma4:26b-a4b-it-qat":                   "2026-08-24",
+    "gpt-oss:20b":                             "2026-08-24",
+    "moonshotai/kimi-k3":                      "2026-08-11",
+    "qwen/qwen3.8-max":                        "2026-08-11",
+    "deepseek/deepseek-v4-flash":              "2026-08-11",
+    "x-ai/grok-4.6":                           "2026-08-13",
+    "deepseek/deepseek-v4-pro":                "2026-08-13",
+    "qwen3.6:35b-a3b-q4_K_M":                  "2026-08-24",
+    "qwen3.8:27b-q8_0":                        "2026-08-24",
+    "nemotron-3.5-lightning:30b-a3b-q4_K_M":   "2026-08-24",
+    "nemotron:70b-instruct-q2_K":              "2026-08-24",
+    "qwen3.8:27b":                             "2026-08-24",
+    "google/gemini-2.5-pro":                   "2026-08-11",
+    "qwen/qwen-plus":                          "2026-08-11",
+}
+
+#: Datum der Tempo-Messung (``werkzeug/token_tempo.py``). Getrennt vom
+#: Sparring-Datum, weil es zwei verschiedene Laeufe sind: Der eine misst
+#: Qualitaet, der andere Token je Sekunde.
+TOKEN_STAND = "2026-09-01"
+
+
+#: DURCHSATZ je lokalem Modell: Token je Sekunde beim Erzeugen der Antwort.
+#:
+#: STAND 01.09.2026 - neu gemessen mit ``werkzeug/token_tempo.py`` (Ansage
+#: Edgar: „mach die tokens messung"), Mittel aus zwei Durchgaengen, dieselbe
+#: Frage und dieselben Parameter wie am 24.08.2026. Die Werte davor stehen
+#: als ``TOKEN_JE_S_0824`` darunter - ohne sie waere der Einbruch bei
+#: nemotron:70b nicht zu sehen.
+#:
+#: EIN MODELL IST UM DEN FAKTOR 6 EINGEBROCHEN, und das liegt nicht am
+#: Modell: ``nemotron:70b-instruct-q2_K`` faellt von 23,7 auf 3,7 Token/s.
+#: Nachgesehen am selben Tag: ``OLLAMA_FLASH_ATTENTION`` und
+#: ``OLLAMA_KV_CACHE_TYPE`` sind auf diesem Rechner NICHT MEHR GESETZT -
+#: weder fuer den Benutzer noch systemweit. Genau die beiden nennt der
+#: Eintrag von damals als Bedingung („es laedt allerdings nur mit ...").
+#: Die 3,7 sind also der Zustand HEUTE, nicht die Faehigkeit des Modells.
+#: Wer die Variablen wieder setzt, misst neu.
+#:
+#: DIE STREUUNG STEHT DANEBEN, weil sie mitentscheidet, wie ernst die Zahl
+#: zu nehmen ist: sechs Modelle liegen bei 1 bis 8 % zwischen den beiden
+#: Durchgaengen, ``qwen3.8:27b`` bei 17 %. Bei diesem einen ist der
+#: Unterschied zur Vormessung (38,5 -> 44,6) kleiner als seine eigene
+#: Schwankung.
 TOKEN_JE_S = {
-    "gpt-oss:20b":                          140.3,
-    "gemma4:26b-a4b-it-qat":                127.8,
-    "qwen3.6:35b-a3b-q4_K_M":               105.2,
-    "nemotron-3.5-lightning:30b-a3b-q4_K_M": 67.2,
-    "qwen3.8:27b":                           38.5,
-    "qwen3.8:27b-q8_0":                      26.2,
-    "nemotron:70b-instruct-q2_K":            23.7,
+    "gpt-oss:20b":                           142.8,
+    "gemma4:26b-a4b-it-qat":                 131.9,
+    "qwen3.6:35b-a3b-q4_K_M":                114.0,
+    "nemotron-3.5-lightning:30b-a3b-q4_K_M":  53.0,
+    "qwen3.8:27b":                            44.6,
+    "qwen3.8:27b-q8_0":                       26.0,
+    "nemotron:70b-instruct-q2_K":              3.7,
+}
+
+#: Die Streuung zwischen den beiden Durchgaengen in Prozent (01.09.2026).
+#: Ueber ~15 % sagt die Zahl mehr ueber den Messtag als ueber das Modell.
+TOKEN_STREUUNG = {
+    "gpt-oss:20b":                            3,
+    "gemma4:26b-a4b-it-qat":                  3,
+    "qwen3.6:35b-a3b-q4_K_M":                 2,
+    "nemotron-3.5-lightning:30b-a3b-q4_K_M":  8,
+    "qwen3.8:27b":                           17,
+    "qwen3.8:27b-q8_0":                       1,
+    "nemotron:70b-instruct-q2_K":             5,
+}
+
+#: DIE MESSUNG VOM 24.08.2026 - dieselbe Karte, dieselbe Frage.
+#: Nicht loeschen: Der Einbruch bei nemotron:70b ist nur im Vergleich
+#: sichtbar, und mehrere Urteilstexte stuetzen sich auf diese Werte.
+TOKEN_JE_S_0824 = {
+    "gpt-oss:20b":                           140.3,
+    "gemma4:26b-a4b-it-qat":                 127.8,
+    "qwen3.6:35b-a3b-q4_K_M":                105.2,
+    "nemotron-3.5-lightning:30b-a3b-q4_K_M":  67.2,
+    "qwen3.8:27b":                            38.5,
+    "qwen3.8:27b-q8_0":                       26.2,
+    "nemotron:70b-instruct-q2_K":             23.7,
+}
+
+#: DURCHSATZ DER KOSTENLOSEN ONLINE-MODELLE: (Token/s, Streuung in %).
+#:
+#: GEMESSEN AM 01.09.2026 mit ``werkzeug/token_tempo.py`` - derselben Frage
+#: und derselben Rolle wie lokal, damit die Haelften vergleichbar sind.
+#:
+#: ES IST TROTZDEM NICHT DIESELBE GROESSE:
+#:
+#:   lokal   ``eval_count / eval_duration`` - die reine Erzeugungszeit auf
+#:           der eigenen Karte, von Ollama selbst gezaehlt.
+#:   online  gestoppt ab dem ERSTEN Token (Streaming), damit Verbindung und
+#:           Warteschlange herausfallen.
+#:
+#: WAS DIE MESSUNG WIRKLICH ERGEBEN HAT, und es ist keine Zahl, sondern ein
+#: Verhalten: Zwei Laeufe zu je zwei Durchgaengen lieferten 62,9 und 108,2
+#: Token/s - ein Unterschied von 53 %. Zwei WEITERE Laeufe (vier und fuenf
+#: Durchgaenge) bekamen ueberhaupt keine Antwort mehr („keine Token
+#: empfangen"). Kostenlose Modelle laufen bei OpenRouter mit niedriger
+#: Prioritaet; gemessen wird die Tageslast des Anbieters, nicht das Modell.
+#:
+#: Der Wert steht deshalb MIT seiner Streuung auf der Seite. Eine glatte
+#: Zahl ohne diesen Zusatz waere hier eine Erfindung.
+TOKEN_JE_S_ONLINE = {
+    "nvidia/nemotron-3-ultra-550b-a55b:free": (85.6, 53),
 }
 
 #: DIESELBE MESSUNG AUF DER ALTEN KARTE (RTX 3060, 12 GB; 12.08.2026).
 TOKEN_JE_S_3060 = {
     "qwen3.5:9b":            48.7,
     "gpt-oss:20b":           34.9,
-    "gemma4:26b-a4b-it-qat": 26.5,
     "qwen3.6:27b":            3.1,
+    "gemma4:26b-a4b-it-qat": 26.5,
 }
 
 #: Sekunden und Treffer je Modell ueber alle DREI Fragen zusammen.
@@ -177,26 +261,6 @@ MESSUNGEN = (
         "einschraenkung": "Den Kernfehler der Zellen-Rechnung fand es nicht. Es rechnete "
                           "aber - wie qwen3.6 - von selbst auf Ertrag je Trade um, und "
                           "genau dort lag der Denkfehler.",
-    },
-    {
-        "kennung": "qwen3.6:27b",
-        "ort": "lokal", "rang": None, "sekunden": 737, "kern": 5, "standard": 5,
-        "ct_je_frage": 0.0,
-        # AM 18.08.2026 GELOESCHT (Ansage Edgar) - der Nachfolger qwen3.8:27b
-        # liegt seither auf der Platte. Die Messung bleibt stehen: Sie ist
-        # gemessen und begruendet die MoE-Lehre weiter oben. In der Tabelle
-        # „lokal" taucht das Modell nicht mehr auf, die kommt aus ``ollama list``.
-        "geloescht": "18.08.2026, ersetzt durch qwen3.8:27b",
-        "note": "4", "note_grund": "Inhaltlich stark, praktisch unbrauchbar: vier Minuten je Frage, weil 7,3 GB im Hauptspeicher liegen. Am 18.08.2026 gelöscht - Nachfolger qwen3.8:27b braucht mit 9,1 GB Auslagerung noch mehr.",
-        "beispiel": "Long/Down: ~-6,7 EUR/Trade. Die Reduktion der Long/Down-Trades hat marginalen Einfluss auf das Gesamtkapital.",
-        "urteil": "Sachlich stark - beste Antwort zu den schwachen Jahren inklusive "
-                  "richtiger Gegenprobe, und es rechnete ungefragt aus, dass "
-                  "Long/Abwärts nur 6,70 € je Trade kostet. Von gemma4 trotzdem "
-                  "verdrängt: gleiche Trefferzahl, fünffache Wartezeit.",
-        "einschraenkung": "12 Minuten für drei Fragen (11 Zeichen/s): 17 GB Modell auf "
-                          "12 GB Grafikspeicher. Dazu zwei Sachfehler - 2020-2026 als "
-                          "Phase „extrem niedriger Volatilität“ und der März 2020 als "
-                          "„historisches Low“.",
     },
     {
         # NACHGETRAGEN 12.08.2026 auf die Frage „gibt es kostenlose Anthropic- und
@@ -406,26 +470,6 @@ MESSUNGEN = (
                           "Treffer im zweiten Durchgang nicht wiederholte.",
     },
     {
-        "kennung": "qwen3.5:9b",
-        "ort": "lokal (gelöscht)", "rang": None, "sekunden": 1523, "kern": 4, "standard": 3,
-        "ct_je_frage": 0.0,
-        "note": "5", "note_grund": "War auf der 3060 das schnellste lokale Modell (55 s); auf der RTX PRO 4500 mit 32k Kontext 1.523 s - Faktor 28 langsamer. Am 24.08.2026 gelöscht.",
-        "beispiel": "Selektionsbias durch Tageslimit (4 Trades/Tag): Mit einem harten Limit wird dein Ergebnis massiv verzerrt.",
-        "urteil": "Der beste Kompromiss lokal: passt in den Grafikspeicher, knapp eine "
-                  "Minute, brauchbare Einwände. Nannte das Tageslimit als einziges "
-                  "lokales Modell überhaupt.",
-        "einschraenkung": "DIE ZAHLEN OBEN SIND DIE LETZTE MESSUNG (24.08.2026, RTX PRO "
-                          "4500). Sie widersprechen der Durchsatzmessung desselben Tages, "
-                          "die für dieses Modell mit 68,6 Token/s die HÖCHSTE Rate im Feld "
-                          "ergab - gemessen allerdings mit Standard-Kontext, während das "
-                          "Sparring mit 32k läuft. Dazu passt, dass es 15,3 GB belegte, "
-                          "obwohl das Modell nur 6,6 GB groß ist: Der Rest war Kontextpuffer. "
-                          "Aufgeklärt wurde der Widerspruch nicht - das Modell wurde am "
-                          "24.08.2026 gelöscht (Ansage Edgar: „das ist sowieso alt“). "
-                          "Ältere Beobachtung: Nannte es, ohne den Schluss zu ziehen („Oder andersrum: …“) - "
-                          "und schweift aus.",
-    },
-    {
         "kennung": "google/gemini-2.5-pro",
         "ort": "online", "rang": None, "sekunden": 186, "kern": 4, "standard": 4,
         "ct_je_frage": 0.60,
@@ -437,16 +481,6 @@ MESSUNGEN = (
                           "Antwort zurückgegeben.",
     },
     {
-        "kennung": "qwen/qwen-plus-2025-07-28:thinking",
-        "ort": "online", "rang": None, "sekunden": 201, "kern": 3, "standard": 4,
-        "ct_je_frage": 0.08,
-        "note": "4-", "note_grund": "Der Denk-Modus kostet das Achtfache an Zeit und bringt einen Kernpunkt mehr.",
-        "beispiel": "Überanpassung an historische Regime; ohne Out-of-Sample-Test ist die Zahl nicht belastbar.",
-        "urteil": "Der Denk-Modus kostete das Achtfache an Zeit gegenüber qwen-plus "
-                  "und brachte genau einen Kernpunkt mehr.",
-        "einschraenkung": "",
-    },
-    {
         "kennung": "qwen/qwen-plus",
         "ort": "online", "rang": None, "sekunden": 25, "kern": 2, "standard": 4,
         "ct_je_frage": 0.05,
@@ -456,137 +490,13 @@ MESSUNGEN = (
                   "beiden versteckten Punkte.",
         "einschraenkung": "",
     },
-    {
-        "kennung": "qwen3:14b",
-        "ort": "lokal (gelöscht)", "rang": None, "sekunden": 107, "kern": 2, "standard": 1,
-        "ct_je_frage": 0.0,
-        "note": "6", "note_grund": "Schwächstes Ergebnis im Feld; am 11.08.2026 entfernt.",
-        "beispiel": "(keine verwertbare Kritik - allgemeine Hinweise ohne Bezug zur Rechnung)",
-        "urteil": "Schwächstes Ergebnis im Feld; am 11.08.2026 als veraltet entfernt.",
-        "einschraenkung": "",
-    },
-    {
-        # Gemessen am 22.08.2026 (Ansage Edgar: „aktiviere oxAlpha"), derselbe
-        # Pruefstein wie alle anderen: werkzeug/sparring_vergleich.py, drei
-        # Fragen, ein Durchgang. Antworten im Wortlaut in
-        # werkzeug/sparring_oxalpha.md.
-        "kennung": "stealth/ox-alpha",
-        "ort": "online", "rang": 3, "sekunden": 472, "kern": 5, "standard": 4,
-        "ct_je_frage": 0.0,
-        "note": "1-", "note_grund": "Das einzige Modell, das den Prüfstein in ZWEI unabhängigen Läufen fand - beide Male mit durchgerechnetem Gegenbeispiel. Dafür 130-159 s je Frage.",
-        "beispiel": "Freigewordene Slots können zuvor verdrängte Signale aktivieren, die im Original-Lauf gar nicht existieren. Der wahre Effekt der Sperre ist die Differenz zweier kompletter Simulationen, nicht −(−7861).",
-        "urteil": "Benannte den versteckten Mechanismus der Zellen-Rechnung nicht nur, "
-                  "sondern rechnete ihn in BEIDE Richtungen durch: einmal ein Tag, an dem "
-                  "die Sperre einen verdrängten Short freigibt (Effekt +450 statt der "
-                  "gebuchten +150), einmal ein Tag ohne verdrängtes Signal (Effekt −200 "
-                  "statt +200). Beim besten Filter als einziges Modell die Effektstärke "
-                  "ausgerechnet - 11.302/64.185 = 0,18 σ - und gegen den Erwartungswert "
-                  "des Maximums aus zwölf Zufallsstichproben (rund 1,4 σ) gestellt: "
-                  "„Das Ergebnis ist nicht auffällig gut - es ist unauffällig.“ Bei den "
-                  "schwachen Jahren zusätzlich zwei Verdächtige, die niemand sonst nannte: "
-                  "ein Datenschnitt um 2020 (Zeitzone/Sommerzeit) und ein fester "
-                  "Punkt-Filter im Signal. Verweigerte ausdrücklich erfundene "
-                  "Quellenangaben. Kostenlos, 1 Mio. Token Kontext. "
-                  "IM ZWEITEN LAUF derselbe Treffer - mit eigener Tabelle: fünf "
-                  "Signale, Original +340, die naive Rechnung verspricht +420, "
-                  "resimuliert kommen +305 heraus. Dazu der Satz, der den realen "
-                  "Befund trifft: „Größe und im Extremfall sogar das Vorzeichen "
-                  "der 7861 sind ohne Resimulation nicht bestimmbar.“ Damit das "
-                  "erste Modell im Feld, dessen Prüfstein-Treffer sich wiederholen "
-                  "ließ.",
-        "einschraenkung": "DREI LAEUFE, dreimal der Pruefstein getroffen (Kern 4/6, 5/6, 5/6) - das einzige Modell im Feld mit belegter Wiederholbarkeit. Dafuer schwankt das Tempo erheblich: 390, 477 und 548 s für dieselben drei Fragen, also 130 bis 183 s je Frage - nur qwen3.6 und qwen-plus:thinking waren "
-                          "waren langsamer. Dazu ein Stealth-Modell: Der Anbieter nennt "
-                          "sich nicht, das Modell kann jederzeit verschwinden, und jede "
-                          "Frage geht an einen unbenannten Empfänger.",
-    },
 )
 
-#: Was die Messung als Ganzes ergeben hat - die Saetze, die eine Tabelle nicht sagt.
-BEFUNDE = (
-    ("Keiner ist verlässlich",
-     "Von acht Modellen hat genau eines den entscheidenden Mechanismus benannt - "
-     "und im Wiederholungslauf nicht mehr. Ein zweites Modell ersetzt keine "
-     "Gegenrechnung, es liefert Verdachtsmomente. Nachtrag 22.08.2026: "
-     "ox-alpha ist das erste Modell, bei dem der Prüfstein-Treffer sich "
-     "wiederholen ließ - zweimal derselbe Mechanismus, beide Male mit eigenem "
-     "Zahlenbeispiel. Ein Modell mit zwei Treffern aus zwei Läufen ist immer "
-     "noch keine Gegenrechnung, aber es ist der erste Kandidat, den man "
-     "wiederholt fragen kann."),
-    ("Der Nutzen liegt in der Unbefangenheit",
-     "Wertvoll ist nicht das bessere Modell, sondern das Modell, das die eigenen "
-     "Schlüsse nicht kennt. Genau deshalb fand nemotron den Punkt, den die "
-     "eigene Zellen-Rechnung übersprang."),
-    ("Groß hilft nicht automatisch",
-     "550 Mrd. Parameter (nemotron) und 27 Mrd. (qwen3.6 lokal) fanden je einen "
-     "der beiden versteckten Punkte. Das 9-Mrd.-Modell auf diesem Rechner lag "
-     "gleichauf mit gemini-2.5-pro."),
-    ("MoE hält, was es verspricht - sauber nachgemessen",
-     "Dieser Befund stand am 24.08.2026 zweimal auf dem Kopf. Ursprünglich: "
-     "gemma4 rechnet je Token nur 4 seiner 26 Mrd. Parameter und war achtmal "
-     "schneller als das dichte qwen3.6. Dann schien eine Messung auf der neuen "
-     "Karte das Gegenteil zu zeigen, und der Text wurde umgeschrieben. Diese "
-     "Messung war fehlerhaft - das Werkzeug entlud die Modelle nicht, die "
-     "späteren lagerten aus. Sauber gemessen, Mittel aus zwei Durchgängen: "
-     "gemma4 (MoE, 4 von 26 Mrd. aktiv) 127,8 Token/s gegen qwen3.8:27b (dicht) "
-     "38,5 - Faktor 3,3 bei fast gleicher Modellgröße. qwen3.6:35b-a3b (3 von 35 "
-     "Mrd. aktiv) liegt mit 105,2 ebenfalls weit vorn. Für das Tempo zählt die "
-     "AKTIVE Parameterzahl, für den Speicher die gesamte - und das gilt "
-     "unabhängig davon, ob ausgelagert wird."),
-    ("Der Engpass war der Speicher, nicht die Rechenleistung",
-     "Der Wechsel von 12 auf 32 GB half sehr ungleich. qwen3.8:27b war auf der "
-     "3060 nicht messbar (rund ein Zeichen je Sekunde, Sparring-Timeout) und "
-     "liefert jetzt 38,5 Token/s. Modelle, die schon vorher hineinpassten, "
-     "gewannen dagegen wenig. Wer den Nutzen einer Karte schätzt, schätzt fast "
-     "immer die Rechenleistung; entschieden hat hier, ob das Modell hineinpasst. "
-     "Der zweite Teil dieses Befundes ist eine Warnung in eigener Sache: Hier "
-     "stand zwischenzeitlich, gpt-oss:20b sei auf der neuen Karte fünfmal "
-     "LANGSAMER geworden - 34,9 auf 6,2 Token/s, Ursache offen. Die Ursache war "
-     "das eigene Messwerkzeug, das die Modelle nicht entlud. Sauber gemessen "
-     "sind es 140,3 Token/s, der schnellste Wert im ganzen Feld."),
-    ("Ein Messwerkzeug kann sich selbst kaputtmessen",
-     "Zwei Skripte dieses Projekts maßen Token/s und Antwortzeiten, ohne das "
-     "Modell danach aus dem Grafikspeicher zu werfen. Ollama hält es fünf "
-     "Minuten. Bei sieben Modellen zu je 13 bis 30 GB lagen dann drei "
-     "gleichzeitig auf einer 32-GB-Karte, und wer zuletzt gemessen wurde, bekam "
-     "den Rest: gpt-oss:20b hatte 1,1 statt 13,6 GB. Die Folge waren Zahlen, die "
-     "zu erfundenen Erklärungen einluden - erst „MXFP4 auf Blackwell“, dann "
-     "„Vulkan statt CUDA“, beides falsch. Auffällig war die Streuung: dasselbe "
-     "Modell schwankte zwischen zwei Läufen um bis zu 72 %. Nach dem Fix sind es "
-     "1 bis 13 %. Wenn eine Messung zwischen Wiederholungen stärker schwankt als "
-     "zwischen den verglichenen Dingen, misst sie nicht das, was sie behauptet."),
-    ("Seit dem 24.08.2026 ist lokal eine echte Alternative",
-     "Die Frage „online oder lokal?“ war auf der 12-GB-Karte keine: Jedes Modell "
-     "über 11 GB lagerte aus, qwen3.8:27b kam auf rund ein Zeichen je Sekunde und "
-     "lieferte im Sparring gar keine Note. Auf der RTX PRO 4500 steht dasselbe "
-     "Modell auf Rang 4 von 16 - vor nemotron, vor gemini-3-flash, vor "
-     "qwen3.8-max -, findet als erstes lokales Modell den Prüfstein und braucht "
-     "59 s je Frage. Die drei Modelle davor kosten 0 bis 0,93 ct je Frage; dieses "
-     "kostet nichts, und keine Frage verlässt den Rechner. Für Auswertungen, in "
-     "denen eigene Positionen, Kontostände oder Strategien vorkommen, ist das "
-     "kein Nebenaspekt, sondern der Hauptgrund."),
-    ("Kostenlos ist hier nicht schlechter",
-     "Das beste und das drittbeste Modell der Messung kosten nichts - eines über "
-     "OpenRouter, eines auf der eigenen Grafikkarte."),
-    ("Von Anthropic gibt es nichts Lokales",
-     "Claude hat nie offene Gewichte veröffentlicht - weder kostenlos noch "
-     "bezahlt. Lokal geht ausschließlich über die API. Von OpenAI gibt es genau "
-     "zwei offene Modelle (gpt-oss:20b und :120b, Apache 2.0, August 2025); das "
-     "kleinere liegt auf diesem Rechner und ist in der Messung das schwächste "
-     "Modell im Feld. Stand 12.08.2026."),
-    ("Quellenangaben sind die gefährlichste Ausgabe",
-     "Am 12.08.2026 wurden drei Modelle nach Belegen für Orderbuch-Handel "
-     "gefragt, ausdrücklich mit der Bitte, Unsicheres zu markieren. Ergebnis "
-     "nach Nachprüfung: gpt-oss erfand eine Arbeit samt Autoren, Jahr und einer "
-     "präzisen Zahl; gemma4 schrieb VPIN Cont zu (es stammt von Easley, López "
-     "de Prado & O'Hara) und verwechselte Joel Hasbrouck mit „M. Hasbrouck“; "
-     "nur nemotron nannte durchweg existierende Arbeiten. Eine Quellenangabe "
-     "aus einem Sprachmodell ist ein Suchbegriff, kein Beleg - und je präziser "
-     "die mitgelieferte Zahl, desto verdächtiger."),
-    ("Die Aufforderung „markiere Unsicheres“ hilft nur bedingt",
-     "gpt-oss markierte fleißig UNSICHER - auch dort, wo es sich sicher sein "
-     "konnte. Wer alles markiert, markiert nichts. Nemotron markierte sparsam "
-     "und lag damit richtiger."),
-)
+#: HERAUSGELOEST (31.08.2026): Die Erkenntnis-Texte stehen jetzt in
+#: ``befunde.py`` - diese Datei war mit 646 Zeilen weit ueber der
+#: Projektgrenze. Weitergereicht, damit ``ki/__init__.py`` und jeder
+#: andere Aufrufer unveraendert bleiben.
+from .befunde import BEFUNDE      # noqa: F401 - oeffentlicher Name dieser Datei
 
 
 class Bestenliste:
@@ -616,7 +526,14 @@ class Bestenliste:
                 # aus, und die Anzeige laesst das ``~`` weg.
                 # Dictionary gewollt: geht als JSON an hilfe_ki_modelle.html, offscreen_compiled.js, architektur_gpu.html (5 von 5 Schlüsseln stehen dort wörtlich, geprüft mit Skills2 → Anzeigeformat).
                 return {"param_gesamt": z["param_gesamt"], "param_aktiv": z["param_aktiv"],
-                        "kontext": z.get("kontext"), "gb": z["gb"], "gb_geschaetzt": False}
+                        "kontext": z.get("kontext"), "gb": z["gb"],
+                        # WELCHE Fassung genau (01.09.2026): Am Namen
+                        # ``qwen3.8:27b`` ist nicht zu sehen, dass es
+                        # Q4_K_M ist - am Tempo dafuer sehr.
+                        "quant": z.get("quant") or "",
+                        "familie": z.get("familie") or "",
+                        "experten": z.get("experten"),
+                        "gb_geschaetzt": False}
         ges, aktiv = Modellname.parameter(kennung)
         # Dictionary gewollt: geht als JSON an hilfe_ki_modelle.html, offscreen_compiled.js, architektur_gpu.html (5 von 5 Schlüsseln stehen dort wörtlich, geprüft mit Skills2 → Anzeigeformat).
         return {"param_gesamt": ges, "param_aktiv": aktiv, "kontext": None,
@@ -641,6 +558,45 @@ class Bestenliste:
             zeile["vram_gesamt"], zeile["vram_gpu"], zeile["vram_ram"] = v if v else (None, None, None)
             # Die Zahl, die im Alltag zaehlt: Passt es ganz auf die Karte?
             zeile["ganz_auf_gpu"] = bool(v) and v[2] <= 0.05
+            # DURCHSATZ - zwei getrennte Quellen, weil es zwei verschiedene
+            # Groessen sind (siehe TOKEN_JE_S_ONLINE): lokal die reine
+            # Erzeugungszeit der eigenen Karte, online die Rate ab dem ersten
+            # Token beim Anbieter. ``token_quelle`` sagt der Seite, welche der
+            # beiden sie vor sich hat - eine Spalte, die beide als dieselbe
+            # Zahl zeigt, vergleicht Ungleiches.
+            zeile["token_je_s"] = TOKEN_JE_S.get(m["kennung"])
+            zeile["token_quelle"] = "lokal" if zeile["token_je_s"] else ""
+            zeile["token_spanne"] = None
+            if not zeile["token_je_s"]:
+                online = TOKEN_JE_S_ONLINE.get(m["kennung"])
+                if online:
+                    zeile["token_je_s"], zeile["token_spanne"] = online
+                    zeile["token_quelle"] = "online"
+            # LETZTER LAUF - ERST HIER, NACH BEIDEN QUELLEN (Befund
+            # 01.09.2026): Stand die Zuweisung vorher, blieb ``tempo_stand``
+            # bei jedem ONLINE-Modell leer, und die Spalte zeigte den alten
+            # Sparring-Tag - obwohl am selben Tag gemessen worden war.
+            zeile["sparring_stand"] = SPARRING_STAND.get(m["kennung"], "")
+            zeile["tempo_stand"] = TOKEN_STAND if zeile["token_je_s"] else ""
+            zeile["letzter_lauf"] = max(zeile["sparring_stand"],
+                                        zeile["tempo_stand"]) or ""
+            # Deutsch fuer die Anzeige, ISO zum Sortieren - sonst stuende der
+            # 11.08. hinter dem 01.09.
+            zeile["letzter_lauf_de"] = self._de_datum(zeile["letzter_lauf"])
+            zeile["sparring_stand_de"] = self._de_datum(zeile["sparring_stand"])
+            zeile["tempo_stand_de"] = self._de_datum(zeile["tempo_stand"])
             aus.append(zeile)
         aus.sort(key=lambda z: (z["rang"] or 99, -z["kern"], z["sekunden"]))
         return aus
+
+    @staticmethod
+    def _de_datum(iso):
+        u"""``2026-09-01`` -> ``01.09.2026``. Leer bleibt leer.
+
+        Die Oberflaeche ist deutsch; ein ISO-Datum in der Zelle ist eine
+        Maschinenschreibweise. Sortiert wird weiter nach ISO - die Zelle
+        traegt es in ``data-sort``."""
+        if not iso or len(iso) != 10:
+            return ""
+        jahr, monat, tag = iso.split("-")
+        return "%s.%s.%s" % (tag, monat, jahr)

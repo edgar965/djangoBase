@@ -64,6 +64,47 @@ class ReviewPaketTest(BasisTest):
         self.assertIn("Warum 42?", paket)
         self.assertIn("```python", paket, "Sprache für den Codeblock fehlt")
 
+    def test_ein_verzeichnis_meint_alle_quelldateien_darin(self):
+        """Ein Paket als Bereichs-Eintrag (31.08.2026).
+
+        ANLASS: Ein Bereich nannte `humanbody_core/skeleton/formats.py` —
+        504 Zeilen, acht Skelett-Formate in einer Datei. Beim Aufteilen in
+        ein Paket zeigte der Eintrag ins Leere. Der Bereich hätte weiter
+        geladen, nur ohne Quelltext: Seite baut sich auf, Modell
+        antwortet, es hatte den Code nur nicht gesehen.
+        """
+        (self.wurzel / "paket" / "zweit.py").write_text(
+            "def zwei():\n    return 2\n", encoding="utf-8")
+        (self.wurzel / "paket" / "liesmich.txt").write_text(
+            "kein Quelltext", encoding="utf-8")
+        paket = self._lauf()._paket(
+            {"slug": "a", "name": "Bereich A", "dateien": ["paket/"]}, "")
+        self.assertIn("return 42", paket, "erste Datei des Pakets fehlt")
+        self.assertIn("return 2", paket, "zweite Datei des Pakets fehlt")
+        self.assertNotIn("kein Quelltext", paket,
+                         "eine .txt gehört nicht in den Quelltext-Anhang")
+
+    def test_verzeichnis_auch_ohne_schraegstrich(self):
+        paket = self._lauf()._paket(
+            {"slug": "a", "name": "Bereich A", "dateien": ["paket"]}, "")
+        self.assertIn("return 42", paket)
+
+    def test_unterpakete_werden_nicht_mitgezogen(self):
+        """Nicht rekursiv: sonst wird aus einem Tippfehler der halbe Baum."""
+        (self.wurzel / "paket" / "tiefer").mkdir()
+        (self.wurzel / "paket" / "tiefer" / "versteckt.py").write_text(
+            "def tief():\n    return 'zu tief'\n", encoding="utf-8")
+        paket = self._lauf()._paket(
+            {"slug": "a", "name": "Bereich A", "dateien": ["paket/"]}, "")
+        self.assertIn("return 42", paket)
+        self.assertNotIn("zu tief", paket)
+
+    def test_eine_datei_bleibt_eine_datei(self):
+        """Die Gegenprobe: Das Auffalten darf den Normalfall nicht anfassen."""
+        paket = self._lauf()._paket(
+            {"slug": "a", "name": "Bereich A", "dateien": ["paket/modul.py"]}, "")
+        self.assertIn("return 42", paket)
+
     def test_pfad_ausserhalb_der_wurzel_wird_nicht_gesendet(self):
         """DER EINZIGE FEHLER DIESER SEITE, DER NACH DRAUSSEN WIRKT.
 

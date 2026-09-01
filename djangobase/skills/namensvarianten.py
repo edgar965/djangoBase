@@ -153,10 +153,20 @@ def pruefen(daten_basis):
         # (crop_x/y/w/h, start_time, end_time und zwei weitere).
         drahtnamen = {name for name, stellen in namen.items()
                       if any(w == "Draht" for _d, w in stellen)}
+        # EIN VORGEFUNDENER NAME IST NIRGENDS EINE SCHREIBWEISE (31.08.2026).
+        # `lCollar` heisst in Daz Genesis so, `l_collar` in MocapNET, und
+        # `LeftShoulder` in Mixamo. Das sind DREI Formate und nicht drei
+        # Schreibweisen — angleichen hiesse, drei Zuordnungstabellen kaputt
+        # zu machen. Wo ein Name als „Fremd" gesehen wurde, ist er fremd,
+        # und Fremdes wird unten gar nicht erst verglichen.
+        fremdnamen = {name for name, stellen in namen.items()
+                      if any(w == "Fremd" for _d, w in stellen)}
         je_welt = {}
         for name, stellen in namen.items():
             for _datei, welt in stellen:
-                if name in drahtnamen:
+                if name in fremdnamen:
+                    welt = "Fremd"
+                elif name in drahtnamen:
                     welt = "Draht"
                 # Verglichen wird nur innerhalb DERSELBEN Rolle: `MeshData` ist
                 # eine Klasse, `mesh_data` eine Variable, `BVHTEXT` eine
@@ -164,7 +174,10 @@ def pruefen(daten_basis):
                 # die Sprache — das waren 20 der 37 „echten" Befunde
                 # (17.08.2026).
                 je_welt.setdefault((welt, cls._rolle(name)), set()).add(name)
-        for _schluessel, gesehen in je_welt.items():
+        for (welt, _rolle), gesehen in je_welt.items():
+            # „Fremd" ist keine Sprache, in der wir schreiben.
+            if welt == "Fremd":
+                continue
             if len({cls._form(n) for n in gesehen}) > 1:
                 return "in einer Sprache"
         return "über Grenze (%s)" % ", ".join(
@@ -219,6 +232,7 @@ def pruefen(daten_basis):
         zwei davon als Drahtnamen für JavaScript (17.08.2026).
         """
         module = Namensvarianten._modulnamen(d.baum)
+        vorgefunden = Namensvarianten._vorgefundene_namen(d.baum)
         aus = set()
         for k in ast.walk(d.baum):
             if isinstance(k, ast.Name) and isinstance(k.ctx, ast.Store):
@@ -227,11 +241,103 @@ def pruefen(daten_basis):
                 aus.add((k.arg, "Python"))
             elif isinstance(k, ast.Constant) and isinstance(k.value, str):
                 if re.fullmatch(r"[A-Za-z][\w-]{3,40}", k.value):
-                    aus.add((k.value, "Draht"))
+                    aus.add((k.value,
+                             "Fremd" if k.value in vorgefunden else "Draht"))
             elif isinstance(k, ast.Attribute):
                 welt = "Fremd" if Namensvarianten._wurzel(k) in module else "Python"
                 aus.add((k.attr, welt))
         return aus
+
+    #: Ab so vielen Paaren ist ein Woerterbuch eine Zuordnungstabelle und
+    #: keine Handvoll Einstellungen.
+    TABELLE_MINDESTENS = 12
+
+    @staticmethod
+    def _vorgefundene_namen(baum):
+        u"""Zeichenketten, die NICHT benannt, sondern VORGEFUNDEN sind.
+
+        DER FEHLALARM (3DTools, 31.08.2026): Von 21 Befunden „in einer
+        Sprache" waren sechzehn Knochennamen fremder Skelettformate —
+        ``lCollar`` steht so in Daz Genesis, ``l_collar`` so in
+        MocapNET, ``LeftShoulder`` so in Mixamo. Das Werkzeug las sie
+        als drei Schreibweisen EINES Namens und schlug vor, sie
+        anzugleichen. Wer dem folgt, macht jede Zuordnungstabelle
+        kaputt.
+
+        Erkannt wird das an der ROLLE der Zeichenkette, nicht am Ordner
+        und nicht am Dateinamen. Fremdnamen stehen immer EINER ZUORDNUNG
+        GEGENUEBER, in einer von zwei Formen::
+
+            BONE_MAP = {'lcollar': 'DEF-shoulder.L', ...}   # ab 12 Paaren
+            skeleton.left_arm.shoulder = 'lCollar'          # Daz-Vorgabe
+
+        Im ersten Fall sind beide Seiten Daten, im zweiten steht links
+        ein Projektpfad und rechts der fremde Name. Eine gewoehnliche
+        Zuweisung (``modus = 'schnell'``) faellt unter keine der beiden
+        Formen und bleibt ein Drahtname.
+        """
+        raus = set()
+        for k in ast.walk(baum):
+            # Form 1: grosse Zuordnungstabelle, beide Seiten Zeichenketten.
+            if isinstance(k, ast.Dict):
+                paare = [(s, w) for s, w in zip(k.keys, k.values)
+                         if isinstance(s, ast.Constant)
+                         and isinstance(s.value, str)
+                         and isinstance(w, ast.Constant)
+                         and isinstance(w.value, str)]
+                if len(paare) >= Namensvarianten.TABELLE_MINDESTENS:
+                    for s, w in paare:
+                        raus.add(s.value)
+                        raus.add(w.value)
+            # Form 2 und 4: eine Zeichenkette wird zugewiesen — einem
+            # Attributpfad (Vorgabe eines fremden Rigs) oder einer
+            # Konstante, die einen ORDNER benennt.
+            #
+            # Form 4 ist derselbe Grund wie Form 3, nur eine Zeile
+            # frueher: Wer den Verzeichnisnamen in eine Konstante hebt
+            # (`ORDNER = 'photoTo3D'`, 3DTools 01.09.2026), meint
+            # trotzdem das Verzeichnis auf der Platte. Erkannt an der
+            # Rolle — am NAMEN der Konstante, nicht am Ordner, in dem
+            # sie steht.
+            #
+            # BEIDE FORMEN IN EINEM ZWEIG: Ein `elif isinstance(k,
+            # ast.Assign)` fängt jede Zuweisung ab; ein zweiter
+            # `elif`-Zweig für Zuweisungen wird nie erreicht.
+            elif isinstance(k, ast.Assign):
+                if not (isinstance(k.value, ast.Constant)
+                        and isinstance(k.value.value, str)):
+                    continue
+                if any(isinstance(z, ast.Attribute) for z in k.targets):
+                    raus.add(k.value.value)
+                elif any(isinstance(z, ast.Name)
+                         and z.id.upper() in Namensvarianten.ORDNERNAMEN
+                         for z in k.targets):
+                    raus.add(k.value.value)
+            # Form 3: ein Bestandteil eines Pfades. Ordner heissen auf der
+            # Platte, wie sie heissen — `.../photoTo3D/SMPLX` neben
+            # `.../3DObjects/SMPL-X` sind zwei Verzeichnisse und keine zwei
+            # Schreibweisen (3DTools, 31.08.2026).
+            elif isinstance(k, ast.Call) and Namensvarianten._ist_pfadbau(k):
+                for teil in k.args:
+                    if (isinstance(teil, ast.Constant)
+                            and isinstance(teil.value, str)):
+                        raus.add(teil.value)
+        return raus
+
+    #: Aufrufe, deren Argumente Bestandteile eines Dateipfades sind.
+    PFADBAUER = {'join', 'Path', 'PurePath', 'with_name', 'with_suffix'}
+
+    #: Konstantennamen, deren Wert ein Verzeichnis auf der Platte ist.
+    ORDNERNAMEN = {'ORDNER', 'UNTERORDNER', 'ORDNERNAME', 'VERZEICHNIS',
+                   'UNTERVERZEICHNIS', 'DIR', 'DIRNAME', 'SUBDIR'}
+
+    @staticmethod
+    def _ist_pfadbau(knoten):
+        u"""Baut dieser Aufruf einen Pfad zusammen?"""
+        ziel = knoten.func
+        if isinstance(ziel, ast.Attribute):
+            return ziel.attr in Namensvarianten.PFADBAUER
+        return isinstance(ziel, ast.Name) and ziel.id in Namensvarianten.PFADBAUER
 
     @staticmethod
     def _modulnamen(baum):

@@ -116,12 +116,31 @@ class Ablageumleitung:
 
     @classmethod
     def _verwaiste_raeumen(cls, eltern, eigener):
-        u"""Reste abgestuerzter Laeufe — aber nur ALTE, nie laufende.
+        u"""Reste abgestuerzter Laeufe — nie die eines laufenden Prozesses.
 
-        Ein fremder Ordner kann zu einem Worker gehoeren, der GERADE arbeitet.
-        Deshalb wird nur weggeraeumt, was seit einem Tag niemand angefasst hat.
+        ZWEI FRAGEN, IN DIESER REIHENFOLGE (31.08.2026):
+
+        1. **Laeuft der Prozess noch, dessen Nummer der Ordner traegt?**
+           Dann bleibt er, egal wie alt er ist — er koennte gerade
+           schreiben. Das ist der Prozess-Check aus
+           ``~/.claude/rules/rekursiv-loeschen.md``.
+        2. Ist er tot, darf der Ordner sofort weg.
+
+        DIE FRIST WAR VORHER DIE EINZIGE ANTWORT und damit zu langsam:
+        Bei einem harten Abbruch laeuft ``atexit`` nicht, und der Rest
+        lag dann einen vollen Tag im Projektbaum. Am 31.08.2026 waren es
+        zwoelf Ordner aus drei abgebrochenen Laeufen desselben Tages;
+        einer enthielt eine JS-Attrappe, die ``GrundtestEsModule`` als
+        echten Projektcode las — vier gemeldete Importe ins Leere, jeder
+        Gesamtlauf rot.
+
+        Die Frist BLEIBT fuer Ordner ohne lesbare Prozessnummer: Ueber
+        die weiss man nichts, und dann entscheidet wieder das Alter.
         """
         import time
+
+        from ..skills.prozessfrage import Prozessfrage
+
         jetzt = time.time()
         try:
             eintraege = list(eltern.iterdir())
@@ -130,10 +149,15 @@ class Ablageumleitung:
         for eintrag in eintraege:
             if eintrag == eigener or not eintrag.is_dir():
                 continue
-            try:
-                if jetzt - eintrag.stat().st_mtime < cls.VERFALL:
+            nummer = Prozessfrage.nummer_aus(eintrag.name)
+            if nummer is None:
+                # Kein Prozessname — nur das Alter entscheidet.
+                try:
+                    if jetzt - eintrag.stat().st_mtime < cls.VERFALL:
+                        continue
+                except OSError:
                     continue
-            except OSError:
+            elif Prozessfrage.lebt(nummer):
                 continue
             shutil.rmtree(eintrag, ignore_errors=True)
 

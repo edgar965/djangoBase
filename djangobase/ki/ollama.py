@@ -48,7 +48,10 @@ class OllamaModelle:
         self.timeout = timeout
         #: Je Modell EIN ``/api/show``-Aufruf - der Kontext wird an zwei Stellen
         #: gebraucht (Katalog-Tabelle und Bestenliste).
-        self._kontexte = {}
+        #: Je Modell EIN ``/api/show``-Ergebnis: Kontext, Familie,
+        #: Expertenzahl. Frueher stand hier nur die Kontextlaenge -
+        #: derselbe Abruf, zwei Drittel der Antwort weggeworfen.
+        self._details = {}
         self._liste = None
 
     # ------------------------------------------------------------------- Abruf
@@ -87,7 +90,7 @@ class OllamaModelle:
             # NICHT merken: Ollama kann gleich laufen, und ein leerer Merker
             # saehe aus wie „nachgesehen, es gibt keine".
             return []
-        self._kontexte_vorholen([m.get("name", "") for m in roh])
+        self._details_vorholen([m.get("name", "") for m in roh])
         aus = [self._zeile(m) for m in roh]
         aus.sort(key=lambda z: -(z["gb"] or 0))
         self._liste = aus
@@ -109,38 +112,66 @@ class OllamaModelle:
             "param_aktiv": aktiv,
             "quant": einzel.get("quantization_level") or "",
             "kontext": self.kontext(kennung),
+            # DIE ANGABEN, DIE DER NAME VERSCHWEIGT (01.09.2026, Ansage
+            # Edgar: „welches Modell genau ist das? es gibt q4 usw."):
+            # ``qwen3.8:27b`` ist Q4_K_M und dicht, ``qwen3.8:27b-q8_0``
+            # dasselbe Modell in Q8_0. Am Namen ist das nicht zu sehen,
+            # am Tempo dafuer sehr (44,6 gegen 26,0 Token/s).
+            "familie": self._detail(kennung, "familie") or einzel.get("family") or "",
+            "experten": self._detail(kennung, "experten"),
         }
 
     # ----------------------------------------------------------------- Kontext
 
-    def _kontexte_vorholen(self, kennungen):
+    def _details_vorholen(self, kennungen):
         u"""Die ``/api/show``-Abrufe nebeneinander statt nacheinander."""
-        offen = [k for k in kennungen if k and k not in self._kontexte]
+        offen = [k for k in kennungen if k and k not in self._details]
         if len(offen) < 2:
             return
         with ThreadPoolExecutor(max_workers=min(FAEDEN, len(offen))) as pool:
-            for kennung, wert in zip(offen, pool.map(self._kontext_holen, offen)):
-                self._kontexte[kennung] = wert
+            for kennung, wert in zip(offen, pool.map(self._details_holen, offen)):
+                self._details[kennung] = wert
 
     def kontext(self, kennung):
         u"""Kontextlaenge eines lokalen Modells - oder None."""
-        if kennung not in self._kontexte:
-            self._kontexte[kennung] = self._kontext_holen(kennung)
-        return self._kontexte[kennung]
+        return self._detail(kennung, "kontext")
 
-    def _kontext_holen(self, kennung):
-        u"""Der eine Abruf dahinter.
+    def _detail(self, kennung, feld):
+        u"""Ein Feld aus dem gemerkten ``/api/show`` - notfalls nachholen."""
+        if kennung not in self._details:
+            self._details[kennung] = self._details_holen(kennung)
+        return (self._details[kennung] or {}).get(feld)
+
+    def _details_holen(self, kennung):
+        u"""Kontext, Familie und Expertenzahl aus EINEM ``/api/show``.
 
         Die Laenge steht NICHT in ``/api/tags`` (Rueckfrage 11.08.2026: „der
-        Kontext fehlt auch bei den lokalen"), sondern nur in ``/api/show`` unter
+        Kontext fehlt auch bei den lokalen"), sondern nur hier unter
         ``model_info.<architektur>.context_length``. Der Praefix wechselt je
-        Modell (``qwen35.``, ``gemma4.``), deshalb wird nach der Endung gesucht
-        statt nach einem festen Schluessel."""
-        info = self._holen("/api/show", {"model": kennung}).get("model_info") or {}
+        Modell (``qwen35.``, ``gemma4.``), deshalb wird nach der ENDUNG
+        gesucht statt nach einem festen Schluessel - und aus demselben Grund
+        auch die Expertenzahl (``*.expert_count``).
+
+        DIE EXPERTENZAHL IST DIE ERKLAERUNG FUER DIE TEMPO-SPALTE: gemma4
+        rechnet je Token 4 von 25,2 Mrd. Parametern und liegt bei 131,9
+        Token/s, das gleich grosse dichte qwen3.8:27b bei 44,6. Ohne diese
+        Angabe sieht die Tabelle so aus, als sei das eine Modell einfach
+        besser gebaut.
+        """
+        antwort = self._holen("/api/show", {"model": kennung})
+        info = antwort.get("model_info") or {}
+        aus = {"kontext": None, "experten": None,
+               "familie": (antwort.get("details") or {}).get("family") or ""}
         for schluessel, wert in info.items():
             if schluessel.endswith(".context_length"):
-                try:
-                    return int(wert)
-                except (TypeError, ValueError):
-                    return None
-        return None
+                aus["kontext"] = self._ganzzahl(wert)
+            elif schluessel.endswith(".expert_count"):
+                aus["experten"] = self._ganzzahl(wert)
+        return aus
+
+    @staticmethod
+    def _ganzzahl(wert):
+        try:
+            return int(wert)
+        except (TypeError, ValueError):
+            return None

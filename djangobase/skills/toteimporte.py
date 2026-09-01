@@ -64,6 +64,9 @@ class ToteImporte(BefundWerkzeug):
             benutzt = self._benutzte_namen(baum)
             # `__all__` zaehlt als Verwendung: Namen darin werden re-exportiert.
             benutzt |= self._reexporte(baum)
+            # Je Datei gesetzt, damit `_gewollt` keine siebte Signaturstelle
+            # braucht: die Zeilen der probeweisen Importe (Muster 5).
+            self._probeweise = self._probeweise_importe(baum)
             for knoten in ast.walk(baum):
                 if not isinstance(knoten, (ast.Import, ast.ImportFrom)):
                     continue
@@ -116,7 +119,59 @@ class ToteImporte(BefundWerkzeug):
         # 4. Weiterreichen: Benutzt eine ANDERE Datei den Namen ueber dieses
         #    Modul (`views.ki_memory_api`) oder holt sie ihn von hier
         #    (`from ...views import ki_memory_api`), ist er alles andere als tot.
-        return (modul, kurzname) in von_aussen
+        if (modul, kurzname) in von_aussen:
+            return True
+        # 5. Verfuegbarkeitspruefung: Der Import STEHT fuer die Frage, ob es das
+        #    Paket ueberhaupt gibt - die Antwort ist das Flag daneben, nicht der
+        #    Name (3DTools, 31.08.2026)::
+        #
+        #        try:
+        #            from playwright.sync_api import sync_playwright
+        #            HAS_PLAYWRIGHT = True
+        #        except ImportError:
+        #            HAS_PLAYWRIGHT = False
+        #
+        #    Wer `sync_playwright` hier streicht, nimmt der Datei genau das,
+        #    was sie wissen wollte: Die Pruefung meldet dann immer „vorhanden".
+        return knoten.lineno in self._probeweise
+
+    #: Zeilen der probeweisen Importe der Datei, die gerade geprueft wird.
+    _probeweise = frozenset()
+
+    @staticmethod
+    def _probeweise_importe(baum):
+        u"""Zeilennummern von Importen, die einen ``ImportError`` erwarten.
+
+        Nur der ``try``-Rumpf zaehlt - was im ``except``-Zweig steht, ist der
+        Ersatzweg und kann sehr wohl tot sein.
+        """
+        raus = set()
+        for knoten in ast.walk(baum):
+            if not isinstance(knoten, ast.Try):
+                continue
+            if not any(ToteImporte._faengt_import(h) for h in knoten.handlers):
+                continue
+            for k in knoten.body:
+                for unter in ast.walk(k):
+                    if isinstance(unter, (ast.Import, ast.ImportFrom)):
+                        raus.add(unter.lineno)
+        return raus
+
+    @staticmethod
+    def _faengt_import(handler):
+        u"""Faengt dieser ``except``-Zweig einen fehlenden Import ab?
+
+        Ein nacktes ``except:`` (``type is None``) faengt alles, also auch
+        das - und ist damit ebenfalls eine Verfuegbarkeitspruefung.
+        """
+        gesucht = {'ImportError', 'ModuleNotFoundError', 'Exception'}
+        if handler.type is None:
+            return True
+        kandidaten = (handler.type.elts
+                      if isinstance(handler.type, ast.Tuple)
+                      else [handler.type])
+        return any(isinstance(k, ast.Name) and k.id in gesucht
+                   for k in kandidaten)
 
     def _verweise_von_aussen(self):
         u"""{(modul, name)} - jeder Zugriff der Form ``modul.name`` und jedes
