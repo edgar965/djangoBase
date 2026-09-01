@@ -97,6 +97,73 @@ def _ist_gewollt(zeilen, nummer):
     return 'noqa' in zeilen[nummer - 1].lower()
 
 
+def _annotationsketten(baum):
+    u"""Namen, die nur in einer Annotations-Zeichenkette stehen.
+
+    PYFLAKES LIEST JEDE ZEICHENKETTE IN EINER ANNOTATION ALS TYP
+    ============================================================
+    In Python ist eine Annotation, die eine Zeichenkette ist, eine
+    Vorwaertsreferenz: ``x: "MeineKlasse"``. pyflakes parst sie deshalb
+    als Code — und zwar JEDE Zeichenkette im Annotationsteilbaum, auch
+    die Argumente eines Aufrufs.
+
+    Blender-Addons deklarieren ihre Eigenschaften seit 2.80 genau so::
+
+        region: EnumProperty(name="Region", default="TORSO")
+
+    Das ist dort keine Stilfrage, sondern Pflicht. pyflakes meldet
+    daraufhin ``undefined name 'Region'`` und ``undefined name 'TORSO'``
+    — und zwar als ECHTEN Fehler, die schwerste Kategorie dieses
+    Werkzeugs. Gemessen am 01.09.2026 in ``HumanBodyBlender``: 110 von
+    226 „Echten Fehlern" waren Beschriftungen wie ``Farbe``, ``Name``,
+    ``Region``. Zum Vergleich derselbe Code als Zuweisung::
+
+        region = EnumProperty(name="Region")   -> nur EnumProperty fehlt
+
+    DIE TRENNLINIE IST DER AUFRUF: Verworfen werden nur Zeichenketten,
+    die INNERHALB eines Aufrufs in der Annotation stehen. Die Annotation
+    selbst (``x: "MeineKlasse"``) und Zeichenketten in einem Index
+    (``Optional["MeineKlasse"]``) bleiben, was sie sind — echte
+    Vorwaertsreferenzen, und ein fehlender Name dort ist ein Befund.
+
+    ZWEI MELDUNGEN, EIN GRUND: Ist die Beschriftung ein einzelnes Wort
+    (``"Region"``), parst pyflakes sie und meldet ``UndefinedName``. Hat
+    sie ein Leerzeichen (``"Alpha Channel"``, ``"Material thickness
+    (Solidify)"``), scheitert das Parsen und pyflakes meldet
+    ``ForwardAnnotationSyntaxError``. Beide sind dasselbe Fehlurteil,
+    und nach dem ersten Fix blieben allein in `properties.py` 40 der
+    zweiten Sorte stehen. Deshalb kommen beide hier heraus.
+
+    Zurueck kommt ``{(zeile, wert)}`` — der Wert ist genau das, was in
+    ``m.message_args[0]`` steht: der Name bzw. die ganze Zeichenkette.
+    """
+    heraus = set()
+
+    def namen_in(kette, zeile):
+        try:
+            innen = ast.parse(kette, mode='eval')
+        except SyntaxError:
+            heraus.add((zeile, kette))
+            return
+        for k in ast.walk(innen):
+            if isinstance(k, ast.Name):
+                heraus.add((zeile, k.id))
+
+    def aus_aufruf(knoten):
+        for k in ast.walk(knoten):
+            if isinstance(k, ast.Constant) and isinstance(k.value, str):
+                namen_in(k.value, k.lineno)
+
+    for knoten in ast.walk(baum):
+        if not isinstance(knoten, ast.AnnAssign):
+            continue
+        for teil in ast.walk(knoten.annotation):
+            if isinstance(teil, ast.Call):
+                for arg in list(teil.args) + [k.value for k in teil.keywords]:
+                    aus_aufruf(arg)
+    return heraus
+
+
 class Treffer:
     u"""Eine Fundstelle — dieselbe Form für alle vier Verfahren."""
 
@@ -316,6 +383,7 @@ class Codequalitaet:
             return v
         arten = Counter()
         gewollt = 0
+        kettennamen = 0
         fremd = Counter()
         for kurz, _pfad, text in self.dateien:
             try:
@@ -331,11 +399,19 @@ class Codequalitaet:
                 self._panne(kurz, v.name, exc)
                 continue
             zeilen = text.splitlines()
+            beschriftung = _annotationsketten(baum)
             for m in meldungen:
                 if _ist_gewollt(zeilen, m.lineno):
                     gewollt += 1
                     continue
                 art = type(m).__name__
+                if (art in ('UndefinedName', 'ForwardAnnotationSyntaxError')
+                        and m.message_args
+                        and (m.lineno, m.message_args[0]) in beschriftung):
+                    # Eine Beschriftung, kein Name — siehe
+                    # `_annotationsketten`. Gezaehlt, nicht verschwiegen.
+                    kettennamen += 1
+                    continue
                 if art in ANDERSWO:
                     fremd[ANDERSWO[art]] += 1
                     continue
@@ -347,11 +423,15 @@ class Codequalitaet:
         v.treffer.sort(key=lambda t: (-arten[t.name], t.datei, t.zeile))
         v.zahlen = {'gesamt': sum(arten.values()),
                     'arten': arten.most_common(8), 'gewollt': gewollt,
+                    'kettennamen': kettennamen,
                     'anderswo': fremd.most_common()}
         v.satz = (u'%d Meldungen in %d Arten' % (sum(arten.values()),
                                                  len(arten)))
         if gewollt:
             v.satz += u' — dazu %d ausdrücklich erlaubt (# noqa)' % gewollt
+        if kettennamen:
+            v.satz += (u'; %d Beschriftungen in Annotationen (keine Namen)'
+                       % kettennamen)
         for werkzeug, zahl in fremd.most_common():
             v.satz += u'; %d führt `%s`' % (zahl, werkzeug)
         return v
