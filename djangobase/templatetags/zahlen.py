@@ -43,6 +43,39 @@ def de(value, decimals=0):
 
 
 @register.filter
+def sortwert(value):
+    u"""'20.9B' -> 20.9, '137M' -> 0.001*137; nicht deutbar -> leer.
+
+    FUER ``data-sort``, NICHT fuer die Anzeige. Eine Zelle darf ihren Text
+    frei waehlen ("137M", "20.9B"), aber der Sortierschluessel muss eine
+    blanke Zahl auf EINEM Massstab sein.
+
+    Steht dort der Rohtext, sortiert die Tabelle nach der Ziffer und wirft
+    die Einheit weg: "137M" wurde zu 137 und stand damit ueber "122B"
+    (Befund 01.09.2026, Hilfe -> KI-Modelle). Dieselbe Klasse wie der
+    Bruch "5/6" -> 56, gegen den ``tabellen_sortierung.js`` schon eine
+    Sonderregel hat - nur faellt sie hier nicht auf, weil das Ergebnis
+    plausibel aussieht.
+
+    Leer statt DASH: ``data-sort=""`` heisst der Sortierung "kein Wert"
+    (ans Ende), ein Gedankenstrich waere ein Text und sortierte zwischen
+    die Zahlen.
+
+    AUSGABE MIT KOMMA, OHNE TAUSENDERPUNKT. ``tabellen_sortierung._zahl``
+    liest deutsch: Komma trennt die Dezimalen, JEDER Punkt gilt als
+    Tausenderzeichen und wird geworfen. Ein ``repr()`` mit "0.137" wuerde
+    dort zu 137 - genau der Fehler, der hier behoben wird."""
+    from djangobase.ki.modellname import Modellname   # spaet: ki/ kennt Vorlagen nicht
+    zahl = Modellname.mrd(value)
+    if zahl is None:
+        return ""
+    # %f statt str(): str(1e-06) waere "1e-06" und damit fuer die Sortierung
+    # unlesbar. Nachlaufende Nullen weg, damit "550" nicht "550,000000000" wird.
+    text = ("%.9f" % zahl).rstrip("0").rstrip(".")
+    return (text or "0").replace(".", ",")
+
+
+@register.filter
 def de_signed(value, decimals=0):
     """Wie de, aber mit Vorzeichen bei positiven Zahlen (+1.234). Verhindert
     Krueppel-Vorzeichen wie "+-4" und "-0"/"+0", wenn der Wert (gerundet) 0 oder None ist."""

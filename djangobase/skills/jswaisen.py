@@ -134,18 +134,95 @@ class Modulinventar:
                 offen.append(ziel)
         return gesehen
 
+    @staticmethod
+    def _nennt_genau(pfad, angabe):
+        u"""Meint die Angabe der Vorlage GENAU diese Datei?
+
+        Die Vorlage schreibt einen Ausschnitt des Pfades
+        (``mail/js/inbox/index.js``), die Datei liegt unter
+        ``mail/static/mail/js/inbox/index.js`` - der Ausschnitt muss also
+        das ENDE des Pfades sein.
+        """
+        teile = [t for t in str(angabe).replace("\\", "/").split("/")
+                 if t and t != "."]
+        return tuple(pfad.parts[-len(teile):]) == tuple(teile)
+
     def _einstiegspunkte(self):
-        """Dateien, die eine Vorlage lädt - über {% static %} oder als src."""
+        """Dateien, die eine Vorlage lädt - über {% static %} oder als src.
+
+        NUR DER DATEINAME REICHT NICHT (31.08.2026, Projekt assistant)
+        ==============================================================
+        Verglichen wurde bisher allein der letzte Pfadteil. ``index.js``
+        ist aber der haeufigste Dateiname ueberhaupt: Im assistant gibt es
+        vier davon, drei laedt eine Vorlage. Der vierte
+        (``search/js/chat/index.js``) galt damit ebenfalls als geladen -
+        und mit ihm die sechs Module, die er importiert. SIEBEN tote
+        Dateien, rund 500 Zeilen, eine vollstaendige zweite Fassung des
+        Chat-Skripts, das in ``chat.html`` inline steht. Das Werkzeug
+        meldete null Waisen.
+
+        Nennt die Vorlage einen Pfad, muss er das Ende des Dateipfades
+        sein. Nennt sie nur einen blanken Dateinamen, bleibt es beim alten
+        Verhalten: Dann gelten alle gleichnamigen Dateien als geladen -
+        ein uebersehener Befund ist besser als ein Loeschvorschlag fuer
+        lebenden Code.
+        """
         nach_name = {}
         for pfad in self.dateien:
             nach_name.setdefault(pfad.name, []).append(pfad)
-        einstieg = set()
+        einstieg = set(self._buendel_einstiege(nach_name))
         for pfad in self.vorlagen:
             text = pfad.read_text(encoding="utf-8", errors="replace")
             for treffer in IM_TEMPLATE.findall(text):
-                for datei in nach_name.get(treffer.split("/")[-1], ()):
-                    einstieg.add(datei)
+                kandidaten = nach_name.get(treffer.split("/")[-1], ())
+                if "/" not in treffer.strip("/"):
+                    einstieg.update(kandidaten)
+                    continue
+                einstieg.update(p for p in kandidaten
+                                if self._nennt_genau(p, treffer))
         return einstieg
+
+    #: Konfigurationsdateien eines Bündlers. Sie nennen den Einstieg,
+    #: von dem aus gebaut wird — die Vorlage laedt danach nur noch das
+    #: fertige Buendel.
+    BUENDELKONFIG = ("vite.config.js", "vite.config.mjs", "vite.config.ts",
+                     "rollup.config.js", "rollup.config.mjs",
+                     "webpack.config.js")
+
+    #: Eine Zeichenkette in so einer Konfiguration, die auf eine Quelldatei
+    #: zeigt.
+    KONFIG_QUELLE = re.compile(r"""['"]([^'"]+\.(?:js|mjs|ts|jsx|tsx))['"]""")
+
+    def _buendel_einstiege(self, nach_name):
+        u"""Einstiege, die eine Bündler-Konfiguration nennt.
+
+        DER FEHLALARM (3DTools, 01.09.2026): 44 von 44 „Waisen" lagen in
+        `TheatreJS/src/` — einer Vite-Anwendung. Ihre Vorlage laedt nur
+        das fertige Buendel (`static/theatre/theatre-app.js`), und der
+        Einstieg steht in `vite.config.js`::
+
+            input: path.resolve(__dirname, 'src/main.js')
+
+        Ohne diesen Blick meldet das Werkzeug jede Datei eines
+        gebuendelten Frontends als tot — ein Loeschvorschlag fuer
+        lebenden Code, die teuerste Sorte Fehlalarm.
+
+        Gelesen werden ALLE Zeichenketten der Konfiguration, die auf
+        eine Quelldatei zeigen; eine Buendlerkonfiguration nennt nur
+        wenige. Ein Treffer muss ausserdem als Datei existieren —
+        Aliase und Ausgabenamen (`theatre-app.js`) fallen damit weg,
+        solange es sie nicht wirklich gibt.
+        """
+        raus = set()
+        for konfig in self.dateien:
+            if konfig.name not in self.BUENDELKONFIG:
+                continue
+            text = konfig.read_text(encoding="utf-8", errors="replace")
+            for angabe in self.KONFIG_QUELLE.findall(text):
+                for kandidat in nach_name.get(angabe.split("/")[-1], ()):
+                    if self._nennt_genau(kandidat, angabe):
+                        raus.add(kandidat)
+        return raus
 
     #: Vermerk im Modulkopf fuer ein Modul, das BEWUSST nicht geladen wird:
     #: ``// stillgelegt gewollt: <Grund>``. Die Begruendung ist Pflicht — ohne

@@ -116,7 +116,9 @@ Spalte für die gemerkten Breiten.
     <th class="num" data-key="gpu">GPU-Bedarf<br><span class="klein">gemessen, 12 GB Karte</span></th>
     <th class="num" data-key="kontext">Kontext</th>
     <th class="num" data-key="zeit">je Frage</th>
+    <th class="num" data-key="tokens">Token/s<br><span class="klein">Erzeugung, nicht Wartezeit</span></th>
     <th class="num" data-key="kosten">Kosten<br><span class="klein">je Frage</span></th>
+    <th class="num" data-key="lauf">Letzter Lauf<br><span class="klein">Sparring bzw. Tempo</span></th>
     <th class="num" data-key="kern">Kernpunkte</th>
     <th data-key="urteil">Urteil</th>
   </tr></thead>
@@ -124,12 +126,18 @@ Spalte für die gemerkten Breiten.
   {% for m in beste %}
   <tr {% if m.rang == 1 %}class="rang1"{% endif %}>
     <td class="num" data-sort="{{ m.rang|default:99 }}">{% if m.rang %}<span class="medaille">{{ m.rang }}</span>{% else %}<span class="klein">—</span>{% endif %}</td>
-    <td><span class="kennung">{{ m.kennung }}</span></td>
+    {# Fassung und Bauart je Modell - Begruendung in ki/ollama.py #}
+    <td><span class="kennung">{{ m.kennung }}</span>
+      {% if m.quant %}<br><span class="klein" title="Architektur: {{ m.familie }} · {{ m.param_gesamt }} Parameter{% if m.experten %} · Mixture-of-Experts mit {{ m.experten }} Experten, je Token rechnet nur ein Bruchteil{% else %} · dichtes Modell, je Token rechnen alle Parameter{% endif %}">{{ m.quant }}
+        {% if m.experten %}· {{ m.experten }} Experten{% else %}· dicht{% endif %}
+      </span>{% endif %}
+    </td>
     <td>{% if m.ort == "lokal" %}<b class="wo-lokal">lokal</b>{% elif m.ct_je_frage %}<b class="wo-bezahlt">online</b>{% else %}<b class="wo-frei">online</b>{% endif %}</td>
     <td class="num" data-sort="{{ m.note|slice:':1' }}" title="{{ m.note_grund }}"><b class="note">{{ m.note }}</b></td>
-    <td class="num" data-sort="{{ m.param_gesamt|default:'' }}">{% if m.param_gesamt %}{{ m.param_gesamt }}{% if m.param_aktiv %}<br><span class="klein">{{ m.param_aktiv }} aktiv</span>{% endif %}{% else %}<span class="klein">k.A.</span>{% endif %}</td>
+    <td class="num" data-sort="{{ m.param_gesamt|sortwert }}">{% if m.param_gesamt %}{{ m.param_gesamt }}{% if m.param_aktiv %}<br><span class="klein">{{ m.param_aktiv }} aktiv</span>{% endif %}{% else %}<span class="klein">k.A.</span>{% endif %}</td>
     <td class="num" data-sort="{{ m.gb|default:'' }}">{% if m.gb %}{% if m.gb_geschaetzt %}~{% endif %}{{ m.gb|de:1 }} GB{% else %}<span class="klein">—</span>{% endif %}</td>
-    <td class="num" data-sort="{{ m.vram_ram|default:'' }}">
+    {# Sortiert nach dem ANGEZEIGTEN Wert (GPU-Bedarf), nicht nach dem ausgelagerten Rest #}
+    <td class="num" data-sort="{{ m.vram_gpu|default_if_none:'' }}">
       {% if m.vram_gesamt %}
         {% if m.ganz_auf_gpu %}<b class="gut">{{ m.vram_gpu|de:1 }} GB</b><br><span class="klein">passt ganz</span>
         {% else %}<b class="schlecht">{{ m.vram_ram|de:1 }} GB</b><br><span class="klein">im RAM statt GPU</span>{% endif %}
@@ -137,7 +145,18 @@ Spalte für die gemerkten Breiten.
     </td>
     <td class="num" data-sort="{{ m.kontext|default:'' }}">{% if m.kontext %}{{ m.kontext|de }}{% else %}<span class="klein">—</span>{% endif %}</td>
     <td class="num" data-sort="{{ m.sek_je_frage }}"><b>{{ m.sek_je_frage }} s</b></td>
+    {# Durchsatz: lokal Erzeugungszeit, online ab dem ersten Token - siehe messungen.py #}
+    <td class="num" data-sort="{{ m.token_je_s|default:'' }}">
+      {% if m.token_je_s %}<b>{{ m.token_je_s|de:1 }}</b>
+        {% if m.token_quelle == "online" %}<br><span class="klein" title="Beim Anbieter gemessen, ab dem ersten Token. Haengt an der Tageslast - kostenlose Modelle laufen mit niedriger Prioritaet.">beim Anbieter{% if m.token_spanne %} ±{{ m.token_spanne }} %{% endif %}</span>{% endif %}
+      {% else %}<span class="klein">—</span>{% endif %}
+    </td>
     <td class="num" data-sort="{{ m.ct_je_frage }}">{% if m.ct_je_frage %}{{ m.ct_je_frage }} ct{% else %}<span class="gut">0</span>{% endif %}</td>
+    {# Angezeigt deutsch, sortiert nach ISO (data-sort) #}
+    <td class="num" data-sort="{{ m.letzter_lauf }}">
+      {% if m.letzter_lauf %}<span title="Sparring: {{ m.sparring_stand_de|default:'nie gemessen' }}{% if m.tempo_stand %} &middot; Tempo-Messung: {{ m.tempo_stand_de }}{% endif %}">{{ m.letzter_lauf_de }}</span>
+      {% else %}<span class="klein">&mdash;</span>{% endif %}
+    </td>
     <td class="num" data-sort="{{ m.kern }}">{{ m.kern }}/{{ m.kern_moeglich }}</td>
     <td>
       {{ m.urteil }}
@@ -146,7 +165,7 @@ Spalte für die gemerkten Breiten.
     </td>
   </tr>
   {% empty %}
-  <tr><td colspan="10">Keine Messwerte vorhanden.</td></tr>
+  <tr><td colspan="14">Keine Messwerte vorhanden.</td></tr>
   {% endfor %}
   </tbody>
 </table>
@@ -220,8 +239,8 @@ Spalte für die gemerkten Breiten.
     <td data-sort="0"><b class="wo-lokal">lokal</b> <span class="klein">eigene Grafikkarte</span></td>
     <td><span class="kennung">{{ m.kennung }}</span>{% if m.quant %} <span class="klein">{{ m.quant }}</span>{% endif %}</td>
     {% include "djangobase/hilfe/_ki_messspalten.html" with m=m %}
-    <td class="num" data-sort="{{ m.param_gesamt|default:'' }}">{% if m.param_gesamt %}{{ m.param_gesamt }}{% else %}<span class="klein">k.A.</span>{% endif %}</td>
-    <td class="num" data-sort="{{ m.param_aktiv|default:'' }}">{% if m.param_aktiv %}{{ m.param_aktiv }}{% else %}<span class="klein">alle</span>{% endif %}</td>
+    <td class="num" data-sort="{{ m.param_gesamt|sortwert }}">{% if m.param_gesamt %}{{ m.param_gesamt }}{% else %}<span class="klein">k.A.</span>{% endif %}</td>
+    <td class="num" data-sort="{{ m.param_aktiv|sortwert }}">{% if m.param_aktiv %}{{ m.param_aktiv }}{% else %}<span class="klein">alle</span>{% endif %}</td>
     <td class="num" data-sort="{{ m.gb|default:'' }}"><b>{{ m.gb|de:1 }} GB</b></td>
     <td class="num" data-sort="{{ m.kontext|default:'' }}">{% if m.kontext %}{{ m.kontext|de }}{% else %}<span class="klein">—</span>{% endif %}</td>
   </tr>
@@ -231,8 +250,8 @@ Spalte für die gemerkten Breiten.
     <td data-sort="1"><b class="wo-frei">online</b> <span class="klein">kostenlos</span></td>
     <td><span class="kennung">{{ m.kennung }}</span></td>
     {% include "djangobase/hilfe/_ki_messspalten.html" with m=m %}
-    <td class="num" data-sort="{{ m.param_gesamt|default:'' }}">{% if m.param_gesamt %}{{ m.param_gesamt }}{% else %}<span class="klein">k.A.</span>{% endif %}</td>
-    <td class="num" data-sort="{{ m.param_aktiv|default:'' }}">{% if m.param_aktiv %}{{ m.param_aktiv }}{% else %}<span class="klein">alle</span>{% endif %}</td>
+    <td class="num" data-sort="{{ m.param_gesamt|sortwert }}">{% if m.param_gesamt %}{{ m.param_gesamt }}{% else %}<span class="klein">k.A.</span>{% endif %}</td>
+    <td class="num" data-sort="{{ m.param_aktiv|sortwert }}">{% if m.param_aktiv %}{{ m.param_aktiv }}{% else %}<span class="klein">alle</span>{% endif %}</td>
     <td class="num" data-sort="{{ m.gb|default:'' }}">{% if m.gb %}~{{ m.gb|de:1 }} GB{% else %}<span class="klein">—</span>{% endif %}</td>
     <td class="num" data-sort="{{ m.kontext }}">{{ m.kontext|de }}</td>
   </tr>
@@ -267,10 +286,10 @@ Spalte für die gemerkten Breiten.
   <tr>
     <td><span class="kennung">{{ m.kennung }}</span></td>
     {% include "djangobase/hilfe/_ki_messspalten.html" with m=m %}
-    <td class="num" data-sort="{{ m.ct_je_frage|default:'' }}">
+    <td class="num" data-sort="{{ m.ct_je_frage|default_if_none:'' }}">
       {% if m.ct_je_frage %}{{ m.ct_je_frage }} ct{% else %}<span class="klein">—</span>{% endif %}</td>
-    <td class="num" data-sort="{{ m.param_gesamt|default:'' }}">{% if m.param_gesamt %}{{ m.param_gesamt }}{% else %}<span class="klein">k.A.</span>{% endif %}</td>
-    <td class="num" data-sort="{{ m.param_aktiv|default:'' }}">{% if m.param_aktiv %}{{ m.param_aktiv }}{% else %}<span class="klein">alle</span>{% endif %}</td>
+    <td class="num" data-sort="{{ m.param_gesamt|sortwert }}">{% if m.param_gesamt %}{{ m.param_gesamt }}{% else %}<span class="klein">k.A.</span>{% endif %}</td>
+    <td class="num" data-sort="{{ m.param_aktiv|sortwert }}">{% if m.param_aktiv %}{{ m.param_aktiv }}{% else %}<span class="klein">alle</span>{% endif %}</td>
     <td class="num" data-sort="{{ m.gb|default:'' }}">{% if m.gb %}~{{ m.gb|de:1 }} GB{% else %}<span class="klein">—</span>{% endif %}</td>
     <td class="num" data-sort="{{ m.kontext }}">{{ m.kontext|de }}</td>
     <td class="num" data-sort="{{ m.preis_ein }}">{{ m.preis_ein|floatformat:2 }} $</td>
@@ -329,8 +348,14 @@ unsortierbar da, ohne dass irgendetwas einen Fehler gemeldet haette.
 <script type="module">
   // Tabellen-Bedienung aus djangoBase (11.08.2026): dieselbe Sortierung und
   // dasselbe Spalten-Ziehen wie in allen anderen Projekten.
-  import { TabellenSortierung } from '/static/djangobase/js/tabellen_sortierung.js?v=2';
-  import { TabellenBreiten } from '/static/djangobase/js/tabellen_breiten.js?v=2';
+    // OHNE ?v= (Befund 01.09.2026): tabellen_auto.js liegt seit 21.08.2026 ueber
+  // die Middleware auf JEDER Seite und importiert dieselben Dateien ohne
+  // Kennung. Mit ?v=2 laedt der Browser sie ein ZWEITES Mal - zwei Module,
+  // zwei Klick-Horcher, und die Sortierung liess sich nur noch absteigend
+  // umschalten. Die Zwei war ausserdem totes Cache-Busting: eine feste Zahl
+  // aendert sich nie, die Datei schon.
+  import { TabellenSortierung } from '/static/djangobase/js/tabellen_sortierung.js';
+  import { TabellenBreiten } from '/static/djangobase/js/tabellen_breiten.js';
   // STARTBREITEN je Spalte (Meldung 11.08.2026). Ohne sie friert TabellenBreiten
   // beim ersten Ziehen die vom Browser verteilten Ist-Breiten ein - und wer eine
   // Spalte weit aufzieht, quetscht damit alle anderen zusammen, bis die

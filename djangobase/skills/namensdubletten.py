@@ -99,6 +99,7 @@ class Namensdubletten(BefundWerkzeug):
     def pruefen(self, **_argumente):
         klassen = defaultdict(list)
         funktionen = defaultdict(list)
+        privat = defaultdict(list)
         moduldateien = defaultdict(list)
         wortverwendung = defaultdict(set)
 
@@ -119,9 +120,18 @@ class Namensdubletten(BefundWerkzeug):
                     ziel = funktionen
                 else:
                     continue
-                if knoten.name in self.ERLAUBT or knoten.name.startswith('_'):
+                if knoten.name in self.ERLAUBT:
                     continue
-                ziel[knoten.name].append('%s:%d' % (self.kurz(datei), knoten.lineno))
+                ort = '%s:%d' % (self.kurz(datei), knoten.lineno)
+                if knoten.name.startswith('_'):
+                    # PRIVATE NAMEN: nicht mehr blind ueberspringen, siehe
+                    # `_privat_mit_zwei_gesichtern`. Gesammelt wird hier nur;
+                    # gemeldet wird spaeter und nur bei abweichender Signatur.
+                    if isinstance(knoten, ast.ClassDef):
+                        continue
+                    privat[knoten.name].append((self._signatur(knoten), ort))
+                    continue
+                ziel[knoten.name].append(ort)
                 for wort in re.split(r'[_\W]+', knoten.name.lower()):
                     if wort:
                         wortverwendung[wort].add(knoten.name)
@@ -129,6 +139,7 @@ class Namensdubletten(BefundWerkzeug):
         befunde = []
         befunde.extend(self._doppelt(klassen, 'Klasse'))
         befunde.extend(self._doppelt(funktionen, 'Funktion'))
+        befunde.extend(self._privat_mit_zwei_gesichtern(privat))
         for dateiname, orte in sorted(moduldateien.items()):
             if len(orte) > 1 and dateiname not in ('__init__.py', 'apps.py',
                                                    'models.py', 'views.py',
@@ -153,6 +164,72 @@ class Namensdubletten(BefundWerkzeug):
                 orte[0], '%s %s existiert %dx' % (art, name, len(orte)),
                 'auch: ' + ', '.join(orte[1:6]),
                 Befund.WARNUNG if len(orte) > 2 else Befund.HINWEIS))
+        return befunde
+
+    @staticmethod
+    def _signatur(knoten):
+        """Die Parameterliste als Zeichenkette — ohne Vorgabewerte."""
+        argumente = knoten.args
+        namen = [a.arg for a in (list(getattr(argumente, 'posonlyargs', []))
+                                 + list(argumente.args))]
+        if argumente.vararg:
+            namen.append('*' + argumente.vararg.arg)
+        namen += [a.arg for a in argumente.kwonlyargs]
+        if argumente.kwarg:
+            namen.append('**' + argumente.kwarg.arg)
+        return ', '.join(namen)
+
+    def _privat_mit_zwei_gesichtern(self, privat):
+        """Ein privater Name, der in zwei Dateien VERSCHIEDENES bedeutet.
+
+        WARUM PRIVATE NAMEN NICHT MEHR PAUSCHAL DURCHRUTSCHEN (31.08.2026)
+        =================================================================
+        Hier stand ``knoten.name.startswith('_')`` als blindes
+        ``continue`` — ohne Begruendung daneben. Der Gedanke dahinter ist
+        richtig: ``_parse``, ``_key``, ``_norm`` heissen in zwanzig
+        Modulen gleich, und das ist keine Dublette, sondern ein kurzer
+        Name fuer eine kurze Sache.
+
+        Er traegt aber nicht weit genug. In 3DTools stand
+        ``_push_outside_body`` in VIER Dateien::
+
+            collision/warp_sim.py        (cloth_pts, body_pts, body_normals, margin)
+            collision/skinning_only.py   (cloth_pts, body_pts, body_normals, margin)
+            humanbody_core/cloth.py      (cloth_verts, body_verts, min_dist)
+            GarmentFitter/fitter.py      (cloth_verts, ..., min_dist, ...)
+
+        Dreimal derselbe sprechende Name fuer drei verschiedene
+        Rechnungen — und Aufrufer in HumanBodyWeb holen ihn mal aus dem
+        einen, mal aus dem anderen Modul. Genau das, wovor dieses
+        Werkzeug warnen soll; es sah nur weg, weil ein Unterstrich davor
+        stand.
+
+        GEMELDET WIRD DESHALB NUR DIE GEFAEHRLICHE HAELFTE: gleiche
+        Parameterliste heisst „dieselbe Sache, vielleicht kopiert" — dafuer
+        gibt es ``doppelcode`` und ``doppelrumpf``, die den Rumpf
+        vergleichen statt den Namen. Verschiedene Parameterlisten heissen
+        „verschiedene Sachen unter einem Namen", und dagegen hilft kein
+        anderes Werkzeug.
+        """
+        befunde = []
+        for name, treffer in sorted(privat.items()):
+            if len(treffer) < 2:
+                continue
+            signaturen = {}
+            for signatur, ort in treffer:
+                signaturen.setdefault(signatur, []).append(ort)
+            if len(signaturen) < 2:
+                continue
+            orte = [orte[0] for orte in signaturen.values()]
+            beschreibung = '; '.join(
+                '(%s)' % signatur if signatur else '()'
+                for signatur in list(signaturen)[:3])
+            befunde.append(Befund(
+                orte[0],
+                'Privatname %s bedeutet %dx Verschiedenes'
+                % (name, len(signaturen)),
+                '%s — auch: %s' % (beschreibung, ', '.join(orte[1:5])),
+                Befund.WARNUNG))
         return befunde
 
     @staticmethod

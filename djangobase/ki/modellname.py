@@ -55,12 +55,32 @@ class Modellname:
         mrd = cls.mrd(param)
         return None if mrd is None else round(mrd * GB_JE_MRD, 1)
 
+    #: Groessensuffix -> Faktor in MILLIARDEN. Ollama liefert `parameter_size`
+    #: als Text mit Einheit ("20.9B", "137M"); ohne diese Tabelle bleibt von
+    #: "137M" nach `rstrip("Bb")` der Text "137M" stehen und float() wirft.
+    EINHEITEN = {"t": 1000.0, "b": 1.0, "m": 0.001, "k": 0.000001}
+
     @staticmethod
     def mrd(param):
-        u"""'550B' -> 550.0; None oder Unsinn -> None. Auch zum Sortieren."""
+        u"""'550B' -> 550.0, '20.9B' -> 20.9, '137M' -> 0.137; sonst None.
+
+        BEFUND 01.09.2026 - die Einheit fehlte, und zwar an zwei Stellen:
+        Hier warf ``float("137M")`` still ein ValueError (Ergebnis None), und
+        in der Vorlage stand der ROHTEXT als ``data-sort``. Die Sortierung
+        las daraus die blanke Ziffer und stellte ein 137-Millionen-Modell
+        zwischen zwei mit ueber hundert MILLIARDEN Parametern.
+
+        Rueckgabe immer in Milliarden, damit ein einziger Massstab sortiert."""
         if not param:
             return None
+        text = str(param).strip()
+        faktor = 1.0
+        if text and text[-1].lower() in Modellname.EINHEITEN:
+            faktor = Modellname.EINHEITEN[text[-1].lower()]
+            text = text[:-1]
         try:
-            return float(str(param).rstrip("Bb"))
+            # Runden, weil 0.137 * 1.0 in Fliesskomma als 0.13700000000000001
+            # herauskommen kann - das landete sonst so im data-sort-Attribut.
+            return round(float(text) * faktor, 9)
         except ValueError:
             return None

@@ -59,7 +59,24 @@ export class TabellenSortierung {
    *  Aufrufen ist harmlos - der Handler wird nur einmal gesetzt. */
   static binden(wurzel) {
     const w = wurzel || document;
-    if (!TabellenSortierung._handler) {
+    // EIN KLICK-HORCHER JE SEITE, NICHT JE MODULINSTANZ (Befund 01.09.2026).
+    //
+    // `_handler` ist ein statisches Feld - es schuetzt nur INNERHALB einer
+    // Modulinstanz. Wird dieselbe Datei unter zwei URLs geladen
+    // (".../tabellen_sortierung.js" und ".../tabellen_sortierung.js?v=2"),
+    // sind das fuer den Browser ZWEI Module mit je eigener Klasse, je eigenem
+    // `_handler` - und beide horchen am Dokument.
+    //
+    // Sichtbar wurde es so: Ein Klick sortierte zweimal. Der erste Horcher
+    // drehte auf aufsteigend, der zweite las das frisch gesetzte
+    // `sortDir="asc"` und drehte sofort zurueck. Die Spalte liess sich nur
+    // noch ABSTEIGEND sortieren, der Pfeil stand dauerhaft auf ↓.
+    // Kein Fehler, kein Logeintrag - die Tabelle reagierte ja.
+    //
+    // Der Marker steht am Dokument statt an der Klasse: Er ist das einzige,
+    // was sich beide Instanzen teilen.
+    if (!document.documentElement.dataset.tabsortHorcher) {
+      document.documentElement.dataset.tabsortHorcher = '1';
       TabellenSortierung._handler = e => {
         // Markieren geht vor Sortieren - ABER NICHT AUS EINEM EINGABEFELD
         // HERAUS (25.08.2026).
@@ -82,6 +99,11 @@ export class TabellenSortierung {
         if (e.target.closest('.tb-griff')) return;      // Breiten-Ziehen
         const th = e.target.closest('table.sortable thead th');
         if (!th || th.dataset.sortAus !== undefined) return;
+        // `data-sort-aus` AN DER TABELLE: Die Zeilenfolge bedeutet etwas
+        // (BWA-Gliederung, Steuer-Kennzahlen, Tage eines Stundenzettels).
+        // Solche Tabellen tragen `sortable` normalerweise gar nicht erst;
+        // steht es doch da, gilt die ausdrueckliche Marke.
+        if (th.closest('table').dataset.sortAus !== undefined) return;
         // NUR die unterste Kopfzeile sortiert. Tabellen mit einer GRUPPEN-Zeile
         // darüber (Walk-Forward: „Ergebnis beim Suchen" spannt mehrere Spalten)
         // haben dort th-Elemente mit colspan - deren Index in der Zeile ist
@@ -93,6 +115,7 @@ export class TabellenSortierung {
       document.addEventListener('click', TabellenSortierung._handler);
     }
     w.querySelectorAll('table.sortable').forEach(t => {
+      if (t.dataset.sortAus !== undefined) return;   // Zeilenfolge zaehlt
       TabellenSortierung._gemerktesAnwenden(t);
       TabellenSortierung.pfeile(t);
       TabellenSortierung.hochkant(t);

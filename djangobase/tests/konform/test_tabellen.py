@@ -93,6 +93,36 @@ def _ausgenommen(pfad):
     return False
 
 
+def _rumpf(text, ab):
+    u"""Der Text einer Tabelle: vom ``<table …>`` bis zum ``</table>``."""
+    ende = text.lower().find("</table>", ab)
+    return text[ab:] if ende < 0 else text[ab:ende]
+
+
+def _hat_kopfzeile(text, treffer):
+    u"""Hat DIESE Tabelle eine Kopfzeile - oder holt sie sich eine?
+
+    JE TABELLE STATT JE DATEI (31.08.2026, Projekt assistant)
+    ========================================================
+    Geprueft wurde, ob irgendwo in der Datei ein ``<thead>`` steht. Damit
+    galt jede Tabelle einer Datei als Datenraster, sobald EINE es war:
+    ``verkauf_teaser.html`` hat eine Kontaktliste mit Kopfzeile und
+    darueber eine zweispaltige Eckdaten-Aufstellung ohne. Die zweite
+    stand in der Liste der Verstoesse, obwohl ``tabellen_auto.js`` sie
+    mangels ``tHead`` gar nicht anbindet - ein Befund, den zu beheben
+    nichts bewirkt haette.
+
+    Die Ausnahme bleibt: Wer seine Kopfzeile per ``{% include %}`` holt,
+    hat sie nicht im eigenen Rumpf stehen. Dann zaehlt wieder die Datei.
+    """
+    rumpf = _rumpf(text, treffer.end())
+    if "<thead" in rumpf.lower():
+        return True
+    if "{% include" in rumpf or "{%include" in rumpf:
+        return "<thead" in text.lower()
+    return False
+
+
 def datentabellen():
     u"""[(pfad, attribute)] aller Tabellen, die ein Datenraster sein wollen."""
     aus = []
@@ -109,6 +139,8 @@ def datentabellen():
             attribute = treffer.group(1)
             klassen = " ".join(_KLASSEN.findall(attribute)).lower()
             if any(k in klassen.split() for k in DOKU_KLASSEN):
+                continue
+            if not _hat_kopfzeile(text, treffer):
                 continue
             aus.append((pfad, attribute))
     return aus
@@ -139,15 +171,38 @@ class TabellenKonformTest(SimpleTestCase):
                         u"Projekt keine, oder DOKU_KLASSEN/das Suchmuster passt "
                         u"nicht mehr.")
 
+    #: Eine Tabelle, deren ZEILENFOLGE etwas bedeutet: die Gliederung einer
+    #: BWA, die Kennzahlen einer Steuererklaerung, die Tage eines
+    #: Stundenzettels. Wer sie nach Betrag sortiert, zerstoert die Aussage.
+    #:
+    #: WARUM ES DIESE MARKE BRAUCHT (31.08.2026, Projekt assistant)
+    #: ===========================================================
+    #: Dort waren 19 von 45 Datentabellen nicht sortierbar - und bei den
+    #: meisten zu Recht: UStVA, EUeR, Einkommensteuer, BWA, Stundenzettel,
+    #: zwei Druckansichten. Ohne Marke bleiben nur zwei schlechte Wege: sie
+    #: als „doku" auszugeben (falsch - es sind Daten) oder eine Sortierung
+    #: anzubieten, die den Bericht kaputtmacht.
+    #:
+    #: Die GEMERKTEN SPALTENBREITEN bleiben Pflicht: Sie aendern keine
+    #: Reihenfolge, und gerade in einem Bericht will man die Kontospalte
+    #: breiter ziehen. `tabellen_auto.js` bindet dafuer schon auf
+    #: ``table[data-sort-key]``, ganz ohne ``sortable``.
+    ORDNUNG_ZAEHLT = "data-sort-aus"
+
     def test_alle_sind_sortierbar(self):
         ohne = [(p, a) for p, a in self.tabellen
-                if "sortable" not in " ".join(_KLASSEN.findall(a)).lower().split()]
+                if "sortable" not in " ".join(_KLASSEN.findall(a)).lower().split()
+                and self.ORDNUNG_ZAEHLT not in a.lower()]
         if ohne:
             self.fail(self._melden(
                 ohne, u"tragen kein class=\"sortable\"",
             u"TabellenSortierung bindet an table.sortable. Ohne die Klasse "
                 u"lassen sich die Spalten nicht sortieren — auch nicht, wenn "
-                u"das Modul geladen ist."))
+                u"das Modul geladen ist.\n"
+                u"Bedeutet die ZEILENFOLGE etwas (BWA-Gliederung, "
+                u"Steuer-Kennzahlen, Tage eines Stundenzettels)? Dann "
+                u"stattdessen <table data-sort-aus data-sort-key=\"…\"> — "
+                u"gemerkte Spaltenbreiten ohne Sortierung."))
 
     @staticmethod
     def auto_bindung_aktiv():
