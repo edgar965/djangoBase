@@ -56,10 +56,45 @@ def wurzel():
 
 
 def extra_pfade():
-    u"""Import-Wurzeln neben der Projektwurzel: BASE_DIR, damit ``dashboard``
-    ohne Präfix auflösbar ist."""
+    u"""Import-Wurzeln neben der Projektwurzel.
+
+    Zwei Stück, beide gemessen nötig:
+
+    ``BASE_DIR`` — damit ``dashboard`` ohne Präfix auflösbar ist.
+
+    **Der Ordner ÜBER dem djangobase-Paket** (02.09.2026). Alle sechs
+    Konsumenten binden djangoBase als *editable install* ein
+    (``pip install -e``). In ``site-packages`` liegt dann kein Paket,
+    sondern ein Verweis — und dem folgt der Language Server nicht. Erster
+    Lauf über CamTrack: **sieben** ``reportMissingImports``, alle auf
+    ``djangobase.*``::
+
+        app/context_processors.py:309   djangobase.conf
+        app/logging_utils.py:9          djangobase.jobctx
+        config/settings.py:300          djangobase.logging
+        config/settings.py:365          djangobase.allauth_config
+        app/services/navigation/…:243   djangobase.pflichtmenue
+        tools/wartung/pruefen.py:22     djangobase.skills
+        tools/wartung/vorlage_namen.py  djangobase.skills.vorlagenkontext
+
+    Kein einziger davon war ein Fehler im Projekt — der Prüfer fand das
+    Paket bloss nicht. Sieben rote Zeilen, die nichts bedeuten, kosten
+    mehr als sie nützen: Sie bringen den Leser dazu, auch die echten zu
+    überblättern.
+
+    Liegt djangoBase doch fest installiert in ``site-packages``, ist der
+    Pfad schon über ``venvPath`` erreichbar; ein zweites Mal schadet
+    nicht, deshalb ohne Sonderfall.
+    """
+    aus = []
     basis = Path(settings.BASE_DIR)
-    return [basis] if basis != wurzel() else []
+    if basis != wurzel():
+        aus.append(basis)
+    import djangobase
+    eigene = Path(djangobase.__file__).resolve().parent.parent
+    if eigene not in aus and eigene != wurzel():
+        aus.append(eigene)
+    return aus
 
 
 def ordner():
