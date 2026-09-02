@@ -50,6 +50,30 @@ REGELN = (
 
 STUFEN = ("error", "warning", "information", "none")
 
+#: (TS-Nummer, stumm in der Vorgabe, was sie meldet).
+#:
+#: WARUM ZWEI DAVON IN DER VORGABE STUMM SIND (02.09.2026, gemessen)
+#: ================================================================
+#: Der erste Lauf über shortlongx meldete 7.593 Befunde bei einem laufenden
+#: Programm. 2.925 davon — 38 % — waren ``TS2339``/``TS2551``:
+#: ``Property 'value' does not exist on type 'HTMLElement'``. In JavaScript
+#: ist ``document.getElementById(x).value`` richtig; TypeScript kennt nur den
+#: Rückgabetyp ``HTMLElement`` und will ``HTMLInputElement``. Das ist keine
+#: Aussage über den Code, sondern über fehlende Typangaben — und in einem
+#: Projekt ohne ``.d.ts`` sind es Tausende.
+#:
+#: Die anderen bleiben an: Ein unbekannter Name (``TS2304``) oder ein Aufruf
+#: mit zwei Argumenten an eine Funktion, die eins nimmt (``TS2554``), ist auch
+#: ohne Typen ein Befund.
+JS_REGELN = (
+    ("TS2339", True, u"Eigenschaft gibt es an diesem Typ nicht (.value an HTMLElement)"),
+    ("TS2551", True, u"Eigenschaft fast so geschrieben wie eine vorhandene"),
+    ("TS2304", False, u"Name nirgends gefunden"),
+    ("TS2307", False, u"Modul nicht gefunden"),
+    ("TS2554", False, u"Aufruf mit falscher Argumentzahl"),
+    ("TS2345", False, u"Argument vom falschen Typ"),
+)
+
 #: (Schlüssel, Muster, Vorgabe, Beschriftung). Muster im pyright-Stil,
 #: ``**/`` findet sie in jeder Tiefe.
 AUSSCHLUESSE = (
@@ -70,7 +94,14 @@ class LsKonfig:
     WERKZEUGE = ("auto", "basedpyright", "pyright")
     MODI = ("off", "basic", "standard", "strict")
     FELDER = ("werkzeug", "modus", "pfade", "ausschluss", "python", "regeln",
-              "stufe", "deckel", "stubs", "zeitlimit", "javascript")
+              "stufe", "deckel", "stubs", "zeitlimit", "javascript", "js_stumm")
+
+    #: Nur diese Felder bestimmen, WAS gerechnet wird. ``stufe``, ``deckel``
+    #: und ``js_stumm`` bestimmen nur, was von einem fertigen Ergebnis zu sehen
+    #: ist — stünden sie im Abdruck, kostete jedes Umschalten eines Filters
+    #: einen neuen Lauf (70 s auf shortlongx).
+    LAUFFELDER = ("werkzeug", "modus", "pfade", "ausschluss", "python", "regeln",
+                  "stubs", "javascript")
 
     def __init__(self, werte=None):
         vorgaben = self.vorgaben()
@@ -86,6 +117,11 @@ class LsKonfig:
         ausschluss.update({k: bool(v) for k, v in (self.ausschluss or {}).items()})
         self.ausschluss = ausschluss
         self.pfade = [str(p) for p in (self.pfade or [])]
+        # DIE PROJEKTEIGENE LISTE (02.09.2026) steht bewusst NICHT in FELDER:
+        # Sie gehört nicht in diese Datei, sondern in ``pruefausschluss.txt``
+        # der Projektwurzel (``umbau/ausschlussliste.py``). Hier ist sie nur
+        # zur Laufzeit dabei — damit sie in die Muster und in den Abdruck geht.
+        self.zusatz = [str(m) for m in (werte.get("zusatz") or [])]
 
     @classmethod
     def vorgaben(cls):
@@ -102,6 +138,7 @@ class LsKonfig:
             "zeitlimit": 300,
             # JavaScript im selben Lauf ueber tsc --checkJs (ls_javascript.py).
             "javascript": True,
+            "js_stumm": [r for r, stumm, _t in JS_REGELN if stumm],
         }
 
     # ── Datei ────────────────────────────────────────────────────────────
@@ -133,6 +170,7 @@ class LsKonfig:
             lambda k: daten.get(k) if isinstance(daten.get(k), list) else
             ([daten[k]] if k in daten else []))
         werte = alt.als_dict()
+        werte["zusatz"] = list(alt.zusatz)          # kommt aus der Projektdatei
         werte["werkzeug"] = _wahl(daten.get("werkzeug"), cls.WERKZEUGE, alt.werkzeug)
         werte["modus"] = _wahl(daten.get("modus"), cls.MODI, alt.modus)
         werte["stufe"] = _wahl(daten.get("stufe"), STUFEN[:3], alt.stufe)
@@ -143,6 +181,7 @@ class LsKonfig:
                            for r, s, _t in REGELN}
         werte["stubs"] = bool(holen("stubs"))
         werte["javascript"] = bool(holen("javascript"))
+        werte["js_stumm"] = [r for r, _s, _t in JS_REGELN if r in holen("js_stumm")]
         werte["deckel"] = _zahl(daten.get("deckel"), alt.deckel, 10, 5000)
         werte["zeitlimit"] = _zahl(daten.get("zeitlimit"), alt.zeitlimit, 10, 3600)
         if daten.get("python"):
@@ -151,7 +190,10 @@ class LsKonfig:
 
     # ── Abdruck ──────────────────────────────────────────────────────────
     def abdruck(self):
-        roh = json.dumps(self.als_dict(), sort_keys=True, ensure_ascii=False)
+        werte = {feld: getattr(self, feld) for feld in self.LAUFFELDER}
+        if self.zusatz:            # leere Liste = wie bisher, altes Ergebnis bleibt auffindbar
+            werte["zusatz"] = list(self.zusatz)
+        roh = json.dumps(werte, sort_keys=True, ensure_ascii=False)
         return hashlib.md5(roh.encode("utf-8")).hexdigest()[:10]
 
     # ── für den Lauf ─────────────────────────────────────────────────────
@@ -168,10 +210,14 @@ class LsKonfig:
         return None, None
 
     def ausschluss_muster(self):
+        u"""Die Haken dieser Seite plus die Liste des Projekts — ohne Dubletten."""
         raus = []
         for schluessel, muster, _v, _l in AUSSCHLUESSE:
             if self.ausschluss.get(schluessel):
                 raus.extend(muster)
+        for muster in self.zusatz:
+            if muster not in raus:
+                raus.append(muster)
         return raus
 
     def als_pyrightconfig(self, wurzel, extra=(), ablage=None):
@@ -197,7 +243,13 @@ class LsKonfig:
             "include": include,
             "exclude": exclude,
             "typeCheckingMode": self.modus,
-            "extraPaths": [str(wurzel)] + [str(p) for p in extra],
+            # JEDER HAUPTAST IST EINE IMPORT-WURZEL (02.09.2026): Skripte in
+            # ``werkzeug/`` laufen aus ihrem Ordner heraus und importieren die
+            # Nachbarn flach (``import zahl``). Python legt das Skriptverzeichnis
+            # in ``sys.path``, pyright nicht — das allein waren 370 Meldungen
+            # „Import, den es nicht gibt" über Module, die alle vorhanden sind.
+            "extraPaths": ([str(wurzel)] + [str(wurzel / p) for p in self.pfade]
+                           + [str(p) for p in extra]),
             "useLibraryCodeForTypes": True,
         }
         venv_pfad, venv = self.venv()
@@ -249,4 +301,4 @@ def _zahl(wert, sonst, lo, hi):
         return sonst
 
 
-__all__ = ["LsKonfig", "REGELN", "STUFEN", "AUSSCHLUESSE"]
+__all__ = ["LsKonfig", "REGELN", "STUFEN", "AUSSCHLUESSE", "JS_REGELN"]

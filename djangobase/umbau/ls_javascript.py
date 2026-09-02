@@ -33,6 +33,14 @@ __all__ = ["JsPruefer"]
 ZEILE = re.compile(r"^(?P<datei>.+?)\((?P<zeile>\d+),(?P<spalte>\d+)\): "
                    r"(?P<stufe>error|warning) (?P<regel>TS\d+): (?P<text>.*)$")
 
+#: TS5xxx/TS6xxx sind Fehler AN DER KONFIGURATION, keine Befunde am Code.
+#:
+#: DER STILLE ABBRUCH (02.09.2026): ``baseUrl`` gibt es in tsc 7 nicht mehr.
+#: Der Lauf endete danach nach 0,4 s mit genau EINEM „Befund" — der
+#: Fehlermeldung selbst — und die Seite meldete stolz 4.956 Befunde weniger.
+#: Ein Abbruch, der wie ein Erfolg aussieht, ist schlimmer als ein Absturz.
+KONFIGFEHLER = re.compile(r"error TS(?:5\d{3}|6\d{3}):\s*(?P<text>.+)$", re.M)
+
 
 class JsPruefer:
     u"""Findet ``tsc``, schreibt die ``jsconfig.json``, liest die Meldungen."""
@@ -41,11 +49,15 @@ class JsPruefer:
                   "**/.venv", "**/.cache", "**/sicherung", "**/backup_*",
                   "**/*.umd.js", "**/vendor/**")
 
-    def __init__(self, wurzel, ordner, pfade=(), zeitlimit=300):
+    def __init__(self, wurzel, ordner, pfade=(), zeitlimit=300, zusatz=()):
         self.wurzel = Path(wurzel)
         self.ordner = Path(ordner)
         self.pfade = list(pfade)
         self.zeitlimit = zeitlimit
+        #: Die Liste des Projekts (``pruefausschluss.txt``) — dieselbe, die
+        #: der Python-Lauf benutzt; sonst prüfte tsc Dateien mit, die für
+        #: pyright längst ausgeschlossen sind.
+        self.zusatz = [str(m) for m in zusatz]
 
     # ── finden ───────────────────────────────────────────────────────────
     def finden(self):
@@ -59,6 +71,35 @@ class JsPruefer:
         return shutil.which("tsc")
 
     # ── Konfiguration ────────────────────────────────────────────────────
+    def statikpfade(self):
+        u"""``/static/<app>/x.js`` auf den echten Ordner abbilden.
+
+        DER GRÖSSTE EINZELPOSTEN DES ERSTEN LAUFS (02.09.2026)
+        =====================================================
+        Django-Vorlagen laden ihre Module über die URL::
+
+            import { OptZustand } from '/static/dashboard/opt_zustand.js';
+
+        Das ist zur Laufzeit richtig und für ``tsc`` unauflösbar — er sucht
+        einen Ordner ``static`` an der Dateisystem-Wurzel. Gemessen an
+        shortlongx: 309 von 311 Importen haben diese Form, daraus 320 ×
+        ``TS2307`` und als Folge 1.460 × „Name nicht gefunden" (``OptZustand``
+        allein 596 Mal). Zusammen 23 % aller Befunde — und keiner davon ein
+        Befund über den Code.
+
+        Die Abbildung entsteht aus dem Dateisystem: jeder ``static``-Ordner in
+        den ersten drei Ebenen, und darin jeder Namensraum-Unterordner."""
+        pfade, ordner = {}, []
+        for muster in ("static", "*/static", "*/*/static"):
+            ordner += [p for p in self.wurzel.glob(muster) if p.is_dir()]
+        for statisch in ordner:
+            fest = str(statisch).replace("\\", "/")
+            for unter in sorted(p for p in statisch.iterdir() if p.is_dir()):
+                pfade.setdefault("/static/%s/*" % unter.name,
+                                 [fest + "/" + unter.name + "/*"])
+            pfade.setdefault("/static/*", [fest + "/*"])
+        return pfade
+
     def konfig_schreiben(self):
         u"""``jsconfig.json`` im Ablage-Ordner — Pfade als Muster, Schrägstriche."""
         self.ordner.mkdir(parents=True, exist_ok=True)
@@ -71,12 +112,17 @@ class JsPruefer:
                 "lib": ["es2022", "dom", "dom.iterable"],
                 "strict": False, "noImplicitAny": False, "skipLibCheck": True,
                 "allowSyntheticDefaultImports": True,
+                # KEIN ``baseUrl`` (02.09.2026): tsc 7 kennt die Option nicht
+                # mehr („Option 'baseUrl' has been removed") und bricht dann
+                # ab, BEVOR eine Datei geprüft ist. Die Ziele in ``paths``
+                # stehen deshalb absolut, wie schon ``include``.
+                "paths": self.statikpfade(),
             },
             "include": [str(w).replace("\\", "/") + "/**/*.js" for w in wurzeln],
             # Absolut wie ``include``: tsc liest ``exclude`` relativ zur Datei,
             # und die liegt im Ablage-Ordner, nicht ueber dem Projekt.
             "exclude": [str(self.wurzel).replace("\\", "/") + "/" + m
-                        for m in self.AUSSCHLUSS],
+                        for m in list(self.AUSSCHLUSS) + self.zusatz],
         }
         pfad.write_text(json.dumps(cfg, ensure_ascii=False, indent=2), encoding="utf-8")
         return pfad
@@ -104,7 +150,11 @@ class JsPruefer:
             return [], round(time.monotonic() - start, 1), (
                 u"tsc: Zeitlimit von %d s überschritten" % self.zeitlimit)
         text = aus.decode("utf-8", "replace") + fehler.decode("utf-8", "replace")
-        return self._parsen(text, self.wurzel), round(time.monotonic() - start, 1), ""
+        dauer = round(time.monotonic() - start, 1)
+        schaden = KONFIGFEHLER.search(text)
+        if schaden:
+            return [], dauer, u"tsc-Konfiguration: %s" % schaden.group("text").strip()
+        return self._parsen(text, self.wurzel), dauer, ""
 
     @staticmethod
     def _parsen(text, wurzel):

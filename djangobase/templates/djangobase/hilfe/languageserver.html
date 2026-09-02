@@ -64,6 +64,7 @@ _ls_vergleich (unten: der Vergleich zum Werkzeug Code Review).
     </div>
 </form>
 
+{% include "djangobase/hilfe/_ls_ausschluss.html" %}
 {% include "djangobase/hilfe/_ls_ergebnis.html" %}
 {% include "djangobase/hilfe/_ls_referenzen.html" %}
 {% include "djangobase/hilfe/_ls_vergleich.html" %}
@@ -101,6 +102,15 @@ _ls_vergleich (unten: der Vergleich zum Werkzeug Code Review).
     padding: .25rem .4rem; font-size: .82rem; width: 100%;
 }
 .ls-haken { font-size: .82rem; display: block; margin: .1rem 0; }
+.ls-textfeld {
+    width: 100%; box-sizing: border-box; resize: vertical;
+    background: var(--input-bg, #11151b); color: inherit;
+    border: 1px solid var(--card-border, #2b323d); border-radius: 5px;
+    padding: .45rem .55rem; line-height: 1.5;
+    font-family: ui-monospace, Consolas, "Courier New", monospace; font-size: .8rem;
+}
+.ls-fehlerliste { font-size: .82rem; color: #e0a63c; margin: .6rem 0 0; padding-left: 1.2rem; }
+.ls-fehlerliste code { color: inherit; }
 .ls-regeln { width: 100%; border-collapse: collapse; font-size: .8rem; margin-top: .4rem; }
 .ls-regeln td { padding: .15rem .4rem; border-top: 1px solid var(--card-border, #2b323d); }
 .ls-regeln select { font-size: .78rem; }

@@ -71,6 +71,18 @@ gespeichert; die Vorgaben stehen in umbau/ls_konfig.py, nicht hier.
         <label class="ls-haken"><input type="checkbox" name="javascript" value="1"{% if konfig.javascript %} checked{% endif %}>
             JavaScript mitprüfen (tsc --checkJs){% if not tsc %} <span class="ls-fehlt">— tsc fehlt: npm install -g typescript</span>{% endif %}</label>
     </div>
+    <div class="ls-feld">
+        {% comment %}Angehakt = NICHT anzeigen. Ohne Typangaben meldet tsc jeden
+        DOM-Zugriff (.value an HTMLElement): 2.925 von 7.593 Befunden im ersten
+        Lauf. Das ist eine Aussage ueber fehlende .d.ts, nicht ueber den Code.
+        Stummschalten braucht KEINEN neuen Lauf - js_stumm steht nicht in
+        LsKonfig.LAUFFELDER.{% endcomment %}
+        <label>JavaScript-Meldungen ausblenden <span class="ls-leise">(ohne neuen Lauf)</span></label>
+        {% for r, an, t in js_regeln %}
+        <label class="ls-haken"><input type="checkbox" name="js_stumm" value="{{ r }}"{% if an %} checked{% endif %}>
+            <code>{{ r }}</code> {{ t }}</label>
+        {% endfor %}
+    </div>
 </div>
 
 <table class="ls-regeln">

@@ -24,6 +24,10 @@ Knopf oben ist der Weg.
             <div class="ls-kennzahl ls-information"><b>{{ kennzahlen.hinweise }}</b><span>Hinweise</span></div>
             <div class="ls-kennzahl"><b>{{ kennzahlen.dateien_mit_befund }}</b><span>Dateien mit Befund</span></div>
             <div class="ls-kennzahl"><b>{{ kennzahlen.dateien }}</b><span>Dateien geprüft</span></div>
+            {% if kennzahlen.stumm %}
+            <div class="ls-kennzahl" title="ausgeblendete JavaScript-Regeln — Häkchen in den Einstellungen">
+                <b>{{ kennzahlen.stumm }}</b><span>stumm</span></div>
+            {% endif %}
             <div class="ls-kennzahl"><b>{{ ergebnis.dauer_s }}&nbsp;s</b><span>Laufzeit</span></div>
             <div class="ls-kennzahl"><b>{{ kennzahlen.gezeigt }}</b><span>von {{ kennzahlen.gefiltert }} gezeigt</span></div>
             {% if ergebnis.js_dauer_s or ergebnis.js_fehlt %}

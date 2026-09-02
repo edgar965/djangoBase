@@ -1,0 +1,55 @@
+{% comment %}
+Die Ausschlussliste des Projekts (Edgar, 02.09.2026: „mach eine Exklusionsliste,
+die soll in djangoBase gesetzt werden koennen, aber im Oberprojekt gespeichert
+werden"). EIGENES Formular, ausserhalb des Einstellungs-Formulars: HTML kennt
+kein Formular im Formular, und ein gemeinsames haette beim Speichern der Liste
+jeden nicht mitgeschickten Haken als „aus" gelesen.
+
+Geschrieben wird pruefausschluss.txt in der Projektwurzel - versioniert, im Diff
+lesbar. Die Deutung der Zeilen steht in umbau/ausschlussliste.py, nicht hier.
+{% endcomment %}
+<form method="post" class="ls-card" id="ls-ausschluss">
+    {% csrf_token %}
+    <input type="hidden" name="aktion" value="ausschluss">
+
+    <h3><i class="bi bi-funnel"></i> Ausschlussliste des Projekts
+        <span class="ls-meta">· <code>{{ liste_pfad }}</code>{% if not liste_da %}
+            — noch nicht angelegt{% endif %}</span></h3>
+    <p class="ls-intro">
+        Was <b>kein</b> Prüfwerkzeug ansehen soll. Gesetzt wird die Liste hier,
+        gespeichert wird sie im Projekt — als Textdatei neben der
+        <code>.gitignore</code>, damit sie mit ins Repository geht und auf jedem
+        Rechner dieselbe ist. Ein Muster je Zeile, <code>#</code> ist ein Kommentar.
+        Ein Name ohne Schrägstrich (<code>sicherung</code>) gilt in jeder Tiefe,
+        ein Pfad (<code>werkzeug/netz_*.py</code>) ab der Projektwurzel.
+    </p>
+
+    <textarea name="liste" class="ls-textfeld" rows="10" spellcheck="false"
+              aria-label="Ausschlussliste">{{ liste_text }}</textarea>
+
+    <div class="ls-stapel">
+        <button type="submit" class="ls-knopf"><i class="bi bi-save"></i> Liste speichern</button>
+        <span class="ls-leise">
+            {{ liste_muster|length }} Muster wirksam{% if liste_namen %},
+            davon {{ liste_namen|length }} auch in <a href="{% url 'djangobase:skills' %}">Werkzeug Code Review</a>{% endif %}{% if liste_gespeichert %}
+            · gespeichert{% endif %}
+        </span>
+    </div>
+
+    {% if liste_fehler %}
+    <ul class="ls-fehlerliste">
+        {% for nr, roh, grund in liste_fehler %}
+        <li><b>Zeile {{ nr }}</b> <code>{{ roh }}</code> — {{ grund }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    <p class="ls-leise" style="margin:.6rem 0 0;">
+        Reichweite: Muster mit Schrägstrich oder Stern gelten für den Language
+        Server (Python <i>und</i> JavaScript). Die Werkzeuge unter
+        <b>Werkzeug Code Review</b> vergleichen Verzeichnisnamen und können mit
+        Globs nichts anfangen — dort wirken nur die nackten Namen. Eine
+        Änderung hier macht das letzte Ergebnis ungültig; der nächste Lauf
+        rechnet neu.
+    </p>
+</form>

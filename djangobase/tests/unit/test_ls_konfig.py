@@ -52,10 +52,35 @@ class LsKonfigTest(unittest.TestCase):
         k = LsKonfig.aus_formular(Formular({"werkzeug": "mypy", "modus": "x"}), LsKonfig())
         self.assertEqual((k.werkzeug, k.modus), ("auto", "basic"))
 
-    def test_abdruck_haengt_an_jeder_option(self):
-        a, b = LsKonfig(), LsKonfig({"deckel": 501})
-        self.assertNotEqual(a.abdruck(), b.abdruck())
+    def test_projektliste_wirkt_auf_muster_und_abdruck_aber_nicht_auf_die_datei(self):
+        k = LsKonfig({"zusatz": ["**/sicherung", "werkzeug/netz_*.py"]})
+        self.assertIn("werkzeug/netz_*.py", k.ausschluss_muster())
+        self.assertNotIn("zusatz", k.als_dict(),
+                         u"die Liste steht im Projekt, nicht in der konfig.json")
+        self.assertNotEqual(k.abdruck(), LsKonfig().abdruck())
+        # Doppelt genannte Muster stehen nur einmal in der Konfiguration.
+        doppelt = LsKonfig({"zusatz": ["**/migrations"]})
+        self.assertEqual(doppelt.ausschluss_muster().count("**/migrations"), 1)
+        # Ein POST verliert die Liste nicht - sie kommt aus ``alt``.
+        neu = LsKonfig.aus_formular(Formular({"modus": "strict"}), k)
+        self.assertEqual(neu.zusatz, k.zusatz)
+
+    def test_abdruck_haengt_an_den_laufoptionen_nicht_an_der_anzeige(self):
+        a = LsKonfig()
         self.assertEqual(a.abdruck(), LsKonfig().abdruck())
+        self.assertNotEqual(a.abdruck(), LsKonfig({"modus": "strict"}).abdruck())
+        # Anzeigefelder aendern das Ergebnis nicht - sonst kostete jeder
+        # umgelegte Filter einen neuen Lauf.
+        for feld, wert in (("deckel", 501), ("stufe", "error"),
+                           ("zeitlimit", 60), ("js_stumm", [])):
+            self.assertEqual(a.abdruck(), LsKonfig({feld: wert}).abdruck(), feld)
+
+    def test_js_regeln_stummschalten(self):
+        self.assertIn("TS2339", LsKonfig().js_stumm, u"DOM-Rauschen ist in der Vorgabe aus")
+        k = LsKonfig.aus_formular(Formular({"js_stumm": ["TS2304"]}), LsKonfig())
+        self.assertEqual(k.js_stumm, ["TS2304"])
+        leer = LsKonfig.aus_formular(Formular({}), LsKonfig())
+        self.assertEqual(leer.js_stumm, [], u"kein Haken = nichts stumm")
 
     def test_pyrightconfig_mit_absoluten_pfaden_und_venv(self):
         k = LsKonfig({"pfade": ["brain"], "python": r"C:\p\venv\Scripts\python.exe"})

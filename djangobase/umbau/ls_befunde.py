@@ -23,16 +23,25 @@ class LsBefunde:
         self.konfig = konfig
 
     # ── Auswahl ──────────────────────────────────────────────────────────
+    def roh(self):
+        u"""Alle Befunde ohne die stummgeschalteten JavaScript-Regeln.
+
+        Stumm heisst nicht heimlich: Die Kennzahl ``stumm`` sagt, wieviel
+        hier herausfällt, und die Regelliste steht im Formular."""
+        stumm = set(getattr(self.konfig, "js_stumm", ()) or ())
+        if not stumm:
+            return self.ergebnis.befunde
+        return [b for b in self.ergebnis.befunde if b["regel"] not in stumm]
+
     def gefiltert(self):
         u"""Nur bis zur Anzeigestufe, nach Gewicht, Datei, Zeile sortiert."""
         grenze = GEWICHT.get(self.konfig.stufe, 1)
-        raus = [b for b in self.ergebnis.befunde
-                if GEWICHT.get(b["stufe"], 2) <= grenze]
+        raus = [b for b in self.roh() if GEWICHT.get(b["stufe"], 2) <= grenze]
         raus.sort(key=lambda b: (GEWICHT.get(b["stufe"], 2), b["datei"], b["zeile"]))
         return raus
 
     def kennzahlen(self):
-        alle = self.ergebnis.befunde
+        alle = self.roh()
         zahl = {s: sum(1 for b in alle if b["stufe"] == s) for s in GEWICHT}
         gezeigt = self.gefiltert()
         return {
@@ -43,12 +52,13 @@ class LsBefunde:
             "dateien": self.ergebnis.dateien,
             "dauer_s": self.ergebnis.dauer_s,
             "dateien_mit_befund": len({b["datei"] for b in alle}),
+            "stumm": len(self.ergebnis.befunde) - len(alle),
         }
 
     def je_regel(self):
         u"""``[(regel, anzahl, stufe)]`` — die häufigste zuerst."""
         zaehler, stufe = {}, {}
-        for b in self.ergebnis.befunde:
+        for b in self.roh():
             zaehler[b["regel"]] = zaehler.get(b["regel"], 0) + 1
             stufe.setdefault(b["regel"], b["stufe"])
         return sorted(((r, n, stufe[r]) for r, n in zaehler.items()),
@@ -56,7 +66,7 @@ class LsBefunde:
 
     def je_datei(self, hoechstens=25):
         zaehler = {}
-        for b in self.ergebnis.befunde:
+        for b in self.roh():
             zaehler[b["datei"]] = zaehler.get(b["datei"], 0) + 1
         return sorted(zaehler.items(), key=lambda t: (-t[1], t[0]))[:hoechstens]
 

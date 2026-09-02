@@ -218,6 +218,13 @@ class Werkzeug:
         cfg = getattr(settings, "DJANGOBASE", {}) or {}
         eigen = list(cfg.get("skills_ignorieren") or [])
         eigen += list(cfg.get("skills2_ignorieren") or [])
+        # Die Liste, die der Nutzer selbst pflegt (02.09.2026): eine Textdatei
+        # in der Projektwurzel, geschrieben von Hilfe -> Werkzeug Language
+        # Server. Nur die nackten Namen kommen hier an - diese Methode liefert
+        # Verzeichnisnamen, Glob-Muster koennte der Aufrufer nicht deuten.
+        # Fehlt die Datei, ist die Liste leer und nichts aendert sich.
+        from ..umbau.ausschlussliste import Ausschlussliste
+        eigen += Ausschlussliste(self.wurzel()).namen()
         return AUSGESCHLOSSEN | {str(x) for x in eigen}
 
     def gitfilter(self):

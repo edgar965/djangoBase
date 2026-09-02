@@ -29,15 +29,17 @@ from django.views import View
 from ..mixins import ZugriffMixin
 from ..skills.werkzeug import Werkzeug
 from ..umbau import ablage
+from ..umbau import ausschlussliste as ausschlussliste_modul
 from ..umbau import languageserver as languageserver_modul
 from ..umbau import ls_befunde as ls_befunde_modul
 from ..umbau import ls_konfig as ls_konfig_modul
 from ..umbau.ablage import Speicher
+from ..umbau.ausschlussliste import Ausschlussliste
 from ..umbau.globalbestand import hauptaeste
 from ..umbau.languageserver import LanguageServer
 from ..umbau.ls_javascript import JsPruefer
 from ..umbau.ls_befunde import LsBefunde
-from ..umbau.ls_konfig import AUSSCHLUESSE, REGELN, STUFEN, LsKonfig
+from ..umbau.ls_konfig import AUSSCHLUESSE, JS_REGELN, REGELN, STUFEN, LsKonfig
 from ..umbau.ls_lauf import LAUF
 
 logger = logging.getLogger("djangobase.languageserver")
@@ -64,8 +66,20 @@ def ordner():
     return ablage.ordner() / "languageserver"
 
 
+def liste():
+    u"""Die Ausschlussliste des Projekts — ``pruefausschluss.txt`` in der Wurzel."""
+    return Ausschlussliste(wurzel())
+
+
 def konfig_laden():
-    return LsKonfig.laden(ordner() / "konfig.json")
+    u"""Einstellungen aus dem Ablage-Ordner, Ausschlussliste aus dem Projekt.
+
+    Zwei Orte mit Absicht: Was nur diesen Rechner angeht (Interpreter, Deckel,
+    Zeitlimit), bleibt im Zwischenspeicher; was das Projekt angeht, steht im
+    Projekt und geht mit ins Repository."""
+    konfig = LsKonfig.laden(ordner() / "konfig.json")
+    konfig.zusatz = liste().muster()
+    return konfig
 
 
 def schluessel(konfig):
@@ -76,7 +90,8 @@ class LsSpeicher(Speicher):
     u"""Das Ergebnis des letzten Laufs — je Einstellungs-Abdruck eines."""
 
     bereich = "languageserver"
-    quellen = (languageserver_modul, ls_konfig_modul, ls_befunde_modul)
+    quellen = (languageserver_modul, ls_konfig_modul, ls_befunde_modul,
+               ausschlussliste_modul)
 
     @staticmethod
     def bauen(wurzel):                                    # pragma: no cover
@@ -118,6 +133,13 @@ class LanguageServerView(ZugriffMixin, View):
 
     def post(self, request):
         aktion = request.POST.get("aktion", "speichern")
+        if aktion == "ausschluss":
+            # VOR ``aus_formular`` (02.09.2026): Die Ausschlussliste hat ihr
+            # eigenes Formular — ein Formular im Formular gibt es in HTML
+            # nicht. Es schickt die Einstellungsfelder also NICHT mit, und
+            # ``aus_formular`` läse jeden fehlenden Haken als „aus".
+            anzahl, _fehler = liste().speichern(request.POST.get("liste", ""))
+            return redirect("%s?ausschluss=%d" % (request.path, anzahl))
         konfig = LsKonfig.aus_formular(request.POST, konfig_laden())
         konfig.speichern(ordner() / "konfig.json")
         if aktion in ("lauf", "neu"):
@@ -139,7 +161,15 @@ class LanguageServerView(ZugriffMixin, View):
         server = LanguageServer(konfig, wurzel(), ordner(), extra_pfade())
         gefunden = server.finden()
         ergebnis, alter = LsSpeicher.nachsehen(schluessel(konfig))
+        eigene = liste()
         daten = {
+            "liste_text": eigene.text(),
+            "liste_pfad": str(eigene.pfad()),
+            "liste_da": eigene.vorhanden(),
+            "liste_muster": eigene.muster(),
+            "liste_namen": eigene.namen(),
+            "liste_fehler": eigene.fehler(),
+            "liste_gespeichert": request.GET.get("ausschluss"),
             "titel": u"Werkzeug Language Server",
             "aktiv": "languageserver",
             "konfig": konfig,
@@ -150,6 +180,7 @@ class LanguageServerView(ZugriffMixin, View):
             "regel_stufen": STUFEN,
             "ausschluesse": [(k, konfig.ausschluss.get(k, v), l)
                              for k, _m, v, l in AUSSCHLUESSE],
+            "js_regeln": [(r, r in konfig.js_stumm, t) for r, _s, t in JS_REGELN],
             "aeste": aeste(),
             "wurzel": str(wurzel()),
             "gefunden": gefunden,
