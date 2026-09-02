@@ -67,6 +67,56 @@ AUS = ('migrations', '__pycache__', 'node_modules', '.git', 'venv',
        'vendor', 'unsloth_compiled_cache', 'tmp', 'temp', 'diktator',
        'htmlcov')
 
+
+def _umgebungen():
+    u"""Die virtuellen Umgebungen des Projekts — am ``pyvenv.cfg`` erkannt.
+
+    EINE NAMENSLISTE RAET (02.09.2026)
+    ==================================
+    ``AUS`` fuehrt ``venv``. Der Ordner im Projekt ``assistant`` heisst
+    aber ``pythonVENV``, und ``site-packages`` allein fing ihn nicht ab:
+    Unter ``Scripts/`` liegen drei ``.py`` von pywin32 und xlrd, die
+    damit als Projektcode galten. Eine davon stand als **Spitzenbefund**
+    der Komplexitaetsmessung ganz oben — Rang 37 in
+    ``pywin32_postinstall.py``. Wer dem folgt, bearbeitet fremden Code.
+
+    ``pyvenv.cfg`` ist der Marker aus PEP 405; jedes mit ``venv`` oder
+    ``virtualenv`` gebaute Verzeichnis hat ihn, egal wie es heisst.
+    Gesucht wird nur eine Ebene tief — tiefer liegt keine Umgebung, und
+    ein rekursiver Lauf kostete mehr als er einbraechte.
+    """
+    try:
+        from django.conf import settings
+        wurzel = Path(getattr(settings, 'BASE_DIR', '.'))
+        return tuple(sorted(
+            eintrag.name for eintrag in wurzel.iterdir()
+            if eintrag.is_dir() and (eintrag / 'pyvenv.cfg').exists()))
+    except Exception:
+        # NICHT NUR OSError (02.09.2026): Ohne eingerichtetes Django wirft
+        # `settings.BASE_DIR` ein ImproperlyConfigured, und das riss den
+        # ganzen Aufruf mit. `Codezahlen` ist auch ausserhalb einer
+        # laufenden Anwendung brauchbar — ein Messskript, ein Werkzeug auf
+        # der Kommandozeile. Ohne Umgebungen zu arbeiten ist der richtige
+        # Rückfall; sie auszulassen wäre schlimmer als sie mitzuzählen.
+        return ()
+
+
+#: Einmal je Prozess gesucht — ``iterdir`` gehoert nicht in eine
+#: Schleife ueber zehntausende Pfade.
+_AUSSER = None
+
+
+def ausser(zusatz=()):
+    u"""``AUS`` samt der virtuellen Umgebungen dieses Projekts.
+
+    Wer Pfade filtert, nimmt diese Menge — nicht ``AUS`` allein. Das
+    Ergebnis EINMAL vor der Schleife holen, nicht je Datei.
+    """
+    global _AUSSER
+    if _AUSSER is None:
+        _AUSSER = frozenset(AUS) | set(_umgebungen())
+    return (_AUSSER | set(zusatz)) if zusatz else _AUSSER
+
 #: Sammlungen: Ein Feld dieser Bauart haelt VIELE.
 SAMMLUNGEN = {'list', 'dict', 'set', 'tuple', 'defaultdict', 'OrderedDict',
               'deque', 'frozenset'}
@@ -177,8 +227,11 @@ class Klassenmodell:
 
     # ── Einlesen ────────────────────────────────────────────────
     def lesen(self):
+        # EINMAL vor der Schleife, nicht je Datei: `ausser()` sucht die
+        # virtuellen Umgebungen des Projekts (siehe dort).
+        raus = ausser()
         for pfad in sorted(self.wurzel.rglob('*.py')):
-            if any(teil in pfad.parts for teil in AUS):
+            if any(teil in pfad.parts for teil in raus):
                 continue
             try:
                 baum = ast.parse(pfad.read_text(encoding='utf-8',

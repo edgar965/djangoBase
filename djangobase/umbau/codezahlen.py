@@ -37,7 +37,7 @@ import io
 import re
 from pathlib import Path
 
-from .klassenmodell import AUS
+from .klassenmodell import AUS, ausser
 
 #: Die Arten, in der Reihenfolge der Anzeige. Erste Übereinstimmung gilt.
 ARTEN = (
@@ -58,7 +58,20 @@ ARTEN = (
 UEBRIGE = u'Übrige'
 
 #: Diese Arten werden nur gezählt, nicht zeilenweise gelesen.
-NICHT_LESEN = frozenset((u'Bilder & Binäres',))
+#:
+#: WARUM AUCH „ÜBRIGE" (02.09.2026)
+#: ================================
+#: Edgar: „bei Statistik habe ich über 3 Millionen leere Zeilen bei Übrige?
+#: was ist das". Es waren die `.eml`-Dateien des Mail-Archivs — 45.000 Stück
+#: unter `Mail-Archive/`, jede byteweise als Text gelesen. Eine „leere Zeile"
+#: in einer E-Mail ist die Trennung zwischen Kopf und Rumpf, keine
+#: Quelltextzeile.
+#:
+#: „Übrige" ist per Definition das, was dieses Werkzeug NICHT kennt. Eine
+#: Zeilenzahl darüber ist keine Auskunft, sondern Rauschen — und in der
+#: Summenzeile verdirbt sie jede andere Zahl. Gezählt werden deshalb nur noch
+#: Dateien und Bytes; WAS dort liegt, sagt `uebrige_arten()` nach Endung.
+NICHT_LESEN = frozenset((u'Bilder & Binäres', UEBRIGE))
 
 #: Laufzeitdaten — gehören nicht in eine Statistik über QUELLTEXT.
 #:
@@ -75,6 +88,58 @@ DATEN = ('media', 'logs', 'log', '.cache', 'tmp', 'temp', 'output',
 #: Über dieser Grösse ist es kein Quelltext mehr, egal wie es heisst.
 #: Die längste Datei dieses Projekts hat 126 KB; das Modell daneben 174 MB.
 GROESSTE_QUELLDATEI = 2 * 1024 * 1024
+
+
+def ablagen(wurzel):
+    u"""Verzeichnisse, die das Projekt SELBST als Ablage angemeldet hat.
+
+    WARUM NICHT WIEDER EINE NAMENSLISTE (02.09.2026)
+    ================================================
+    `DATEN` oben ist geraten: `media`, `logs`, `tmp` … Namen, die man kennt.
+    `Mail-Archive/` stand nicht darin, und so zählten 45.000 `.eml`-Dateien
+    als Quelldateien des Projekts — über drei Millionen Zeilen. Die nächste
+    Anwendung legt ihre Daten unter einem anderen Namen ab, und die Liste
+    liegt wieder daneben.
+
+    Django benennt Ablagen konventionell mit ``…_ROOT``: ``MEDIA_ROOT``,
+    ``STATIC_ROOT``, hier ``MAIL_ARCHIVE_ROOT``. **Kein** Setting auf
+    ``_ROOT`` bezeichnet Quelltext. Der Plural ``…_DIRS`` dagegen schon —
+    ``STATICFILES_DIRS`` zeigt in `assistant` auf `templates/css`, also
+    ausdrücklich auf Quelltext; er wird nicht angefasst. ``BASE_DIR`` ist das
+    Projekt selbst und ebenso ausgenommen (``ROOT_URLCONF`` endet nicht auf
+    ``_ROOT``, sondern beginnt damit — er trifft die Prüfung gar nicht).
+
+    Zurück kommt ein Tupel relativer Pfadteile, kein blosser Name: Läge das
+    Archiv unter ``daten/mail``, dürfte nicht ganz ``daten/`` wegfallen.
+    """
+    try:
+        from django.conf import settings
+        wurzel = Path(wurzel).resolve()
+        namen = dir(settings)
+    except Exception:                       # kein Django, keine Ablagen
+        return ()
+    raus = set()
+    for name in namen:
+        if not name.endswith('_ROOT') or name == 'BASE_DIR':
+            continue
+        try:
+            wert = getattr(settings, name)
+        except Exception:
+            continue
+        if not isinstance(wert, (str, Path)):
+            continue
+        try:
+            teile = Path(wert).resolve().relative_to(wurzel).parts
+        except (ValueError, OSError):       # ausserhalb des Projekts
+            continue
+        if teile:
+            raus.add(teile)
+    # Untergeordnete wegwerfen: `Mail-Archive/trash` sagt nichts mehr, wenn
+    # `Mail-Archive` schon draussen ist — sonst zaehlt die Meldung doppelt.
+    return tuple(sorted(
+        t for t in raus
+        if not any(a != t and t[:len(a)] == a for a in raus)))
+
 
 #: `class Name {` und `class Name extends X {` — die ES6-Schreibweise.
 JS_KLASSE = re.compile(r'^\s*(?:export\s+)?(?:default\s+)?class\s+(\w+)',
@@ -120,7 +185,17 @@ class Artzahlen:
         self.ausserhalb = None
 
     def als_dict(self):
-        return dict((f, getattr(self, f)) for f in self.__slots__)
+        u"""Alle Felder — plus ``gelesen``.
+
+        NULL IST KEIN MESSERGEBNIS (02.09.2026): „Bilder & Binäres" und
+        „Übrige" werden nur gezählt, nicht zeilenweise gelesen. In der
+        Tabelle stand dafür `0` — und `0 Zeilen` liest sich wie „diese
+        Dateien sind leer", nicht wie „hier wurde nicht gezählt". Dasselbe
+        Argument wie bei ``ausserhalb``, das aus diesem Grund `None` trägt.
+        """
+        raus = dict((f, getattr(self, f)) for f in self.__slots__)
+        raus['gelesen'] = self.name not in NICHT_LESEN
+        return raus
 
 
 class Codezahlen:
@@ -135,9 +210,15 @@ class Codezahlen:
         #: Laufzeitdaten, die nicht mitgezählt wurden — samt Verzeichnis.
         self.ausgelassen = 0
         self.ausgelassen_wo = {}
+        #: ``{Endung: [Dateien, Bytes, Beispielpfad]}`` — was in „Übrige"
+        #: steckt. Ohne diese Aufschlüsselung ist die Zeile eine Zahl ohne
+        #: Auskunft, und genau danach wurde gefragt.
+        self.uebrige = {}
 
     # ── einlesen ────────────────────────────────────────────────
     def lesen(self):
+        raus = ausser()      # samt der virtuellen Umgebungen des Projekts
+        anmeldungen = ablagen(self.wurzel)
         for pfad in self.wurzel.rglob('*'):
             if not pfad.is_file():
                 continue
@@ -166,7 +247,14 @@ class Codezahlen:
             if daten:
                 self._auslassen(daten[0])
                 continue
-            if any(teil in AUS for teil in teile):
+            # Vom Projekt angemeldete Ablagen (…_ROOT) — dieselbe Behandlung
+            # wie `DATEN`: ausgelassen, aber GENANNT.
+            angemeldet = next((a for a in anmeldungen
+                               if teile[:len(a)] == a), None)
+            if angemeldet is not None:
+                self._auslassen('/'.join(angemeldet))
+                continue
+            if any(teil in raus for teil in teile):
                 continue
             try:
                 if pfad.stat().st_size > GROESSTE_QUELLDATEI:
@@ -191,14 +279,41 @@ class Codezahlen:
         self.ausgelassen += 1
         self.ausgelassen_wo[wo] = self.ausgelassen_wo.get(wo, 0) + 1
 
+    def _uebrig(self, pfad, groesse):
+        u"""Eine Datei ohne bekannte Art vermerken — nach Endung.
+
+        Als Beispiel steht die GRÖSSTE Datei der Endung, nicht die erste:
+        Bei 385 Dateien ohne Endung ist die erste zufällig (`.gitignore`),
+        die grösste dagegen sagt, worum es geht.
+        """
+        punkt = pfad.name.rfind('.')
+        endung = pfad.name[punkt:].lower() if punkt > 0 else u'(ohne Endung)'
+        try:
+            name = str(pfad.relative_to(self.wurzel))
+        except ValueError:
+            name = pfad.name
+        eintrag = self.uebrige.get(endung)
+        if eintrag is None:
+            self.uebrige[endung] = [1, groesse, name, groesse]
+            return
+        eintrag[0] += 1
+        eintrag[1] += groesse
+        if groesse > eintrag[3]:
+            eintrag[2] = name
+            eintrag[3] = groesse
+
     def _eine(self, pfad):
         art = self.art(pfad.name)
         zahlen = self.arten.setdefault(art, Artzahlen(art))
         zahlen.dateien += 1
+        groesse = 0
         try:
-            zahlen.bytes += pfad.stat().st_size
+            groesse = pfad.stat().st_size
+            zahlen.bytes += groesse
         except OSError:
             pass
+        if art == UEBRIGE:
+            self._uebrig(pfad, groesse)
         if art in NICHT_LESEN:
             return
         try:
@@ -244,12 +359,22 @@ class Codezahlen:
             # bei den Zeilen mit, aber NICHT bei „ausserhalb" - sonst
             # zaehlte eine kaputte Datei als lauter globaler Code.
             return
+        innen = Codezahlen._klassenzeilen(baum)
         for knoten in ast.walk(baum):
             if isinstance(knoten, ast.ClassDef):
                 zahlen.klassen += 1
             elif isinstance(knoten, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                zahlen.funktionen += 1
-        innen = Codezahlen._klassenzeilen(baum)
+                # NUR FUNKTIONEN AUSSERHALB VON KLASSEN (02.09.2026, auf
+                # Ansage: „Spalte Funktionen — wenn die innerhalb von
+                # Klassen sind dann lass die weg").
+                #
+                # Vorher zählte hier jedes `def`: Methoden, freie und
+                # verschachtelte zusammen. Die Zahl war damit
+                # bedeutungslos — sie sagte ungefähr „wie viel Code",
+                # nicht „wie viel hängt an keiner Klasse". Genau das ist
+                # aber die Frage, um die es auf dieser Seite geht.
+                if knoten.lineno not in innen:
+                    zahlen.funktionen += 1
         if zahlen.ausserhalb is None:
             zahlen.ausserhalb = 0
         zahlen.ausserhalb += sum(1 for nr in anweisungszeilen if nr not in innen)
@@ -312,6 +437,34 @@ class Codezahlen:
         raus.append((self.arten.get(UEBRIGE) or Artzahlen(UEBRIGE)).als_dict())
         return raus
 
+    def uebrige_arten(self, hoechstens=25):
+        u"""Woraus die Zeile „Übrige" besteht — nach Endung, grösste zuerst.
+
+        Die Zeile nennt eine Zahl und lässt offen, wofür sie steht. Am
+        02.09.2026 waren es 45.000 `.eml`-Dateien, und die Frage „was ist
+        das?" liess sich nur mit einem eigenen Skript beantworten. Diese
+        Auskunft steht seither auf der Seite selbst.
+        """
+        # ``schluessel`` ist der Wert, den der Löschen-Knopf zurückschickt:
+        # die Endung selbst, oder ``(ohne)`` für die ohne. Ein LEERER Wert
+        # ginge nicht — im Formular wäre er von „fehlt" nicht zu
+        # unterscheiden, und das Löschen träfe dann alles oder nichts.
+        from .uebrigesuche import geschuetzt      # spät: Kreis vermeiden
+        raus = [{'endung': endung, 'dateien': n, 'bytes': b,
+                 'mb': round(b / 1048576.0, 2), 'beispiel': beispiel,
+                 'groesste': gross,
+                 'groesste_mb': round(gross / 1048576.0, 2),
+                 'schluessel': ('(ohne)' if endung == u'(ohne Endung)'
+                                else endung),
+                 # Geschützte Arten bekommen keinen Löschen-Knopf. Sie
+                 # bleiben SICHTBAR — dass 10 `.xlsm` im Projektbaum
+                 # liegen, ist eine Auskunft; sie von hier aus löschen zu
+                 # können war der Fehler (02.09.2026).
+                 'loeschbar': not geschuetzt(endung)}
+                for endung, (n, b, beispiel, gross) in self.uebrige.items()]
+        raus.sort(key=lambda e: (-e['dateien'], e['endung']))
+        return raus[:hoechstens]
+
     def gesamt(self):
         u"""Die Summe über alle Arten — dieselben Felder."""
         summe = Artzahlen(u'Gesamt')
@@ -353,4 +506,4 @@ class Codezahlen:
         }
 
 
-__all__ = ['ARTEN', 'UEBRIGE', 'Artzahlen', 'Codezahlen']
+__all__ = ['ARTEN', 'UEBRIGE', 'ablagen', 'Artzahlen', 'Codezahlen']

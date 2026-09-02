@@ -1,0 +1,137 @@
+{% comment %}
+Abschnitt „Kontextverbrauch" (Edgar, 02.09.2026: „baue die Kontextanalyse
+auch als werkzeug ein, mach einen extra Abschnitt unter Hilfe - Code
+Review").
+
+Anlass war die Frage davor — „in dieser session wird sehr oft compact
+aufgefordert, warum?". Die Antwort war messbar und überraschend: Ein
+einzelner `Read` kostete 178.000 Token, ein Bildschirmfoto 117.000. Wer
+das weiß, arbeitet anders.
+
+AUF KNOPFDRUCK. Ein Protokoll ist dreistellig MB groß; der Durchgang
+gehört nicht in den Weg von jemandem, der nur die Seite aufschlägt.
+Dieselbe Lehre wie beim Werkzeug Klassenmodell am selben Tag.
+{% endcomment %}
+<link rel="stylesheet" href="/static/djangobase/css/tabellen.css">
+<div class="rv-card" id="kontext-karte">
+    <h3 style="margin:0 0 10px;font-size:1.05rem;color:#e9f0f8;">
+        <i class="bi bi-speedometer"></i> Kontextverbrauch der Sitzungen</h3>
+
+    {% if sitzungen %}
+    <p class="rv-fuss" style="margin:0 0 12px;">
+        Wohin der Kontext einer Claude-Code-Sitzung geht — welches Werkzeug
+        wie viele Zeichen belegt und welche Einzelergebnisse die dicksten
+        sind. Die Token-Zahlen sind eine Größenordnung (rund 3,8 Zeichen je
+        Token), keine Abrechnung.
+    </p>
+
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;
+                margin-bottom:.8rem;">
+        <select id="kontext-wahl" class="form-select form-select-sm"
+                style="max-width:34rem;">
+            {% for s in sitzungen %}
+            <option value="{{ s.pfad }}">{{ s.wann }} · {{ s.mb }} MB ·
+                {{ s.name }}</option>
+            {% endfor %}
+        </select>
+        <button type="button" id="kontext-los" class="btn btn-primary btn-sm">
+            <i class="bi bi-play-fill"></i> Auswerten</button>
+        <button type="button" id="kontext-neu"
+                class="btn btn-outline-secondary btn-sm"
+                title="Protokoll neu einlesen statt aus der Ablage">
+            <i class="bi bi-arrow-clockwise"></i> Neu einlesen</button>
+        <span id="kontext-stand" class="rv-fuss"></span>
+    </div>
+
+    <div id="kontext-ausgabe"></div>
+    {% else %}
+    <p class="rv-fuss" style="margin:0;">
+        Zu diesem Projekt liegt kein Sitzungsprotokoll unter
+        <code>~/.claude/projects/</code>. Der Abschnitt erscheint, sobald
+        eine Claude-Code-Sitzung in diesem Verzeichnis gelaufen ist.
+    </p>
+    {% endif %}
+</div>
+
+{% if sitzungen %}
+<script type="module">
+    // Tabellen mit derselben Sortierung und denselben Ziehgriffen wie überall
+    // sonst. `tabellenBinden` ist mehrfach aufrufbar — nach jedem Neuzeichnen.
+    import { tabellenBinden } from '/static/djangobase/js/tabellen_auto.js';
+
+    const wahl = document.getElementById('kontext-wahl');
+    const ausgabe = document.getElementById('kontext-ausgabe');
+    const stand = document.getElementById('kontext-stand');
+
+    const zahl = (n) => (n ?? 0).toLocaleString('de-DE');
+
+    /** Eine Tabelle bauen — Kopf, Zeilen, alles sortierbar. */
+    function tabelle(titel, kopf, zeilen) {
+        const th = kopf.map((k) => `<th>${k}</th>`).join('');
+        const tr = zeilen.map(
+            (z) => '<tr>' + z.map((c) => `<td>${c}</td>`).join('') + '</tr>'
+        ).join('');
+        return `<h4 style="margin:1.1rem 0 .4rem;font-size:.95rem;
+                    color:#c8d4e0;">${titel}</h4>
+                <table class="km-liste sortable db-tabelle">
+                  <thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table>`;
+    }
+
+    function zeichnen(d) {
+        const k = d.kennzahlen;
+        const kopfzeile = `<div class="km-zahlen" style="margin:.2rem 0 .6rem;">
+            <span><b>${k.mb}</b> MB Protokoll</span>
+            <span>rund <b>${zahl(k.token)}</b> Token</span>
+            <span><b>${zahl(k.eintraege)}</b> Einträge</span>
+            <span><b>${zahl(k.werkzeugaufrufe)}</b> Werkzeugaufrufe</span>
+          </div>`;
+        // „je Aufruf" ist die eigentliche Aussage: 634 Reads mit 18 KB im
+        // Schnitt sind teurer als 18.863 kurze Befehle.
+        const werkzeuge = tabelle(
+            'Nach Werkzeug — wo der Kontext hingeht',
+            ['Werkzeug', 'MB', 'Token', 'Aufrufe', 'Zeichen je Aufruf'],
+            d.werkzeuge.map((w) => [w.name, w.mb, zahl(w.token),
+                                    zahl(w.anzahl), zahl(w.je_aufruf)]));
+        const arten = tabelle(
+            'Nach Eintragsart',
+            ['Art', 'MB', 'Token', 'Einträge'],
+            d.arten.map((a) => [a.name, a.mb, zahl(a.token), zahl(a.anzahl)]));
+        const brocken = tabelle(
+            'Die dicksten Einzelergebnisse — dort liegt der Hebel',
+            ['Token', 'Zeichen', 'Werkzeug', 'Aufruf'],
+            d.groesste.map((g) => [zahl(g.token), zahl(g.zeichen), g.werkzeug,
+                                   `<code>${g.aufruf || '—'}</code>`]));
+        ausgabe.innerHTML = kopfzeile + werkzeuge + arten + brocken;
+        tabellenBinden(ausgabe);
+        stand.textContent = d.alter === null
+            ? 'gerade eben gerechnet'
+            : `aus der Ablage, vor ${Math.round(d.alter / 60)} Min. gerechnet`;
+    }
+
+    async function holen(neu) {
+        stand.textContent = 'liest …';
+        ausgabe.innerHTML = '';
+        const u = new URL('/hilfe/review/kontext/', location.origin);
+        u.searchParams.set('sitzung', wahl.value);
+        if (neu) u.searchParams.set('neu', '1');
+        try {
+            const antwort = await fetch(u);
+            const d = await antwort.json();
+            // KEIN stilles Scheitern: Ein Fehler gehört auf die Seite, nicht
+            // nur in die Konsole (Werkzeug `jsstumm`).
+            if (!antwort.ok || d.fehler) {
+                stand.textContent = d.fehler || `Fehler ${antwort.status}`;
+                return;
+            }
+            zeichnen(d);
+        } catch (fehler) {
+            stand.textContent = 'Abruf fehlgeschlagen: ' + fehler.message;
+        }
+    }
+
+    document.getElementById('kontext-los')
+        .addEventListener('click', () => holen(false));
+    document.getElementById('kontext-neu')
+        .addEventListener('click', () => holen(true));
+</script>
+{% endif %}

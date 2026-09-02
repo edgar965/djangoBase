@@ -111,12 +111,39 @@ class Einstiegssucher:
                 if ziel.endswith('as_view'):
                     ziel = ziel.rsplit('.', 2)[-2] if '.' in ziel else ziel
                 else:
-                    ziel = ziel.rsplit('.', 1)[-1]
+                    ziel = self._kurzziel(ziel)
                 zeile = text.count('\n', 0, treffer.start()) + 1
                 aus.append(Einstieg(
                     pfad, 'api' if pfad.startswith('api/') else 'seite',
                     ziel, datei, zeile, treffer.group('name') or ''))
         return aus
+
+    @staticmethod
+    def _kurzziel(ziel):
+        u"""``views.Webseiten.start`` -> ``Webseiten.start``.
+
+        WARUM DER KLASSENNAME BLEIBEN MUSS (02.09.2026, Projekt 3DTools)
+        ---------------------------------------------------------------
+        Bis hierher schnitt ``rsplit('.', 1)[-1]`` alles bis auf den
+        letzten Namen weg. Fuer ``views.dashboard`` ist das richtig; fuer
+        ``views.Webseiten.start`` bleibt ``start`` uebrig — und einen
+        FREIEN Namen ``start`` gibt es dann nirgends.
+
+        In 3DTools sind alle Views Klassenmethoden geworden (Umbau
+        „Funktionen in Klassen"). Danach fielen **88 von 89 Routen** aus:
+        `Workflowliste` fand fuer keine einen Startpunkt, die
+        Workflow-Landkarte war leer, und `dokumentation` meldete
+        „0 Wege gezeichnet" — was sich liest wie „nichts zu beanstanden".
+
+        Erkannt wird eine Klasse an der Grossschreibung, derselben
+        Regel, nach der schon der ``as_view``-Zweig arbeitet. Ein
+        kleingeschriebenes Modul (``views.dashboard``) bleibt damit
+        unveraendert.
+        """
+        teile = ziel.rsplit('.', 2)
+        if len(teile) >= 2 and teile[-2][:1].isupper():
+            return '%s.%s' % (teile[-2], teile[-1])
+        return teile[-1]
 
     # ── Befehle ─────────────────────────────────────────────────
 

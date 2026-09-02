@@ -1,0 +1,158 @@
+{% extends djangobase.base_template|default:"djangobase/base.html" %}
+{% load static %}
+
+{% block title_extra %} · Werkzeug Language Server{% endblock %}
+{% block topbar_title %}<i class="bi bi-braces"></i> Hilfe · Werkzeug Language Server{% endblock %}
+
+{% comment %}
+Ein Language Server (basedpyright oder pyright) auf Knopfdruck ueber das
+Projekt. Aufbau wie „Werkzeug Code Review": EIN Formular, Karten untereinander,
+die Tabelle aus _tabelle.html. Der Lauf selbst geschieht im Hintergrund
+(umbau/ls_lauf.py); die Seite fragt den Zustand ab (languageserver.js) und
+laedt sich neu, wenn er fertig ist. Ein GET rechnet nie.
+
+Teilvorlagen: _ls_einstellungen (Formularfelder), _ls_ergebnis (Kennzahlen +
+Tabelle), _ls_referenzen (Stufe 2: Referenzen/Definition/Umbenennen),
+_ls_vergleich (unten: der Vergleich zum Werkzeug Code Review).
+{% endcomment %}
+
+{% block head_extra %}{{ block.super }}
+<link rel="stylesheet" href="{% static 'djangobase/css/tabellen.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="ls-seite" id="ls-seite" data-laeuft="{% if lauf.status == 'laeuft' %}1{% else %}0{% endif %}">
+
+<form method="post" id="ls-form">
+    {% csrf_token %}
+    <input type="hidden" name="aktion" value="speichern">
+
+    <div class="ls-card">
+        <h3><i class="bi bi-braces"></i> Language Server
+            <span class="ls-meta">·
+                {% if gefunden.cli %}{{ gefunden.name }} gefunden{% if ergebnis.version %} · {{ ergebnis.version }}{% endif %}
+                {% else %}kein Werkzeug gefunden{% endif %}</span></h3>
+        <p class="ls-intro">
+            Ein Language Server versteht das Projekt semantisch: Er weiß, wo ein Name
+            definiert ist, wer ihn benutzt und welchen Typ er hat. Hier läuft er als
+            <b>Stapellauf</b> über den Quelltext und meldet, was vor dem ersten Start
+            schiefgeht — undefinierte Namen, Aufrufe mit falschen Argumenten, Importe
+            ins Leere. Das Ergebnis bleibt liegen, bis jemand neu prüft; ein
+            Seitenaufruf rechnet nie.
+        </p>
+        {% if gefunden.fehlt %}
+        <p class="ls-fehlt"><i class="bi bi-exclamation-triangle"></i> {{ gefunden.fehlt }}</p>
+        {% endif %}
+
+        <div class="ls-stapel">
+            <button type="button" class="ls-batch" data-aktion="lauf"{% if not gefunden.cli %} disabled{% endif %}>
+                <i class="bi bi-play-circle"></i> Prüfen</button>
+            <button type="button" class="ls-knopf" data-aktion="neu"{% if not gefunden.cli %} disabled{% endif %}
+                    title="Ablage leeren und neu rechnen — auch wenn ein Ergebnis zu diesen Einstellungen liegt">
+                <i class="bi bi-arrow-repeat"></i> Neu rechnen</button>
+            <button type="submit" class="ls-knopf" title="Nur die Einstellungen ablegen, nicht rechnen">
+                <i class="bi bi-save"></i> Einstellungen speichern</button>
+            <span class="ls-leise" id="ls-status">
+                {% if lauf.status == 'laeuft' %}läuft seit {{ lauf.sekunden }} s …
+                {% elif lauf.status == 'fehler' %}letzter Lauf gescheitert: {{ lauf.fehler }}
+                {% elif ergebnis %}Stand von vor {{ alter }} s · {{ ergebnis.dauer_s }} s Laufzeit
+                {% else %}noch kein Ergebnis zu diesen Einstellungen{% endif %}
+            </span>
+        </div>
+
+        {% include "djangobase/hilfe/_ls_einstellungen.html" %}
+    </div>
+</form>
+
+{% include "djangobase/hilfe/_ls_ergebnis.html" %}
+{% include "djangobase/hilfe/_ls_referenzen.html" %}
+{% include "djangobase/hilfe/_ls_vergleich.html" %}
+
+</div>
+
+<style>
+.ls-seite { padding: .5rem 0 2rem; }
+.ls-card {
+    background: var(--card-bg, #1b2028);
+    border: 1px solid var(--card-border, #2b323d);
+    border-radius: 10px; padding: 1rem 1.25rem 1.25rem; margin-bottom: 1.25rem;
+}
+.ls-card h3 { font-size: 1.05rem; margin: 0 0 .5rem; }
+.ls-meta { font-weight: 400; opacity: .65; font-size: .85rem; }
+.ls-intro { font-size: .88rem; opacity: .85; margin: 0 0 .85rem; line-height: 1.55; }
+.ls-leise { opacity: .6; font-size: .8rem; }
+.ls-fehlt { color: #e0a63c; font-size: .88rem; }
+.ls-stapel { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; margin: .5rem 0 .75rem; }
+.ls-batch, .ls-knopf {
+    border: 0; border-radius: 5px; cursor: pointer; white-space: nowrap;
+    font-size: .82rem; padding: .32rem .7rem;
+}
+.ls-batch { background: #2d6cdf; color: #fff; font-weight: 600; }
+.ls-batch:hover { background: #3a7cf0; }
+.ls-batch:disabled, .ls-knopf:disabled { opacity: .45; cursor: not-allowed; }
+.ls-knopf { background: transparent; color: inherit; border: 1px solid var(--card-border, #2b323d); }
+.ls-knopf:hover { background: rgba(255,255,255,.06); }
+.ls-warn:hover { background: rgba(208,83,83,.18); border-color: #d05353; }
+.ls-felder { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: .8rem 1.2rem; }
+.ls-feld label { display: block; font-size: .78rem; opacity: .7; margin-bottom: .15rem; }
+.ls-feld select, .ls-feld input[type=text], .ls-feld input[type=number] {
+    background: var(--input-bg, #11151b); color: inherit;
+    border: 1px solid var(--card-border, #2b323d); border-radius: 5px;
+    padding: .25rem .4rem; font-size: .82rem; width: 100%;
+}
+.ls-haken { font-size: .82rem; display: block; margin: .1rem 0; }
+.ls-regeln { width: 100%; border-collapse: collapse; font-size: .8rem; margin-top: .4rem; }
+.ls-regeln td { padding: .15rem .4rem; border-top: 1px solid var(--card-border, #2b323d); }
+.ls-regeln select { font-size: .78rem; }
+.ls-kennzahlen { display: flex; gap: 1.2rem; flex-wrap: wrap; margin: .3rem 0 .8rem; }
+.ls-kennzahl { text-align: center; min-width: 5.5rem; }
+.ls-kennzahl b { display: block; font-size: 1.35rem; }
+.ls-kennzahl span { font-size: .74rem; opacity: .65; }
+.ls-error b { color: #e06060; } .ls-warning b { color: #e0a63c; } .ls-information b { color: #7fb0ff; }
+tr.ls-error td.ls-stufe { color: #e06060; font-weight: 600; }
+tr.ls-warning td.ls-stufe { color: #e0a63c; }
+tr.ls-information td.ls-stufe { color: #7fb0ff; }
+.ls-datei { font-size: .78rem; }
+.ls-text { font-size: .82rem; }
+.ls-regel { font-size: .76rem; opacity: .8; white-space: nowrap; }
+.ls-ref { border: 1px solid var(--card-border, #2b323d); background: transparent; color: inherit;
+          border-radius: 4px; cursor: pointer; padding: .05rem .3rem; }
+.ls-ref:hover { background: #2d6cdf; border-color: #2d6cdf; color: #fff; }
+.ls-filter { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; margin: 0 0 .6rem; }
+.ls-filter input, .ls-filter select {
+    background: var(--input-bg, #11151b); color: inherit;
+    border: 1px solid var(--card-border, #2b323d); border-radius: 5px; padding: .22rem .4rem; font-size: .8rem;
+}
+.ls-liste { font-size: .82rem; columns: 2; column-gap: 2rem; margin: 0; padding-left: 1.2rem; }
+.ls-liste li { break-inside: avoid; }
+.ls-vergleich { width: 100%; border-collapse: collapse; font-size: .84rem; }
+.ls-vergleich th, .ls-vergleich td { text-align: left; vertical-align: top; padding: .4rem .6rem;
+    border-top: 1px solid var(--card-border, #2b323d); }
+.ls-vergleich th { opacity: .75; font-weight: 600; }
+.ls-vergleich td:first-child { white-space: nowrap; font-weight: 600; }
+.ls-panel-kopf { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
+.ls-panel-kopf code { font-size: .8rem; }
+.ls-treffer { font-size: .82rem; margin: .5rem 0 0; padding-left: 1.2rem; max-height: 22rem; overflow: auto; }
+.ls-treffer code { font-size: .78rem; opacity: .85; }
+.ls-alt { color: #e06060; text-decoration: line-through; }
+.ls-neu { color: #6cc46c; }
+.ls-meldung { font-size: .82rem; margin-top: .5rem; }
+.ls-meldung.ls-fehler { color: #e06060; }
+.ls-meldung.ls-ok { color: #6cc46c; }
+</style>
+{% endblock %}
+
+{% block body_scripts %}{{ block.super }}
+<script type="module">
+import { TabellenSortierung } from "{% static 'djangobase/js/tabellen_sortierung.js' %}";
+import { TabellenBreiten } from "{% static 'djangobase/js/tabellen_breiten.js' %}";
+import { LanguageServerSeite } from "{% static 'djangobase/js/languageserver.js' %}?v=1";
+import { ReferenzenPanel } from "{% static 'djangobase/js/languageserver_referenzen.js' %}?v=1";
+document.querySelectorAll('table[data-sort-key]').forEach(t =>
+    new TabellenBreiten([t], t.dataset.sortKey).binden());
+TabellenSortierung.binden();
+const seite = new LanguageServerSeite(document.getElementById('ls-seite'));
+seite.binden();
+new ReferenzenPanel(document.getElementById('ls-referenzen'), seite.token).binden();
+</script>
+{% endblock %}

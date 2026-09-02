@@ -43,7 +43,7 @@ from pathlib import Path
 #: Klassenmodell. Zwei Kopien liefen beim naechsten Zusatz auseinander:
 #: `sicherung` kam dort dazu, hier nicht, und das Netz zaehlte einen
 #: Abzug des Projekts mit.
-from .klassenmodell import AUS  # noqa: F401
+from .klassenmodell import AUS, ausser  # noqa: F401
 
 #: Was Python selbst mitbringt. Ohne diese Liste ist `len` der meist-
 #: genutzte „Baustein" des Projekts.
@@ -89,8 +89,9 @@ class Aufrufnetz:
 
     def lesen(self):
         baeume = []
+        raus = ausser()      # samt der virtuellen Umgebungen des Projekts
         for pfad in sorted(self.wurzel.rglob('*.py')):
-            if any(teil in pfad.parts for teil in AUS):
+            if any(teil in pfad.parts for teil in raus):
                 continue
             try:
                 baum = ast.parse(pfad.read_text(encoding='utf-8',

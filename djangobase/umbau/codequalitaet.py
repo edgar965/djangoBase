@@ -39,7 +39,7 @@ import ast
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from .klassenmodell import AUS
+from .klassenmodell import AUS, ausser as projektausser
 from .codezahlen import DATEN, GROESSTE_QUELLDATEI
 
 #: So viele Treffer je Verfahren werden gezeigt. Wer mehr will, ruft das
@@ -226,7 +226,11 @@ class Codequalitaet:
         #: „Echte Fehler" im Bericht kamen von dort. Wer einen Satz
         #: mitgibt (`Werkzeug.ausgeschlossen()`), misst dieselbe Menge wie
         #: jedes andere Werkzeug; ohne bleibt es bei ``AUS``.
-        self.ausser = frozenset(ausser) if ausser else frozenset(AUS)
+        # Ohne eigenen Satz die geteilte Menge — samt der virtuellen
+        # Umgebungen des Projekts (02.09.2026): `AUS` fuehrt nur 'venv',
+        # und `pythonVENV/Scripts/pywin32_postinstall.py` stand deshalb
+        # als Spitzenbefund der Komplexitaetsmessung ganz oben.
+        self.ausser = frozenset(ausser) if ausser else projektausser()
         #: Was ``.gitignore`` ausnimmt, ist nicht der Code des Projekts.
         #:
         #: DEN FILTER GAB ES SCHON (25.08.2026)

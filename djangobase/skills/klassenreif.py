@@ -268,7 +268,53 @@ class Modulsicht:
                         isinstance(k.value, ast.Call)
                         and getattr(k.value.func, 'id', '') in SAMMLUNG_RUF):
                     raus[ziel.id] = k.lineno
-        return raus
+        return {n: z for n, z in raus.items()
+                if n in Modulsicht._beschrieben(baum, set(raus))}
+
+    @staticmethod
+    def _beschrieben(baum, kandidaten):
+        u"""Welche dieser Namen VERAENDERT jemand?
+
+        DER FEHLALARM (01.09.2026, 3DTools): `bl_info` in
+        `HumanBodyBlender/__init__.py` ist Blenders Pflicht-Woerterbuch mit
+        Name, Fassung und Blender-Mindestversion. Es wird gelesen, nie
+        geschrieben — und wurde trotzdem als „veraenderlicher Modulzustand"
+        gemeldet, mit dem Vorschlag, eine Klasse darum zu bauen. Blender
+        findet es dann nicht mehr, und das Addon erscheint nicht in der
+        Liste.
+
+        Die Unterscheidung stand als Kommentar schon ueber `SCHREIBT` — die
+        Menge war nur nie benutzt. Gezaehlt wird jetzt, was eine Sammlung
+        wirklich veraendert: ein Aufruf wie `.append(…)`, eine Zuweisung an
+        ein Element, ein `del`, eine zweite Bindung des Namens oder ein
+        `global`.
+        """
+        beschrieben = set()
+        gesehen = set()
+        for knoten in ast.walk(baum):
+            if isinstance(knoten, ast.Call):
+                fn = knoten.func
+                if (isinstance(fn, ast.Attribute) and fn.attr in SCHREIBT
+                        and isinstance(fn.value, ast.Name)):
+                    beschrieben.add(fn.value.id)
+            elif isinstance(knoten, ast.Global):
+                beschrieben.update(knoten.names)
+            elif isinstance(knoten, (ast.Assign, ast.AugAssign,
+                                     ast.AnnAssign, ast.Delete)):
+                ziele = (knoten.targets if isinstance(knoten, ast.Assign)
+                         else getattr(knoten, 'targets', None)
+                         or [knoten.target])
+                for ziel in ziele:
+                    if isinstance(ziel, ast.Subscript) and isinstance(
+                            ziel.value, ast.Name):
+                        beschrieben.add(ziel.value.id)
+                    elif isinstance(ziel, ast.Name):
+                        # Die ERSTE Bindung ist die Anlage, jede weitere
+                        # ein Schreibzugriff.
+                        if ziel.id in gesehen:
+                            beschrieben.add(ziel.id)
+                        gesehen.add(ziel.id)
+        return beschrieben & kandidaten
 
     def beruehrt(self, funktion):
         u"""Welche Modulzustaende fasst DIESE Funktion an?"""

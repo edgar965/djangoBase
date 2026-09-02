@@ -1,0 +1,72 @@
+{% comment %}
+Kennzahlen, Filterzeile, die Befund-Tabelle und die Zaehlung je Regel —
+alles aus dem ABGELEGTEN Ergebnis. Fehlt es, steht hier der Grund und der
+Knopf oben ist der Weg.
+{% endcomment %}
+<div class="ls-card" id="ls-ergebnis">
+    <h3><i class="bi bi-clipboard-data"></i> Ergebnis
+        {% if ergebnis %}<span class="ls-meta">· {{ ergebnis.werkzeug }} {{ ergebnis.version }} ·
+            Modus {{ ergebnis.modus }} · {{ kennzahlen.dateien }} Dateien in {{ ergebnis.dauer_s }} s</span>{% endif %}</h3>
+
+    {% if not ergebnis %}
+        {% if lauf.status == 'laeuft' %}
+        <p class="ls-intro">Der Lauf ist unterwegs — die Seite lädt sich neu, sobald er fertig ist.</p>
+        {% else %}
+        <p class="ls-intro">Noch kein Ergebnis zu diesen Einstellungen. Oben auf <b>Prüfen</b> drücken.</p>
+        {% endif %}
+    {% elif ergebnis.fehlt %}
+        <p class="ls-fehlt"><i class="bi bi-exclamation-triangle"></i> {{ ergebnis.fehlt }}</p>
+        {% if ergebnis.ausgabe %}<pre class="ls-leise" style="white-space:pre-wrap;">{{ ergebnis.ausgabe }}</pre>{% endif %}
+    {% else %}
+        <div class="ls-kennzahlen">
+            <div class="ls-kennzahl ls-error"><b>{{ kennzahlen.fehler }}</b><span>Fehler</span></div>
+            <div class="ls-kennzahl ls-warning"><b>{{ kennzahlen.warnungen }}</b><span>Warnungen</span></div>
+            <div class="ls-kennzahl ls-information"><b>{{ kennzahlen.hinweise }}</b><span>Hinweise</span></div>
+            <div class="ls-kennzahl"><b>{{ kennzahlen.dateien_mit_befund }}</b><span>Dateien mit Befund</span></div>
+            <div class="ls-kennzahl"><b>{{ kennzahlen.dateien }}</b><span>Dateien geprüft</span></div>
+            <div class="ls-kennzahl"><b>{{ ergebnis.dauer_s }}&nbsp;s</b><span>Laufzeit</span></div>
+            <div class="ls-kennzahl"><b>{{ kennzahlen.gezeigt }}</b><span>von {{ kennzahlen.gefiltert }} gezeigt</span></div>
+            {% if ergebnis.js_dauer_s or ergebnis.js_fehlt %}
+            <div class="ls-kennzahl"><b>{{ ergebnis.js_befunde }}</b><span>JavaScript (tsc, {{ ergebnis.js_dauer_s }} s)</span></div>
+            {% endif %}
+        </div>
+        {% if ergebnis.js_fehlt %}<p class="ls-fehlt"><i class="bi bi-exclamation-triangle"></i> JavaScript: {{ ergebnis.js_fehlt }}</p>{% endif %}
+
+        {% if je_regel %}
+        <details style="margin:0 0 .8rem;">
+            <summary style="cursor:pointer;font-size:.86rem;">Je Regel ({{ je_regel|length }}) und je Datei</summary>
+            <ul class="ls-liste" style="margin-top:.4rem;">
+                {% for r, n, s in je_regel %}
+                <li><code>{{ r|default:"ohne Regel" }}</code> — {{ n }} <span class="ls-leise">({{ s }})</span></li>
+                {% endfor %}
+            </ul>
+            <ul class="ls-liste" style="margin-top:.6rem;">
+                {% for d, n in je_datei %}
+                <li><code>{{ d }}</code> — {{ n }}</li>
+                {% endfor %}
+            </ul>
+        </details>
+        {% endif %}
+
+        <div class="ls-filter">
+            <input type="text" id="ls-suche" placeholder="Datei oder Meldung …" size="28">
+            <select id="ls-filter-regel">
+                <option value="">alle Regeln</option>
+                {% for r, n, s in je_regel %}<option value="{{ r }}">{{ r|default:"ohne Regel" }} ({{ n }})</option>{% endfor %}
+            </select>
+            <select id="ls-filter-stufe">
+                <option value="">alle Stufen</option>
+                <option value="ls-error">nur Fehler</option>
+                <option value="ls-warning">nur Warnungen</option>
+                <option value="ls-information">nur Hinweise</option>
+            </select>
+            <span class="ls-leise" id="ls-zaehler"></span>
+        </div>
+
+        {% include "djangobase/_tabelle.html" with tabelle=tabelle %}
+        <p class="ls-leise" style="margin:.5rem 0 0;">
+            Der Knopf <i class="bi bi-diagram-2"></i> in einer Zeile öffnet unten die Tafel:
+            wer benutzt das Symbol, wo ist es definiert, und wie hieße es umbenannt.
+        </p>
+    {% endif %}
+</div>

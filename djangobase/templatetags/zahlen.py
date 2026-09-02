@@ -75,6 +75,42 @@ def sortwert(value):
     return (text or "0").replace(".", ",")
 
 
+#: Ab hier wird die nächstgrössere Einheit benutzt. Nicht 1024: Bei 1000 B
+#: steht „0,98 kB", und das liest sich wie ein Rundungsfehler.
+_STUFEN = ((1024.0 ** 3, u'GB', 2), (1024.0 ** 2, u'MB', 2),
+           (1024.0, u'kB', 1))
+
+
+@register.filter
+def groesse(value):
+    u"""Eine Dateigrösse in Bytes mit passender Einheit: ``{{ b|groesse }}``.
+
+    WARUM NICHT IMMER MB (Edgar, 02.09.2026)
+    ========================================
+        „in der Tabelle eine genaue Anzeige anstelle 0,00 MB, dann in kB
+         angeben"
+
+    Die Aufschlüsselung der „Übrigen" zeigte für elf von 25 Endungen
+    „0,00 MB" — 137 Datenbank-Dumps, 25 Chrome-Protokolle, elf
+    Sperrdateien. Eine Spalte, in der ein Drittel der Zeilen null sagt,
+    trägt nichts bei; die Dumps sind zusammen 1,4 kB, und genau das ist
+    die Auskunft.
+
+    Unter 1 kB steht die Byte-Zahl selbst — bei 400 Bytes ist „0,4 kB"
+    ungenauer als die Wahrheit.
+    """
+    try:
+        n = float(value)
+    except (TypeError, ValueError):
+        return DASH
+    if n < 0:
+        return DASH
+    for schwelle, einheit, stellen in _STUFEN:
+        if n >= schwelle:
+            return u'%s %s' % (de(n / schwelle, stellen), einheit)
+    return u'%s B' % de(n, 0)
+
+
 @register.filter
 def de_signed(value, decimals=0):
     """Wie de, aber mit Vorzeichen bei positiven Zahlen (+1.234). Verhindert

@@ -112,6 +112,12 @@ PFLICHTSEITEN = (
         "Das Objektmodell als Bild: wer hält wen, wer erbt von wem — auf "
         "Knopfdruck aus dem Quelltext gezeichnet"),
     PflichtEintrag(
+        "Werkzeug Language Server", "bi-braces", "languageserver",
+        "Ein Language Server (basedpyright oder pyright) über das Projekt: "
+        "undefinierte Namen, falsche Aufrufe, tote Importe — auf Knopfdruck "
+        "im Hintergrund; dazu Referenzen, Definition und Umbenennen über "
+        "alle Dateien"),
+    PflichtEintrag(
         "Werkzeug Workflows", "bi-signpost-split", "workflows",
         "Die Wege des Projekts als Bild: was von einer Seite, einem Befehl "
         "oder einem Faden aus tatsächlich gerufen wird — aus dem Quelltext "

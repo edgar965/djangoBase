@@ -27,6 +27,11 @@ from ..umbau.ablage import Speicher
 from ..umbau.aufrufnetz import Aufrufnetz
 from ..umbau.codequalitaet import Codequalitaet
 from ..umbau.codezahlen import Codezahlen
+from ..umbau import aufrufnetz as aufrufnetz_modul
+from ..umbau import codequalitaet as codequalitaet_modul
+from ..umbau import codezahlen as codezahlen_modul
+from ..umbau import globalbestand as globalbestand_modul
+from ..umbau import klassenmodell as klassenmodell_modul
 from ..umbau.gliederung import nach_rolle as gliedern
 from ..umbau.globalbestand import Globalbestand, hauptaeste
 from ..umbau.klassenbild import Klassenbild
@@ -86,30 +91,46 @@ class Modellspeicher(Speicher):
     """
 
     bereich = 'klassenmodell'
+    #: Aendert sich die Auswertung, gilt das alte Ergebnis nicht mehr.
+    #: Am 02.09.2026 hat genau das gefehlt: Der Filter bekam die
+    #: virtuellen Umgebungen dazu, und die Seite zeigte trotzdem weiter
+    #: die Zahlen mit dem Fremdcode darin.
+    quellen = (klassenmodell_modul, )
 
     @staticmethod
     def bauen(wurzel):
         return Klassenmodell(wurzel).lesen()
 
 
-class Quellenspeicher:
+class Quellenspeicher(Speicher):
     u"""Die waehlbaren Quellen — einmal gezählt, dann gemerkt.
 
-    Ohne Wurzel-Schlüssel, deshalb keine Unterklasse von ``Speicher``:
-    Es gibt genau EINE Liste, nicht eine je Quelle.
+    AUCH AUF PLATTE (02.09.2026, Edgar: „dauert immer noch sehr lange")
+    ===================================================================
+    Vorher lag die Liste nur im Arbeitsspeicher. Der Server läuft mit
+    ``--noreload`` und wird nach jeder Änderung neu gestartet — und jeder
+    Neustart kostete den ERSTEN Seitenaufruf die Zählung aller ``.py`` des
+    Projekts: gemessen 1,1–1,3 s auf shortlongx (dazu 0,6 s fürs Übersetzen
+    der Vorlage, die niemand wegspeichern kann). Das Ergebnis hatte sich
+    dabei nie geändert.
+
+    Es gibt genau EINE Liste (die der Projektwurzel), deshalb ``liste()``
+    ohne Wurzel-Argument; abgelegt wird sie trotzdem über ``Speicher``,
+    damit sie mit dessen Quellen-Abdruck ungültig wird, sobald sich die
+    Zählung selbst ändert.
     """
 
-    _liste = None
+    bereich = 'hauptaeste'
+    quellen = (globalbestand_modul, klassenmodell_modul)
+
+    @staticmethod
+    def bauen(wurzel):
+        return hauptaeste(wurzel)
 
     @classmethod
-    def holen(cls, neu=False):
-        if neu or cls._liste is None:
-            cls._liste = hauptaeste(settings.BASE_DIR)
-        return cls._liste
-
-    @classmethod
-    def leeren(cls):
-        cls._liste = None
+    def liste(cls, neu=False):
+        wert, _alter = cls.holen(Path(settings.BASE_DIR), neu=neu)
+        return wert
 
 
 class Netzspeicher(Speicher):
@@ -117,6 +138,7 @@ class Netzspeicher(Speicher):
     Aufrufe). Das gehört nicht in jeden Reiterwechsel."""
 
     bereich = 'aufrufnetz'
+    quellen = (aufrufnetz_modul, klassenmodell_modul)
 
     @staticmethod
     def bauen(wurzel):
@@ -127,6 +149,7 @@ class Bestandsspeicher(Speicher):
     u"""Dasselbe für den Modulebenen-Bestand: einmal lesen, oft ansehen."""
 
     bereich = 'globalbestand'
+    quellen = (globalbestand_modul, klassenmodell_modul)
 
     @staticmethod
     def bauen(wurzel):
@@ -139,6 +162,7 @@ class Zahlenspeicher(Speicher):
     Sekunden."""
 
     bereich = 'codezahlen'
+    quellen = (codezahlen_modul, klassenmodell_modul)
 
     @staticmethod
     def bauen(wurzel):
@@ -151,6 +175,7 @@ class Qualitaetsspeicher(Speicher):
     nicht in den Seitenaufruf."""
 
     bereich = 'codequalitaet'
+    quellen = (codequalitaet_modul, codezahlen_modul, klassenmodell_modul)
 
     @staticmethod
     def bauen(wurzel):
@@ -182,7 +207,7 @@ class KlassenmodellView(ZugriffMixin, View):
         letzter, _alter = Letzterlauf.holen()
         if letzter:
             try:
-                return self._zeigen(request, letzter)
+                return self._zeigen(request, letzter, rechnen=False)
             except Exception:
                 logger.warning('letzten Lauf nicht wiederholbar',
                                exc_info=True)
@@ -195,14 +220,55 @@ class KlassenmodellView(ZugriffMixin, View):
         ('klassen', 'Globale Klassen', 'bi-boxes'),
         ('variablen', 'Globale Variablen', 'bi-hash'),
         ('seiten', 'HTML-Seiten', 'bi-filetype-html'),
+        # Eigener Reiter seit dem 02.09.2026 (Edgar: „Wo ist die
+        # Statistik mit der Tabelle der Codezeilen? Mach dafuer einen Tab
+        # Statistik"). Sie stand als dritter Knopf im Qualitaets-Reiter
+        # und war damit hinter einer 94-Sekunden-Messung versteckt,
+        # obwohl sie selbst nur zwei Sekunden kostet.
+        ('statistik', 'Statistik', 'bi-bar-chart'),
         ('qualitaet', 'Code Qualität', 'bi-speedometer2'),
     )
 
+    #: Formularfelder, die einen Knopfdruck bedeuten. Nur dann wird
+    #: gerechnet — siehe ``_darf_rechnen``.
+    RECHENKNOEPFE = ('neu', 'was', 'rechnen')
+
     def post(self, request):
         Letzterlauf.merken(request.POST)
-        return self._zeigen(request, request.POST)
+        return self._zeigen(request, request.POST,
+                            rechnen=self._darf_rechnen(request.POST))
 
-    def _zeigen(self, request, daten):
+    @classmethod
+    def _darf_rechnen(cls, daten):
+        u"""Hat jemand einen Knopf gedrueckt — oder nur den Reiter gewechselt?
+
+        DER UNTERSCHIED KOSTETE DIE SEITE (Edgar, 02.09.2026)
+        =====================================================
+            „es soll nicht immer neu eingelesen werden … auch der Wechsel
+             auf die Tabs innerhalb der Seite dauert ewig"
+
+        Der Reiterwechsel schickt das Formular per ``form.submit()`` ab —
+        ohne den Namen eines Absendeknopfes. Genau daran ist er zu
+        erkennen: Kommt keiner der ``RECHENKNOEPFE`` mit, wird nur
+        nachgesehen, was schon abgelegt ist.
+
+        Der GET faellt ohnehin nicht hierher: Er uebergibt ``rechnen``
+        gar nicht erst.
+        """
+        return any(k in daten for k in cls.RECHENKNOEPFE)
+
+    @staticmethod
+    def _aus_speicher(klasse, wurzel, neu, rechnen):
+        u"""``(Wert, Alter)`` — rechnet nur, wenn gerechnet werden darf.
+
+        Ohne Knopfdruck kann der Wert ``None`` sein; die Reiter fangen
+        das ab und zeigen die leere Seite mit dem Knopf.
+        """
+        if rechnen:
+            return klasse.holen(wurzel, neu=neu)
+        return klasse.nachsehen(wurzel)
+
+    def _zeigen(self, request, daten, rechnen=False):
         u"""Eine Sicht bauen — aus dem Formular ODER aus dem letzten Lauf.
 
         Beide Wege gehen durch dieselbe Stelle. Zwei Stellen, die
@@ -215,16 +281,24 @@ class KlassenmodellView(ZugriffMixin, View):
         if reiter not in dict((k, 1) for k, _l, _i in self.REITER):
             reiter = 'baum'
         if reiter == 'qualitaet':
-            return self._qualitaet(request, daten, wurzel, neu)
+            return self._qualitaet(request, daten, wurzel, neu, rechnen)
+        if reiter == 'statistik':
+            return self._statistik(request, daten, wurzel, neu, rechnen)
         if reiter != 'baum':
-            bestand, alter = Bestandsspeicher.holen(wurzel, neu=neu)
+            bestand, alter = self._aus_speicher(
+                Bestandsspeicher, wurzel, neu, rechnen)
+            if bestand is None:
+                return self._leerer_reiter(request, reiter, daten)
             zusatz = {}
             if reiter in ('klassen', 'funktionen'):
                 # DIESELBE GLIEDERUNG UND DIESELBEN STECKBRIEFE WIE IM BILD
                 # (24.08.2026, auf Ansage: „mache alle Klassen in allen Tabs
                 # und alle Funktionen aus allen Tabs auch als Gliederung mit
                 # Knoepfen, so dass man sieht, wer sie nutzt").
-                netz, _n = Netzspeicher.holen(wurzel, neu=neu)
+                netz, _n = self._aus_speicher(
+                    Netzspeicher, wurzel, neu, rechnen)
+                if netz is None:
+                    return self._leerer_reiter(request, reiter, daten)
                 if reiter == 'klassen':
                     # EINE QUELLE JE REITER (24.08.2026, gemeldet:
                     # „struktur noch immer unklar"). Die Karten oben
@@ -233,7 +307,10 @@ class KlassenmodellView(ZugriffMixin, View):
                     # (584) — zwei Zaehlungen auf EINEM Reiter. Hier zaehlt
                     # nur noch das Klassenmodell, dieselbe Quelle wie das
                     # Auswahlfeld.
-                    modell, _a = Modellspeicher.holen(wurzel, neu=neu)
+                    modell, _a = self._aus_speicher(
+                        Modellspeicher, wurzel, neu, rechnen)
+                    if modell is None:
+                        return self._leerer_reiter(request, reiter, daten)
                     zusatz['kategorien'] = modell.kategorien()
                     zusatz['klassen_gesamt'] = len(modell.klassen)
                     namen = sorted(modell.klassen)
@@ -254,7 +331,10 @@ class KlassenmodellView(ZugriffMixin, View):
         if neu:
             Quellenspeicher.leeren()
             Netzspeicher.leeren()
-        modell, alter = Modellspeicher.holen(wurzel, neu=neu)
+        modell, alter = self._aus_speicher(
+            Modellspeicher, wurzel, neu, rechnen)
+        if modell is None:
+            return self._leerer_reiter(request, 'baum', daten)
         start = (daten.get('start') or '').strip() or None
         try:
             tiefe = max(1, min(4, int(daten.get('tiefe')
@@ -304,57 +384,100 @@ class KlassenmodellView(ZugriffMixin, View):
         )
 
     # ── Code Qualität ───────────────────────────────────────────
-    def _qualitaet(self, request, daten, wurzel, neu):
-        u"""Zwei Knöpfe auf einem Reiter — Zählung und Bewertung.
+    def _leerer_reiter(self, request, reiter, daten):
+        u"""Der Reiter ohne Ergebnis — mit dem Knopf, der es holt.
+
+        Kein Fehler und keine leere Seite ins Blaue: Wer den Reiter
+        wechselt, bekommt sofort die Seite und entscheidet selbst, ob er
+        auf den Durchgang warten will. Vorher rechnete jeder Wechsel und
+        jeder Seitenaufruf mit (02.09.2026).
+        """
+        return self._seite(request, reiter=reiter,
+                           bereich=daten.get('bereich', ''),
+                           was=daten.get('was_zuletzt', ''),
+                           nichts_gerechnet=True)
+
+    # ── Statistik ───────────────────────────────────────────────
+    def _statistik(self, request, daten, wurzel, neu, rechnen):
+        u"""Die Bestandszahlen — Dateien, Zeilen, Anweisungen je Art.
+
+        EIGENER REITER SEIT DEM 02.09.2026
+        ==================================
+            „Wo ist die Statistik mit der Tabelle der Codezeilen? Mach
+             dafuer einen Tab Statistik auf der Seite und verschiebe sie
+             darin" (Edgar)
+
+        Sie stand als dritter Knopf im Qualitaets-Reiter. Wer sie sehen
+        wollte, landete zuerst auf der Messung — und die kostet auf
+        ``assistant`` 94 Sekunden. Die Zaehlung selbst braucht zwei.
+        """
+        zahlen, alter = self._aus_speicher(
+            Zahlenspeicher, wurzel, neu, rechnen)
+        if zahlen is None:
+            return self._leerer_reiter(request, 'statistik', daten)
+        return self._seite(
+            request, reiter='statistik',
+            bereich=daten.get('bereich', ''),
+            arten=zahlen.liste(),
+            arten_gesamt=zahlen.gesamt(),
+            zahlen=zahlen.kennzahlen(),
+            # Ehrlich sagen, was NICHT mitgezählt wurde. Ohne diese Zeile
+            # liest sich „1119 Dateien" wie das ganze Verzeichnis, und im
+            # ersten Lauf standen dort 3861 — mit einem 1,7-GB-Video darin.
+            ausgelassen=zahlen.ausgelassen,
+            ausgelassen_wo=sorted(zahlen.ausgelassen_wo.items(),
+                                  key=lambda p: -p[1]),
+            # WORAUS „ÜBRIGE" BESTEHT (02.09.2026, Edgar: „bei Statistik
+            # habe ich über 3 Millionen leere Zeilen bei Übrige? was ist
+            # das, spezifiziere und fixe"). Die Zeile nannte eine Zahl und
+            # liess offen, wofür sie steht; die Antwort brauchte ein
+            # eigenes Skript. Jetzt steht sie auf der Seite.
+            uebrige=zahlen.uebrige_arten(),
+            alter=int(alter) if alter is not None else None)
+
+    # ── Code Qualität ───────────────────────────────────────────
+    def _qualitaet(self, request, daten, wurzel, neu, rechnen):
+        u"""Die Messung mit vier Werkzeugen — und die Befundliste dazu.
 
         DIE ANSAGE (Edgar, 24.08.2026)
         ==============================
-            „ein Button der eine Statistik macht … Dann brauche ich ein
-             Tool zur Evaluierung der Code-Qualität … Mach einen Button
-             dazu der Code-Qualität mit 2-3 Methoden überprüft"
+            „Dann brauche ich ein Tool zur Evaluierung der Code-Qualität
+             … Mach einen Button dazu der Code-Qualität mit 2-3 Methoden
+             überprüft"
 
-        Zwei Knöpfe, weil es zwei sehr verschiedene Kosten sind: Die
-        Zählung braucht 2 Sekunden, die Messung 19. Wer nur wissen will,
-        wie groß das Projekt ist, soll nicht auf vier Werkzeuge warten.
+        Die Zählung („Statistik") ist seit dem 02.09.2026 ein eigener
+        Reiter: Sie kostet zwei Sekunden, diese Messung 94 — das gehört
+        nicht hinter denselben Reiter.
         """
         # „Neu einlesen" schickt kein `was` mit — dann gilt, was zuletzt
         # gezeigt wurde. Ein zweites Feld NAMENS `was` ginge nicht: Bei
         # einer QueryDict zaehlt der letzte Wert, und der Knopf verlöre.
         was = (daten.get('was')
-               or daten.get('was_zuletzt') or 'statistik')
-        if was not in ('statistik', 'qualitaet', 'befunde'):
-            was = 'statistik'
-        zusatz = {'was': was, 'bereich': daten.get('bereich', '')}
-        if was in ('qualitaet', 'befunde'):
-            messung, alter = Qualitaetsspeicher.holen(wurzel, neu=neu)
-            zusatz['verfahren'] = messung.als_liste()
-            zusatz['q_dateien'] = len(messung.dateien)
-            if was == 'befunde':
-                # ALLE Funde in EINER Tabelle (27.08.2026, auf Ansage):
-                #     „ich sehe keine Tabelle zu den Findings der 4 Werkzeuge"
-                # Die Verfahrensblöcke zeigen je 15 Treffer und sind nach
-                # Werkzeug getrennt — man sieht dort nie, was insgesamt das
-                # Dringendste ist. Diese Sicht dreht das um: eine Liste,
-                # nach Gewicht sortiert, mit dem Werkzeug als Spalte.
-                zusatz['befunde'] = self._befundliste(messung)
-                zusatz['befund_stufen'] = self._stufenzaehler(zusatz['befunde'])
-            # Was beim MESSEN scheiterte, gehört ganz nach oben: Eine
-            # Datei, die nicht parst, ist der schwerste Fund — und sie
-            # verschwand bis zum 24.08.2026 hinter einem stummen
-            # `except: continue`, also aus Statistik UND Bericht.
-            zusatz['pannen'] = [{'datei': d, 'verfahren': v, 'grund': g}
-                                for d, v, g in messung.pannen]
-        else:
-            zahlen, alter = Zahlenspeicher.holen(wurzel, neu=neu)
-            zusatz['arten'] = zahlen.liste()
-            zusatz['arten_gesamt'] = zahlen.gesamt()
-            zusatz['zahlen'] = zahlen.kennzahlen()
-            # Ehrlich sagen, was NICHT mitgezählt wurde. Ohne diese Zeile
-            # liest sich „1119 Dateien" wie das ganze Verzeichnis, und im
-            # ersten Lauf standen dort 3861 — mit einem 1,7-GB-Video darin.
-            zusatz['ausgelassen'] = zahlen.ausgelassen
-            zusatz['ausgelassen_wo'] = sorted(
-                zahlen.ausgelassen_wo.items(), key=lambda p: -p[1])
+               or daten.get('was_zuletzt') or 'qualitaet')
+        if was not in ('qualitaet', 'befunde'):
+            was = 'qualitaet'
+        messung, alter = self._aus_speicher(
+            Qualitaetsspeicher, wurzel, neu, rechnen)
+        if messung is None:
+            return self._leerer_reiter(request, 'qualitaet', daten)
+        zusatz = {'was': was, 'bereich': daten.get('bereich', ''),
+                  'verfahren': messung.als_liste(),
+                  'q_dateien': len(messung.dateien)}
+        if was == 'befunde':
+            # ALLE Funde in EINER Tabelle (27.08.2026, auf Ansage):
+            #     „ich sehe keine Tabelle zu den Findings der 4 Werkzeuge"
+            # Die Verfahrensblöcke zeigen je 15 Treffer und sind nach
+            # Werkzeug getrennt — man sieht dort nie, was insgesamt das
+            # Dringendste ist. Diese Sicht dreht das um: eine Liste,
+            # nach Gewicht sortiert, mit dem Werkzeug als Spalte.
+            zusatz['befunde'] = self._befundliste(messung)
+            zusatz['befund_stufen'] = self._stufenzaehler(zusatz['befunde'])
+        # Was beim MESSEN scheiterte, gehört ganz nach oben: Eine
+        # Datei, die nicht parst, ist der schwerste Fund — und sie
+        # verschwand bis zum 24.08.2026 hinter einem stummen
+        # `except: continue`, also aus Statistik UND Bericht.
+        zusatz['pannen'] = [{'datei': d, 'verfahren': v, 'grund': g}
+                            for d, v, g in messung.pannen]
         return self._seite(request, reiter='qualitaet',
                            alter=int(alter) if alter is not None else None,
                            **zusatz)
@@ -449,7 +572,7 @@ class KlassenmodellView(ZugriffMixin, View):
             # Seitenaufruf gerechnet: Die Zaehlung liest jede `.py` des
             # Projekts — das gehoert nicht in den Weg von jemandem, der nur
             # die Seite aufschlaegt.
-            'bereiche': Quellenspeicher.holen(),
+            'bereiche': Quellenspeicher.liste(),
         }
         daten.update(zusatz)
         return render(request, self.vorlage, daten)

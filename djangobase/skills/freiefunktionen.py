@@ -331,6 +331,9 @@ class FreieFunktionen(BefundWerkzeug):
         # `manage.py`, `wsgi.py`, `asgi.py`: Der Rahmen ruft sie, nicht wir.
         if Rahmenvorschrift.eigene_datei(datei):
             return None
+        # Was der `__main__`-Block dieser Datei selbst ruft, MUSS auf
+        # Modulebene stehen — sonst startet das Werkzeug nicht mehr.
+        vorgeschrieben = set(vorgeschrieben) | Rahmenvorschrift.selbst_gerufen(baum)
         funktionen, klassen, weiterleitungen = [], 0, 0
         for knoten in baum.body:          # nur Modulebene, nicht ast.walk
             if isinstance(knoten, ast.ClassDef):

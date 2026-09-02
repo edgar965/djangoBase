@@ -1,0 +1,24 @@
+{% comment %}
+Stufe 2: die Tafel fuer Referenzen, Definition und Umbenennen. Sie haengt an
+EINER Stelle (Datei, Zeile, Spalte), die ein Klick in der Befund-Tabelle
+setzt. Umbenennen geht in zwei Schritten: Vorschau, dann bestaetigen —
+ein Klick allein schreibt keine Datei (languageserver_referenzen.js).
+{% endcomment %}
+<div class="ls-card" id="ls-referenzen" hidden>
+    <h3><i class="bi bi-diagram-2"></i> Referenzen und Umbenennen
+        <span class="ls-meta">· über die offene Sitzung des Servers</span></h3>
+    <div class="ls-panel-kopf">
+        <code id="ls-ref-stelle">—</code>
+        <button type="button" class="ls-knopf" data-ref="referenzen"><i class="bi bi-search"></i> Wer benutzt das?</button>
+        <button type="button" class="ls-knopf" data-ref="definition"><i class="bi bi-geo"></i> Definition</button>
+        <input type="text" id="ls-ref-name" placeholder="neuer Name" size="18"
+               style="background:var(--input-bg,#11151b);color:inherit;border:1px solid var(--card-border,#2b323d);border-radius:5px;padding:.22rem .4rem;font-size:.8rem;">
+        <button type="button" class="ls-knopf" data-ref="vorschau"><i class="bi bi-eye"></i> Vorschau</button>
+        <button type="button" class="ls-knopf ls-warn" data-ref="umbenennen" disabled
+                title="Schreibt die Dateien — mit Sicherung unter .cache/umbau/languageserver/sicherung und Kompilier-Netz">
+            <i class="bi bi-pencil-square"></i> Umbenennen</button>
+        <span class="ls-leise">Die erste Anfrage startet die Sitzung — ein paar Sekunden.</span>
+    </div>
+    <div class="ls-meldung" id="ls-ref-meldung"></div>
+    <ol class="ls-treffer" id="ls-ref-liste"></ol>
+</div>

@@ -1,0 +1,98 @@
+{% comment %}
+Die Einstellungen des Laufs — Felder INNERHALB des Formulars von
+languageserver.html. Jede Aenderung wird beim Pruefen mitgeschickt und
+gespeichert; die Vorgaben stehen in umbau/ls_konfig.py, nicht hier.
+{% endcomment %}
+<details class="ls-einstellungen" {% if not ergebnis %}open{% endif %}>
+<summary style="cursor:pointer;font-size:.9rem;margin:.3rem 0 .6rem;">
+    <i class="bi bi-sliders"></i> Einstellungen
+    <span class="ls-leise">· Werkzeug {{ konfig.werkzeug }} · Modus {{ konfig.modus }} ·
+        ab {{ konfig.stufe }} · Deckel {{ konfig.deckel }}</span>
+</summary>
+
+<div class="ls-felder">
+    <div class="ls-feld">
+        <label for="ls-werkzeug">Werkzeug</label>
+        <select name="werkzeug" id="ls-werkzeug">
+            {% for w in werkzeuge %}
+            <option value="{{ w }}"{% if w == konfig.werkzeug %} selected{% endif %}>
+                {{ w }}{% if w == 'auto' %} (basedpyright, sonst pyright){% endif %}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="ls-feld">
+        <label for="ls-modus">Prüfmodus (typeCheckingMode)</label>
+        <select name="modus" id="ls-modus">
+            {% for m in modi %}
+            <option value="{{ m }}"{% if m == konfig.modus %} selected{% endif %}>{{ m }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="ls-feld">
+        <label for="ls-stufe">Anzeigen ab Stufe</label>
+        <select name="stufe" id="ls-stufe">
+            {% for s in stufen %}
+            <option value="{{ s }}"{% if s == konfig.stufe %} selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="ls-feld">
+        <label for="ls-deckel">Höchstens Befunde in der Tabelle</label>
+        <input type="number" name="deckel" id="ls-deckel" value="{{ konfig.deckel }}" min="10" max="5000">
+    </div>
+    <div class="ls-feld">
+        <label for="ls-zeitlimit">Zeitlimit des Laufs (s)</label>
+        <input type="number" name="zeitlimit" id="ls-zeitlimit" value="{{ konfig.zeitlimit }}" min="10" max="3600">
+    </div>
+    <div class="ls-feld">
+        <label for="ls-python">Interpreter des Projekts (löst die Importe auf)</label>
+        <input type="text" name="python" id="ls-python" value="{{ konfig.python }}">
+    </div>
+    <div class="ls-feld">
+        <label>Hauptäste unter <code>{{ wurzel }}</code> — alle angehakt = ganzes Projekt</label>
+        {% for a in aeste %}
+        {% comment %}Alle an, solange nichts gewaehlt ist (Edgar, 02.09.2026:
+        „Alle sollen per Default gecheckt sein"). Leere Auswahl hiess vorher
+        stumm „alle" - ein Haken, der nicht da ist, sieht aber aus wie „aus".{% endcomment %}
+        <label class="ls-haken"><input type="checkbox" name="pfade" value="{{ a.name }}"
+            {% if not konfig.pfade or a.name in konfig.pfade %} checked{% endif %}> {{ a.name }}
+            <span class="ls-leise">({{ a.klassen }} Klassen)</span></label>
+        {% empty %}
+        <span class="ls-leise">keine Python-Äste gefunden</span>
+        {% endfor %}
+    </div>
+    <div class="ls-feld">
+        <label>Ausschließen</label>
+        {% for k, an, l in ausschluesse %}
+        <label class="ls-haken"><input type="checkbox" name="ausschluss" value="{{ k }}"{% if an %} checked{% endif %}> {{ l }}</label>
+        {% endfor %}
+        <label class="ls-haken"><input type="checkbox" name="stubs" value="1"{% if konfig.stubs %} checked{% endif %}>
+            django-types benutzen, wenn installiert</label>
+        <label class="ls-haken"><input type="checkbox" name="javascript" value="1"{% if konfig.javascript %} checked{% endif %}>
+            JavaScript mitprüfen (tsc --checkJs){% if not tsc %} <span class="ls-fehlt">— tsc fehlt: npm install -g typescript</span>{% endif %}</label>
+    </div>
+</div>
+
+<table class="ls-regeln">
+    <thead><tr><th style="text-align:left;padding:.15rem .4rem;">Regel</th>
+        <th style="text-align:left;padding:.15rem .4rem;">Stufe</th>
+        <th style="text-align:left;padding:.15rem .4rem;">Was sie findet</th></tr></thead>
+    <tbody>
+    {% for r, s, t in regeln %}
+    <tr><td><code>{{ r }}</code></td>
+        <td><select name="regel_{{ r }}">
+            {% for st in regel_stufen %}
+            <option value="{{ st }}"{% if st == s %} selected{% endif %}>{{ st }}</option>
+            {% endfor %}
+        </select></td>
+        <td>{{ t }}</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+<p class="ls-leise" style="margin:.5rem 0 0;">
+    Was der Server nicht sieht: <code>from x import *</code>, Djangos
+    <code>objects</code>-Manager ohne Stubs, <code>getattr</code> auf Slots,
+    Werte aus <code>SystemSetting.get</code>. Dort meldet er nichts oder Fehlalarme —
+    deshalb steht <code>reportAttributeAccessIssue</code> in der Vorgabe auf <code>none</code>.
+</p>
+</details>

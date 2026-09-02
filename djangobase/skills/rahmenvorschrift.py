@@ -18,7 +18,26 @@ Vorschrift wie bei Djangos `Command`-Klasse in einem Management-Befehl.
 
 Geraten wird hier nichts: Gefragt werden die EINSTELLUNGEN des Projekts. Nur
 was dort als gepunkteter Pfad eingetragen ist, gilt als vorgeschrieben.
+
+DERSELBE FALL AUSSERHALB VON DJANGO (01.09.2026, 3DTools)
+=========================================================
+Nicht jeder Rahmen ist Django. Das Blender-Addon in `HumanBodyBlender`
+wurde mit zehn Modulen gemeldet, die `register`/`unregister` auf
+Modulebene tragen — Blenders Addon-Protokoll ruft genau diese beiden
+Namen am Modul auf (`bpy.utils.register_class` haengt darunter). Als
+Methoden einer Klasse ruft sie niemand mehr, und das Addon laedt nicht.
+
+Django-Einstellungen koennen das nicht wissen. Deshalb darf ein Projekt
+die Namen seines eigenen Rahmens nennen::
+
+    DJANGOBASE = {"rahmenfunktionen": ["register", "unregister"]}
+
+Das ist eine ANGABE, keine Abschaltung: Wer den Schluessel setzt,
+behauptet, dass ein Rahmen diese Namen am Modul ruft — und muss es neben
+dem Eintrag begruenden.
 """
+
+import ast
 
 from django.conf import settings
 
@@ -96,13 +115,62 @@ class Rahmenvorschrift:
         Treffer anderswo ist der guenstigere Fehler: Er unterschlaegt einen
         Hinweis, statt zum Umbau von etwas Vorgeschriebenem aufzufordern.
         """
-        namen = set()
+        namen = set(Rahmenvorschrift._eigene_namen())
         for pfad in Rahmenvorschrift._aus_einstellungen():
             teil = pfad.rsplit('.', 1)[-1]
             # Klassen (`SessionMiddleware`) meint diese Frage nicht — die
             # duerfen und sollen Klassen sein.
             if teil and teil[:1].islower():
                 namen.add(teil)
+        return namen
+
+    @staticmethod
+    def _eigene_namen():
+        u"""Was das Projekt als Rahmen-Namen ANGIBT.
+
+        `DJANGOBASE["rahmenfunktionen"]` — eine Liste blanker Namen, kein
+        gepunkteter Pfad: Der fremde Rahmen ruft sie am Modul, nicht ueber
+        `import_string`. Fuer 3DTools sind das Blenders `register` und
+        `unregister`.
+
+        Grossgeschriebenes wird verworfen, wie oben bei den Einstellungen:
+        Eine Klasse darf und soll eine Klasse sein, und ein Tippfehler
+        `Register` soll keine stille Ausnahme bewirken.
+        """
+        cfg = getattr(settings, 'DJANGOBASE', None) or {}
+        eintraege = cfg.get('rahmenfunktionen') or ()
+        if isinstance(eintraege, str):
+            eintraege = (eintraege,)
+        return {str(e) for e in eintraege
+                if str(e) and str(e)[:1].islower()}
+
+    @staticmethod
+    def selbst_gerufen(baum):
+        u"""Namen, die die Datei in ihrem ``__main__``-Block selbst ruft.
+
+        DER FEHLALARM (01.09.2026, 3DTools)
+        ===================================
+        `convert/dazknochennamen.py` ist ein Werkzeug fuer die
+        Kommandozeile: unten steht ``if __name__ == "__main__": main()``.
+        Gemeldet wurde es als „1 freie Funktion, Vorschlag Klasse
+        `Dazknochennamen`" — in einer Klasse ruft der Block sie nicht
+        mehr, und das Werkzeug startet nicht.
+
+        Erkannt wird das AM CODE, nicht am Ordner: eine Ordnerliste raet
+        und liegt beim naechsten Verzeichnis daneben
+        (`~/.claude/rules/analysewerkzeuge.md`, Punkt 6).
+        """
+        namen = set()
+        for knoten in baum.body:
+            if not isinstance(knoten, ast.If):
+                continue
+            pruefung = ast.dump(knoten.test)
+            if "'__name__'" not in pruefung and '"__name__"' not in pruefung:
+                continue
+            for teil in ast.walk(knoten):
+                if isinstance(teil, ast.Call) and isinstance(teil.func,
+                                                             ast.Name):
+                    namen.add(teil.func.id)
         return namen
 
     @staticmethod
