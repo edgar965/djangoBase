@@ -82,6 +82,16 @@ gespeichert; die Vorgaben stehen in umbau/ls_konfig.py, nicht hier.
         <label class="ls-haken"><input type="checkbox" name="js_stumm" value="{{ r }}"{% if an %} checked{% endif %}>
             <code>{{ r }}</code> {{ t }}</label>
         {% endfor %}
+        {% comment %}Dieselbe Sorte Filter, andere Sprache: Reicht ein Projekt
+        seine Namen ueber ein Sammelmodul weiter (__all__ aus globals()), meldet
+        der Typpruefer jeden durchgereichten Namen als „nicht definiert" — auf
+        shortlongx 514 Mal, davon 486 ueber Namen, die es nachweislich gibt.
+        umbau/rahmenmodule.py erkennt solche Module am Quelltext; wer keine hat,
+        merkt vom Haken nichts.{% endcomment %}
+        <label style="margin-top:.5rem;">Stern-Import-Rahmen <span class="ls-leise">(ohne neuen Lauf)</span></label>
+        <label class="ls-haken"><input type="checkbox" name="rahmen_stumm" value="1"{% if konfig.rahmen_stumm %} checked{% endif %}>
+            Meldungen ausblenden, die nur aus <code>import *</code> mit
+            Laufzeit-<code>__all__</code> folgen</label>
     </div>
 </div>
 

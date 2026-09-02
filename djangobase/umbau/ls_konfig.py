@@ -94,12 +94,13 @@ class LsKonfig:
     WERKZEUGE = ("auto", "basedpyright", "pyright")
     MODI = ("off", "basic", "standard", "strict")
     FELDER = ("werkzeug", "modus", "pfade", "ausschluss", "python", "regeln",
-              "stufe", "deckel", "stubs", "zeitlimit", "javascript", "js_stumm")
+              "stufe", "deckel", "stubs", "zeitlimit", "javascript", "js_stumm",
+              "rahmen_stumm")
 
-    #: Nur diese Felder bestimmen, WAS gerechnet wird. ``stufe``, ``deckel``
-    #: und ``js_stumm`` bestimmen nur, was von einem fertigen Ergebnis zu sehen
-    #: ist — stünden sie im Abdruck, kostete jedes Umschalten eines Filters
-    #: einen neuen Lauf (70 s auf shortlongx).
+    #: Nur diese Felder bestimmen, WAS gerechnet wird. ``stufe``, ``deckel``,
+    #: ``js_stumm`` und ``rahmen_stumm`` bestimmen nur, was von einem fertigen
+    #: Ergebnis zu sehen ist — stünden sie im Abdruck, kostete jedes Umschalten
+    #: eines Filters einen neuen Lauf (70 s auf shortlongx).
     LAUFFELDER = ("werkzeug", "modus", "pfade", "ausschluss", "python", "regeln",
                   "stubs", "javascript")
 
@@ -139,6 +140,14 @@ class LsKonfig:
             # JavaScript im selben Lauf ueber tsc --checkJs (ls_javascript.py).
             "javascript": True,
             "js_stumm": [r for r, stumm, _t in JS_REGELN if stumm],
+            # IN DER VORGABE AN (02.09.2026, gemessen an shortlongx): Ein
+            # Projekt, das Namen ueber ein Sammelmodul weiterreicht
+            # (``__all__`` aus ``globals()``), bekommt vom Typpruefer JEDEN
+            # durchgereichten Namen als „nicht definiert" gemeldet — 514
+            # Meldungen, davon 486 ueber Namen, die es nachweislich gibt.
+            # Wer keine solchen Module hat, merkt von dem Haken nichts:
+            # ``umbau/rahmenmodule.py`` erkennt sie am Quelltext.
+            "rahmen_stumm": True,
         }
 
     # ── Datei ────────────────────────────────────────────────────────────
@@ -217,6 +226,7 @@ class LsKonfig:
         werte["stubs"] = bool(holen("stubs"))
         werte["javascript"] = bool(holen("javascript"))
         werte["js_stumm"] = [r for r, _s, _t in JS_REGELN if r in holen("js_stumm")]
+        werte["rahmen_stumm"] = bool(holen("rahmen_stumm"))
         werte["deckel"] = _zahl(daten.get("deckel"), alt.deckel, 10, 5000)
         werte["zeitlimit"] = _zahl(daten.get("zeitlimit"), alt.zeitlimit, 10, 3600)
         if daten.get("python"):
