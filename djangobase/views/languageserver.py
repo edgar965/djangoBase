@@ -45,7 +45,7 @@ from ..umbau.ls_lauf import LAUF
 logger = logging.getLogger("djangobase.languageserver")
 
 __all__ = ["LanguageServerView", "LsSpeicher", "wurzel", "ordner", "konfig_laden",
-           "schluessel", "extra_pfade"]
+           "schluessel", "extra_pfade", "static_wurzeln", "liste"]
 
 
 # ── Orte ────────────────────────────────────────────────────────────────
@@ -85,16 +85,51 @@ def extra_pfade():
     Liegt djangoBase doch fest installiert in ``site-packages``, ist der
     Pfad schon über ``venvPath`` erreichbar; ein zweites Mal schadet
     nicht, deshalb ohne Sonderfall.
+
+    ZUSAMMENGEFÜHRT (02.09.2026)
+        Zwei Sitzungen haben diese Funktion gleichzeitig gegen dasselbe
+        Problem umgeschrieben. Übernommen ist der Weg über
+        ``djangobase.__file__`` statt einer ``.parent``-Kette ab
+        ``__file__``: Eine Kette zeigt nach jedem Datei-Umzug still
+        woandershin, ohne Fehler zu werfen. Aus der anderen Fassung kommt
+        die schärfere Bedingung ``startswith`` — sie greift auch, wenn
+        djangoBase INNERHALB der Projektwurzel liegt, wo ``!=`` allein
+        den Pfad doppelt melden würde.
     """
     aus = []
     basis = Path(settings.BASE_DIR)
-    if basis != wurzel():
+    eigen = wurzel()
+    if basis != eigen:
         aus.append(basis)
     import djangobase
-    eigene = Path(djangobase.__file__).resolve().parent.parent
-    if eigene not in aus and eigene != wurzel():
-        aus.append(eigene)
+    paket = Path(djangobase.__file__).resolve().parent.parent
+    if paket not in aus and not str(paket).startswith(str(eigen)):
+        aus.append(paket)
     return aus
+
+
+def static_wurzeln():
+    u"""``static``-Ordner der installierten Apps, die NICHT im Projekt liegen.
+
+    Die Vorlagen binden djangoBase-Module über die URL ein
+    (``import … from '/static/djangobase/js/tabellen_sortierung.js'``). Diese
+    Dateien liegen im Paket, nicht im Projektbaum — ohne sie meldet tsc vier
+    unauflösbare Importe und alles, was daran hängt."""
+    raus, eigen = [], str(wurzel())
+    try:
+        from django.contrib.staticfiles.finders import get_finders
+        for finder in get_finders():
+            for pfad in getattr(finder, "locations", []) or []:
+                ort = pfad[1] if isinstance(pfad, (tuple, list)) else pfad
+                if ort and not str(ort).startswith(eigen):
+                    raus.append(str(ort))
+            for ort in (getattr(finder, "storages", {}) or {}).values():
+                ziel = getattr(ort, "location", "")
+                if ziel and not str(ziel).startswith(eigen):
+                    raus.append(str(ziel))
+    except Exception:                                     # noqa: BLE001
+        logger.exception("static-Ordner nicht ermittelbar")
+    return sorted(set(raus))
 
 
 def ordner():
@@ -150,11 +185,11 @@ def aeste():
     eintrag = _AESTE.get(w)
     if eintrag is None or time.time() - eintrag[0] > 600:
         try:
-            liste = hauptaeste(w)
+            gefunden = hauptaeste(w)
         except Exception:                                 # noqa: BLE001
             logger.exception("Hauptäste nicht zählbar")
-            liste = []
-        _AESTE[w] = (time.time(), liste)
+            gefunden = []
+        _AESTE[w] = (time.time(), gefunden)
         eintrag = _AESTE[w]
     return eintrag[1]
 
@@ -182,7 +217,8 @@ class LanguageServerView(ZugriffMixin, View):
         return redirect(request.path)
 
     def _starten(self, request, konfig, neu):
-        server = LanguageServer(konfig, wurzel(), ordner(), extra_pfade())
+        server = LanguageServer(konfig, wurzel(), ordner(), extra_pfade(),
+                               static_wurzeln=static_wurzeln())
         key = schluessel(konfig)
         if neu:
             LsSpeicher.leeren()
@@ -193,7 +229,8 @@ class LanguageServerView(ZugriffMixin, View):
         return redirect(request.path)
 
     def _seite(self, request, konfig):
-        server = LanguageServer(konfig, wurzel(), ordner(), extra_pfade())
+        server = LanguageServer(konfig, wurzel(), ordner(), extra_pfade(),
+                               static_wurzeln=static_wurzeln())
         gefunden = server.finden()
         ergebnis, alter = LsSpeicher.nachsehen(schluessel(konfig))
         eigene = liste()

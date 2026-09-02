@@ -49,11 +49,15 @@ class JsPruefer:
                   "**/.venv", "**/.cache", "**/sicherung", "**/backup_*",
                   "**/*.umd.js", "**/vendor/**")
 
-    def __init__(self, wurzel, ordner, pfade=(), zeitlimit=300, zusatz=()):
+    def __init__(self, wurzel, ordner, pfade=(), zeitlimit=300, zusatz=(),
+                 static_wurzeln=()):
         self.wurzel = Path(wurzel)
         self.ordner = Path(ordner)
         self.pfade = list(pfade)
         self.zeitlimit = zeitlimit
+        #: ``static``-Ordner AUSSERHALB des Projekts — bei djangoBase-Projekten
+        #: der eigene (``/static/djangobase/js/…`` wird sonst nicht gefunden).
+        self.static_wurzeln = [Path(p) for p in static_wurzeln]
         #: Die Liste des Projekts (``pruefausschluss.txt``) — dieselbe, die
         #: der Python-Lauf benutzt; sonst prüfte tsc Dateien mit, die für
         #: pyright längst ausgeschlossen sind.
@@ -92,6 +96,7 @@ class JsPruefer:
         pfade, ordner = {}, []
         for muster in ("static", "*/static", "*/*/static"):
             ordner += [p for p in self.wurzel.glob(muster) if p.is_dir()]
+        ordner += [p for p in self.static_wurzeln if p.is_dir()]
         for statisch in ordner:
             fest = str(statisch).replace("\\", "/")
             for unter in sorted(p for p in statisch.iterdir() if p.is_dir()):
@@ -118,7 +123,12 @@ class JsPruefer:
                 # stehen deshalb absolut, wie schon ``include``.
                 "paths": self.statikpfade(),
             },
-            "include": [str(w).replace("\\", "/") + "/**/*.js" for w in wurzeln],
+            # ``*.d.ts`` gehoert dazu: Projekte, deren Seiten Namen ueber
+            # ``window`` teilen, deklarieren die dort (shortlongx:
+            # shortlongxWeb/typen/globals.d.ts). Ohne die Endung im include
+            # bleibt die Datei unsichtbar und jeder Name gilt als unbekannt.
+            "include": ([str(w).replace("\\", "/") + "/**/*.js" for w in wurzeln]
+                        + [str(w).replace("\\", "/") + "/**/*.d.ts" for w in wurzeln]),
             # Absolut wie ``include``: tsc liest ``exclude`` relativ zur Datei,
             # und die liegt im Ablage-Ordner, nicht ueber dem Projekt.
             "exclude": [str(self.wurzel).replace("\\", "/") + "/" + m
