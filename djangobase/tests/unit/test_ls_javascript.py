@@ -35,6 +35,37 @@ class JsPrueferTest(unittest.TestCase):
         self.assertTrue(any(e.endswith("/**/*.min.js") for e in cfg["exclude"]))
         self.assertTrue(any(e.endswith("/**/node_modules") for e in cfg["exclude"]))
 
+    def test_static_urls_werden_auf_echte_ordner_abgebildet(self):
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / "web" / "app" / "static" / "app").mkdir(parents=True)
+            p = JsPruefer(d, Path(d) / "ablage")
+            cfg = json.loads(p.konfig_schreiben().read_text(encoding="utf-8"))
+        pfade = cfg["compilerOptions"]["paths"]
+        self.assertIn("/static/app/*", pfade)
+        self.assertTrue(pfade["/static/app/*"][0].endswith("/static/app/*"))
+        self.assertIn("/static/*", pfade, u"Fangnetz fuer Apps ohne Namensraum")
+        self.assertNotIn("baseUrl", cfg["compilerOptions"],
+                         u"tsc 7 kennt die Option nicht mehr und bricht ab")
+
+    def test_projektliste_steht_auch_im_jsconfig(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = JsPruefer(d, Path(d) / "ablage", zusatz=["**/sicherung", "web/alt"])
+            cfg = json.loads(p.konfig_schreiben().read_text(encoding="utf-8"))
+        self.assertTrue(any(e.endswith("/**/sicherung") for e in cfg["exclude"]))
+        self.assertTrue(any(e.endswith("/web/alt") for e in cfg["exclude"]))
+
+    def test_konfigurationsfehler_ist_kein_befund_sondern_ein_hinweis(self):
+        u"""Ein Abbruch darf nie wie „viel weniger Befunde" aussehen."""
+        with tempfile.TemporaryDirectory() as d:
+            p = JsPruefer(d, Path(d) / "ablage")
+            p.finden = lambda: None
+            self.assertIn("npm install", p.laufen()[2])
+        text = ("jsconfig.json(18,5): error TS5102: Option 'baseUrl' has been "
+                "removed. Please remove it from your configuration.")
+        from djangobase.umbau.ls_javascript import KONFIGFEHLER
+        self.assertIsNotNone(KONFIGFEHLER.search(text))
+        self.assertIn("baseUrl", KONFIGFEHLER.search(text).group("text"))
+
     def test_fehlendes_tsc_ergibt_hinweis(self):
         with tempfile.TemporaryDirectory() as d:
             p = JsPruefer(d, Path(d) / "ablage")
