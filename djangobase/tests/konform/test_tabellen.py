@@ -123,10 +123,16 @@ def _hat_kopfzeile(text, treffer):
     return False
 
 
-def datentabellen():
-    u"""[(pfad, attribute)] aller Tabellen, die ein Datenraster sein wollen."""
+def datentabellen(vorlagen=None):
+    u"""[(pfad, attribute)] aller Tabellen, die ein Datenraster sein wollen.
+
+    ``vorlagen`` überschreibt die Dateiquelle. Gebraucht wird das von
+    ``test_eigene_tabellen``: djangoBase nimmt sich aus den Konsumenten-Regeln
+    heraus (siehe ``quellen.PAKET``) und stand deshalb selbst nie auf dem
+    Prüfstand - obwohl sein Code in allen Projekten gleichzeitig wirkt.
+    """
     aus = []
-    for pfad in _templates():
+    for pfad in (vorlagen if vorlagen is not None else _templates()):
         if _ausgenommen(pfad):
             continue
         roh = text_von(pfad)
