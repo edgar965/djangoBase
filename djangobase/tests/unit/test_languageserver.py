@@ -101,3 +101,42 @@ class BefundeTest(unittest.TestCase):
         regeln = dict((r, n) for r, n, _s in b.je_regel())
         self.assertEqual(regeln["reportUndefinedVariable"], 1)
         self.assertEqual(b.je_datei()[0], ("brain/b.py", 2))
+
+
+class DasEigenePaketIstAufloesbar(unittest.TestCase):
+    u"""``extra_pfade()`` muss den Ordner ÜBER ``djangobase`` mitgeben.
+
+    DER ANLASS (02.09.2026)
+    =======================
+    Alle sechs Konsumenten binden djangoBase als *editable install* ein.
+    In ``site-packages`` liegt dann nur ein Verweis, und dem folgt der
+    Language Server nicht. Erster Lauf über CamTrack: sieben
+    ``reportMissingImports``, alle auf ``djangobase.*`` — kein einziger
+    davon ein Fehler im Projekt.
+
+    Sieben rote Zeilen, die nichts bedeuten, sind teurer als keine: Sie
+    bringen den Leser dazu, auch die echten zu überblättern.
+    """
+
+    def _pfade(self):
+        from djangobase.views.languageserver import extra_pfade
+        return [Path(p).resolve() for p in extra_pfade()]
+
+    def test_der_ordner_ueber_dem_paket_ist_dabei(self):
+        import djangobase
+        eigene = Path(djangobase.__file__).resolve().parent.parent
+        self.assertIn(eigene, self._pfade(),
+                      u"Ohne diesen Pfad meldet der Server jeden "
+                      u"djangobase-Import als unauffindbar.")
+
+    def test_und_er_enthaelt_das_paket_wirklich(self):
+        u"""Sonst prüft die Zusage darüber einen Pfad ins Leere."""
+        import djangobase
+        eigene = Path(djangobase.__file__).resolve().parent.parent
+        self.assertTrue((eigene / "djangobase" / "__init__.py").is_file(),
+                        u"%s ist keine Import-Wurzel für djangobase" % eigene)
+
+    def test_kein_pfad_kommt_doppelt(self):
+        u"""``extraPaths`` wächst sonst bei jedem Lauf um dieselbe Zeile."""
+        pfade = self._pfade()
+        self.assertEqual(len(pfade), len(set(pfade)))
