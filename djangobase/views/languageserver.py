@@ -41,6 +41,7 @@ from ..umbau.ls_javascript import JsPruefer
 from ..umbau.ls_befunde import LsBefunde
 from ..umbau.ls_konfig import AUSSCHLUESSE, JS_REGELN, REGELN, STUFEN, LsKonfig
 from ..umbau.ls_lauf import LAUF
+from ..umbau.rahmenmodule import Rahmenmodule
 
 logger = logging.getLogger("djangobase.languageserver")
 
@@ -262,7 +263,11 @@ class LanguageServerView(ZugriffMixin, View):
             "ergebnis": ergebnis,
         }
         if ergebnis is not None:
-            befunde = LsBefunde(ergebnis, konfig)
+            # ``Rahmenmodule`` liest Quelltext, aber nur von Dateien MIT Befund
+            # — und nur, wenn der Haken steht. Es geht bewusst NICHT in
+            # ``LsSpeicher.quellen``: Der Filter wirkt auf ein fertiges
+            # Ergebnis, ein Umschalten darf keine Neurechnung auslösen.
+            befunde = LsBefunde(ergebnis, konfig, Rahmenmodule(wurzel()))
             daten.update({
                 "kennzahlen": befunde.kennzahlen(),
                 "tabelle": befunde.tabelle(),

@@ -18,20 +18,40 @@ BESCHRIFTUNG = {"error": u"Fehler", "warning": u"Warnung", "information": u"Hinw
 class LsBefunde:
     u"""Sichten auf die Befunde EINES Ergebnisses."""
 
-    def __init__(self, ergebnis, konfig):
+    def __init__(self, ergebnis, konfig, rahmen=None):
         self.ergebnis = ergebnis
         self.konfig = konfig
+        #: Ein ``umbau.rahmenmodule.Rahmenmodule`` oder ``None``. Es liest
+        #: Quelltext, deshalb wird es hier hereingereicht statt selbst gebaut —
+        #: wer nur zählen will, gibt nichts mit und bekommt alles.
+        self.rahmen = rahmen
+        self._roh = None
+        self._stumm_js = 0
+        self._stumm_rahmen = 0
 
     # ── Auswahl ──────────────────────────────────────────────────────────
     def roh(self):
-        u"""Alle Befunde ohne die stummgeschalteten JavaScript-Regeln.
+        u"""Alle Befunde ohne die stummgeschalteten JavaScript- und Rahmen-Meldungen.
 
-        Stumm heisst nicht heimlich: Die Kennzahl ``stumm`` sagt, wieviel
-        hier herausfällt, und die Regelliste steht im Formular."""
+        Stumm heisst nicht heimlich: Die Kennzahlen ``stumm_js`` und
+        ``stumm_rahmen`` sagen, wieviel hier je Grund herausfällt, und beide
+        Schalter stehen im Formular.
+
+        Das Ergebnis wird gemerkt — die vier Sichten unten fragen alle hier
+        nach, und die Rahmen-Erkennung liest Dateien."""
+        if self._roh is not None:
+            return self._roh
+        alle = self.ergebnis.befunde
         stumm = set(getattr(self.konfig, "js_stumm", ()) or ())
-        if not stumm:
-            return self.ergebnis.befunde
-        return [b for b in self.ergebnis.befunde if b["regel"] not in stumm]
+        raus = [b for b in alle if b["regel"] not in stumm] if stumm else list(alle)
+        self._stumm_js = len(alle) - len(raus)
+        if self.rahmen is not None and getattr(self.konfig, "rahmen_stumm", False):
+            self.rahmen.einlesen({b["datei"] for b in raus})
+            vorher = len(raus)
+            raus = [b for b in raus if not self.rahmen.stumm(b)]
+            self._stumm_rahmen = vorher - len(raus)
+        self._roh = raus
+        return raus
 
     def gefiltert(self):
         u"""Nur bis zur Anzeigestufe, nach Gewicht, Datei, Zeile sortiert."""
@@ -53,6 +73,11 @@ class LsBefunde:
             "dauer_s": self.ergebnis.dauer_s,
             "dateien_mit_befund": len({b["datei"] for b in alle}),
             "stumm": len(self.ergebnis.befunde) - len(alle),
+            "stumm_js": self._stumm_js,
+            "stumm_rahmen": self._stumm_rahmen,
+            "rahmen": len(self.rahmen.rahmen()) if self.rahmen is not None else 0,
+            "konsumenten": (len(self.rahmen.konsumenten())
+                            if self.rahmen is not None else 0),
         }
 
     def je_regel(self):
