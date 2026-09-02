@@ -156,7 +156,39 @@ class LsKonfig:
                         encoding="utf-8")
 
     def als_dict(self):
+        u"""Was in die ``konfig.json`` gehört — OHNE ``zusatz``.
+
+        ``zusatz`` steht mit Absicht nicht darin: Die Ausschlussliste
+        gehört ins Projekt (``pruefausschluss.txt``), nicht in den
+        Zwischenspeicher dieses Rechners.
+
+        Wer den GANZEN Zustand braucht — etwa um eine Konfiguration
+        weiterzureichen oder abzuwandeln —, nimmt :meth:`alle_werte`.
+        Diese Methode hier ist der Dateiinhalt, nicht das Objekt.
+        """
         return {feld: getattr(self, feld) for feld in self.FELDER}
+
+    def alle_werte(self):
+        u"""Der vollständige Zustand — ``LsKonfig(k.alle_werte())`` ist ``k``.
+
+        DIE FALLE, DIE DAS HIER SCHLIESST (02.09.2026)
+        ==============================================
+        ``__init__`` NIMMT ``zusatz`` an, ``als_dict()`` gibt es nicht
+        heraus. Eine Rundreise über ``LsKonfig(k.als_dict())`` verlor die
+        Ausschlussliste des Projekts also still — kein Fehler, keine
+        Warnung, nur ein plötzlich viel grösserer Lauf.
+
+        Gemessen an CamTrack, derselbe Zustand zweimal gefahren:
+
+            mit ``alle_werte()``   719 Dateien,  762 Befunde
+            mit ``als_dict()``     762 Dateien, 1769 Befunde
+
+        Der ganze Datenordner war wieder dabei. Wer die Zahlen nicht
+        nebeneinander legt, hält das für einen echten Anstieg.
+        """
+        werte = self.als_dict()
+        werte["zusatz"] = list(self.zusatz)
+        return werte
 
     # ── Formular ─────────────────────────────────────────────────────────
     @classmethod
@@ -169,8 +201,11 @@ class LsKonfig:
         holen = daten.getlist if hasattr(daten, "getlist") else (
             lambda k: daten.get(k) if isinstance(daten.get(k), list) else
             ([daten[k]] if k in daten else []))
-        werte = alt.als_dict()
-        werte["zusatz"] = list(alt.zusatz)          # kommt aus der Projektdatei
+        # `alle_werte()` statt `als_dict()` + Zeile fuer `zusatz`: Es gab
+        # hier zwei Stellen mit demselben Wissen, und nur EINE war richtig.
+        # Kommt ein weiteres Feld dazu, das nicht in die Datei gehoert,
+        # nimmt es diesen Weg von allein mit.
+        werte = alt.alle_werte()
         werte["werkzeug"] = _wahl(daten.get("werkzeug"), cls.WERKZEUGE, alt.werkzeug)
         werte["modus"] = _wahl(daten.get("modus"), cls.MODI, alt.modus)
         werte["stufe"] = _wahl(daten.get("stufe"), STUFEN[:3], alt.stufe)
