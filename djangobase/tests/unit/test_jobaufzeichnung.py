@@ -62,7 +62,10 @@ class AufzeichnungBasis(MitTempordner):
         self.verlauf = Jobverlauf(pfad=self.datei('joblaeufe.jsonl'))
         self._echt = Jobaufzeichnung._notieren
         Jobaufzeichnung._notieren = staticmethod(
-            lambda kennung, dauer_s, erfolg, fehler:
+            # ``*rest``: seit dem 02.09.2026 reicht die Umhuellung auch
+            # CPU-Sekunden und Argumente durch - die Attrappe nimmt sie an
+            # und laesst sie weg, geprueft wird hier nur der Lauf selbst.
+            lambda kennung, dauer_s, erfolg, fehler, *rest:
             self.verlauf.notieren(kennung, dauer_s, erfolg, fehler))
         self.addCleanup(self._zuruecksetzen)
 
