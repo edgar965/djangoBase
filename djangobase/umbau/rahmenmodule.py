@@ -48,6 +48,8 @@ in einem Rahmen                  ``reportUnusedImport`` — der Import IST die
                                  Weitergabe; „unbenutzt" ist hier der Zweck
 in einem Konsumenten             ``reportUndefinedVariable`` — der Name kommt
                                  aus dem Stern-Import
+an einer ``# noqa: F401``-Zeile  ``reportUnusedImport`` — dieselbe Weitergabe,
+                                 nur einzeln markiert (siehe ``reexport.py``)
 ===============================  ==========================================
 
 Alles andere bleibt sichtbar, auch in diesen Dateien. Ein Tippfehler in einem
@@ -69,6 +71,8 @@ Django-frei; ohne diese Datei ändert sich nichts (der Filter ist abschaltbar).
 import ast
 import re
 from pathlib import Path
+
+from .reexport import Reexporte
 
 __all__ = ["Rahmenmodule", "RAHMEN_REGELN", "KONSUMENT_REGELN"]
 
@@ -95,6 +99,8 @@ class Rahmenmodule:
         self._rahmen = set()
         self._konsumenten = set()
         self._geprueft = set()
+        #: ``datei -> {Zeilennummern}`` der als Re-Export markierten Importe.
+        self._reexport = {}
 
     # ── Abfrage ──────────────────────────────────────────────────────────
     def einlesen(self, dateien):
@@ -107,9 +113,11 @@ class Rahmenmodule:
             if rel in self._geprueft or not rel.endswith(".py"):
                 continue
             self._geprueft.add(rel)
-            dynamisch, ziele = self._ansehen(self.wurzel / rel)
+            dynamisch, ziele, reexport = self._ansehen(self.wurzel / rel)
             if dynamisch:
                 self._rahmen.add(rel)
+            if reexport:
+                self._reexport[rel] = reexport
             offen.append((rel, ziele))
         # Runde zwei: die Ziele auflösen und fragen, ob sie Rahmen sind.
         for rel, ziele in offen:
@@ -125,11 +133,17 @@ class Rahmenmodule:
     def konsumenten(self):
         return self._konsumenten
 
+    def reexporte(self):
+        u"""``{datei: {zeilen}}`` — die als Weitergabe markierten Import-Zeilen."""
+        return self._reexport
+
     def stumm(self, befund):
         u"""Sagt dieser Befund etwas über den Code — oder über die Konstruktion?"""
         datei, regel = befund.get("datei", ""), befund.get("regel", "")
         if regel in RAHMEN_REGELN and datei in self._rahmen:
             return True
+        if regel == "reportUnusedImport":
+            return befund.get("zeile") in self._reexport.get(datei, ())
         return regel in KONSUMENT_REGELN and datei in self._konsumenten
 
     # ── Quelltext ────────────────────────────────────────────────────────
@@ -140,28 +154,32 @@ class Rahmenmodule:
         rel = self._relativ(pfad)
         if rel is not None and rel in self._geprueft:
             return rel in self._rahmen
-        dynamisch, _ziele = self._ansehen(pfad)
+        dynamisch, _ziele, reexport = self._ansehen(pfad)
         if rel is not None:
             self._geprueft.add(rel)
             if dynamisch:
                 self._rahmen.add(rel)
+            if reexport:
+                self._reexport[rel] = reexport
         return dynamisch
 
     def _ansehen(self, pfad):
-        u"""``(dynamisches __all__, [Ziele der Stern-Importe])`` — mit Merker."""
+        u"""``(dynamisches __all__, [Sternziele], {Re-Export-Zeilen})`` — mit Merker."""
         try:
             stat = pfad.stat()
         except OSError:
-            return False, []
+            return False, [], set()
         merker = self._gelesen.get(str(pfad))
         if merker and merker[0] == stat.st_mtime and merker[1] == stat.st_size:
             return merker[2]
         try:
-            baum = ast.parse(pfad.read_text(encoding="utf-8", errors="replace"))
+            text = pfad.read_text(encoding="utf-8", errors="replace")
+            baum = ast.parse(text)
         except (OSError, SyntaxError, ValueError):
-            antwort = (False, [])
+            antwort = (False, [], set())
         else:
-            antwort = (self._dynamisch(baum), self._sternziele(baum, pfad))
+            antwort = (self._dynamisch(baum), self._sternziele(baum, pfad),
+                       Reexporte.zeilen(baum, text.splitlines()))
         self._gelesen[str(pfad)] = (stat.st_mtime, stat.st_size, antwort)
         return antwort
 
