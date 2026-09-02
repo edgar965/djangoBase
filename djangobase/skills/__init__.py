@@ -117,6 +117,7 @@ from .doppelcode import Doppelcode
 from .endpunktprobe import Endpunktprobe
 from .endpunktprofil import Endpunktprofil
 from .endpunktzeiten import Endpunktzeiten
+from .sortierwerte import Sortierwerte
 from .freiefunktionen import FreieFunktionen
 from .globalerzustand import GlobalerZustand
 from .objektwurzeln import Objektwurzeln
@@ -340,6 +341,7 @@ BEFUNDBASIERT = [
     Endpunktzeiten,
     Endpunktprobe,
     Endpunktprofil,
+    Sortierwerte,
     Vorlagenvariablen,
     # --- 27.08.2026, aus dem 3DTools-Durchgang -----------------------------
     # Ganz vorn in dieser Vierergruppe: Der Zugriff auf mitgelieferte Daten
