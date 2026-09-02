@@ -104,3 +104,56 @@ class LsKonfigTest(unittest.TestCase):
         self.assertEqual(e["python.analysis"]["typeCheckingMode"], "basic")
         self.assertEqual(e["python.analysis"]["diagnosticSeverityOverrides"]
                          ["reportUndefinedVariable"], "error")
+
+
+class EineRundreiseVerliertNichts(unittest.TestCase):
+    u"""``LsKonfig(k.alle_werte())`` muss ``k`` sein — auch die Projektliste.
+
+    DER ANLASS (02.09.2026)
+    =======================
+    ``__init__`` NIMMT ``zusatz`` an, ``als_dict()`` gibt es nicht heraus.
+    Eine Rundreise über ``als_dict()`` verlor die Ausschlussliste des
+    Projekts still. Gemessen an CamTrack, derselbe Zustand zweimal
+    gefahren: 719 Dateien / 762 Befunde gegen 762 Dateien / 1769 Befunde —
+    der ganze Datenordner war wieder dabei.
+
+    Kein Fehler, keine Warnung. Genau solche Verluste findet man nur,
+    wenn man zufällig zwei Läufe nebeneinander legt.
+    """
+
+    LISTE = ["media", "**/sicherung", "werkzeug/netz_*.py"]
+
+    def test_die_projektliste_ueberlebt_die_rundreise(self):
+        k = LsKonfig({"modus": "strict", "zusatz": self.LISTE})
+        neu = LsKonfig(k.alle_werte())
+        self.assertEqual(neu.zusatz, k.zusatz)
+        self.assertEqual(neu.ausschluss_muster(), k.ausschluss_muster())
+
+    def test_und_damit_auch_der_abdruck(self):
+        u"""Sonst zeigte die Seite nach der Rundreise ein FREMDES Ergebnis
+        aus der Ablage — dieselbe Kennung für einen anderen Umfang."""
+        k = LsKonfig({"zusatz": self.LISTE})
+        self.assertEqual(LsKonfig(k.alle_werte()).abdruck(), k.abdruck())
+
+    def test_alle_felder_der_datei_kommen_ebenfalls_mit(self):
+        k = LsKonfig({"modus": "strict", "pfade": ["app"], "deckel": 42,
+                      "zusatz": self.LISTE})
+        self.assertEqual(LsKonfig(k.alle_werte()).als_dict(), k.als_dict())
+
+    def test_die_datei_bleibt_frei_von_der_projektliste(self):
+        u"""Die Gegenrichtung: `alle_werte()` darf `als_dict()` nicht
+        aufweichen. Die Liste gehört ins Projekt, nicht in den
+        Zwischenspeicher dieses Rechners."""
+        k = LsKonfig({"zusatz": self.LISTE})
+        self.assertNotIn("zusatz", k.als_dict())
+        self.assertIn("zusatz", k.alle_werte())
+
+    def test_kein_feld_faellt_kuenftig_still_heraus(self):
+        u"""Der eigentliche Waechter: Was `__init__` annimmt und was den
+        Abdruck ändert, MUSS aus `alle_werte()` zurückkommen. Wer ein
+        neues Feld einführt und hier nichts nachträgt, erfährt es sofort —
+        nicht erst an zwei Läufen, die nicht zusammenpassen."""
+        for feld in tuple(LsKonfig.LAUFFELDER) + ("zusatz",):
+            self.assertIn(feld, LsKonfig().alle_werte(),
+                          u"%r bestimmt den Lauf, fehlt aber in "
+                          u"alle_werte() — eine Rundreise verliert es." % feld)
