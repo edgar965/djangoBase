@@ -70,11 +70,17 @@ class Jobverlauf(object):
         return wurzel / 'logs' / 'joblaeufe.jsonl'
 
     # ------------------------------------------------------------ schreiben
-    def notieren(self, kennung, dauer_s, erfolg, fehler='', hinweis=''):
+    def notieren(self, kennung, dauer_s, erfolg, fehler='', hinweis='',
+                 cpu_s=None, argumente=None, eigenstaendig=True):
         u"""Einen beendeten Lauf festhalten.
 
         Wirft NIE: Ein kaputter Verlauf darf keinen Job scheitern lassen -
         er ist eine Beobachtung, kein Teil der Arbeit.
+
+        ``cpu_s`` (verbrauchte CPU-Sekunden) und ``argumente`` (die
+        gesetzten Optionen des Befehls) kommen seit dem 02.09.2026 von der
+        ``Jobaufzeichnung`` mit; aeltere Zeilen haben die Felder nicht, und
+        wer sie liest, muss damit rechnen.
         """
         zeile = {
             'kennung': kennung,
@@ -84,6 +90,14 @@ class Jobverlauf(object):
             'fehler': (fehler or '')[:500],
             'hinweis': (hinweis or '')[:200],
         }
+        if cpu_s is not None:
+            zeile['cpu_s'] = round(float(cpu_s), 3)
+        if argumente:
+            zeile['argumente'] = dict(argumente)
+        if not eigenstaendig:
+            # Nur der Sonderfall wird vermerkt: ``call_command`` aus einem
+            # Server-Thread. Alte Zeilen ohne das Feld sind eigenstaendig.
+            zeile['im_server'] = True
         try:
             self.pfad.parent.mkdir(parents=True, exist_ok=True)
             with self.pfad.open('a', encoding='utf-8') as datei:
