@@ -66,12 +66,14 @@ class LanguageServer:
 
     NAMEN = ("basedpyright", "pyright")
 
-    def __init__(self, konfig, wurzel, ordner, extra=()):
+    def __init__(self, konfig, wurzel, ordner, extra=(), static_wurzeln=()):
         self.konfig = konfig
         self.wurzel = Path(wurzel)
         self.ordner = Path(ordner)
         #: Weitere Import-Wurzeln (bei Django: BASE_DIR neben der Repo-Wurzel).
         self.extra = [Path(p) for p in extra]
+        #: ``static``-Ordner fremder Pakete, für die ``/static/…``-Importe im JS.
+        self.static_wurzeln = list(static_wurzeln)
 
     # ── finden ───────────────────────────────────────────────────────────
     def finden(self):
@@ -160,7 +162,8 @@ class LanguageServer:
             return
         pruefer = JsPruefer(self.wurzel, self.ordner, self.konfig.pfade,
                             self.konfig.zeitlimit,
-                            zusatz=getattr(self.konfig, "zusatz", ()))
+                            zusatz=getattr(self.konfig, "zusatz", ()),
+                            static_wurzeln=self.static_wurzeln)
         befunde, dauer, fehlt = pruefer.laufen()
         ergebnis.js_dauer_s, ergebnis.js_fehlt, ergebnis.js_befunde = dauer, fehlt, len(befunde)
         ergebnis.befunde.extend(befunde)
