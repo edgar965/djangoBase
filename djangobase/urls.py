@@ -2,6 +2,11 @@ from django.urls import path
 
 from .views import api_system_stats
 from .views.ki_modelle import KiModelleView
+from .views.review_kontext import ReviewKontextView
+from .views.languageserver import LanguageServerView
+from .views.languageserver_status import LanguageServerStatusView
+from .views.languageserver_referenzen import LanguageServerReferenzenView
+from .views.uebrige_putz import UebrigePutzView
 from .views import (AblaufView, WorkflowsDatenView, WorkflowsView,
                     AufzeichnungView, AktuellDatenView, AktuellLeerenView,
                     AktuellView,
@@ -57,6 +62,18 @@ urlpatterns = [
     # jede `.py` des Projekts.
     path("klassenmodell/", KlassenmodellView.as_view(),
          name="klassenmodell"),
+    # Die „Uebrigen“ einer Endung loeschen (02.09.2026, auf Ansage).
+    # GET = Vorschau, POST = loeschen. Aus dem Browser kommt NIE ein Pfad,
+    # nur eine Endung — siehe umbau/uebrigesuche.py.
+    path("klassenmodell/uebrige/", UebrigePutzView.as_view(),
+         name="klassenmodell_uebrige"),
+    # Werkzeug Language Server (02.09.2026): Stapellauf im Hintergrund,
+    # Status zum Abfragen, Referenzen/Umbenennen ueber die offene Sitzung.
+    path("languageserver/", LanguageServerView.as_view(), name="languageserver"),
+    path("languageserver/status/", LanguageServerStatusView.as_view(),
+         name="languageserver_status"),
+    path("languageserver/referenzen/", LanguageServerReferenzenView.as_view(),
+         name="languageserver_referenzen"),
     path("workflows/", WorkflowsView.as_view(), name="workflows"),
     path("ablauf/", AblaufView.as_view(), name="ablauf"),
     path("workflows/daten/", WorkflowsDatenView.as_view(),
@@ -86,6 +103,10 @@ urlpatterns = [
     # Pfad: Welches Verzeichnis gelesen wird, entscheidet der Server.
     path("review/werkzeug/<str:slug>/befunde/", ReviewBefundeView.as_view(),
          name="review_befunde"),
+    # Kontextverbrauch einer Claude-Code-Sitzung (02.09.2026). Rechnet nur
+    # auf Knopfdruck — das Protokoll ist dreistellig MB gross.
+    path("review/kontext/", ReviewKontextView.as_view(),
+         name="review_kontext"),
     # Haupt-Einstellungen: Profil-Combobox + alle Gruppen als Tabs.
     path("einstellungen/", EinstellungenTabsView.as_view(), name="einstellungen"),
     # Einzelseiten je Gruppe (Rueckwaerts-Kompatibilitaet / Deep-Links).

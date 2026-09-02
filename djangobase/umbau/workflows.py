@@ -104,6 +104,14 @@ class Workflowliste:
                 if kandidat.datei == einstieg.datei:
                     return kandidat
             return None
+        if '.' in name:
+            # ``Webseiten.start`` — der Klassenname steht davor, seit
+            # `Einstiegssucher._kurzziel` ihn nicht mehr wegwirft. Die
+            # Klasse steht damit fest; `in_klasse` muss nicht raten,
+            # welches der sieben ``start`` gemeint ist.
+            klasse, methode = name.rsplit('.', 1)
+            return (verzeichnis.in_klasse(klasse, methode)
+                    or verzeichnis.klassen.get(klasse))
         return (verzeichnis.funktionen.get(name) or
                 verzeichnis.klassen.get(name))
 

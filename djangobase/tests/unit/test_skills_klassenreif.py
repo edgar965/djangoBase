@@ -195,14 +195,19 @@ class Frage3ZweiAnliegen(BasisTest):
     nicht aus Absicht, sondern weil eine Datei nur eine hatte.
     """
 
+    #: Beide Zwischenspeicher werden GEFUELLT — sonst waeren es
+    #: Konstanten mit kleinem Namen, und genau die zaehlt
+    #: `Modulsicht._beschrieben` seit dem 01.09.2026 nicht mehr mit.
     GETRENNT = ('_hosts = {}\n'
                 '_tailnet = {}\n'
                 '\n\n'
-                'def finde_host():\n'
-                '    return _hosts.get("a")\n'
+                'def finde_host(name):\n'
+                '    _hosts.setdefault(name, None)\n'
+                '    return _hosts.get(name)\n'
                 '\n\n'
-                'def lies_tailnet():\n'
-                '    return _tailnet.get("b")\n')
+                'def lies_tailnet(name):\n'
+                '    _tailnet.setdefault(name, None)\n'
+                '    return _tailnet.get(name)\n')
 
     def test_zwei_getrennte_zustaende_werden_erkannt(self):
         satz = _lauf({'zwei.py': self.GETRENNT})
@@ -324,6 +329,48 @@ class DerPreisStehtDabei(BasisTest):
                                    'def tun():\n    return merken({})\n'})
         eintrag = [b for b in satz.befunde if b.ort == 'ablage.py'][0]
         self.assertIn('Preis: 1 Datei', eintrag.warum)
+
+
+class NurGeleseneSammlungen(BasisTest):
+    u"""Eine Sammlung, die niemand veraendert, ist eine Konstante.
+
+    DER FEHLALARM (01.09.2026, 3DTools): `bl_info` in
+    `HumanBodyBlender/__init__.py` ist Blenders Pflicht-Woerterbuch mit
+    Name, Fassung und Mindestversion. Es wird gelesen, nie geschrieben —
+    und galt trotzdem als „veraenderlicher Modulzustand", mit dem
+    Vorschlag, eine Klasse darum zu bauen. Blender findet es dann nicht
+    mehr, und das Addon erscheint nicht in der Liste.
+
+    Die Unterscheidung stand als Kommentar schon ueber `SCHREIBT` — die
+    Menge war nur nie benutzt.
+    """
+
+    NUR_GELESEN = ('bl_info = {\n'
+                   '    "name": "HumanBody",\n'
+                   '    "blender": (5, 0, 0),\n'
+                   '}\n'
+                   '\n\n'
+                   'def fassung():\n'
+                   '    return bl_info["blender"]\n')
+
+    def test_ein_nur_gelesenes_woerterbuch_ist_kein_zustand(self):
+        satz = _lauf({'addon.py': self.NUR_GELESEN})
+        self.assertNotIn(1, _fragen(satz).get('addon.py', set()))
+
+    def test_ein_beschriebenes_woerterbuch_schon(self):
+        u"""Die Gegenprobe: EINE schreibende Zeile macht den Unterschied."""
+        quelle = self.NUR_GELESEN + ('\n\n'
+                                     'def setzen(wert):\n'
+                                     '    bl_info["name"] = wert\n')
+        satz = _lauf({'addon.py': quelle})
+        self.assertIn(1, _fragen(satz).get('addon.py', set()))
+
+    def test_auch_ein_anhaengen_zaehlt(self):
+        quelle = ('_liste = []\n\n\n'
+                  'def dazu(x):\n'
+                  '    _liste.append(x)\n')
+        satz = _lauf({'addon.py': quelle})
+        self.assertIn(1, _fragen(satz).get('addon.py', set()))
 
 
 class DasGewichtFolgtDerSchwere(BasisTest):

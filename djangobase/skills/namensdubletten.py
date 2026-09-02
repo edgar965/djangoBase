@@ -6,6 +6,7 @@ from collections import defaultdict
 
 from .befund import Befund, Befundsatz, BefundWerkzeug
 from .anlassfall import Anlassfall
+from .rahmenvorschrift import Rahmenvorschrift
 
 #: Wortpaare, die im selben Projekt dieselbe Sache meinen — GETRENNT NACH
 #: SPRACHE.
@@ -89,6 +90,19 @@ class Namensdubletten(BefundWerkzeug):
         '__str__', 'pruefen',
     }
 
+    @staticmethod
+    def _rahmennamen():
+        u"""Was das PROJEKT als Rahmen-Namen angibt, ist nie ein Duplikat.
+
+        `HumanBodyBlender` hat `register`/`unregister` elfmal — je einmal
+        im Einstieg und in zehn Teilmodulen. Blenders Addon-Protokoll ruft
+        genau diese Namen AM MODUL; sie umzubenennen hiesse, das Addon
+        stillzulegen. Dieselbe Klasse Fehlalarm wie `Command` oben, nur
+        fuer einen Rahmen, von dem Django nichts weiss —
+        `DJANGOBASE["rahmenfunktionen"]` nennt ihn.
+        """
+        return Rahmenvorschrift.namen()
+
     anlassfall = Anlassfall(
         {"laden.py": "def kunde_laden(kennung):\n    return kennung\n",
          "dienst.py": "def kunde_laden(kennung):\n    return {'id': kennung}\n"},
@@ -120,7 +134,7 @@ class Namensdubletten(BefundWerkzeug):
                     ziel = funktionen
                 else:
                     continue
-                if knoten.name in self.ERLAUBT:
+                if knoten.name in self.ERLAUBT | self._rahmennamen():
                     continue
                 ort = '%s:%d' % (self.kurz(datei), knoten.lineno)
                 if knoten.name.startswith('_'):

@@ -1,5 +1,6 @@
 {% extends djangobase.base_template|default:"djangobase/base.html" %}
 {% load zahlen %}
+{% load l10n %}
 
 {% block title_extra %} · Werkzeug Klassenmodell{% endblock %}
 {% block topbar_title %}<i class="bi bi-diagram-3"></i> Hilfe · Werkzeug Klassenmodell{% endblock %}
@@ -15,7 +16,30 @@ jede `.py` des Projekts.
 {% endcomment %}
 
 {% block content %}
+{% comment %}
+Das Stilblatt zur Sortierung — Zeiger, Hover und Sortierpfeil am Kopf
+(02.09.2026). Das JS setzt `tsort-kopf`, aber ohne dieses Blatt sieht man
+der Kopfzeile nicht an, dass sie klickbar ist: gemessen `cursor: auto`
+statt `pointer`. Jede djangoBase-Seite mit Tabellen bindet es selbst ein
+(so auch `tests.html` und `skills.html`) — über die Middleware kommt nur
+das JS, nicht dieses Blatt.
+{% endcomment %}
+<link rel="stylesheet" href="/static/djangobase/css/tabellen.css">
 <style>
+/* SEITENRAND UND ABSCHNITTE (Edgar, 02.09.2026: „der text fängt zu weit
+   links an, ist unleserlich, mach einen Abschnitt")
+   ====================================================================
+   `sidebar.css` setzt `.db-content { padding: 0 }` — jede Seite bestimmt
+   ihren Rand selbst. Diese hier tat es nicht: Im DOM gemessen begann
+   JEDES Element bei x=479, also bündig an der Sidebar, ohne einen
+   Millimeter Luft. Dieselben Werte wie die Review-Seite (`.rv-page`,
+   `.rv-card`), damit die Hilfe-Seiten gleich aussehen. */
+.km-seite { padding: 1.25rem 1.5rem 4rem; max-width: 1600px; }
+.km-abschnitt { background: #142136; border: 1px solid #1e3a5f;
+                border-radius: 10px; padding: 16px 20px;
+                margin-bottom: 18px; }
+.km-abschnitt > :first-child { margin-top: 0; }
+.km-abschnitt > :last-child { margin-bottom: 0; }
 .km-kopf { display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;
            margin-bottom: 0.9rem; }
 .km-feld { display: flex; flex-direction: column; gap: 0.2rem; }
@@ -76,8 +100,26 @@ jede `.py` des Projekts.
 .km-wert { text-align: right; font-variant-numeric: tabular-nums; }
 .km-summe td { border-top: 2px solid #30363d; font-weight: 600; }
 
+/* NAVIGATION OBEN UND KLEBEND (02.09.2026)
+   Edgar: „bei reiter CodeQualität sind die anderen Reiter weg".
+
+   Sie waren nicht weg, sie standen HINTER dem Erklärabschnitt — und
+   dessen Höhe hängt am Reiter. Gemessen im DOM: auf „Statistik" begann
+   die Leiste bei y=183, auf „Code Qualität" bei y=437, weil dort noch
+   die Werkzeugtabelle (211 px) darübersteht. Eine Navigation, die je
+   nach Inhalt 254 px tiefer sitzt, findet niemand zweimal an derselben
+   Stelle.
+
+   Jetzt steht sie VOR dem Abschnitt und bleibt beim Scrollen oben: Die
+   Befundliste der Qualitätsmessung ist über 1900 px lang, und ohne
+   `sticky` ist der Reiterwechsel dann ganz oben ausser Sicht. Der
+   deckende Hintergrund ist Pflicht — sonst scheint der Text darunter
+   durch (`--db-bg` ist die Farbe des Seitengrunds, gemessen
+   rgb(13,17,23)). */
 .km-reiter { display: flex; gap: 0.3rem; flex-wrap: wrap;
-             border-bottom: 1px solid #2b3540; margin-bottom: 0.9rem; }
+             border-bottom: 1px solid #2b3540; margin-bottom: 0.9rem;
+             position: sticky; top: 0; z-index: 5;
+             background: #0d1117; padding-top: 0.35rem; }
 .km-reiter-knopf {
     background: transparent; border: 1px solid transparent; border-bottom: 0;
     color: #8b98a5; padding: 0.4rem 0.9rem; font-size: 0.85rem;
@@ -86,10 +128,66 @@ jede `.py` des Projekts.
 .km-reiter-knopf.active {
     color: #e6edf3; background: #1b2129; border-color: #2b3540;
     margin-bottom: -1px; }
+/* Der Löschen-Knopf je Endung. Rot, aber nicht schreiend: Er löscht
+   endgültig, und dennoch klickt man ihn im Zweifel zwanzigmal. */
+.km-loeschen {
+    background: transparent; border: 1px solid #5c2b2b; color: #d98b8b;
+    border-radius: 5px; padding: 0.15rem 0.5rem; font-size: 0.82rem;
+    cursor: pointer; }
+.km-loeschen:hover { background: #3a1d1d; color: #ffb3b3;
+                     border-color: #8b3a3a; }
+.km-loeschen[disabled] { opacity: 0.4; cursor: default; }
+
+/* SICHTBARES WARTEN (02.09.2026, auf Meldung „löschen button tut nichts,
+   mach ein visuelles Feedback z.B. warten / sanduhr").
+
+   Der Knopf tat etwas — er suchte, 16,5 Sekunden lang, ohne ein Zeichen.
+   Die Suche ist inzwischen auf 0,1 s heruntergemessen (siehe
+   `UebrigeSuche.sammeln`), aber ein Knopf, der eine Serverantwort
+   abwartet, sagt das ab jetzt selbst: Der Kreisel dreht sich, der Text
+   wird zu „Suche …", und die ganze Seite bekommt den Wartezeiger. */
+.km-loeschen.km-wartet { opacity: 0.75; cursor: wait; }
+.km-kreisel {
+    display: inline-block; width: 0.72em; height: 0.72em;
+    border: 2px solid currentColor; border-right-color: transparent;
+    border-radius: 50%; animation: km-dreht 0.7s linear infinite;
+    vertical-align: -0.05em; margin-right: 0.15em; }
+@keyframes km-dreht { to { transform: rotate(360deg); } }
+/* Während eines Laufs zeigt der ganze Bereich den Wartezeiger — sonst
+   klickt man in die Tabelle und wundert sich, dass nichts geschieht. */
+body.km-wartet, body.km-wartet .km-loeschen, body.km-wartet .km-waehlen {
+    cursor: wait; }
+.km-geschuetzt { color: #7ec699; opacity: .8; }
+.km-fertig { color: #7ec699; }
+.km-fehler { color: #ffb3b3; }
+
+/* Die Aktionsleiste über der Tabelle — klebend unter der Reiterleiste.
+   Ohne `sticky` verschwindet sie beim Blättern durch 25 Zeilen, und man
+   sucht sie genauso wie vorher (da stand sie unter der Tabelle, 1.464 px
+   unter dem Sichtbereich). */
+.km-putzleiste {
+    display: flex; gap: .7rem; align-items: center; flex-wrap: wrap;
+    padding: .5rem .6rem; margin-bottom: .2rem;
+    position: sticky; top: 2.9rem; z-index: 4;
+    background: #12161c; border-bottom: 1px solid #222a33; }
+/* Angehakte Zeilen sichtbar abheben — sonst zählt man Kästchen. */
+#km-uebrige tr:has(.km-waehlen:checked) td { background: #1d2733; }
+
 .km-liste { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
 .km-liste th, .km-liste td {
     text-align: left; padding: 0.32rem 0.6rem;
     border-bottom: 1px solid #222a33; }
+/* ZAHLEN RECHTSBÜNDIG (02.09.2026, auf Meldung „zellen mit Zahlen rechts
+   zentriert").
+
+   `.km-wert { text-align: right }` gab es schon — es wirkte nur nie:
+   `.km-liste td` darüber ist spezifischer (Klasse + Element schlägt
+   Klasse allein), und die Reihenfolge im Stilblatt hilft dagegen nicht.
+   Mit `.km-liste td.km-wert` gewinnt die richtige Regel. Der Spaltenkopf
+   gehört mit: Ein linksbündiger Kopf über rechtsbündigen Zahlen sieht
+   aus wie ein Versehen. */
+.km-liste td.km-wert, .km-liste th.km-wert {
+    text-align: right; font-variant-numeric: tabular-nums; }
 .km-liste th { color: #8b98a5; font-weight: 600; position: sticky; top: 0;
                background: #12161c; }
 .km-liste code { color: #9ecbff; font-size: 0.82rem; }
@@ -160,10 +258,36 @@ jede `.py` des Projekts.
 .km-kasten:hover rect { stroke-width: 2; }
 </style>
 
+<div class="km-seite">
+
 {% comment %}
 Je Reiter der Satz, der dort gilt. Vorher stand überall die Erklärung des
 Bildes — auf „Globale Variablen" also eine Auskunft über Vielfachheiten.
 {% endcomment %}
+{% comment %}
+DIE REITER STEHEN VOR DER ERKLÄRUNG (02.09.2026, auf Meldung: „bei reiter
+CodeQualität sind die anderen Reiter weg").
+
+Sieben Sichten auf denselben Bereich (24.08.2026, auf Ansage). Das Klassen-
+bild zeigt, wer wen hält. Die drei Listen danach zeigen, was an gar keiner
+Klasse hängt — genau der Maßstab aus Kriterium 1 und 18, und im Bild
+NICHT zu sehen. Die HTML-Seiten zeigen, welchen Code eine Seite wirklich
+zieht.
+
+Die Leiste stand bis heute UNTER dem Erklärabschnitt und wanderte damit
+mit dessen Höhe: y=183 auf „Statistik", y=437 auf „Code Qualität", wo die
+Werkzeugtabelle darübersteht. Navigation gehört an dieselbe Stelle, egal
+was darunter kommt.
+{% endcomment %}
+<div class="km-reiter">
+    {% for r in reiter_liste %}
+    <button type="button" class="km-reiter-knopf {% if reiter == r.key %}active{% endif %}"
+            data-km-reiter="{{ r.key }}">
+        <i class="bi {{ r.icon }}"></i> {{ r.label }}</button>
+    {% endfor %}
+</div>
+
+<div class="km-abschnitt">
 <p class="km-hinweis">
     {% if reiter == 'baum' %}
     Liest jede <code>.py</code> des Projekts und zeichnet, <b>wer wen hält</b>
@@ -183,9 +307,15 @@ Bildes — auf „Globale Variablen" also eine Auskunft über Vielfachheiten.
     Was auf Modulebene zugewiesen wird. <code>MAX = 5</code> ist eine Vorgabe
     und gehört dorthin; <code class="km-warn">_cache = {}</code> ist Zustand,
     der jeden Aufruf überlebt und niemandem gehört — <b>das</b> ist der Fund.
+    {% elif reiter == 'statistik' %}
+    Wie groß ist das Projekt? Gezählt werden <b>Dateien, Zeilen,
+    Anweisungen, Kommentare, Klassen und Funktionen</b> — nach Art
+    getrennt, damit „50.000 Zeilen" nicht zur Hälfte aus Bibliotheken
+    besteht. Die Spalte <b>außerhalb von Klassen</b> sagt, wie viel Code
+    an gar keiner hängt. Laufzeitdaten zählen nicht mit: Was in
+    <code>media/</code> oder <code>logs/</code> liegt, ist kein
+    Quelltext.
     {% elif reiter == 'qualitaet' %}
-    Zwei Fragen, zwei Knöpfe. <b>Statistik</b> zählt aus, wie groß das
-    Projekt ist — Dateien, Zeilen und Klassen nach Art getrennt.
     <b>Qualität prüfen</b> lässt <b>vier Verfahren</b> aus <b>drei
     etablierten Werkzeugen</b> darüberlaufen — <code>radon</code> liefert
     zwei davon. Hier ist nichts selbst gebaut; welche Aussage von welchem
@@ -265,20 +395,7 @@ sagt, was der Lauf überhaupt beantworten kann, bevor man ihn startet.
 </div>
 {% endif %}
 
-{% comment %}
-Fünf Sichten auf denselben Bereich (24.08.2026, auf Ansage). Das Klassen-
-bild zeigt, wer wen hält. Die drei Listen danach zeigen, was an gar keiner
-Klasse hängt — genau der Maßstab aus Kriterium 1 und 18, und im Bild
-NICHT zu sehen. Die HTML-Seiten zeigen, welchen Code eine Seite wirklich
-zieht.
-{% endcomment %}
-<div class="km-reiter">
-    {% for r in reiter_liste %}
-    <button type="button" class="km-reiter-knopf {% if reiter == r.key %}active{% endif %}"
-            data-km-reiter="{{ r.key }}">
-        <i class="bi {{ r.icon }}"></i> {{ r.label }}</button>
-    {% endfor %}
-</div>
+</div>{# Ende km-abschnitt: Erklärung und Werkzeugtabelle #}
 
 <form method="post" class="km-kopf">
     {% csrf_token %}
@@ -339,14 +456,19 @@ zieht.
     </div>
     {% endif %}
     {% comment %}
-    ZWEI KNÖPFE AUF DEM QUALITÄTS-REITER (24.08.2026, auf Ansage: „ein
-    Button der eine Statistik macht … Mach einen Button dazu der Code-
-    Qualität mit 2-3 Methoden überprüft"). Getrennt, weil es zwei sehr
-    verschiedene Kosten sind: die Zählung 2 Sekunden, die Messung 19.
+    JE REITER EIN KNOPF, DER RECHNET. Zählung und Messung waren bis zum
+    02.09.2026 zwei Knöpfe auf EINEM Reiter — bei sehr verschiedenen
+    Kosten (Zählung 2 Sekunden, Messung 94 auf assistant). Die Zählung
+    hat jetzt ihren eigenen Reiter „Statistik".
+
+    Nur diese Knöpfe rechnen. Der Reiterwechsel schickt dasselbe Formular
+    ohne Knopfnamen ab und bekommt deshalb nur, was schon abgelegt ist —
+    siehe `KlassenmodellView._darf_rechnen`.
     {% endcomment %}
-    {% if reiter == 'qualitaet' %}
+    {% if reiter == 'statistik' %}
     <button type="submit" name="was" value="statistik" class="km-knopf">
         <i class="bi bi-123"></i> Statistik erstellen</button>
+    {% elif reiter == 'qualitaet' %}
     <button type="submit" name="was" value="qualitaet" class="km-knopf">
         <i class="bi bi-speedometer2"></i> Qualität prüfen</button>
     {% comment %}
@@ -360,7 +482,7 @@ zieht.
     <button type="submit" name="was" value="befunde" class="km-knopf">
         <i class="bi bi-list-columns-reverse"></i> Alle Befunde</button>
     {% else %}
-    <button type="submit" class="km-knopf">
+    <button type="submit" name="rechnen" value="1" class="km-knopf">
         <i class="bi bi-diagram-3"></i>
         {% if reiter == 'baum' %}Übersicht erstellen{% else %}Liste erstellen{% endif %}</button>
     {% endif %}
@@ -469,8 +591,8 @@ Ausnahme, Test), von dem, was frei steht, weil es niemand eingehängt hat.
 
 {% elif reiter == 'variablen' %}
 <div class="km-rahmen">
-    <table class="km-liste">
-        <tr><th>Variable</th><th>Art</th><th>Datei</th></tr>
+    <table class="km-liste sortable">
+        <thead><tr><th>Variable</th><th>Art</th><th>Datei</th></tr></thead>
         {% for e in bestand.variablen %}
         <tr><td><b>{{ e.name }}</b></td>
             <td class="{% if e.zusatz == 'veränderlich' %}km-warn{% else %}km-js{% endif %}">
@@ -484,8 +606,9 @@ Ausnahme, Test), von dem, was frei steht, weil es niemand eingehängt hat.
 
 {% elif reiter == 'seiten' %}
 <div class="km-rahmen">
-    <table class="km-liste">
-        <tr><th>Seite</th><th>Zeilen</th><th>Skripte und ihre Abhängigkeiten</th></tr>
+    <table class="km-liste sortable">
+        <thead><tr><th>Seite</th><th>Zeilen</th>
+            <th>Skripte und ihre Abhängigkeiten</th></tr></thead>
         {% for s in bestand.seiten %}
         <tr>
             <td><b>{{ s.pfad }}</b>
@@ -510,7 +633,16 @@ Ausnahme, Test), von dem, was frei steht, weil es niemand eingehängt hat.
 </div>
 
 {% elif reiter == 'qualitaet' %}
-{% if was == 'befunde' %}
+{% if not verfahren %}
+{% comment %}Ohne Knopfdruck wird nicht mehr gerechnet (02.09.2026) — auch
+nicht beim Seitenaufruf und nicht beim Reiterwechsel. Steht nichts in der
+Ablage, sagt die Seite das und wartet auf den Knopf.{% endcomment %}
+<p class="km-hinweis">
+    Noch nichts gerechnet — auf <b>Qualität prüfen</b> drücken.
+    Vier Werkzeuge über jede Python-Datei; das dauert je nach Projekt
+    eine bis zwei Minuten.
+</p>
+{% elif was == 'befunde' %}
 <div class="km-zahlen">
     <span>gemessen: <b>{{ q_dateien|de }}</b> Python-Dateien</span>
     <span><b>{{ befunde|length|de }}</b> Befunde aus vier Verfahren</span>
@@ -526,9 +658,10 @@ Ausnahme, Test), von dem, was frei steht, weil es niemand eingehängt hat.
 </div>
 
 <div class="km-rahmen">
-    <table class="km-liste">
-        <tr><th>Stufe</th><th>Werkzeug</th><th>Verfahren</th><th>Wert</th>
-            <th>Stelle</th><th>Datei</th><th>Befund</th></tr>
+    <table class="km-liste sortable">
+        <thead><tr><th>Stufe</th><th>Werkzeug</th><th>Verfahren</th>
+            <th>Wert</th><th>Stelle</th><th>Datei</th>
+            <th>Befund</th></tr></thead>
         {% for b in befunde %}
         <tr>
             <td><span class="km-stufe km-stufe-{{ b.stufe }}">{{ b.stufe }}</span></td>
@@ -555,7 +688,7 @@ Ausnahme, Test), von dem, was frei steht, weil es niemand eingehängt hat.
     Umbau auslösen.
 </p>
 
-{% elif was == 'qualitaet' %}
+{% else %}
 {% comment %}
 Vier Verfahren, die einander widersprechen dürfen — genau das ist der
 Nutzen. Eine Datei kann nach pyflakes fehlerfrei sein und trotzdem einen
@@ -574,8 +707,9 @@ hinter einem stummen `except: continue`, also aus Statistik UND Bericht.
         <span class="km-verfahren-satz">Diese Dateien konnten nicht
             gemessen werden — sie fehlen in jeder Zahl darunter.</span>
     </div>
-    <table class="km-liste">
-        <tr><th>Datei</th><th>Verfahren</th><th>Grund</th></tr>
+    <table class="km-liste sortable">
+        <thead><tr><th>Datei</th><th>Verfahren</th>
+            <th>Grund</th></tr></thead>
         {% for p in pannen %}
         <tr><td><code>{{ p.datei }}</code></td>
             <td>{{ p.verfahren }}</td>
@@ -629,15 +763,16 @@ hinter einem stummen `except: continue`, also aus Statistik UND Bericht.
     {% endif %}
 
     {% if v.treffer %}
-    <table class="km-liste">
+    <table class="km-liste sortable">
         {% comment %}
         Das Werkzeug steht im KOPF, nicht in jeder Zeile: Innerhalb eines
         Blocks ist es fuer alle Treffer dasselbe, und eine Spalte, die
         200 Mal denselben Wert traegt, ist Rauschen. Im Kopf beantwortet es
         die Frage, die beim Lesen einer langen Liste aufkommt - wer sagt das?
         {% endcomment %}
-        <tr><th>Wert</th><th>Stelle</th><th>Datei</th>
-            <th>Befund <span class="km-js">— laut {{ v.werkzeug }}</span></th></tr>
+        <thead><tr><th>Wert</th><th>Stelle</th><th>Datei</th>
+            <th>Befund <span class="km-js">— laut {{ v.werkzeug }}</span>
+            </th></tr></thead>
         {% for t in v.treffer %}
         <tr>
             <td class="km-wert">{{ t.wert }}</td>
@@ -656,11 +791,24 @@ hinter einem stummen `except: continue`, also aus Statistik UND Bericht.
 </div>
 {% endfor %}
 
-{% elif arten %}
+{% endif %}
+
+{% elif reiter == 'statistik' %}
+{% if not arten %}
+<p class="km-hinweis">
+    Noch nichts gezählt — auf <b>Statistik erstellen</b> drücken.
+    Die Zählung geht über jede Quelldatei und dauert wenige Sekunden.
+</p>
+{% else %}
 {% comment %}
 Sieben Arten statt „py / html / js / sonstige": Wer alles außer dreien in
 einen Topf schiebt, bekommt einen Posten, der größer ist als alle anderen
 zusammen, und lernt nichts.
+
+EIGENER REITER seit dem 02.09.2026 (Edgar: „Wo ist die Statistik mit der
+Tabelle der Codezeilen? Mach dafür einen Tab Statistik"). Vorher hing der
+Block als dritte Sicht am Qualitäts-Reiter — hinter einer Messung, die auf
+assistant 94 Sekunden kostet, obwohl die Zählung selbst zwei braucht.
 {% endcomment %}
 <div class="km-zahlen">
     <span><b>{{ bereich|default:"ganzes Projekt" }}</b>:
@@ -679,7 +827,7 @@ zusammen, und lernt nichts.
 </div>
 
 <div class="km-rahmen">
-    <table class="km-liste">
+    <table class="km-liste sortable">
         {% comment %}
         „ausserhalb" (27.08.2026, auf Ansage): Die Spalte „Klassen" sagt, wie
         VIELE es gibt - nicht, wie viel Code an gar keiner haengt. Genau das
@@ -689,26 +837,97 @@ zusammen, und lernt nichts.
         Arten ohne Klassenbegriff zeigen „-", nicht 0 - eine Null saehe aus
         wie ein Messergebnis.
         {% endcomment %}
-        <tr><th>Art</th><th>Dateien</th><th>Zeilen</th><th>Anweisungen</th>
-            <th>Kommentar</th><th>leer</th><th>Klassen</th><th>Funktionen</th>
-            <th>außerhalb<br><span class="km-js">von Klassen</span></th></tr>
+        {% comment %}
+        HOVER AUF JEDEN KOPF (02.09.2026, auf Nachfrage: „was bedeutet die
+        Spalte Funktionen, sind das Funktionen innerhalb von Klassen, also
+        Methoden? was bedeutet ausserhalb von Klassen??").
+
+        Die Texte sind nicht geraten, sondern an einer Datei mit bekanntem
+        Inhalt nachgezählt (`tmp/ave/spalten_bedeutung.py`): 1 Klasse,
+        2 Methoden, 1 freie Funktion, 1 verschachtelte → Python meldet
+        4 Funktionen, JavaScript bei gleichem Aufbau 2. Dieselbe Spalte
+        zählt also je Sprache etwas anderes, und genau das gehört in den
+        Hover statt in eine Fussnote.
+        {% endcomment %}
+        <thead><tr><th>Art</th>
+            <th class="km-wert" title="Dateien dieser Art. Ohne Laufzeitdaten und fremden Code.">Dateien</th>
+            <th class="km-wert" title="Belegter Platz, zusammengezählt.">Größe</th>
+            <th class="km-wert" title="Alle Zeilen: Anweisungen + Kommentar + leer.">Zeilen</th>
+            <th class="km-wert" title="Zeilen mit Code. Ein Docstring zählt hier mit.">Anweisungen</th>
+            <th class="km-wert" title="Zeilen, die nur ein Kommentar sind.">Kommentar</th>
+            <th class="km-wert" title="Zeilen ohne Inhalt.">leer</th>
+            <th class="km-wert" title="Wie viele Klassen es gibt.">Klassen</th>
+            <th class="km-wert" title="Funktionen, die zu keiner Klasse gehören. Methoden zählen NICHT mit.">Funktionen</th>
+            <th class="km-wert" title="Wie viele Zeilen Code an keiner Klasse hängen — Vorgaben, Zustand und der Inhalt der freien Funktionen. Viel davon heißt: wenig ist in Klassen geordnet.">Code<br><span class="km-js">ohne Klasse</span>
+            </th></tr></thead>
+        <tbody>
         {% for a in arten %}
         <tr>
             <td><b>{{ a.name }}</b></td>
-            <td class="km-wert">{{ a.dateien|de }}</td>
-            <td class="km-wert">{{ a.zeilen|de }}</td>
-            <td class="km-wert">{{ a.anweisungen|de }}</td>
-            <td class="km-wert">{{ a.kommentar|de }}</td>
-            <td class="km-wert">{{ a.leer|de }}</td>
-            <td class="km-wert">{{ a.klassen|de }}</td>
-            <td class="km-wert">{{ a.funktionen|de }}</td>
-            <td class="km-wert">{% if a.ausserhalb == None %}<span
+            <td class="km-wert"
+                data-sort="{% localize off %}{{ a.dateien }}{% endlocalize %}"
+                >{{ a.dateien|de }}</td>
+            {% comment %}
+            SPALTE „GRÖSSE" (02.09.2026, auf Ansage: „in der oberen
+            Tabelle auch die MB anzeige als neue Spalte"). Die Zahl lag
+            schon vor — `Artzahlen.bytes` wird seit dem ersten Lauf
+            mitgezählt, stand aber nirgends. Erst sie sagt, dass 681
+            Bilder mehr Platz brauchen als 1.976 Python-Dateien.
+
+            `data-sort` MIT DEM BYTE-WERT (02.09.2026, auf Meldung: „gib
+            es so ein, dass man das sortieren kann, im Moment sortiert es
+            falsch"). `TabellenSortierung` liest eine Zelle wie „18,32 MB"
+            als 18,32 — die Einheit fällt weg, und „570,4 kB" steht dann
+            über „18,32 MB". Der Rohwert in `data-sort` hat den Vorrang
+            und ist einheitenfrei; `{% localize off %}` hält den
+            Tausenderpunkt der deutschen Ausgabe heraus.
+            {% endcomment %}
+            <td class="km-wert"
+                data-sort="{% localize off %}{{ a.bytes }}{% endlocalize %}"
+                >{{ a.bytes|groesse }}</td>
+            {% comment %}
+            Nur gezählt, nicht gelesen: „Bilder & Binäres" und seit dem
+            02.09.2026 auch „Übrige". Eine 0 in diesen Spalten läse sich wie
+            „die Dateien sind leer" statt „hier wurde nicht gezählt" —
+            dasselbe Argument wie bei „außerhalb von Klassen".
+            {% endcomment %}
+            {% comment %}
+            `data-sort=""` an den Strichen: `TabellenSortierung` stellt
+            leere Werte IMMER ans Ende, in beide Richtungen. Ohne das
+            würde „—" als Text mit den Zahlen verglichen, und die nicht
+            gelesenen Arten landeten mitten in der Liste.
+            {% endcomment %}
+            {% if not a.gelesen %}
+            <td class="km-wert km-js" data-sort="">—</td>
+            <td class="km-wert km-js" data-sort="">—</td>
+            <td class="km-wert km-js" data-sort="">—</td>
+            <td class="km-wert km-js" data-sort="">—</td>
+            {% else %}
+            <td class="km-wert" data-sort="{% localize off %}{{ a.zeilen }}{% endlocalize %}">{{ a.zeilen|de }}</td>
+            <td class="km-wert" data-sort="{% localize off %}{{ a.anweisungen }}{% endlocalize %}">{{ a.anweisungen|de }}</td>
+            <td class="km-wert" data-sort="{% localize off %}{{ a.kommentar }}{% endlocalize %}">{{ a.kommentar|de }}</td>
+            <td class="km-wert" data-sort="{% localize off %}{{ a.leer }}{% endlocalize %}">{{ a.leer|de }}</td>
+            {% endif %}
+            <td class="km-wert" data-sort="{% localize off %}{{ a.klassen }}{% endlocalize %}">{{ a.klassen|de }}</td>
+            <td class="km-wert" data-sort="{% localize off %}{{ a.funktionen }}{% endlocalize %}">{{ a.funktionen|de }}</td>
+            <td class="km-wert" data-sort="{% localize off %}{% if a.ausserhalb != None %}{{ a.ausserhalb }}{% endif %}{% endlocalize %}">{% if a.ausserhalb == None %}<span
                 class="km-js">—</span>{% else %}{{ a.ausserhalb|de }}{% endif %}</td>
         </tr>
         {% endfor %}
+        </tbody>
+        {% comment %}Die Summe gehört in den FUSS, nicht in den Körper:
+        `TabellenSortierung` sortiert `tBodies[0]` — im Körper wanderte
+        „Gesamt" beim ersten Klick mitten in die Liste (02.09.2026, mit
+        der Sortierbarkeit nachgerüstet).{% endcomment %}
+        <tfoot>
         <tr class="km-summe">
             <td><b>Gesamt</b></td>
-            <td class="km-wert">{{ arten_gesamt.dateien|de }}</td>
+            <td class="km-wert"
+                data-sort="{% localize off %}{{ arten_gesamt.dateien }}{% endlocalize %}"
+                >{{ arten_gesamt.dateien|de }}</td>
+            <td class="km-wert"
+                data-sort="{% localize off %}{{ arten_gesamt.bytes }}{% endlocalize %}"
+                >{{ arten_gesamt.bytes|groesse }}</td>
             <td class="km-wert">{{ arten_gesamt.zeilen|de }}</td>
             <td class="km-wert">{{ arten_gesamt.anweisungen|de }}</td>
             <td class="km-wert">{{ arten_gesamt.kommentar|de }}</td>
@@ -718,24 +937,164 @@ zusammen, und lernt nichts.
             <td class="km-wert">{% if arten_gesamt.ausserhalb == None %}<span
                 class="km-js">—</span>{% else %}{{ arten_gesamt.ausserhalb|de }}{% endif %}</td>
         </tr>
+        </tfoot>
     </table>
+    {% comment %}
+    GENAUER GESCHRIEBEN (02.09.2026, auf Nachfrage). Der alte Text sagte
+    „Modulebene also" — das ist falsch: Der Rumpf einer freien Funktion
+    liegt ebenfalls in keiner Klasse und zählt mit. Und er verschwieg,
+    dass „Funktionen" bei Python die Methoden einschliesst, bei
+    JavaScript aber nicht. Beides nachgezählt, nicht vermutet.
+    {% endcomment %}
+    {% comment %}
+    KURZ UND VERSTÄNDLICH (02.09.2026, auf Ansage: „Mach den Hover kürzer
+    und verständlich"). Die alten Texte erklärten die Messmethode; gefragt
+    war, was die Zahl bedeutet.
+    {% endcomment %}
     <p class="km-js" style="margin:.5rem .6rem .2rem">
-        <b>außerhalb von Klassen</b> zählt die Anweisungszeilen, die in keiner
-        Klasse stehen — Modulebene also: Vorgaben, freie Funktionen und
-        Zustand, der niemandem gehört. Die Spalte <b>Klassen</b> sagt nur, wie
-        viele es gibt; erst diese sagt, wie viel Code an gar keiner hängt.
-        Gezählt wird ausschließlich bei <b>Python</b>, wo der Syntaxbaum die
-        Klassenspanne eindeutig hergibt (samt Dekoratoren); Arten ohne
-        Klassenbegriff zeigen „—“ statt einer Null, die wie ein Messergebnis
-        aussähe.
+        Die letzten beiden Spalten beantworten dieselbe Frage von zwei
+        Seiten: <b>Wie viel Code hängt an keiner Klasse?</b>
+        <b>Funktionen</b> zählt die <b>Stücke</b> — Funktionen, die zu
+        keiner Klasse gehören (Methoden nicht). <b>Code ohne Klasse</b>
+        zählt die <b>Zeilen</b>: alles ausserhalb der Klassen zusammen,
+        also Vorgaben, Zustand und der Inhalt jener freien Funktionen.
+        Zwei kurze Funktionen und eine 300-Zeilen-Funktion sind beide
+        „2 bzw. 1 Stück" — die Zeilenzahl daneben zeigt den Unterschied.
+        Beides nur bei <b>Python</b>; wo es keine Klassen gibt, steht
+        „—“ statt einer Null.
     </p>
 </div>
+
+{% if uebrige %}
+{% comment %}
+WORAUS „ÜBRIGE" BESTEHT (02.09.2026)
+====================================
+    „bei Statistik habe ich über 3 Millionen leere Zeilen bei Übrige?
+     was ist das, spezifiziere und fixe" (Edgar)
+
+Die Zeile nannte eine Zahl und liess offen, wofür sie steht. Es waren
+45.000 `.eml`-Dateien unter `Mail-Archive/`, jede byteweise als Text
+gelesen. Zwei Dinge sind daran falsch gewesen, und beide sind behoben:
+das Archiv wird gar nicht mehr mitgezählt (`MAIL_ARCHIVE_ROOT` meldet es
+als Ablage an), und was in keine bekannte Art fällt, wird nicht mehr
+zeilenweise gelesen.
+
+Diese Tabelle ist der Rest: die Auskunft, die vorher nur ein eigenes
+Skript geben konnte.
+{% endcomment %}
+<div class="km-rahmen" style="margin-top:1rem;">
+    <p class="km-js" style="margin:.6rem .6rem .3rem">
+        <b>Woraus „Übrige" besteht</b> — Dateiarten, die dieses Werkzeug
+        nicht kennt. Sie werden gezählt, aber nicht gelesen: In einer
+        `.eml` ist eine leere Zeile die Trennung zwischen Kopf und Rumpf,
+        keine Quelltextzeile. Steht hier etwas, das Quelltext IST, gehört
+        die Endung in <code>ARTEN</code> (<code>umbau/codezahlen.py</code>).
+    </p>
+    {% comment %}
+    DIE AKTIONSLEISTE STEHT ÜBER DER TABELLE (02.09.2026, auf Rückfrage:
+    „batch delete?? auswählen kann man, wo ist der Button zum Delete??").
+
+    Sie stand darunter — und die Tabelle ist 25 Zeilen lang. Im DOM
+    gemessen: Der Knopf begann bei y=2348, das Fenster war 884 px hoch.
+    Er lag also **1.464 px unter dem Sichtbereich**; wer oben ein
+    Kästchen anhakt, sieht nichts geschehen.
+
+    Über der Tabelle UND klebend: Beim Blättern durch 25 Zeilen bleibt
+    sie in Sicht, sonst wäre sie nur beim ersten Haken sichtbar. `top`
+    liegt unter der Reiterleiste, die selbst bei 0 klebt.
+    {% endcomment %}
+    <div class="km-putzleiste">
+        <button type="button" id="km-batch-loeschen" class="km-loeschen"
+                disabled title="Alle angehakten Endungen zusammen löschen">
+            <i class="bi bi-trash3"></i> Ausgewählte löschen</button>
+        <span class="km-js" id="km-putz-stand"></span>
+    </div>
+    <table class="km-liste sortable" id="km-uebrige">
+        <thead><tr>
+            {% comment %}
+            MEHRFACHAUSWAHL (02.09.2026, auf Ansage: „mach auch Multi
+            Auswahl (check boxen) und batch delete"). Das Kästchen im Kopf
+            wählt alle sichtbaren Zeilen — „sichtbar" zählt, weil die
+            Tabelle sortierbar ist und später gefiltert werden könnte.
+            {% endcomment %}
+            <th data-sort-aus style="width:2rem"
+                title="Alle Zeilen auf einmal wählen oder abwählen.">
+                <input type="checkbox" id="km-alle-waehlen"></th>
+            <th title="Die Dateiendung, kleingeschrieben. „(ohne Endung)“ fasst alles ohne Punkt im Namen zusammen — Makefile, .gitignore, Cache-Dateien.">Endung</th>
+            <th class="km-wert" title="Wie viele Dateien dieser Endung im Projektbaum liegen. Laufzeitdaten und fremder Code sind schon abgezogen.">Dateien</th>
+            <th class="km-wert" title="Belegter Platz, Summe über alle Dateien dieser Endung.">Größe</th>
+            <th title="Die grösste Datei dieser Endung — nicht die erste. Bei 385 Dateien ohne Endung ist die erste zufällig, die grösste sagt, worum es geht.">grösste Datei</th>
+            {% comment %}
+            `data-sort-aus`: Nach einer Knopfspalte zu sortieren ergibt
+            nichts, und das Sortierzeichen im Kopf sähe aus, als gäbe es
+            hier etwas zu ordnen.
+            {% endcomment %}
+            <th data-sort-aus title="Löscht alle Dateien dieser Endung — endgültig, nicht in den Papierkorb. Vorher wird gefragt und die Liste gezeigt.">&nbsp;</th>
+        </tr></thead>
+        <tbody>
+        {% for u in uebrige %}
+        <tr>
+            <td>{% if u.loeschbar %}<input type="checkbox" class="km-waehlen"
+                       data-endung="{{ u.schluessel }}"
+                       data-anzahl="{{ u.dateien }}"
+                       aria-label="{{ u.endung }} auswählen">{% else %}<i
+                       class="bi bi-shield-check km-geschuetzt"
+                       title="Geschützt: Tabellen, Dokumente, Schriften, Schlüssel und Skripte werden hier nie zum Löschen angeboten."></i>{% endif %}</td>
+            <td><b>{{ u.endung }}</b></td>
+            <td class="km-wert"
+                data-sort="{% localize off %}{{ u.dateien }}{% endlocalize %}"
+                >{{ u.dateien|de }}</td>
+            {% comment %}
+            Auch hier der Rohwert in Bytes (02.09.2026, „in beiden
+            Tabellen"): Sonst stünde `.001` mit 18,32 MB unter `(ohne
+            Endung)` mit 570,4 kB — die Sortierung sähe die Einheit nicht.
+            {% endcomment %}
+            <td class="km-wert"
+                data-sort="{% localize off %}{{ u.bytes }}{% endlocalize %}"
+                >{{ u.bytes|groesse }}</td>
+            <td data-sort="{{ u.beispiel }}"><code
+                class="km-js">{{ u.beispiel }}</code>
+                <span class="km-js">({{ u.groesste|groesse }})</span></td>
+            <td class="km-wert">
+                {% comment %}
+                LÖSCHEN JE ENDUNG (02.09.2026, auf Ansage: „mach mir …
+                einen Button Löschen mit dem ich die die Dinger lösche").
+
+                Der Knopf schickt NUR die Endung — nie einen Pfad. Was
+                dahinter passiert, steht in `umbau/uebrigesuche.py`; die
+                Liste wird beim Löschen frisch erhoben und jede Datei
+                unmittelbar davor noch einmal geprüft.
+
+                KEIN KNOPF FÜR GESCHÜTZTE ARTEN: Am selben Tag sind über
+                dieses Werkzeug 10 `.xlsm`, 6 `.xlsx` und 2 `.otf`
+                verschwunden. „Kein Quelltext" heisst nicht „Müll".
+                {% endcomment %}
+                {% if u.loeschbar %}
+                <button type="button" class="km-loeschen"
+                        data-endung="{{ u.schluessel }}"
+                        data-anzahl="{{ u.dateien }}"
+                        title="Diese {{ u.dateien }} Dateien löschen">
+                    <i class="bi bi-trash"></i> Löschen</button>
+                {% else %}
+                <span class="km-js">geschützt</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
 
 {% if ausgelassen %}
 {% comment %}
 Ehrlich sagen, was NICHT mitgezählt wurde. Im ersten Lauf standen hier
 3861 Dateien und 4,8 Millionen Zeilen — es waren die `.pkl`-Zwischen-
 speicher des Kalenders, byteweise als Text gelesen, und ein 1,7-GB-Video.
+
+Seit dem 02.09.2026 stehen hier auch die Ablagen, die das Projekt selbst
+angemeldet hat (jedes Django-Setting auf `…_ROOT`) — in `assistant` ist
+das `Mail-Archive` mit 45.000 `.eml`-Dateien.
 {% endcomment %}
 <p class="km-hinweis">
     <b>{{ ausgelassen|de }}</b> Dateien nicht mitgezählt, weil sie
@@ -743,12 +1102,6 @@ speicher des Kalenders, byteweise als Text gelesen, und ein 1,7-GB-Video.
     {% for wo, zahl in ausgelassen_wo %}<code>{{ wo }}</code> ({{ zahl|de }}){% if not forloop.last %}, {% endif %}{% endfor %}.
 </p>
 {% endif %}
-
-{% else %}
-<p class="km-hinweis">
-    Noch nichts gerechnet — <b>Statistik erstellen</b> zählt aus,
-    <b>Qualität prüfen</b> lässt die vier Werkzeuge laufen.
-</p>
 {% endif %}
 
 {% elif bild %}
@@ -778,6 +1131,247 @@ Tastendruck erst recht nicht.
 {{ steckbriefe_json|json_script:"km-steckbriefe" }}
 
 <script type="module">
+    // TABELLENBEDIENUNG AUS djangoBase (02.09.2026)
+    // =============================================
+    // Sechs Datentabellen dieser Seite tragen `class="sortable"` — sortiert
+    // wurde trotzdem nichts. `tabellen_auto.js` kommt normalerweise über
+    // `AufzeichnungMiddleware` auf jede Seite; in `assistant` ist die
+    // Middleware NICHT eingetragen, und damit fehlte das Modul. Gemessen im
+    // DOM: kein `script[src*=tabellen_auto]`, `dataset.djbGebunden` nirgends
+    // gesetzt.
+    //
+    // OHNE ?v=: Das Modul importiert seine beiden Bausteine ohne Kennung.
+    // Mit einer Kennung lädt der Browser sie ein ZWEITES Mal — zwei
+    // Klick-Horcher, und die Sortierung schaltet nur noch absteigend um
+    // (Befund vom 01.09.2026 auf der Seite „KI-Modelle").
+    //
+    // Doppelt schadet nicht: Wo die Middleware das Modul schon einhängt,
+    // löst dieselbe URL auf dasselbe Modul auf, und `tabellenBinden` prüft
+    // `djbGebunden`, bevor es bindet.
+    import { tabellenBinden } from '/static/djangobase/js/tabellen_auto.js';
+    tabellenBinden();
+
+    // ── „Übrige" löschen ────────────────────────────────────────────
+    // ZWEI SCHRITTE, WEIL ES ENDGÜLTIG IST (02.09.2026, auf Ansage).
+    // Erst holt der Knopf die Vorschau (wie viele, wie viel Platz, die
+    // ersten Pfade), dann fragt er nach. Erst die Bestätigung löscht.
+    //
+    // In der Liste stehen neben Chrome-Cache und Testdumps auch `.docx`,
+    // `.xlsx` und `.log`. Wer „137 Dateien" liest, weiß nicht, was das
+    // ist; wer fünf Pfade sieht, schon.
+    const putzStand = document.getElementById('km-putz-stand');
+    const zeilenKnoepfe = [...document.querySelectorAll('.km-loeschen[data-endung]')];
+    const kaesten = [...document.querySelectorAll('.km-waehlen')];
+    const alleKasten = document.getElementById('km-alle-waehlen');
+    const sammelKnopf = document.getElementById('km-batch-loeschen');
+    const ZIEL = '/hilfe/klassenmodell/uebrige/';
+
+    /** Der CSRF-Token — die Seite hat ein Formular, das ihn mitbringt. */
+    const token = () => document.querySelector(
+        'form.km-kopf [name=csrfmiddlewaretoken]')?.value || '';
+
+    function melden(text, art) {
+        putzStand.textContent = text;
+        putzStand.className = 'km-js' + (art ? ' km-' + art : '');
+    }
+
+    /** Sichtbares Warten: Kreisel im Knopf, Wartezeiger auf der Seite. */
+    function warten(knopf, text) {
+        knopf.dataset.kmVorher = knopf.innerHTML;
+        knopf.innerHTML = '<span class="km-kreisel"></span> ' + text;
+        knopf.classList.add('km-wartet');
+        document.body.classList.add('km-wartet');
+        [...zeilenKnoepfe, sammelKnopf].forEach((k) => { k.disabled = true; });
+    }
+
+    function fertig(knopf) {
+        if (knopf.dataset.kmVorher) {
+            knopf.innerHTML = knopf.dataset.kmVorher;
+            delete knopf.dataset.kmVorher;
+        }
+        knopf.classList.remove('km-wartet');
+        document.body.classList.remove('km-wartet');
+        zeilenKnoepfe.forEach((k) => { k.disabled = false; });
+        auswahlGeaendert();
+    }
+
+    /** Die Rückfrage — dieselbe für eine Endung wie für viele. */
+    function frage(v, was) {
+        const arten = v.arten
+            ? '\n' + v.arten.map((a) => `   ${a.endung}: ${a.anzahl} (${a.groesse})`).join('\n') + '\n'
+            : '';
+        const liste = v.pfade.slice(0, 10).join('\n');
+        const mehr = v.anzahl > 10 ? `\n… und ${v.anzahl - 10} weitere` : '';
+        return `${v.anzahl} Dateien ${was} endgültig löschen (${v.groesse})?\n`
+            + arten + '\nSie kommen NICHT in den Papierkorb.\n\n' + liste + mehr;
+    }
+
+    /**
+     * Der ganze Weg: Vorschau holen, fragen, löschen, berichten.
+     * `felder` ist {endung} oder {endungen} — Server und Rückfrage
+     * behandeln beides gleich.
+     */
+    async function putzen(knopf, felder, was) {
+        warten(knopf, 'Suche …');
+        melden(`Sehe nach, was unter ${was} liegt …`);
+        try {
+            const abfrage = felder.endungen
+                ? 'endungen=' + encodeURIComponent(felder.endungen.join(','))
+                : 'endung=' + encodeURIComponent(felder.endung);
+            const v = await fetch(`${ZIEL}?${abfrage}`).then((r) => r.json());
+            // KEIN STILLES SCHEITERN: Ein Fehler gehört auf die Seite.
+            if (v.fehler) { melden(v.fehler, 'fehler'); return; }
+            if (!v.anzahl) { melden('Nichts mehr da — schon gelöscht?'); return; }
+            fertig(knopf);
+            if (!window.confirm(frage(v, was))) { melden('Abgebrochen.'); return; }
+            warten(knopf, 'Lösche …');
+            melden(`Lösche ${v.anzahl} Dateien …`);
+            const r = await fetch(ZIEL, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json',
+                          'X-CSRFToken': token()},
+                body: JSON.stringify({...felder, anzahl: v.anzahl}),
+            });
+            const d = await r.json();
+            if (!r.ok || d.fehler) {
+                melden(d.fehler || `Fehler ${r.status}`, 'fehler'); return;
+            }
+            const rest = d.uebersprungen
+                ? ` — ${d.uebersprungen} übersprungen (`
+                  + Object.entries(d.gruende).map(([g, n]) => `${g}: ${n}`).join(', ') + ')'
+                : '';
+            // DIE TABELLE WIRD FORTGESCHRIEBEN, NICHT NEU GERECHNET
+            // (02.09.2026, auf Ansage: „hör auf mit Neuzählung und
+            // neuaufbau, du kannst doch rechnen!").
+            //
+            // Hier stand kurzzeitig ein `form.submit()`, das die ganze
+            // Zählung neu anstiess — 23 Sekunden, in denen die Seite
+            // stand. Völlig unnötig: Der Server meldet, WIE VIELE Dateien
+            // mit WIE VIEL Bytes weg sind. Beides lässt sich von den
+            // angezeigten Zahlen abziehen. Nichts an der Statistik ändert
+            // sich sonst — gelöscht werden nur „Übrige", und die tragen
+            // weder Zeilen noch Klassen bei.
+            melden(`${d.geloescht} Dateien gelöscht, ${d.groesse} frei${rest}.`,
+                   'fertig');
+            fortschreiben(felder.endungen || [felder.endung], d);
+        } catch (fehler) {
+            melden('Abruf fehlgeschlagen: ' + fehler.message, 'fehler');
+        } finally {
+            fertig(knopf);
+        }
+    }
+
+    // ── die Tabellen fortschreiben statt neu zu rechnen ─────────────
+    /** Dieselben Einheiten wie der Filter `groesse` auf dem Server. */
+    function groesseText(b) {
+        const de = (n, s) => n.toLocaleString('de-DE',
+            {minimumFractionDigits: s, maximumFractionDigits: s});
+        if (b >= 1073741824) return de(b / 1073741824, 2) + ' GB';
+        if (b >= 1048576) return de(b / 1048576, 2) + ' MB';
+        if (b >= 1024) return de(b / 1024, 1) + ' kB';
+        return de(b, 0) + ' B';
+    }
+
+    /**
+     * Zieht `wieviel` vom Rohwert einer Zelle ab und schreibt sie neu.
+     * Der Rohwert steht in `data-sort` — dieselbe Quelle, aus der auch
+     * sortiert wird, damit Anzeige und Sortierung nicht auseinanderlaufen.
+     */
+    function abziehen(zelle, wieviel, alsGroesse) {
+        if (!zelle) return;
+        // FEHLT `data-sort`, WIRD NICHT GERECHNET (02.09.2026): Die erste
+        // Fassung nahm `|| '0'` als Rückfall — und weil die Spalte
+        // „Dateien" damals kein `data-sort` trug, wurde aus 321 minus 5
+        // eine glatte 0. Eine falsche Zahl ist schlimmer als eine alte;
+        // im Zweifel bleibt die Zelle, wie sie ist.
+        const roh = zelle.dataset.sort;
+        if (roh === undefined || roh === '') return;
+        const alt = parseFloat(roh);
+        if (isNaN(alt)) return;
+        const neu = Math.max(0, alt - wieviel);
+        zelle.dataset.sort = String(neu);
+        zelle.textContent = alsGroesse
+            ? groesseText(neu) : neu.toLocaleString('de-DE');
+    }
+
+    /** Die Zeile einer Tabelle finden, deren erste Zelle so heisst. */
+    function zeileMit(tabelle, name) {
+        return [...(tabelle?.querySelectorAll('tbody tr, tfoot tr') || [])]
+            .find((tr) => tr.cells[0]?.textContent.trim() === name);
+    }
+
+    function fortschreiben(endungen, bericht) {
+        // 1. Die erledigten Zeilen aus der Übrige-Tabelle nehmen.
+        kaesten.filter((k) => endungen.includes(k.dataset.endung))
+            .forEach((k) => { k.closest('tr').remove(); });
+        // Die entfernten Kästchen aus der Merkliste werfen.
+        for (let i = kaesten.length - 1; i >= 0; i--) {
+            if (!kaesten[i].isConnected) kaesten.splice(i, 1);
+        }
+        // 2. Obere Tabelle: „Übrige" und „Gesamt" um dasselbe kürzen.
+        const oben = document.querySelectorAll('.km-liste.sortable')[0];
+        [zeileMit(oben, 'Übrige'), zeileMit(oben, 'Gesamt')].forEach((tr) => {
+            if (!tr) return;
+            abziehen(tr.cells[1], bericht.geloescht, false);   // Dateien
+            abziehen(tr.cells[2], bericht.bytes, true);        // Größe
+        });
+        // 3. Die Kennzahl „N Quelldateien" über der Tabelle.
+        const karte = [...document.querySelectorAll('.km-zahlen b')]
+            .find((b) => b.nextSibling
+                  && /Quelldateien/.test(b.nextSibling.textContent || ''));
+        if (karte) {
+            const alt = parseInt(karte.textContent.replace(/\./g, ''), 10);
+            if (!isNaN(alt)) {
+                karte.textContent = Math.max(0, alt - bericht.geloescht)
+                    .toLocaleString('de-DE');
+            }
+        }
+        auswahlGeaendert();
+    }
+
+    /** Der Sammelknopf trägt, wie viel er löschen würde. */
+    function auswahlGeaendert() {
+        // NUR DER STATISTIK-REITER HAT DIESE KNÖPFE (02.09.2026). Auf jedem
+        // anderen Reiter ist `sammelKnopf` null, und der Zugriff darauf warf
+        // einen TypeError — der brach das ganze Modul ab, BEVOR die
+        // Reiter-Knöpfe weiter unten ihren Klick bekamen. Folge: Kein
+        // Reiter liess sich mehr wechseln (Edgar: „klick auf Tab Statistik
+        // … funktioniert nicht").
+        if (!sammelKnopf || !alleKasten) return;
+        const gewaehlt = kaesten.filter((k) => k.checked && !k.disabled);
+        const summe = gewaehlt.reduce(
+            (s, k) => s + parseInt(k.dataset.anzahl, 10), 0);
+        sammelKnopf.disabled = !gewaehlt.length;
+        // „1 Endungen" liest sich wie ein Fehler — und ist einer.
+        const wort = gewaehlt.length === 1 ? 'Endung' : 'Endungen';
+        sammelKnopf.innerHTML = gewaehlt.length
+            ? `<i class="bi bi-trash3"></i> ${gewaehlt.length} ${wort} `
+              + `löschen (${summe} Dateien)`
+            : '<i class="bi bi-trash3"></i> Ausgewählte löschen';
+        const nutzbar = kaesten.filter((k) => !k.disabled);
+        alleKasten.checked = nutzbar.length > 0
+            && gewaehlt.length === nutzbar.length;
+        alleKasten.indeterminate = gewaehlt.length > 0
+            && gewaehlt.length < nutzbar.length;
+    }
+
+    zeilenKnoepfe.forEach((k) => k.addEventListener('click', () =>
+        putzen(k, {endung: k.dataset.endung}, `„${k.dataset.endung}"`)));
+    kaesten.forEach((k) => k.addEventListener('change', auswahlGeaendert));
+    alleKasten?.addEventListener('change', () => {
+        kaesten.filter((k) => !k.disabled)
+            .forEach((k) => { k.checked = alleKasten.checked; });
+        auswahlGeaendert();
+    });
+    sammelKnopf?.addEventListener('click', () => {
+        const gewaehlt = kaesten.filter((k) => k.checked && !k.disabled);
+        if (!gewaehlt.length) return;
+        const endungen = gewaehlt.map((k) => k.dataset.endung);
+        putzen(sammelKnopf, {endungen},
+               `aus ${endungen.length} Endungen`);
+    });
+    auswahlGeaendert();
+
     // Ein Klick auf einen Ast setzt ihn als Startklasse und rechnet neu.
     // Bewusst kein eigener Abruf: Dieselbe Form, derselbe Weg — sonst gäbe
     // es zwei Stellen, die dasselbe Bild erzeugen.
@@ -993,4 +1587,5 @@ Tastendruck erst recht nicht.
         if (stand) stand.textContent = text ? treffer + ' Treffer' : '';
     });
 </script>
+</div>
 {% endblock %}

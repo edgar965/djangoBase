@@ -227,6 +227,38 @@ class Speicher:
         return wert, None
 
     @classmethod
+    def nachsehen(cls, wurzel):
+        u"""``(Wert, Alter)`` NUR aus Speicher und Ablage — rechnet nie.
+
+        WARUM DAS NOETIG WURDE (Edgar, 02.09.2026)
+        ==========================================
+            „es soll nicht immer neu eingelesen werden, die ergebnisse
+             sind gecacht … auch der Wechsel auf die Tabs innerhalb der
+             Seite dauert ewig"
+
+        ``holen`` rechnet, wenn nichts abgelegt ist — auch beim blossen
+        Seitenaufruf und beim Reiterwechsel. Auf ``assistant`` kostet die
+        Qualitaetsmessung **94 Sekunden** (gemessen 02.09.2026: quellen
+        6,8 · Komplexitaet 5,5 · Wartbarkeit 32,8 · Fehler 21,9 · Stil
+        27,1). Wer so lange wartet, bricht ab — und weil ``schreiben``
+        erst NACH ``bauen`` laeuft, wird nie etwas abgelegt. Der naechste
+        Aufruf faengt von vorn an: Die Seite kann sich nie erholen.
+
+        Deshalb rechnet ab jetzt nur noch, wer einen Knopf drueckt.
+        Alles andere sieht nach — und zeigt notfalls die leere Seite.
+        """
+        gemerkt = cls._gemerkt()
+        abdruck = cls.abdruck()
+        schluessel = '%s#%s' % (wurzel, abdruck) if abdruck else str(wurzel)
+        if schluessel in gemerkt:
+            wert, wann = gemerkt[schluessel]
+            return wert, time.time() - wann
+        wert, alter = lesen(cls.bereich, schluessel)
+        if wert is not None:
+            gemerkt[schluessel] = (wert, time.time() - alter)
+        return wert, alter
+
+    @classmethod
     def leeren(cls):
         cls._gemerkt().clear()
         leeren(cls.bereich)

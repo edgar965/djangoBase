@@ -18,6 +18,7 @@ Online-Partner verlässt der Inhalt den Rechner.
 """
 import json
 
+from django.conf import settings
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.utils.decorators import method_decorator
@@ -26,6 +27,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 
 from ..conf import conf
 from ..mixins import ZugriffMixin
+from ..review.kontext_sitzungen import Sitzungen
 from ..review import (NACHFASSEN, REGISTER, ReviewFehler, ReviewLauf,
                       WerkzeugPartner)
 
@@ -124,6 +126,9 @@ class ReviewView(ZugriffMixin, View):
             "wurzel": str(e["wurzel"]),
             "laeufe": [{"id": l.id, "titel": l.titel, "modus": l.modus}
                        for l in REGISTER.liste()],
+            # Nur die LISTE, nicht die Auswertung: Die kostet Sekunden je
+            # Protokoll und kommt erst auf Knopfdruck (02.09.2026).
+            "sitzungen": Sitzungen(settings.BASE_DIR).liste(),
         })
 
 

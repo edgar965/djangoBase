@@ -1,0 +1,169 @@
+# -*- coding: utf-8 -*-
+u"""Hilfe · Werkzeug Language Server — ein Language Server auf Knopfdruck.
+
+DIE ANSAGE (Edgar, 02.09.2026)
+==============================
+    „mach eine neue Seite Hilfe – Werkzeug Language Server, die so ähnlich
+     aufgebaut ist wie Werkzeug Code Review, und das konfigurierbar auf
+     Knopfdruck macht … mache beide (basedpyright und pyright) … Hintergrund
+     thread … Dateien können umgeschrieben werden"
+
+Aufbau wie ``skills.py``: EIN Formular, Karten untereinander, die Tabelle aus
+``djangobase/_tabelle.html``. Anders als dort läuft die Rechnung nicht im
+Request, sondern in ``ls_lauf.LAUF``; die Seite fragt den Zustand ab und lädt
+sich neu. Ein GET rechnet NIE — dieselbe Regel wie Klassenmodell.
+
+Das Ergebnis liegt in der Ablage (``umbau/ablage.py``), Schlüssel = Wurzel +
+Abdruck der Einstellungen + Abdruck der Quellmodule. Andere Einstellungen,
+anderes Ergebnis.
+"""
+import logging
+import time
+from pathlib import Path
+
+from django.conf import settings
+from django.http import JsonResponse
+from django.shortcuts import redirect, render
+from django.views import View
+
+from ..mixins import ZugriffMixin
+from ..skills.werkzeug import Werkzeug
+from ..umbau import ablage
+from ..umbau import languageserver as languageserver_modul
+from ..umbau import ls_befunde as ls_befunde_modul
+from ..umbau import ls_konfig as ls_konfig_modul
+from ..umbau.ablage import Speicher
+from ..umbau.globalbestand import hauptaeste
+from ..umbau.languageserver import LanguageServer
+from ..umbau.ls_javascript import JsPruefer
+from ..umbau.ls_befunde import LsBefunde
+from ..umbau.ls_konfig import AUSSCHLUESSE, REGELN, STUFEN, LsKonfig
+from ..umbau.ls_lauf import LAUF
+
+logger = logging.getLogger("djangobase.languageserver")
+
+__all__ = ["LanguageServerView", "LsSpeicher", "wurzel", "ordner", "konfig_laden",
+           "schluessel", "extra_pfade"]
+
+
+# ── Orte ────────────────────────────────────────────────────────────────
+def wurzel():
+    u"""Die Projektwurzel — eine Ebene über BASE_DIR, wenn dort das Repo liegt
+    (shortlongx: brain/, depot/, werkzeug/ neben shortlongxWeb/)."""
+    return Werkzeug().wurzel()
+
+
+def extra_pfade():
+    u"""Import-Wurzeln neben der Projektwurzel: BASE_DIR, damit ``dashboard``
+    ohne Präfix auflösbar ist."""
+    basis = Path(settings.BASE_DIR)
+    return [basis] if basis != wurzel() else []
+
+
+def ordner():
+    return ablage.ordner() / "languageserver"
+
+
+def konfig_laden():
+    return LsKonfig.laden(ordner() / "konfig.json")
+
+
+def schluessel(konfig):
+    return u"%s|%s" % (wurzel(), konfig.abdruck())
+
+
+class LsSpeicher(Speicher):
+    u"""Das Ergebnis des letzten Laufs — je Einstellungs-Abdruck eines."""
+
+    bereich = "languageserver"
+    quellen = (languageserver_modul, ls_konfig_modul, ls_befunde_modul)
+
+    @staticmethod
+    def bauen(wurzel):                                    # pragma: no cover
+        raise RuntimeError("der Language Server rechnet nur im Hintergrund-Lauf")
+
+    @classmethod
+    def ablegen(cls, wurzel_schluessel, ergebnis):
+        u"""Gegenstück zu ``nachsehen``: derselbe zusammengesetzte Schlüssel."""
+        abdruck = cls.abdruck()
+        voll = u"%s#%s" % (wurzel_schluessel, abdruck) if abdruck else str(wurzel_schluessel)
+        cls._gemerkt()[voll] = (ergebnis, time.time())
+        ablage.schreiben(cls.bereich, voll, ergebnis)
+
+
+# ── Aeste (einmal je Prozess gezählt) ────────────────────────────────────
+_AESTE = {}
+
+
+def aeste():
+    w = str(wurzel())
+    eintrag = _AESTE.get(w)
+    if eintrag is None or time.time() - eintrag[0] > 600:
+        try:
+            liste = hauptaeste(w)
+        except Exception:                                 # noqa: BLE001
+            logger.exception("Hauptäste nicht zählbar")
+            liste = []
+        _AESTE[w] = (time.time(), liste)
+        eintrag = _AESTE[w]
+    return eintrag[1]
+
+
+# ── Ansicht ─────────────────────────────────────────────────────────────
+class LanguageServerView(ZugriffMixin, View):
+    vorlage = "djangobase/hilfe/languageserver.html"
+
+    def get(self, request):
+        return self._seite(request, konfig_laden())
+
+    def post(self, request):
+        aktion = request.POST.get("aktion", "speichern")
+        konfig = LsKonfig.aus_formular(request.POST, konfig_laden())
+        konfig.speichern(ordner() / "konfig.json")
+        if aktion in ("lauf", "neu"):
+            return self._starten(request, konfig, neu=(aktion == "neu"))
+        return redirect(request.path)
+
+    def _starten(self, request, konfig, neu):
+        server = LanguageServer(konfig, wurzel(), ordner(), extra_pfade())
+        key = schluessel(konfig)
+        if neu:
+            LsSpeicher.leeren()
+        gestartet = LAUF.starten(server, lambda erg: LsSpeicher.ablegen(key, erg))
+        antwort = {"gestartet": gestartet, "zustand": LAUF.zustand()}
+        if request.headers.get("x-requested-with") == "fetch":
+            return JsonResponse(antwort)
+        return redirect(request.path)
+
+    def _seite(self, request, konfig):
+        server = LanguageServer(konfig, wurzel(), ordner(), extra_pfade())
+        gefunden = server.finden()
+        ergebnis, alter = LsSpeicher.nachsehen(schluessel(konfig))
+        daten = {
+            "titel": u"Werkzeug Language Server",
+            "aktiv": "languageserver",
+            "konfig": konfig,
+            "werkzeuge": LsKonfig.WERKZEUGE,
+            "modi": LsKonfig.MODI,
+            "stufen": STUFEN[:3],
+            "regeln": [(r, konfig.regeln.get(r, s), t) for r, s, t in REGELN],
+            "regel_stufen": STUFEN,
+            "ausschluesse": [(k, konfig.ausschluss.get(k, v), l)
+                             for k, _m, v, l in AUSSCHLUESSE],
+            "aeste": aeste(),
+            "wurzel": str(wurzel()),
+            "gefunden": gefunden,
+            "tsc": JsPruefer(wurzel(), ordner()).finden(),
+            "lauf": LAUF.zustand(),
+            "alter": int(alter) if alter is not None else None,
+            "ergebnis": ergebnis,
+        }
+        if ergebnis is not None:
+            befunde = LsBefunde(ergebnis, konfig)
+            daten.update({
+                "kennzahlen": befunde.kennzahlen(),
+                "tabelle": befunde.tabelle(),
+                "je_regel": befunde.je_regel(),
+                "je_datei": befunde.je_datei(),
+            })
+        return render(request, self.vorlage, daten)

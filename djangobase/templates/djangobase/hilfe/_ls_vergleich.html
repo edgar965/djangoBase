@@ -1,0 +1,57 @@
+{% comment %}
+DER VERGLEICH ZUM WERKZEUG CODE REVIEW (Edgar, 02.09.2026: „Mach auch einen
+Vergleich zu meinem Code review werkzeug und schreibe den auf die Seite,
+unten, als info").
+
+Zahlen hier sind entweder abgelesen (Anzahl der Werkzeuge aus der Registry,
+Laufzeit aus dem letzten Lauf oben) oder als Einschaetzung gekennzeichnet.
+Keine Zahl ohne Quelle.
+{% endcomment %}
+<div class="ls-card" id="ls-vergleich">
+    <h3><i class="bi bi-info-circle"></i> Vergleich: Werkzeug Code Review gegen Language Server</h3>
+    <p class="ls-intro">
+        Beide lesen den Quelltext, aber sie stellen verschiedene Fragen. Das
+        <b>Werkzeug Code Review</b> (Hilfe → Werkzeug Code Review) prüft die
+        <i>Regeln dieses Projekts</i> — Dateigröße, Doppelcode, tote Importe,
+        Vorlagen und Endpunkte, stumme Ausnahmen — mit eigenen Prüfern auf dem
+        Syntaxbaum jeder Datei. Der <b>Language Server</b> prüft, ob der Code
+        <i>zusammenpasst</i>: Gibt es den Namen? Passt der Aufruf zur Signatur?
+        Kann das hier <code>None</code> sein? Dafür löst er Importe, Klassen und
+        Typen über das ganze Projekt auf.
+    </p>
+    <table class="ls-vergleich">
+        <thead><tr><th>Frage</th><th>Werkzeug Code Review</th><th>Language Server</th></tr></thead>
+        <tbody>
+        <tr><td>Grundlage</td>
+            <td>Syntaxbaum je Datei (<code>ast</code>), eigene Regeln je Werkzeug, dazu Vorlagen, JS, CSS</td>
+            <td>Typinferenz über das ganze Projekt samt installierter Pakete (pyright-Kern)</td></tr>
+        <tr><td>Findet</td>
+            <td>Struktur und Stil: zu große Dateien, Doppelcode, verwaiste Module, Endpunkte ohne Aufrufer, stumme <code>except</code>, Temp-Dateien auf C:</td>
+            <td>Zusammenhang: undefinierte Namen, falsche Argumente, Zugriff auf <code>None</code>, Importe ins Leere, doppelt definierte Namen</td></tr>
+        <tr><td>Beleg vom 02.09.2026</td>
+            <td>Der Import-Abgleich (<code>Stock3Import.unveraendert</code>), der nie griff, war ein Logikfehler — kein Werkzeug beider Seiten meldet ihn. Das ist Handarbeit.</td>
+            <td>Nach einem Patch fehlte der Alias <code>_unveraendert</code>; pyflakes sah es nicht, der Fehler kam erst beim Ausführen. <code>reportUndefinedVariable</code> hätte ihn vor dem Serverstart gemeldet.</td></tr>
+        <tr><td>Fehlalarme</td>
+            <td>Wenige — die Regeln sind auf das Projekt zugeschnitten und mit Anlassfällen belegt (<code>anlassfall-check</code>)</td>
+            <td>Wo Python dynamisch ist: <code>import *</code>, Django-Manager ohne Stubs, <code>getattr</code>. Deshalb Modus <code>basic</code> und abschaltbare Regeln</td></tr>
+        <tr><td>Umbau</td>
+            <td>Fixer mit Vorschau, Sicherung und Netz: Ausnahmen protokollieren, Importe ordnen, JS-Module schneiden</td>
+            <td>Umbenennen über alle Dateien und Importe hinweg, mit Vorschau, Sicherung und Kompilier-Netz (Tafel oben)</td></tr>
+        <tr><td>Reichweite</td>
+            <td>Python, JavaScript, HTML-Vorlagen, CSS</td>
+            <td>Python über pyright; JavaScript über <code>tsc --checkJs</code> im selben Lauf
+                (unbekannte Namen, falsche Argumentzahl, Importe ins Leere). HTML: für
+                Django-Vorlagen gibt es keinen Language Server, der <code>{% templatetag openblock %} {% templatetag closeblock %}</code>
+                versteht — dort bleiben die Vorlagenprüfer des Werkzeugs Code Review die richtige Stelle</td></tr>
+        <tr><td>Dauer</td>
+            <td>Je Werkzeug Sekunden bis eine halbe Minute (steht in der Spalte „Was es tut"); der ganze Kasten Minuten</td>
+            <td>{% if ergebnis and not ergebnis.fehlt %}Gemessen oben: {{ ergebnis.dauer_s }} s für {{ kennzahlen.dateien }} Dateien
+                ({{ ergebnis.werkzeug }}, Modus {{ ergebnis.modus }}){% else %}Noch nicht gemessen — der erste Lauf trägt die Zahl hier ein{% endif %}</td></tr>
+        <tr><td>Wann</td>
+            <td>Vor einem Review und nach einem Umbau: die 18 Kriterien und die Lehren-Liste</td>
+            <td>Nach jedem Patch und vor jedem Serverstart: alles, was sonst erst zur Laufzeit knallt</td></tr>
+        <tr><td>Was keiner sieht</td>
+            <td colspan="2">Ob eine Rechnung stimmt, ob ein Schalter gelesen wird, ob ein Cache je trifft. Dafür gibt es Tests und Gegenproben — die Werkzeuge sparen Zeit, sie ersetzen sie nicht.</td></tr>
+        </tbody>
+    </table>
+</div>

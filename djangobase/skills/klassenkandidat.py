@@ -28,6 +28,7 @@ import ast
 from collections import defaultdict
 
 from .anlassfall import Anlassfall
+from .rahmenvorschrift import Rahmenvorschrift
 from .befund import Befund, Befundsatz, BefundWerkzeug
 
 
@@ -209,6 +210,13 @@ class Klassenkandidat(BefundWerkzeug):
 
         sorte_je_name = {}
         freie = []
+        # Was ein RAHMEN beim Namen am Modul ruft, steht dort nicht aus
+        # Nachlaessigkeit. Blenders `register`/`unregister` lesen beide das
+        # `classes`-Tupel — daraus wurde siebenmal der Vorschlag „Klasse
+        # `Classes`", und wer dem folgt, meldet kein Panel mehr an.
+        # `DJANGOBASE["rahmenfunktionen"]` nennt sie; siehe `rahmenvorschrift`.
+        vorgeschrieben = (Rahmenvorschrift.namen()
+                          | Rahmenvorschrift.selbst_gerufen(baum))
         for knoten in baum.body:              # nur Modulebene
             if isinstance(knoten, (ast.Assign, ast.AnnAssign)):
                 sorte = self._sorte(knoten)
@@ -216,7 +224,8 @@ class Klassenkandidat(BefundWerkzeug):
                     for n in self._zielnamen(knoten):
                         sorte_je_name[n] = sorte
             elif isinstance(knoten, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                if not knoten.name.startswith('__'):
+                if (not knoten.name.startswith('__')
+                        and knoten.name not in vorgeschrieben):
                     freie.append(knoten)
         if len(freie) < grenze or not sorte_je_name:
             return [], self._utilities(datei, freie, grenze)
@@ -318,6 +327,12 @@ class Klassenkandidat(BefundWerkzeug):
         if fn.decorator_list:                 # @pruefung, @csrf_exempt, @task …
             return True
         if fn.name.startswith('test_'):       # unittest sammelt ueber den Namen
+            return True
+        # Was das PROJEKT als Rahmen-Namen angibt: Blenders
+        # `register`/`unregister` etwa ruft das Addon-Protokoll am Modul.
+        # Ohne diese Zeile schlug das Werkzeug siebenmal eine Klasse
+        # `Classes` vor — aus dem `classes`-Tupel und genau diesen beiden.
+        if fn.name in Rahmenvorschrift.namen():
             return True
         argumente = fn.args.args
         if argumente and argumente[0].arg in ('request', 'self', 'cls'):

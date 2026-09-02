@@ -21,6 +21,8 @@ ganze Verzeichnis.
 import tempfile
 from pathlib import Path
 
+from django.test import override_settings
+
 from djangobase.umbau.codezahlen import Codezahlen
 
 from ..base import BasisTest
@@ -252,3 +254,100 @@ class GlobalerCodeWirdGetrenntGezaehlt(BasisTest):
         u"""None darf nicht als 0 mitsummieren — und nicht alles kippen."""
         z = _zaehlen({'a.py': self.QUELLE, 'b.html': '<p>x</p>\n'})
         self.assertEqual(z.gesamt()['ausserhalb'], 5)
+
+
+class WasInUebrigeSteckt(BasisTest):
+    u"""02.09.2026 — Edgar: „bei Statistik habe ich über 3 Millionen leere
+    Zeilen bei Übrige? was ist das, spezifiziere und fixe."
+
+    Es waren 72.459 Dateien unter `Mail-Archive/`, überwiegend `.eml`,
+    jede byteweise als Text gelesen. Zwei Regeln sind daraus geworden, und
+    beide werden hier geprüft.
+    """
+
+    #: Eine „E-Mail": Kopf, Leerzeile, Rumpf. Die Leerzeile ist die
+    #: Trennung zwischen beiden — keine Quelltextzeile.
+    MAIL = u'From: a@b\nSubject: x\n\nText\n\n\n'
+
+    def test_uebrige_wird_gezaehlt_aber_nicht_gelesen(self):
+        z = _zaehlen({'post.eml': self.MAIL})
+        u = [a for a in z.liste() if a['name'] == u'Übrige'][0]
+        self.assertEqual(u['dateien'], 1)
+        self.assertEqual(u['zeilen'], 0)
+        self.assertEqual(u['leer'], 0)
+        self.assertFalse(u['gelesen'])
+
+    def test_gegenprobe_bekannte_arten_werden_weiter_gelesen(self):
+        u"""Sabotage-Gegenprobe: Wäre die Regel zu grob, bliebe auch
+        Python bei null. Ohne diesen Fall prüft der Test oben nur, dass
+        gar nichts mehr gezählt wird."""
+        z = _zaehlen({'post.eml': self.MAIL, 'a.py': u'x = 1\n\ny = 2\n'})
+        py = [a for a in z.liste() if a['name'] == u'Python'][0]
+        self.assertEqual(py['zeilen'], 3)
+        self.assertEqual(py['leer'], 1)
+        self.assertTrue(py['gelesen'])
+
+    def test_die_aufschluesselung_nennt_endung_und_anzahl(self):
+        u"""Die Zeile „758" allein ist keine Auskunft — genau das war die
+        Frage. Nach Endung, grösste zuerst."""
+        z = _zaehlen({'a.eml': self.MAIL, 'b.eml': self.MAIL,
+                      'c.dump': u'x\n'})
+        auf = z.uebrige_arten()
+        self.assertEqual([e['endung'] for e in auf], ['.eml', '.dump'])
+        self.assertEqual(auf[0]['dateien'], 2)
+
+    def test_als_beispiel_steht_die_groesste_datei(self):
+        u"""Bei 385 Dateien ohne Endung ist die erste zufällig."""
+        z = _zaehlen({'klein.eml': u'x\n', 'gross.eml': u'y' * 5000})
+        self.assertEqual(z.uebrige_arten()[0]['beispiel'], 'gross.eml')
+
+    def test_ohne_endung_bekommt_einen_eigenen_eintrag(self):
+        u"""`Makefile` und `.gitignore` fallen sonst unter den Tisch."""
+        z = _zaehlen({'Makefile': u'all:\n'})
+        self.assertEqual(z.uebrige_arten()[0]['endung'], u'(ohne Endung)')
+
+
+class AblagenMeldetDasProjektSelbstAn(BasisTest):
+    u"""Nicht wieder eine Namensliste: `Mail-Archive` stand nicht in
+    ``DATEN``, und 72.459 Dateien zählten als Quelltext des Projekts.
+    Django benennt Ablagen konventionell mit ``…_ROOT``.
+    """
+
+    def _wurzel(self):
+        ordner = Path(tempfile.mkdtemp(prefix='cz_ablage_'))
+        (ordner / 'archiv').mkdir()
+        (ordner / 'archiv' / 'post.eml').write_text(u'x\n', encoding='utf-8')
+        (ordner / 'a.py').write_text(u'x = 1\n', encoding='utf-8')
+        return ordner
+
+    def test_ein_root_setting_wird_ausgelassen_und_genannt(self):
+        ordner = self._wurzel()
+        with override_settings(MAIL_ARCHIVE_ROOT=str(ordner / 'archiv')):
+            z = Codezahlen(ordner).lesen()
+        self.assertEqual(z.gesamt()['dateien'], 1)          # nur a.py
+        self.assertEqual(z.ausgelassen, 1)
+        self.assertIn('archiv', z.ausgelassen_wo)           # GENANNT
+
+    def test_gegenprobe_ohne_das_setting_zaehlt_es_mit(self):
+        u"""Sabotage: Fehlt die Anmeldung, ist die Datei wieder drin.
+        Ohne diesen Fall belegt der Test oben nur, dass irgendetwas
+        fehlt — nicht, dass es AN DIESEM Setting hängt."""
+        ordner = self._wurzel()
+        z = Codezahlen(ordner).lesen()
+        self.assertEqual(z.gesamt()['dateien'], 2)
+
+    def test_der_plural_dirs_wird_nicht_angefasst(self):
+        u"""``STATICFILES_DIRS`` zeigt in `assistant` auf `templates/css`
+        — ausdrücklich auf Quelltext. Nur der Singular ``…_ROOT`` meint
+        eine Ablage."""
+        ordner = self._wurzel()
+        with override_settings(STATICFILES_DIRS=[str(ordner / 'archiv')]):
+            z = Codezahlen(ordner).lesen()
+        self.assertEqual(z.gesamt()['dateien'], 2)
+
+    def test_ein_root_ausserhalb_des_projekts_stoert_nicht(self):
+        ordner = self._wurzel()
+        with override_settings(MEDIA_ROOT=str(Path(tempfile.gettempdir())
+                                              / 'ganz_woanders')):
+            z = Codezahlen(ordner).lesen()
+        self.assertEqual(z.gesamt()['dateien'], 2)

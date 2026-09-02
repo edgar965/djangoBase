@@ -35,6 +35,9 @@ dependencies = ["Django>=4.2", "Pillow", "concurrent-log-handler>=0.9.20"]
 #     pip install -e "A:/shared/djangoBase[codequalitaet]"
 [project.optional-dependencies]
 codequalitaet = ["radon>=6", "pyflakes>=3", "pycodestyle>=2.11"]
+# Hilfe -> Werkzeug Language Server (02.09.2026): beide Werkzeuge, auf der
+# Seite umschaltbar; django-types nimmt dem Server die Fehlalarme am Manager.
+languageserver = ["basedpyright>=1.19", "pyright>=1.1", "django-types"]
 
 [tool.setuptools]
 include-package-data = true

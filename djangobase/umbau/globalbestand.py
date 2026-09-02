@@ -39,7 +39,7 @@ from pathlib import Path
 #: Tests gehoeren dazu: Die Gliederung nach Rolle stellt sie ohnehin
 #: getrennt, und wer sie ausblenden will, klappt die Rolle zu. Sie
 #: wegzulassen macht die Zahl kleiner, nicht wahrer.
-from .klassenmodell import AUS
+from .klassenmodell import AUS, ausser
 
 #: Namen, die zwar Listen sind, aber keinen Zustand tragen.
 AUSFUHRLISTEN = {'__all__'}
@@ -94,12 +94,13 @@ class Globalbestand:
         self.seiten = []
 
     def lesen(self):
+        raus = ausser()      # samt der virtuellen Umgebungen des Projekts
         for pfad in sorted(self.wurzel.rglob('*.py')):
-            if any(teil in pfad.parts for teil in AUS):
+            if any(teil in pfad.parts for teil in raus):
                 continue
             self._modul(pfad)
         for pfad in sorted(self.wurzel.rglob('*.html')):
-            if any(teil in pfad.parts for teil in AUS):
+            if any(teil in pfad.parts for teil in raus):
                 continue
             self._seite(pfad)
         self.funktionen.sort(key=lambda e: (e.datei, e.zeile))
@@ -252,12 +253,15 @@ def hauptaeste(wurzel):
     # Auswahlfeld sagte damit „app 615", das Ergebnis darunter „1004" —
     # zwei Zaehlweisen fuer dieselbe Sache, und keine Erklaerung dazu.
     basis = Path(wurzel)
+    # Samt der virtuellen Umgebungen: `pythonVENV` stand am 02.09.2026 im
+    # Auswahlfeld und liess sich als Quelle waehlen — ein Klassenbild des
+    # Interpreters statt des Projekts.
+    ohne = ausser(('media', 'logs', 'db'))
     raus = []
     for eintrag in sorted(basis.iterdir()):
         if not eintrag.is_dir() or eintrag.name.startswith('.'):
             continue
-        if (eintrag.name in AUS
-                or eintrag.name in ('media', 'logs', 'db')):
+        if eintrag.name in ohne:
             continue
         # VERSCHIEDENE NAMEN, NICHT DEFINITIONEN (24.08.2026)
         # ===================================================

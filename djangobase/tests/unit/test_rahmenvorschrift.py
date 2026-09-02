@@ -18,6 +18,8 @@ Beide Richtungen. Der Fehlalarm muss weg sein UND der echte Befund muss
 bleiben: Acht lose Funktionen in einer Hilfsdatei sind weiterhin ein Fall.
 """
 
+import ast
+
 from django.test import SimpleTestCase, override_settings
 
 from djangobase.skills.rahmenvorschrift import Rahmenvorschrift
@@ -31,6 +33,66 @@ VORLAGEN = [{
         'ui.context_processors.active_theme',
     ]},
 }]
+
+
+class SelbstGerufeneNamenTest(SimpleTestCase):
+    u"""Was der `__main__`-Block ruft, muss auf Modulebene bleiben.
+
+    ANLASS (01.09.2026, 3DTools): `convert/dazknochennamen.py` ist ein
+    Kommandozeilen-Werkzeug. Der Vorschlag, sein `main()` in eine Klasse
+    zu heben, haette es nicht mehr startbar gemacht.
+    """
+
+    #: Eine Datei, wie ein Kommandozeilen-Werkzeug sie hat.
+    WERKZEUG = ('def main():\n    pass\n\n\n'
+               'if __name__ == \"__main__\":\n    main()\n')
+
+    def test_main_unter_dunder_main_zaehlt(self):
+        baum = ast.parse(self.WERKZEUG)
+        self.assertIn('main', Rahmenvorschrift.selbst_gerufen(baum))
+
+    def test_ohne_den_block_zaehlt_nichts(self):
+        u"""Sonst waere jede Funktion, die irgendwo gerufen wird,
+        ausgenommen."""
+        baum = ast.parse('def main():\n    pass\n\n\nmain()\n')
+        self.assertEqual(Rahmenvorschrift.selbst_gerufen(baum), set())
+
+    def test_eine_andere_bedingung_zaehlt_nicht(self):
+        quelle = ('import sys\n\n\ndef main():\n    pass\n\n\n'
+                  'if sys.argv:\n    main()\n')
+        baum = ast.parse(quelle)
+        self.assertEqual(Rahmenvorschrift.selbst_gerufen(baum), set())
+
+
+class EigeneRahmennamenTest(SimpleTestCase):
+    u"""Ein fremder Rahmen darf seine Namen selbst nennen.
+
+    ANLASS (01.09.2026, 3DTools): Das Blender-Addon traegt in zehn Modulen
+    `register`/`unregister` auf Modulebene. Blender ruft genau diese beiden
+    Namen am Modul — in einer Klasse ruft sie niemand mehr.
+    """
+
+    @override_settings(DJANGOBASE={'rahmenfunktionen': ['register',
+                                                       'unregister']})
+    def test_angegebene_namen_zaehlen(self):
+        namen = Rahmenvorschrift.namen()
+        self.assertIn('register', namen)
+        self.assertIn('unregister', namen)
+
+    @override_settings(DJANGOBASE={})
+    def test_ohne_angabe_zaehlt_nichts(self):
+        u"""Die Ausnahme entsteht nur durch den Eintrag, nicht von selbst."""
+        self.assertNotIn('register', Rahmenvorschrift.namen())
+
+    @override_settings(DJANGOBASE={'rahmenfunktionen': ['Register']})
+    def test_grossgeschriebenes_zaehlt_nicht(self):
+        u"""Eine Klasse darf eine Klasse sein — und ein Tippfehler wirkt nicht."""
+        self.assertNotIn('Register', Rahmenvorschrift.namen())
+
+    @override_settings(DJANGOBASE={'rahmenfunktionen': 'register'})
+    def test_ein_einzelner_name_als_zeichenkette(self):
+        u"""Wer nur einen Namen hat, schreibt ihn ohne Liste."""
+        self.assertIn('register', Rahmenvorschrift.namen())
 
 
 class NamenAusDenEinstellungenTest(SimpleTestCase):
