@@ -73,6 +73,7 @@ from .codequalitaet import CodeQualitaet
 from .dateigroesse import Dateigroesse
 from .doppelrumpf import Doppelrumpf
 from .esmodulimporte import EsModulImporte
+from .importziele import ImportZiele
 from .frontendadressen import Frontendadressen
 from .getattrnamen import GetattrNamen
 from .jsbefunde import JsBefunde
@@ -127,6 +128,8 @@ from .klassenkandidat import Klassenkandidat
 from .grossdateien import Grossdateien
 from .klassenjedatei import KlassenJeDatei
 from .namensdubletten import Namensdubletten
+from .modulindex import ModulIndex
+from .scheindocstring import ScheinDocstring
 from .toteimporte import ToteImporte
 from .vorlagenkontext import Vorlagenkontext
 from .vorlagenvariablen import Vorlagenvariablen
@@ -336,6 +339,12 @@ BEFUNDBASIERT = [
     Abhaengigkeiten,
     Vorlagenkontext,
     ToteImporte,
+    # Direkt hinter ToteImporte (03.09.2026): dieselbe Zeile Code, die
+    # andere Haelfte der Frage. ``ToteImporte`` sucht Namen, die importiert
+    # und nicht BENUTZT werden; ``ImportZiele`` solche, die es am Ziel gar
+    # nicht GIBT - der Unterschied zwischen unnoetig und kaputt.
+    ImportZiele,
+    ScheinDocstring,
     Doppelcode,
     Namensdubletten,
     Endpunktzeiten,
