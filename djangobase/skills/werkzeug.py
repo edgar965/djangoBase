@@ -16,6 +16,8 @@ Ein Werkzeug ist eine Klasse mit ``slug``, ``titel``, ``zweck``, ``befund`` und
 formatierten Text: Die Seite entscheidet ueber die Darstellung.
 """
 import ast
+import tokenize
+import io
 from pathlib import Path
 
 from django.conf import settings
@@ -105,6 +107,7 @@ class Quelldatei:
         self._text = None
         self._baum = None
         self._fehler = None
+        self._codezeilen = None
 
     @property
     def text(self):
@@ -128,6 +131,82 @@ class Quelldatei:
     @property
     def zeilen(self):
         return self.text.count("\n") + 1 if self.text else 0
+
+    @property
+    def codezeilen(self):
+        u"""Zeilen OHNE Leerzeilen, Kommentare und Docstrings.
+
+        WOZU DIE ZWEITE ZAHL (03.09.2026)
+        =================================
+        Viele Dateien in diesen Projekten tragen ihre Herleitung im Kopf -
+        manchmal zweihundert Zeilen Begruendung, warum eine Rundung so und
+        nicht anders ist. Eine Groessenpruefung, die nur Zeilen zaehlt,
+        verlangt das Zerschneiden genau dieser Dokumentation.
+
+        Gemessen an shortlongx: **74 von 78** Datei-Befunden lagen allein an
+        der Doku. ``menue.py`` hat 781 Zeilen und davon 290 Code - der Befund
+        verlangte, eine Datei aufzuteilen, die unter der Grenze liegt.
+
+        Gezaehlt wird exakt statt geraten: Kommentare kommen aus ``tokenize``,
+        Docstrings aus dem Syntaxbaum. Eine zeilenweise Heuristik auf drei
+        Anfuehrungszeichen verzaehlt sich an jedem String, der sie enthaelt.
+        """
+        return len(self._codezeilen_menge())
+
+    def codezeilen_zwischen(self, von, bis):
+        u"""Code-Zeilen in einem Bereich - fuer Klassen und Funktionen."""
+        return sum(1 for n in self._codezeilen_menge() if von <= n <= bis)
+
+    def _codezeilen_menge(self):
+        u"""Die Nummern aller Zeilen, auf denen wirklich Code steht."""
+        if self._codezeilen is None:
+            self._codezeilen = self._codezeilen_bauen()
+        return self._codezeilen
+
+    def _codezeilen_bauen(self):
+        text = self.text
+        if not text:
+            return frozenset()
+        aus = {i for i, z in enumerate(text.splitlines(), 1) if z.strip()}
+        aus -= self._kommentarzeilen(text)
+        aus -= self._docstringzeilen()
+        return frozenset(aus)
+
+    @staticmethod
+    def _kommentarzeilen(text):
+        u"""Zeilen, auf denen NUR ein Kommentar steht.
+
+        Ein Kommentar hinter Code laesst die Zeile Code bleiben - deshalb
+        zaehlt nur, wo vor dem Kommentar nichts als Leerraum steht."""
+        aus = set()
+        try:
+            marken = tokenize.generate_tokens(io.StringIO(text).readline)
+            for art, _wort, (zeile, spalte), _ende, rohzeile in marken:
+                if art == tokenize.COMMENT and not rohzeile[:spalte].strip():
+                    aus.add(zeile)
+        except (tokenize.TokenError, IndentationError, SyntaxError):
+            # Eine Datei, die sich nicht zerlegen laesst, zaehlt ihre
+            # Kommentare eben mit. Lieber zu viel gezaehlt als eine Ausnahme
+            # aus einer Groessenmessung.
+            pass
+        return aus
+
+    def _docstringzeilen(self):
+        u"""Zeilen, die zu einem Docstring gehoeren - aus dem Syntaxbaum.
+
+        Ein String-Literal, das ALLEIN als Anweisung steht, ist Dokumentation:
+        der Docstring von Modul, Klasse und Funktion und die Erklaerbloecke
+        zwischen Attributen. Ein String in einer Zuweisung oder einem Aufruf
+        ist Code und bleibt es."""
+        if self.baum is None:
+            return set()
+        aus = set()
+        for k in ast.walk(self.baum):
+            if (isinstance(k, ast.Expr) and isinstance(k.value, ast.Constant)
+                    and isinstance(k.value.value, str)):
+                ende = getattr(k, "end_lineno", None) or k.lineno
+                aus.update(range(k.lineno, ende + 1))
+        return aus
 
     def knoten(self, *arten):
         """Alle Knoten der genannten Arten im ganzen Baum."""

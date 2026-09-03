@@ -247,3 +247,62 @@ class NurSchliessendesMarkupTest(SimpleTestCase):
                     + self.NUR_ZU)
         satz = _lauf({'a.html': gemischt, 'b.html': gemischt})
         self.assertTrue(satz.befunde, ' | '.join(satz.kopf))
+
+
+STARTBLOCK = """import os
+import sys
+from pathlib import Path
+
+WURZEL = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(WURZEL))
+sys.path.insert(0, str(WURZEL / "djangoTeil"))
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "projekt.settings")
+
+import django
+
+django.setup()
+"""
+
+
+class StartblockTest(SimpleTestCase):
+    u"""Der Django-Startblock eines Skripts (03.09.2026, shortlongx).
+
+    200 Warnungen, fast alle aus ``werkzeug/`` - und fast alle derselbe Block:
+    Pfad setzen, Settings-Variable, ``django.setup()``. Er steht in jedem
+    eigenstaendigen Skript und MUSS es: Wer ihn in ein gemeinsames Modul
+    auslagert, muss dieses Modul importieren und braucht dafuer wieder den
+    Pfad. Dieselbe Ueberlegung wie beim Importblock.
+    """
+
+    def test_gleicher_startblock_ist_kein_befund(self):
+        ergebnis = _lauf({"eins.py": STARTBLOCK, "zwei.py": STARTBLOCK})
+        self.assertEqual(ergebnis.befunde, [],
+                         "ein Startblock laesst sich nicht zusammenfassen")
+
+    def test_die_zahl_steht_in_der_kopfzeile(self):
+        u"""Eine Ausnahme, die niemand sieht, ist eine Hintertuer."""
+        ergebnis = _lauf({"eins.py": STARTBLOCK, "zwei.py": STARTBLOCK})
+        self.assertIn("Startblock eines Skripts",
+                      " ".join(" ".join(ergebnis.kopf).split()))
+
+    def test_startblock_PLUS_code_bleibt_ein_befund(self):
+        u"""DIE GEGENPROBE: streng gezaehlt, nicht ungefaehr.
+
+        Nur ein Fenster, in dem JEDE Zeile zum Start gehoert, faellt raus.
+        Wer hinter dem Block dieselbe Rechnung zweimal schreibt, bekommt
+        seinen Befund."""
+        gemischt = STARTBLOCK + "\n" + ECHTER_CODE
+        ergebnis = _lauf({"eins.py": gemischt, "zwei.py": gemischt})
+        self.assertGreaterEqual(len(ergebnis.befunde), 1,
+                                " | ".join(ergebnis.kopf))
+
+    def test_eine_berechnete_zuweisung_ist_kein_startblock(self):
+        u"""``WURZEL = berechne()`` ist Code, nicht Pfad-Setup.
+
+        Die Ausnahme haengt an ``__file__`` bzw. einem Laufwerkspfad. Ohne
+        diese Enge wuerde jede Folge von Zuweisungen als Startblock gelten -
+        und damit ein Grossteil des echten Codes."""
+        block = ("a = berechne(1)\n" * 3) + ("b = berechne(2)\n" * 3)
+        ergebnis = _lauf({"eins.py": block, "zwei.py": block})
+        self.assertGreaterEqual(len(ergebnis.befunde), 1,
+                                " | ".join(ergebnis.kopf))

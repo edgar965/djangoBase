@@ -67,26 +67,31 @@ class Dateigroesse(Werkzeug):
 
     def laufen(self):
         zeilen = []
+        doku = 0
         for d in self.dateien():
-            if d.zeilen > self.GRENZE_DATEI:
-                zeilen.append({"datei": d.name, "zeile": 1, "art": "Datei",
-                               "name": d.pfad.name, "groesse": d.zeilen,
-                               "grenze": self.GRENZE_DATEI})
+            if d.codezeilen > self.GRENZE_DATEI:
+                zeilen.append(self._zeile(d, 1, "Datei", d.pfad.name,
+                                          d.codezeilen, d.zeilen,
+                                          self.GRENZE_DATEI))
+            elif d.zeilen > self.GRENZE_DATEI:
+                doku += 1                     # nur die Herleitung ist lang
             if d.baum is None:
                 continue
             for k in d.knoten(ast.ClassDef):
-                n = self._laenge(k)
+                n, ganz = self._laenge(d, k)
                 if n > self.GRENZE_KLASSE:
-                    zeilen.append({"datei": d.name, "zeile": k.lineno, "art": "Klasse",
-                                   "name": k.name, "groesse": n,
-                                   "grenze": self.GRENZE_KLASSE})
+                    zeilen.append(self._zeile(d, k.lineno, "Klasse", k.name,
+                                              n, ganz, self.GRENZE_KLASSE))
+                elif ganz > self.GRENZE_KLASSE:
+                    doku += 1
             for k in d.knoten(ast.FunctionDef, ast.AsyncFunctionDef):
-                n = self._laenge(k)
+                n, ganz = self._laenge(d, k)
                 if n > self.GRENZE_FUNKTION:
-                    zeilen.append({"datei": d.name, "zeile": k.lineno, "art": "Funktion",
-                                   "name": k.name, "groesse": n,
-                                   "grenze": self.GRENZE_FUNKTION})
-        zeilen.sort(key=lambda z: -z["groesse"])
+                    zeilen.append(self._zeile(d, k.lineno, "Funktion", k.name,
+                                              n, ganz, self.GRENZE_FUNKTION))
+                elif ganz > self.GRENZE_FUNKTION:
+                    doku += 1
+        zeilen.sort(key=lambda z: -z["code"])
         # Auch die JS-Module: Sie wachsen genauso, werden aber von keinem
         # Python-Werkzeug gesehen.
         #
@@ -99,16 +104,31 @@ class Dateigroesse(Werkzeug):
                 continue
             n = p.read_text(encoding="utf-8", errors="replace").count("\n") + 1
             if n > self.GRENZE_JS:
+                # JS wird weiter nach Gesamtzeilen gemessen: Fuer .js gibt es
+                # hier keinen Syntaxbaum, aus dem sich Doku sicher abziehen
+                # liesse - und geraten wird nicht.
                 zeilen.append({"datei": kurz, "zeile": 1, "art": "JS-Modul",
-                               "name": p.name, "groesse": n,
+                               "name": p.name, "code": n, "gesamt": n,
                                "grenze": self.GRENZE_JS})
+        kopf = "%d Stellen über der Faustregel" % len(zeilen)
+        if doku:
+            kopf += " · %d nur durch Doku über der Grenze (nicht gelistet)" % doku
         return Ergebnis(
-            ["datei", "zeile", "art", "name", "groesse", "grenze"], zeilen,
-            "%d Stellen über der Faustregel" % len(zeilen),
-            "Die Grenzen sind Faustregeln. Der Wert steckt in der Frage, die sie "
-            "erzwingen: Wie viele Zuständigkeiten stecken hier drin?")
+            ["datei", "zeile", "art", "name", "code", "gesamt", "grenze"], zeilen,
+            kopf,
+            "Gemessen werden CODE-Zeilen; „gesamt“ steht daneben. Die Grenzen "
+            "sind Faustregeln. Der Wert steckt in der Frage, die sie erzwingen: "
+            "Wie viele Zuständigkeiten stecken hier drin?")
 
     @staticmethod
-    def _laenge(knoten):
+    def _zeile(datei, zeile, art, name, code, gesamt, grenze):
+        # Dictionary gewollt: geht unveraendert als Tabellenzeile hinaus.
+        return {"datei": datei.name, "zeile": zeile, "art": art, "name": name,
+                "code": code, "gesamt": gesamt, "grenze": grenze}
+
+    @staticmethod
+    def _laenge(datei, knoten):
+        u"""``(Code-Zeilen, Zeilen gesamt)`` eines Knotens."""
         ende = getattr(knoten, "end_lineno", None) or knoten.lineno
-        return ende - knoten.lineno + 1
+        return (datei.codezeilen_zwischen(knoten.lineno, ende),
+                ende - knoten.lineno + 1)
