@@ -61,6 +61,10 @@ export class SystemStatsLeiste {
 .ss-pill { display:inline-flex; align-items:center; gap:.3rem; padding:.25rem .55rem;
   background:rgba(var(--fg-rgb, 224,232,240),.07); border:1px solid rgba(var(--fg-rgb, 224,232,240),.18);
   border-radius:999px; font-size:.78rem; color:rgba(var(--fg-rgb, 224,232,240),.85); line-height:1 }
+/* Muss sein: die Klasse oben setzt display:inline-flex und schlaegt damit die
+   Browser-Vorgabe fuer [hidden] - ohne diese Zeile bliebe eine ausgeblendete
+   Pill (_gpuPillsZeigen) sichtbar. */
+.ss-pill[hidden] { display:none }
 .ss-pill .ss-icon i { font-size:.85rem; color:var(--accent) }
 .ss-pill .ss-label { font-size:.6rem; text-transform:uppercase; letter-spacing:.04em;
   color:rgba(var(--fg-rgb, 224,232,240),.5); font-weight:700 }
@@ -165,6 +169,11 @@ export class SystemStatsLeiste {
     this._stand = Date.now();
     this._zeitTip = new Date().toLocaleTimeString('de-DE');
     const g = d.gpu;
+    // Ohne Grafikkarte stünden hier drei Pills mit „keine / – / –“ - auf einem
+    // Server (NoiseSpy, 03.09.2026) ist das die Hälfte der Leiste, und keine
+    // davon sagt etwas. Sie verschwinden, sobald der erste Abruf zeigt, dass
+    // nvidia-smi nichts liefert; auf Maschinen MIT Karte ändert sich nichts.
+    this._gpuPillsZeigen(Boolean(g));
     this._setzen('gpu', g ? g.util : null, g ? g.util + ' %' : 'keine',
       g ? `${g.name} – Auslastung ${g.util} %` : 'Keine NVIDIA-GPU erkannt (nvidia-smi nicht verfügbar)');
     const vram = g && g.mem_total ? Math.round(100 * g.mem_used / g.mem_total) : null;
@@ -198,6 +207,19 @@ export class SystemStatsLeiste {
       p.title = 'Keine Verbindung zum Server – der Wert ist unbekannt (nicht 0).';
       p.style.opacity = '.45';
       const f = p.querySelector('.ss-fill'); if (f) f.style.width = '0%';
+    });
+  }
+
+  /** GPU-, VRAM- und Temp-Pill ein- oder ausblenden.
+   *
+   *  Ausgeblendet wird über `hidden`, nicht entfernt: Steckt später eine Karte
+   *  in der Maschine (oder wird nvidia-smi nachinstalliert), sind die Pills beim
+   *  nächsten Abruf wieder da, ohne dass die Leiste neu gebaut werden muss. */
+  static _gpuPillsZeigen(zeigen) {
+    if (!this._ziel) return;
+    ['gpu', 'vram', 'temp'].forEach(k => {
+      const pill = this._ziel.querySelector(`.ss-pill[data-k="${k}"]`);
+      if (pill) pill.hidden = !zeigen;
     });
   }
 
