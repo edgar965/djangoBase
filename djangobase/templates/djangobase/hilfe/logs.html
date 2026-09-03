@@ -20,6 +20,14 @@
         <input type="number" name="lines" value="{{ max_lines }}" min="50" max="5000" step="50">
         <button type="submit" class="btn btn-sm btn-outline-light">Anzeigen</button>
         <label style="margin-left:1rem;"><input type="checkbox" id="lgAutoRefresh"> Auto-Refresh (10 s)</label>
+        {% comment %}
+           Auslastung DIESER Maschine. Auf der Logs-Seite, weil man hier ohnehin
+           nachsieht, wenn etwas klemmt: Ein Server, der nicht antwortet, sieht in
+           den Logs genauso aus wie einer, der rechnet - die Leiste unterscheidet
+           beides. (NoiseSpy, 03.09.2026: drei verwaiste Skripte hielten die CPU
+           178 Tage lang auf 100 %, ohne dass es irgendwo sichtbar war.)
+        {% endcomment %}
+        <div id="lgSysStats" class="lg-sysstats" title="Auslastung dieses Servers"></div>
     </form>
     <form class="lg-clear-form" method="post" action="{% url 'djangobase:logs_leeren' %}"
           onsubmit="return confirm('Logs der Quelle „{{ source_label }}“ wirklich leeren?');">
@@ -56,6 +64,7 @@
 .lg-toolbar label { margin: 0; color: rgba(255,255,255,0.7); }
 .lg-toolbar select, .lg-toolbar input[type="number"] { background: #0d1117; color: #e0e8f0; border: 1px solid rgba(255,255,255,0.15); padding: 0.3rem 0.5rem; border-radius: 4px; font-size: 0.85rem; }
 .lg-toolbar input[type="number"] { width: 90px; }
+.lg-sysstats { margin-left: auto; }
 .lg-paths { color: rgba(255,255,255,0.5); font-size: 0.72rem; font-family: monospace; margin-left: auto; text-align: right; }
 .lg-paths .muted { color: rgba(255,255,255,0.4); }
 .lg-tabs { display: flex; border-bottom: 1px solid rgba(255,255,255,0.12); margin-bottom: 0.6rem; }
@@ -109,5 +118,13 @@
     }
     cb.addEventListener('change', arm); arm();
 })();
+</script>
+
+<script type="module">
+  // Die Leiste bringt Aufbau, CSS und Takt selbst mit - hier steht nur, WOHIN.
+  // Fehlt psutil auf der Maschine, bleiben die Werte auf "–"; die Seite bleibt
+  // in jedem Fall benutzbar (die View antwortet auch im Fehlerfall mit 200).
+  import { SystemStatsLeiste } from '/static/djangobase/js/system_stats.js?v={{ djangobase.statik_v }}';
+  SystemStatsLeiste.binden('lgSysStats');
 </script>
 {% endblock %}

@@ -144,6 +144,32 @@ class SystemStats:
             pass
         return _DRIVE_MAP
 
+    #: Linux-Geraeteklassen, die keine Nutzplatte sind: Snap-Images (loop),
+    #: RAM-Disks, optische und Disketten-Laufwerke.
+    KEINE_PLATTE = ("loop", "ram", "sr", "fd")
+
+    @staticmethod
+    def _zaehlt_als_platte(name):
+        """Gehoert dieses Geraet in die Leiste?
+
+        Der Docstring von ``_disk_io`` sagt, ``perdisk`` liefere nur physische
+        Datentraeger. Das gilt fuer Windows. Unter Linux meldet psutil auch
+        PARTITIONEN und Snap-Images: Auf dem NoiseSpy-Server (03.09.2026) kamen
+        13 Eintraege zurueck — loop0..loop7, sda, sda1, sda14, sda15, sr0 —, und
+        die Leiste haette daraus 13 Pills gebaut.
+
+        ``/sys/block`` enthaelt genau die GANZEN Geraete; Partitionen stehen dort
+        nicht. Das ist die Unterscheidung, die hier gebraucht wird. Auf Windows
+        (kein ``/sys``) bleibt alles wie bisher."""
+        import os
+        if os.name == "nt":
+            return True
+        if name.startswith(SystemStats.KEINE_PLATTE):
+            return False
+        if not os.path.isdir("/sys/block"):
+            return True          # kein sysfs (z.B. macOS): lieber alles als nichts
+        return os.path.isdir("/sys/block/%s" % name)
+
     @staticmethod
     def _disk_io(jetzt):
         """Read/Write-Rate je PHYSISCHER Platte (MB/s), als Delta zum
@@ -157,6 +183,8 @@ class SystemStats:
             counters = psutil.disk_io_counters(perdisk=True) or {}
         except Exception:                                        # noqa: BLE001
             return []
+        counters = {n: c for n, c in counters.items()
+                    if SystemStats._zaehlt_als_platte(n)}
         vor = _CACHE.get("disk_vor") or {}
         vor_ts = vor.get("ts")
         vor_c = vor.get("counters") or {}
