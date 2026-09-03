@@ -89,7 +89,7 @@ def lesen():
             eigen[d.name] = self._eigene_namen(d)
             for name, zeile, art in self._mutationen(d):
                 index.setdefault(name, []).append((d.name, zeile, art))
-        zeilen = []
+        zeilen, namensgleich = [], 0
         for d in dateien:
             for name, knoten in self._kandidaten(d).items():
                 treffer = index.get(name)
@@ -98,17 +98,40 @@ def lesen():
                 stellen = [(z, a) for f, z, a in treffer if f == d.name]
                 fremd = [(f, z, a) for f, z, a in treffer
                          if f != d.name and name not in eigen.get(f, ())]
+                if not stellen and not fremd:
+                    # REINE NAMENSGLEICHHEIT (03.09.2026): ``treffer`` kann
+                    # allein aus fremden Dateien stammen, die den Namen SELBST
+                    # binden - die sind oben schon ausgeschlossen. Uebrig bleibt
+                    # eine Sammlung, die NIEMAND veraendert: eine Konstante,
+                    # kein Zustand. Gemessen an shortlongx: 10 von 47 Zeilen,
+                    # darunter dreimal dasselbe ``SYSTEM = {...}`` in Tests, das
+                    # nur an Funktionen weitergereicht wird.
+                    namensgleich += 1
+                    continue
                 zeilen.append(self._zeile(d, name, knoten, stellen, fremd))
         zeilen.sort(key=lambda z: (z["bewertung"] != "prüfen", z["datei"]))
         offen = [z for z in zeilen if z["bewertung"] == "prüfen"]
+        skripte = sum(1 for z in zeilen if z["bewertung"] == "Skript")
         return Ergebnis(
             ["datei", "zeile", "name", "art", "mutationen", "bewertung"],
             zeilen,
-            "%d Sammlungen auf Modulebene, davon %d ohne Beleg"
-            % (len(zeilen), len(offen)),
+            self._kopf(zeilen, offen, skripte, namensgleich),
             "Ein Eintrag ist erst ein Fehler, wenn der Zustand ANFRAGE-bezogen "
             "ist. Zwischenspeicher, die für alle gelten sollen, sind in Ordnung "
             "— sie brauchen nur den Vermerk im Code.")
+
+    @staticmethod
+    def _kopf(zeilen, offen, skripte, namensgleich):
+        u"""AUSGENOMMENES WIRD GENANNT, nicht verschwiegen.
+
+        Eine Pruefung, die still wegfiltert, sieht aus wie eine, die nichts
+        findet - und niemand kann nachrechnen, was sie uebergangen hat."""
+        text = ("%d Sammlungen auf Modulebene, davon %d ohne Beleg"
+                % (len(zeilen), len(offen)))
+        wenn = [("%d in Skripten (ein Lauf, ein Prozess)", skripte),
+                ("%d nur namensgleich, niemand ändert sie", namensgleich)]
+        zusatz = ", ".join(m % n for m, n in wenn if n)
+        return text + (" · " + zusatz if zusatz else "")
 
     # ----------------------------------------------------------------- Suche
     @staticmethod
@@ -178,19 +201,50 @@ def lesen():
                 aus.add(k.name)
                 for a in getattr(getattr(k, "args", None), "args", []) or []:
                     aus.add(a.arg)
-            elif isinstance(k, (ast.Import, ast.ImportFrom)):
+            elif isinstance(k, ast.Import):
                 for n in k.names:
                     aus.add(n.asname or n.name.split(".")[0])
+            elif isinstance(k, ast.ImportFrom):
+                # ``from eins import SYSTEM`` bindet KEINEN eigenen Namen -
+                # es ist DASSELBE Objekt. Wer es danach veraendert, aendert
+                # den Zustand des anderen Moduls; genau der Fall, den dieses
+                # Werkzeug sucht, und er ist ueber Dateigrenzen hinweg der
+                # schlimmere. Bis zum 03.09.2026 zaehlte er als „eigen" und
+                # fiel damit aus der Fremd-Liste heraus - aufgefallen erst,
+                # als eine neue Ausnahme die Zeile ganz verschwinden liess.
+                #
+                # ``import a.b`` (oben) bleibt eigen: Dort bindet der Name ein
+                # MODUL, keine Sammlung.
+                pass
             elif isinstance(k, ast.Global):
                 aus.difference_update(k.names)
         return aus
+
+    #: Ein Skript laeuft EINMAL in EINEM Prozess. Der Schaden, den dieses
+    #: Werkzeug sucht - zwei gleichzeitige Laeufe ziehen sich den Zustand weg -
+    #: kann dort nicht entstehen.
+    #:
+    #: ERKANNT WIRD AM CODE, NICHT AM ORDNER (03.09.2026): Die Fassung in
+    #: shortlongx schloss pauschal ``werkzeug/`` aus. Eine Ordnerliste raet und
+    #: liegt beim naechsten Verzeichnis daneben - und sie uebersieht das Skript,
+    #: das woanders liegt. ``if __name__ == "__main__"`` steht dagegen im Code
+    #: und meint genau das. Gemessen an shortlongx: 12 von 23 offenen Zeilen.
+    @staticmethod
+    def _ist_skript(d):
+        for k in d.baum.body if d.baum else []:
+            if not isinstance(k, ast.If):
+                continue
+            for n in ast.walk(k.test):
+                if isinstance(n, ast.Name) and n.id == "__name__":
+                    return True
+        return False
 
     def _zeile(self, d, name, knoten, stellen, fremd):
         belegt = self._begruendet(d, knoten.lineno)
         if belegt:
             bewertung = "belegt"
-        elif fremd:
-            bewertung = "prüfen"
+        elif self._ist_skript(d):
+            bewertung = "Skript"
         else:
             bewertung = "prüfen"
         art = type(knoten.value).__name__.lower()

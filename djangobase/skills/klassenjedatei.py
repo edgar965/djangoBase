@@ -4,6 +4,7 @@ import ast
 
 from .befund import Befund, Befundsatz, BefundWerkzeug
 from .anlassfall import Anlassfall
+from .werkzeug import Quelldatei
 
 
 class KlassenJeDatei(BefundWerkzeug):
@@ -32,6 +33,25 @@ class KlassenJeDatei(BefundWerkzeug):
     #: Klassen unter dieser Zeilenzahl gelten als Datentraeger/Helfer.
     KLEIN = 40
 
+    #: Ab dieser Groesse lohnt das Aufteilen - darunter schadet es.
+    #:
+    #: „Eine Klasse je Datei" dient der Lesbarkeit. Acht kleine Klassen auf
+    #: 150 Zeilen in acht Dateien zu verteilen macht sie schlechter, nicht
+    #: besser. Gemessen an shortlongx (03.09.2026): Von 36 Warnungen fielen
+    #: **31** allein hierunter.
+    ZUSAMMEN_BIS = 300
+
+    #: Dateien, in denen ein Framework oder die Aufgabe MEHRERE Klassen
+    #: verlangt.
+    #:
+    #: Django FINDET seine Modelle in ``models.py`` - eine Datei je Modell
+    #: waere gegen das Framework, nicht fuer die Uebersicht. Attrappen fuer
+    #: einen Test gehoeren zusammen: gemeinsam gebaut, gemeinsam gelesen,
+    #: einzeln sinnlos.
+    ZUSAMMEN_MUSTER = ('/models.py', '/admin.py', '/forms.py',
+                       '/serializers.py', '_attrappe.py', '_attrappen.py',
+                       '/migrations/')
+
     anlassfall = Anlassfall(
         {"sammlung.py": "class Erste:\n" + "    def a(self):\n        return 1\n" * 1
                         + "\n\nclass Zweite:\n    def b(self):\n        return 2\n"},
@@ -54,10 +74,17 @@ class KlassenJeDatei(BefundWerkzeug):
             beschreibung = '%d Klassen: %s' % (
                 len(klassen),
                 ', '.join('%s (%d)' % (name, laenge) for name, laenge in klassen[:8]))
+            zusammen = self._gehoeren_zusammen(datei)
             if len(grosse) <= 1:
                 warum = ('nur %d davon größer als %d Zeilen — das sind '
                          'Datentraeger bei ihrer Klasse, kein Verstoß'
                          % (len(grosse), self.KLEIN))
+                gewicht = Befund.HINWEIS
+            elif zusammen:
+                # KEIN VERSTOSS, aber auch nicht verschwiegen: Die Zeile bleibt
+                # als Hinweis stehen und traegt den Grund. Wer sie stillschweigen
+                # liesse, koennte spaeter nicht nachrechnen, was ausgenommen war.
+                warum = zusammen
                 gewicht = Befund.HINWEIS
             else:
                 warum = ('%d eigenstaendige Klassen in einer Datei — trennen'
@@ -77,6 +104,19 @@ class KlassenJeDatei(BefundWerkzeug):
                 'EINER eigenstaendigen Klasse (die Verstöße)'
                 % (len(befunde), grenze, verstoesse)]
         return Befundsatz(self.titel, kopf, befunde)
+
+    def _gehoeren_zusammen(self, datei):
+        u"""Warum diese Klassen in EINER Datei stehen duerfen - oder ``''``."""
+        kurz = '/' + self.kurz(datei)
+        for muster in self.ZUSAMMEN_MUSTER:
+            if muster in kurz:
+                return ('%s — hier verlangt das Framework bzw. die Aufgabe '
+                        'mehrere Klassen, kein Verstoß' % muster.strip('/'))
+        n = Quelldatei(datei, self.wurzel()).codezeilen
+        if n <= self.ZUSAMMEN_BIS:
+            return ('nur %d Code-Zeilen — unter %d ist die Übersicht ohnehin da, '
+                    'Aufteilen schadet' % (n, self.ZUSAMMEN_BIS))
+        return ''
 
     @staticmethod
     def _klassen(datei):

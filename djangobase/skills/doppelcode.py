@@ -104,6 +104,36 @@ class Doppelcode(BefundWerkzeug):
         r'\w+\s*=\s*logging\.getLogger\(__name__\)|'    # Modul-Logger
         r'"""$|\'\'\'$'                                 # Ende des Docstrings
         r')')
+    #: Der Startblock eines eigenstaendigen Skripts.
+    #:
+    #: DER FALL (03.09.2026, shortlongx)
+    #: =================================
+    #: 200 Warnungen, fast alle aus ``werkzeug/`` - und fast alle derselbe
+    #: Block::
+    #:
+    #:     WURZEL = Path(__file__).resolve().parents[1]
+    #:     sys.path.insert(0, str(WURZEL))
+    #:     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "...settings")
+    #:     import django
+    #:     django.setup()
+    #:
+    #: Er steht in jedem Skript, das Django braucht, und er MUSS es: Wer
+    #: ihn in ein gemeinsames Modul auslagert, muss dieses Modul
+    #: importieren - und braucht dafuer wieder den Pfad. Dieselbe
+    #: Ueberlegung wie beim Importblock: Ein Befund, der nichts zu tun
+    #: gibt, verdeckt die, die etwas zu tun geben.
+    #:
+    #: Streng gefasst: Eine Zuweisung zaehlt nur mit ``__file__`` oder
+    #: einem Laufwerkspfad rechts. ``WURZEL = berechne()`` bleibt Code.
+    NUR_STARTBLOCK = re.compile(
+        r'^\s*('
+        r'sys\.path\.(insert|append)\(|'
+        r'os\.environ(\.setdefault)?[(\[]\s*[^)]*SETTINGS_MODULE|'
+        r'django\.setup\(\)|'
+        r'sys\.(stdout|stderr)\.reconfigure\(|'
+        r'\w+\s*=\s*[^#]*__file__|'
+        r'\w+\s*=\s*r?[\x22\x27][A-Za-z]:[\\/]'
+        r')')
     #: Ein Fenster, das nur noch ZUMACHT.
     #:
     #: DER FALL (31.08.2026, assistant)
@@ -159,6 +189,7 @@ class Doppelcode(BefundWerkzeug):
         #: Wie viele Fenster ganz in einem Docstring lagen. Gehoert in die
         #: Kopfzeile: Eine Ausnahme, die schweigt, ist ein blinder Fleck.
         self.nur_doku = 0
+        self.nur_start = 0
         #: Wie viele Fenster nur Markup geschlossen haben.
         self.nur_zu = 0
         try:
@@ -201,6 +232,9 @@ class Doppelcode(BefundWerkzeug):
         if self.nur_doku:
             kopf.append('%d Fenster uebergangen: reiner Docstring'
                         % self.nur_doku)
+        if self.nur_start:
+            kopf.append('%d Fenster uebergangen: Startblock eines Skripts'
+                        % self.nur_start)
         if self.nur_zu:
             kopf.append('%d Fenster uebergangen: schliessen nur Markup'
                         % self.nur_zu)
@@ -347,10 +381,14 @@ class Doppelcode(BefundWerkzeug):
             # sie kommen. Ein Befund, der verlangt, Dokumentation
             # zusammenzufassen, gibt nichts zu tun.
             in_doku = [n in docstring for n, _z in fensterzeilen]
-            if all(self.NUR_HEREINGEHOLT.match(z) or drin
+            if all(self.NUR_HEREINGEHOLT.match(z)
+                   or self.NUR_STARTBLOCK.match(z) or drin
                    for (_n, z), drin in zip(fensterzeilen, in_doku)):
                 if any(in_doku):
                     self.nur_doku += 1
+                elif any(self.NUR_STARTBLOCK.match(z)
+                         for _n, z in fensterzeilen):
+                    self.nur_start += 1
                 else:
                     self.nur_importe += 1
                 continue
