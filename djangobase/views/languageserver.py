@@ -26,6 +26,7 @@ from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.views import View
 
+from ..conf import conf
 from ..mixins import ZugriffMixin
 from ..skills.werkzeug import Werkzeug
 from ..umbau import ablage
@@ -87,6 +88,15 @@ def extra_pfade():
     Pfad schon über ``venvPath`` erreichbar; ein zweites Mal schadet
     nicht, deshalb ohne Sonderfall.
 
+    ``ls_extra_pfade`` aus der Projekt-Konfiguration (05.09.2026). Dieselbe
+    Fehlerklasse noch einmal, nur projekteigen und deshalb nicht erratbar:
+    HumanBodyWeb haengt ``A:\3DTools\HumanBody`` in ``settings.py`` per
+    ``sys.path.insert`` ein, statt es zu installieren. Der Language Server
+    sieht davon nichts und meldete **151 ``reportMissingImports``** auf
+    ``humanbody_core.*`` — 12 % aller Befunde des Projekts, kein einziger
+    davon ein Fehler. Leere Vorgabe, also unveraendert fuer alle, die den
+    Schluessel nicht setzen.
+
     ZUSAMMENGEFÜHRT (02.09.2026)
         Zwei Sitzungen haben diese Funktion gleichzeitig gegen dasselbe
         Problem umgeschrieben. Übernommen ist der Weg über
@@ -106,6 +116,10 @@ def extra_pfade():
     paket = Path(djangobase.__file__).resolve().parent.parent
     if paket not in aus and not str(paket).startswith(str(eigen)):
         aus.append(paket)
+    for pfad in conf().get("ls_extra_pfade") or ():
+        ort = Path(str(pfad)).resolve()
+        if ort not in aus and not str(ort).startswith(str(eigen)):
+            aus.append(ort)
     return aus
 
 

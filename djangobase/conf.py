@@ -288,6 +288,18 @@ DEFAULTS = {
     # Dateinamen in sources duerfen ABSOLUT sein (dann gewinnt der absolute
     # Pfad gegenueber dem Basis-Verzeichnis). None -> statische log_sources.
     "log_source_provider": None,    # "tracker.logs.log_sources"
+    # ----- Language Server: zusaetzliche Import-Wurzeln --------------------
+    # Ordner AUSSERHALB der Projektwurzel, aus denen das Projekt importiert.
+    # Wer eine Bibliothek per `sys.path.insert` in `settings.py` einhaengt,
+    # statt sie zu installieren, bekommt sonst je Import eine rote Zeile:
+    # HumanBodyWeb laedt `humanbody_core` aus `A:\3DTools\HumanBody` und
+    # hatte deshalb **151 `reportMissingImports`** (gemessen 05.09.2026, 12 %
+    # aller Befunde) — kein einziger davon ein Fehler im Projekt.
+    #
+    # Es ist DIESELBE Fehlerklasse, gegen die `views.languageserver.extra_pfade`
+    # den djangobase-Pfad nachtraegt; nur laesst sie sich hier nicht erraten,
+    # weil der Ordner projekteigen ist. Absolute Pfade oder `Path`-Objekte.
+    "ls_extra_pfade": [],           # [HUMANBODY_ROOT]
     # ----- Konten-Freigabe (Gating neuer Registrierungen) ------------------
     # Wenn True, wird ein neues Konto der jeweiligen Rolle bei der Registrierung
     # auf is_active=False gesetzt und kann sich erst nach Admin-Freigabe

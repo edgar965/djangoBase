@@ -171,6 +171,22 @@ class Sortierwerte(BefundWerkzeug):
     eingabe = ('nur', 'nur Routen, die so beginnen (z. B. /hilfe/) — leer = alle', '')
     ruft_endpunkte_auf = True
 
+    #: Ein Anlassfall ist ein Mini-Projekt aus DATEIEN in einem
+    #: Wegwerf-Verzeichnis (siehe `skills/anlassfall.py`). Dieses
+    #: Werkzeug liest keine Dateien, sondern die ANTWORT des laufenden
+    #: Servers — dort gibt es nichts hinzuschreiben. Dieselbe Lage wie
+    #: bei `endpunkt-probe` und `endpunkt-zeiten`.
+    #:
+    #: Die Beurteilung selbst haengt aber NICHT am Server: `Sortierwert`
+    #: entscheidet auf einem Stueck HTML. Genau die ist deshalb in
+    #: `tests/unit/test_sortierwerte.py` festgehalten — mit dem echten
+    #: Fall vom 01.09.2026 (`_WIEDERHOLT`) und mit den beiden
+    #: Fehlalarmen des ersten Laufs (Waehrung hinten, ISO-Datum).
+    ohne_anlassfall_weil = (
+        'liest die Antwort des laufenden Servers, keine Dateien — ein '
+        'Wegwerf-Verzeichnis hat keine Seite, die man aufrufen koennte. '
+        'Die Beurteilung selbst prueft `tests/unit/test_sortierwerte.py`.')
+
     #: Ein Fall, der gemeldet werden MUSS - die Gegenprobe des Werkzeugs.
     _WIEDERHOLT = '<td data-sort="20.9B">20.9B</td>'
 

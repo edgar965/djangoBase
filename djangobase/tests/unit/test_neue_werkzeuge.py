@@ -255,6 +255,20 @@ class CachebustingTest(WerkzeugBasis):
         })
         self.assertEqual(projekt.fahren(Cachebusting), [])
 
+    def test_fassungspfad_ist_eine_fassungsangabe(self):
+        """`{% fassungspfad %}` legt die Fassung in den Pfad (05.09.2026) —
+        strenger als `?v=`, und darf deshalb nicht gemeldet werden. Der
+        Gegenfall daneben: ein `{% static %}` ohne alles bleibt ein Befund."""
+        projekt = self.projekt({
+            'templates/a.html': (
+                '<script type="module" src="{% fassungspfad \'viewer/x.js\' %}">'
+                '</script>\n'
+                '<script src="{% static \'viewer/y.js\' %}"></script>\n'),
+        })
+        zeilen = projekt.fahren(Cachebusting)
+        self.assertEqual(len(zeilen), 1, zeilen)
+        self.assertIn('y.js', zeilen[0]['befund'])
+
     def test_nur_vorlagen(self):
         """Eine .html ausserhalb von `templates/` ist keine Vorlage."""
         projekt = self.projekt({

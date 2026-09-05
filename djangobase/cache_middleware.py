@@ -31,8 +31,53 @@ WAS GESETZT WIRD
                               Pragma: no-cache        (für alte Zwischenspeicher)
                               Expires: 0
     Statik MIT ?v=            Cache-Control: public, max-age=31536000, immutable
-    Statik OHNE ?v=           unangetastet — dort wäre langes Cachen gefährlich
+    Statik OHNE ?v=           Cache-Control: no-cache
     alles andere              unangetastet
+
+WARUM ``no-cache`` UND NICHT „unangetastet" (05.09.2026)
+========================================================
+Bis dahin blieb Statik ohne Kennung ohne jeden ``Cache-Control``-Header —
+in der Annahme, dass dann ``Last-Modified`` entscheidet. Das tut es nicht:
+Ohne Angabe zur Frische darf der Browser selbst schaetzen, und er schaetzt
+**10 % des Alters der Datei**. Eine drei Wochen alte Datei gilt damit zwei
+Tage als frisch und wird ausgeliefert, OHNE zu fragen.
+
+Was daraus wird, zeigt der Fall vom 05.09.2026 in 3DTools. Die
+Viewer-Module sind ES-Module ohne Kennung in den Import-Adressen; nur die
+Einstiegsdatei traegt ``?t=``. Nach einer Aenderung, die ein Modul um einen
+Export erweiterte, holte der Browser die Einstiegsdatei frisch und ein
+Geschwistermodul aus seinem Zwischenspeicher. Ergebnis im Browser:
+
+    SyntaxError: The requested module './skinning.js' does not provide an
+    export named 'skelettNachfuehren'
+
+Kein Server sieht das, kein Test sieht das — die Seite antwortet mit 200 und
+zeigt nichts. Nachgestellt mit einem Playwright-Lauf, der genau EIN Modul
+aus der alten Fassung ausliefert: ``window.__viewer`` war danach nicht mehr
+da, das Modell weg.
+
+``no-cache`` heisst NICHT „nicht cachen" — es heisst „vor jeder Benutzung
+nachfragen". Die Datei bleibt im Zwischenspeicher, und solange sie stimmt,
+kostet sie ein 304 ohne Rumpf. Das ist genau das Verhalten, das der
+Kommentar oben ohnehin schon behauptet hat.
+
+IM DEV-SERVER GREIFT DAS NICHT — und das ist wichtig zu wissen
+==============================================================
+``runserver`` haengt ``StaticFilesHandler`` VOR die Middleware-Kette; ein
+Treffer unter ``STATIC_URL`` wird dort beantwortet und kommt hier nie an.
+Gemessen am laufenden Server (05.09.2026):
+
+    GET /static/viewer/viewer/skinning.js       -> nur Last-Modified
+    GET /static/viewer/viewer/skinning.js?v=7   -> nur Last-Modified
+    GET /humanbody/scene-model/                 -> Cache-Control: no-store, …
+
+Diese Regeln gelten also fuer Auslieferungen, die durch die Middleware
+laufen (WhiteNoise, Reverse Proxy mit Django dahinter), nicht fuer
+``runserver``. Wer sich im Entwicklungsbetrieb darauf verlaesst, verlaesst
+sich auf nichts. Dort hilft nur, den Modulbaum so zu bauen, dass ein
+einzelnes altes Modul ihn nicht abreisst — also keine neuen Pflicht-Importe
+zwischen bestehenden Modulen, sondern der Weg ueber eine Registrierung, die
+ein fehlendes Stueck vertraegt.
 
 AUSNAHMEN
 =========
@@ -47,6 +92,10 @@ EIN_JAHR = 60 * 60 * 24 * 365
 
 SEITE = "no-store, no-cache, must-revalidate, max-age=0"
 STATIK = "public, max-age=%d, immutable" % EIN_JAHR
+#: Statik ohne Kennung: liegen bleiben darf sie, aber nur mit Rueckfrage.
+#: Siehe den Modulkopf — ohne diese Zeile schaetzt der Browser die Frische
+#: selbst und liefert Tage alte Module aus, ohne zu fragen.
+NACHFRAGEN = "no-cache"
 
 
 class CacheHeaderMiddleware:
@@ -85,8 +134,8 @@ class CacheHeaderMiddleware:
         if pfad.startswith(statik):
             # NUR MIT KENNUNG (das ist der Punkt): Ohne ``?v=`` wäre ein Jahr
             # Cache eine Falle — eine geänderte Datei käme nie mehr an.
-            if request.GET.get("v"):
-                antwort["Cache-Control"] = STATIK
+            antwort["Cache-Control"] = (STATIK if request.GET.get("v")
+                                        else NACHFRAGEN)
             return
 
         if "text/html" in typ:

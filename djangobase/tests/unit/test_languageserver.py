@@ -140,3 +140,67 @@ class DasEigenePaketIstAufloesbar(unittest.TestCase):
         u"""``extraPaths`` wächst sonst bei jedem Lauf um dieselbe Zeile."""
         pfade = self._pfade()
         self.assertEqual(len(pfade), len(set(pfade)))
+
+
+class DieProjekteigenenWurzelnKommenDazu(unittest.TestCase):
+    u"""``ls_extra_pfade`` — dieselbe Fehlerklasse, nur nicht erratbar.
+
+    DER ANLASS (05.09.2026, 3DTools)
+    ================================
+    HumanBodyWeb lädt ``humanbody_core`` aus dem Nachbarordner
+    ``A:/3DTools/HumanBody``, eingehängt per ``sys.path.insert`` in
+    ``settings.py`` statt installiert. Der Language Server sieht davon
+    nichts und meldete **151 ``reportMissingImports``** auf
+    ``humanbody_core.*`` — 12 % aller Befunde des Projekts, kein einziger
+    davon ein Fehler. Nach dem Eintrag: 0.
+
+    Anders als der djangobase-Pfad lässt sich dieser nicht herleiten; er
+    steht deshalb in der Projekt-Konfiguration.
+    """
+
+    #: Ein Ordner, den `extra_pfade()` von sich aus NICHT nennt — das
+    #: djangobase-PAKET selbst. Genannt wird der Ordner darueber.
+    #:
+    #: DIE ERSTE FASSUNG DIESES TESTS WAR WERTLOS (05.09.2026): Sie nahm den
+    #: Ordner ueber dem Paket, und der steht ohnehin schon in der Liste. Die
+    #: Gegenprobe — den neuen Zweig aus `extra_pfade` herausnehmen — liess
+    #: alle vier Faelle gruen. Ein Test, der nicht rot wird, wenn man das
+    #: Gepruefte entfernt, prueft nichts.
+    @staticmethod
+    def _fremder_ordner():
+        import djangobase
+        return Path(djangobase.__file__).resolve().parent
+
+    def _pfade(self, **konfig):
+        from djangobase.views import languageserver as modul
+        echt = modul.conf
+        modul.conf = lambda: dict(konfig)
+        try:
+            return [Path(p).resolve() for p in modul.extra_pfade()]
+        finally:
+            modul.conf = echt
+
+    def test_der_ordner_steht_ohne_eintrag_nicht_drin(self):
+        u"""Die Voraussetzung des naechsten Falls — sonst prueft er nichts."""
+        self.assertNotIn(self._fremder_ordner(), self._pfade())
+
+    def test_mit_eintrag_ist_er_dabei(self):
+        ordner = self._fremder_ordner()
+        self.assertIn(ordner, self._pfade(ls_extra_pfade=[str(ordner)]))
+
+    def test_ohne_eintrag_aendert_sich_nichts(self):
+        u"""Die Vorgabe ist leer — alle bisherigen Projekte unverändert."""
+        self.assertEqual(self._pfade(), self._pfade(ls_extra_pfade=[]))
+
+    def test_derselbe_ordner_zweimal_zaehlt_einmal(self):
+        ordner = self._fremder_ordner()
+        pfade = self._pfade(ls_extra_pfade=[str(ordner), str(ordner)])
+        self.assertEqual(len(pfade), len(set(pfade)))
+        self.assertIn(ordner, pfade)
+
+    def test_ein_ordner_innerhalb_der_wurzel_kommt_nicht_dazu(self):
+        u"""Er ist über die Projektwurzel schon erreichbar; ein zweiter
+        Eintrag wäre nur eine Zeile mehr in ``extraPaths``."""
+        from djangobase.views.languageserver import wurzel
+        drinnen = Path(wurzel()).resolve()
+        self.assertNotIn(drinnen, self._pfade(ls_extra_pfade=[str(drinnen)]))

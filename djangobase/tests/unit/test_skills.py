@@ -104,8 +104,21 @@ class WerkzeugGrundlagenTest(BasisTest):
     #: Hier gilt deshalb nur: laeuft durch, liefert ein ``Ergebnis``. Ob sie
     #: ihren eigenen Fall noch sehen, prueft das Werkzeug ``anlassfall-check``
     #: — dort gegen eigens dafuer gebauten Code statt gegen einen leeren Ordner.
-    NUR_DURCHLAUF = {"vorlagen-kontext", "vorlagen-variablen",
-                     "endpunkt-zeiten", "endpunkt-profil"}
+    #: NICHT MEHR NACH NAMEN (05.09.2026): Hier standen zwei Endpunkt-
+    #: Werkzeuge namentlich. Als `sortierwerte` als drittes dazukam, war
+    #: dieser Test rot — und der Grund stand nicht im Werkzeug, sondern
+    #: in einer Liste anderswo. Wer ein Werkzeug schreibt, das den Server
+    #: fragt, setzt `ruft_endpunkte_auf = True`; damit ist es hier
+    #: automatisch richtig eingeordnet. Die beiden Vorlagen-Werkzeuge
+    #: bleiben namentlich: Sie rufen keine Route auf, sie lesen den
+    #: Vorlagenbaum des Hosts.
+    NUR_DURCHLAUF = {"vorlagen-kontext", "vorlagen-variablen"}
+
+    @staticmethod
+    def _nur_durchlauf(werkzeug):
+        u"""Haengt das Ergebnis am HOST statt am Projektordner?"""
+        return (werkzeug.slug in WerkzeugGrundlagenTest.NUR_DURCHLAUF
+                or getattr(werkzeug, "ruft_endpunkte_auf", False))
 
     #: `protokoll` prueft eine Sache NICHT im Verzeichnis, sondern an
     #: ``settings.LOGGING`` — rotierender Handler, Zeitstempel im Format, eigene
@@ -170,7 +183,7 @@ class WerkzeugGrundlagenTest(BasisTest):
                                     "%s misst Python selbst und muss auch im "
                                     "leeren Projekt etwas liefern" % w.slug)
                     continue
-                if w.slug in self.NUR_DURCHLAUF:
+                if self._nur_durchlauf(w):
                     continue
                 self.assertEqual(ergebnis.zeilen, [],
                                  "%s findet etwas in einem leeren Projekt" % w.slug)

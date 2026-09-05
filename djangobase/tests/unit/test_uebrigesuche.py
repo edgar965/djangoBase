@@ -17,7 +17,8 @@ from pathlib import Path
 
 from django.test import override_settings
 
-from djangobase.umbau.uebrigesuche import UebrigeSuche
+from djangobase.umbau.uebrigesuche import (GESCHUETZT, UebrigeSuche,
+                                           geschuetzt)
 
 from ..base import BasisTest
 
@@ -33,7 +34,7 @@ class UebrigeFindenUndLoeschen(BasisTest):
         return ordner
 
     def test_findet_nur_die_gesuchte_endung(self):
-        o = self._bauen({'a.dump': u'x', 'b.dump': u'x', 'c.log': u'x'})
+        o = self._bauen({'a.dump': u'x', 'b.dump': u'x', 'c.tmp': u'x'})
         namen = sorted(p.name for p in UebrigeSuche(o).finden('.dump'))
         self.assertEqual(namen, ['a.dump', 'b.dump'])
 
@@ -94,7 +95,7 @@ class UebrigeFindenUndLoeschen(BasisTest):
         suche = UebrigeSuche(o)
         self.assertEqual(suche._pruefen(fremd, '.dump'),
                          u'ausserhalb des Projekts')
-        self.assertEqual(suche._pruefen(o / 'a.dump', '.log'),
+        self.assertEqual(suche._pruefen(o / 'a.dump', '.tmp'),
                          u'andere Endung')
         self.assertTrue(fremd.exists())
 
@@ -113,7 +114,7 @@ class MehrereEndungenAufEinmal(BasisTest):
     u"""Mehrfachauswahl und Sammellöschung (Edgar, 02.09.2026: „mach auch
     Multi Auswahl (check boxen) und batch delete")."""
 
-    DATEIEN = {'a.dump': u'x', 'b.dump': u'xx', 'c.log': u'xxx',
+    DATEIEN = {'a.dump': u'x', 'b.dump': u'xx', 'c.tmp': u'xxx',
                'Makefile': u'all:\n', 'bleibt.py': u'x = 1\n'}
 
     def _bauen(self):
@@ -124,11 +125,11 @@ class MehrereEndungenAufEinmal(BasisTest):
 
     def test_sammeln_trennt_die_endungen(self):
         o = self._bauen()
-        gefunden = UebrigeSuche(o).sammeln(['.dump', '.log', ''])
+        gefunden = UebrigeSuche(o).sammeln(['.dump', '.tmp', ''])
         self.assertEqual(
             dict((e, sorted(p.name for p in pfade))
                  for e, pfade in gefunden.items()),
-            {'.dump': ['a.dump', 'b.dump'], '.log': ['c.log'],
+            {'.dump': ['a.dump', 'b.dump'], '.tmp': ['c.tmp'],
              '': ['Makefile']})
 
     def test_eine_endung_ohne_treffer_bleibt_leer_statt_zu_fehlen(self):
@@ -139,15 +140,15 @@ class MehrereEndungenAufEinmal(BasisTest):
 
     def test_vorschau_mehrere_summiert_und_teilt_auf(self):
         o = self._bauen()
-        v = UebrigeSuche(o).vorschau_mehrere(['.dump', '.log'])
+        v = UebrigeSuche(o).vorschau_mehrere(['.dump', '.tmp'])
         self.assertEqual(v['anzahl'], 3)
         self.assertEqual(v['bytes'], 6)
         # Grösste Gruppe zuerst — sie trägt die Entscheidung.
-        self.assertEqual([a['endung'] for a in v['arten']], ['.dump', '.log'])
+        self.assertEqual([a['endung'] for a in v['arten']], ['.dump', '.tmp'])
 
     def test_loeschen_mehrere_raeumt_alle_gewaehlten(self):
         o = self._bauen()
-        b = UebrigeSuche(o).loeschen_mehrere(['.dump', '.log'])
+        b = UebrigeSuche(o).loeschen_mehrere(['.dump', '.tmp'])
         self.assertEqual(b['geloescht'], 3)
         self.assertEqual(b['bytes'], 6)
         self.assertEqual(sorted(p.name for p in o.iterdir()),
@@ -157,15 +158,15 @@ class MehrereEndungenAufEinmal(BasisTest):
         u"""Ohne diesen Fall belegt der Test oben nur, dass etwas weg ist."""
         o = self._bauen()
         UebrigeSuche(o).loeschen_mehrere(['.dump'])
-        self.assertTrue((o / 'c.log').exists())
+        self.assertTrue((o / 'c.tmp').exists())
         self.assertTrue((o / 'Makefile').exists())
 
     def test_der_bericht_nennt_jede_endung_einzeln(self):
         o = self._bauen()
-        b = UebrigeSuche(o).loeschen_mehrere(['.dump', '.log'])
+        b = UebrigeSuche(o).loeschen_mehrere(['.dump', '.tmp'])
         self.assertEqual(
             sorted((e['endung'], e['geloescht']) for e in b['je_endung']),
-            [('.dump', 2), ('.log', 1)])
+            [('.dump', 2), ('.tmp', 1)])
 
 
 class DerBaumWirdBeschnitten(BasisTest):
@@ -197,3 +198,78 @@ class DerBaumWirdBeschnitten(BasisTest):
         (ordner / 'klein.dump').write_text(u'x', encoding='utf-8')
         namen = [p.name for p in UebrigeSuche(ordner).finden('.dump')]
         self.assertEqual(namen, ['klein.dump'])
+
+
+class GeschuetzteDateiartenSindNichtLoeschbar(BasisTest):
+    u"""Der Schutz aus `GESCHUETZT` — und warum es ihn gibt.
+
+    DER SCHADEN (02.09.2026)
+    ========================
+    In `assistant` sind ueber dieses Werkzeug **43 Protokolldateien
+    (3,45 MB)** verschwunden — darin lag die Mail-Audit-Spur, jede
+    mutative Aktion, absichtlich getrennt gefuehrt. Davor schon eine
+    `.xlsm` mit 3,74 MB, sechs `.xlsx` und zwei `.otf`, darunter die
+    Collmex-Ausfuhren der Steuer-App.
+
+    Alle standen unter „Uebrige", weil die Zaehlung sie nicht als
+    Quelltext kennt. „Kein Quelltext" heisst aber nicht „Muell".
+
+    WARUM DIESE FAELLE FEHLTEN
+    ==========================
+    Der Schutz kam am 02.09.2026 um 18:13 in den Code; die Pruefdatei
+    war um 17:41 geschrieben und benutzte `.log` als Beispiel fuer eine
+    zweite loeschbare Endung. Danach war sie rot — aber der Schutz
+    selbst hatte immer noch keinen einzigen Fall. Ein Schutz ohne
+    Pruefung haelt genau bis zum naechsten Umbau.
+    """
+
+    def _bauen(self, namen):
+        ordner = Path(tempfile.mkdtemp(prefix='putz_schutz_'))
+        for name in namen:
+            (ordner / name).write_text(u'x', encoding='utf-8')
+        return ordner
+
+    def test_protokolle_werden_nicht_gefunden(self):
+        o = self._bauen(['audit.log', 'spur.jsonl', 'echt.dump'])
+        self.assertEqual(UebrigeSuche(o).finden('.log'), [])
+        self.assertEqual(UebrigeSuche(o).finden('.jsonl'), [])
+
+    def test_buerodokumente_werden_nicht_gefunden(self):
+        o = self._bauen(['collmex.xlsx', 'vertrag.docx', 'schrift.otf'])
+        for endung in ('.xlsx', '.docx', '.otf'):
+            self.assertEqual(UebrigeSuche(o).finden(endung), [], endung)
+
+    def test_der_letzte_blick_weist_sie_ab(self):
+        u"""``_pruefen`` ist der Schutz unmittelbar vor dem ``unlink``.
+
+        Er muss auch dann greifen, wenn jemand die Endung von Hand
+        schickt und `finden` gar nicht erst gefragt wurde.
+        """
+        o = self._bauen(['audit.log'])
+        self.assertEqual(UebrigeSuche(o)._pruefen(o / 'audit.log', '.log'),
+                         u'geschützte Dateiart')
+
+    def test_loeschen_laesst_sie_stehen(self):
+        u"""Die Gegenprobe am ganzen Weg, nicht nur an einer Methode."""
+        o = self._bauen(['audit.log', 'weg.dump'])
+        bericht = UebrigeSuche(o).loeschen('.log')
+        self.assertEqual(bericht['geloescht'], 0)
+        self.assertTrue((o / 'audit.log').exists())
+
+    def test_und_das_ungeschuetzte_verschwindet_doch(self):
+        u"""Ohne diesen Fall belegen die vier oben nur, dass NICHTS
+        geloescht wird — dann waere ein kaputtes Werkzeug auch gruen."""
+        o = self._bauen(['audit.log', 'weg.dump'])
+        self.assertEqual(UebrigeSuche(o).loeschen('.dump')['geloescht'], 1)
+        self.assertFalse((o / 'weg.dump').exists())
+        self.assertTrue((o / 'audit.log').exists())
+
+    def test_die_schreibweise_ist_egal(self):
+        self.assertTrue(geschuetzt('.LOG'))
+        self.assertTrue(geschuetzt('.XlsX'))
+        self.assertFalse(geschuetzt('.dump'))
+
+    def test_die_liste_ist_nicht_leer(self):
+        u"""Sabotageschutz: Eine leere `GESCHUETZT` bestuende jeden Fall
+        oben nicht — aber `geschuetzt()` waere still wirkungslos."""
+        self.assertGreater(len(GESCHUETZT), 40)
