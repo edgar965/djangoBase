@@ -114,17 +114,33 @@ class WerkzeugGrundlagenTest(BasisTest):
     #: hatten (17.08.2026). Statt die Pruefung abzuschwaechen bekommt der
     #: leere Lauf hier eine KORREKTE Konfiguration — dann heisst „findet
     #: nichts" wieder, was es sagt.
-    LOGGING_SAUBER = {
-        "version": 1,
-        "formatters": {"voll": {"format": "{asctime} {levelname} {message}",
-                                "style": "{"}},
-        "handlers": {
-            "datei": {"class": "logging.handlers.RotatingFileHandler",
-                      "filename": "django.log", "formatter": "voll"},
-            "fehler": {"class": "logging.handlers.RotatingFileHandler",
-                       "filename": "error.log", "formatter": "voll"},
-        },
-    }
+    #:
+    #: DIE DATEINAMEN MUESSEN ABSOLUT SEIN (05.09.2026)
+    #: ------------------------------------------------
+    #: Bis hierher war das eine Konstante mit den blossen Namen
+    #: ``"django.log"`` und ``"error.log"``.
+    #: ``override_settings(LOGGING=...)`` laesst Django die Handler
+    #: aufbauen, und ein ``RotatingFileHandler`` mit relativem Namen legt
+    #: seine Datei im ARBEITSVERZEICHNIS an — nicht im Wegwerf-Ordner des
+    #: Tests. In 3DTools blieben so nach jedem Lauf zwei leere Dateien in
+    #: der Werkstattwurzel liegen, in der vier Repos nebeneinander stehen;
+    #: gesehen hat sie nur ``git status``.
+    @staticmethod
+    def _logging_sauber(ordner):
+        u"""Eine korrekte LOGGING-Konfiguration im Wegwerf-Verzeichnis."""
+        return {
+            "version": 1,
+            "formatters": {"voll": {"format": "{asctime} {levelname} {message}",
+                                    "style": "{"}},
+            "handlers": {
+                "datei": {"class": "logging.handlers.RotatingFileHandler",
+                          "filename": str(Path(ordner) / "django.log"),
+                          "formatter": "voll"},
+                "fehler": {"class": "logging.handlers.RotatingFileHandler",
+                           "filename": str(Path(ordner) / "error.log"),
+                           "formatter": "voll"},
+            },
+        }
 
     #: Dasselbe fuer `testaufbau`: Es liest ``DJANGOBASE['test_befehle']``, um
     #: „laesst sich das ueberhaupt per Knopf starten?" zu beantworten. Auf dem
@@ -143,7 +159,7 @@ class WerkzeugGrundlagenTest(BasisTest):
         """Ein Projekt ohne Code darf kein Werkzeug zum Absturz bringen."""
         ordner = MiniProjekt().anlegen(self)
         with override_settings(BASE_DIR=str(ordner),
-                               LOGGING=self.LOGGING_SAUBER,
+                               LOGGING=self._logging_sauber(ordner),
                                DJANGOBASE=self._djangobase_mit_befehlen()):
             for w in werkzeuge():
                 ergebnis = w.laufen()

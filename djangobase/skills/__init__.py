@@ -131,6 +131,7 @@ from .namensdubletten import Namensdubletten
 from .modulindex import ModulIndex
 from .scheindocstring import ScheinDocstring
 from .toteimporte import ToteImporte
+from .totesmodul import TotesModul
 from .vorlagenkontext import Vorlagenkontext
 from .vorlagenvariablen import Vorlagenvariablen
 
@@ -345,6 +346,11 @@ BEFUNDBASIERT = [
     # nicht GIBT - der Unterschied zwischen unnoetig und kaputt.
     ImportZiele,
     ScheinDocstring,
+    # Direkt daneben (03.09.2026): ``ToteImporte`` fragt nach Namen, die
+    # hereingeholt und nicht gebraucht werden; ``TotesModul`` nach ganzen
+    # Dateien, die niemand hereinholt. Seine Befunde sind Loeschvorschlaege -
+    # deshalb fragt es in drei Stufen, bevor es eine Datei nennt.
+    TotesModul,
     Doppelcode,
     Namensdubletten,
     Endpunktzeiten,
