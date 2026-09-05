@@ -591,7 +591,7 @@ Ausnahme, Test), von dem, was frei steht, weil es niemand eingehängt hat.
 
 {% elif reiter == 'variablen' %}
 <div class="km-rahmen">
-    <table class="km-liste sortable">
+    <table class="km-liste sortable" data-sort-key="km-variablen">
         <thead><tr><th>Variable</th><th>Art</th><th>Datei</th></tr></thead>
         {% for e in bestand.variablen %}
         <tr><td><b>{{ e.name }}</b></td>
@@ -606,7 +606,7 @@ Ausnahme, Test), von dem, was frei steht, weil es niemand eingehängt hat.
 
 {% elif reiter == 'seiten' %}
 <div class="km-rahmen">
-    <table class="km-liste sortable">
+    <table class="km-liste sortable" data-sort-key="km-seiten">
         <thead><tr><th>Seite</th><th>Zeilen</th>
             <th>Skripte und ihre Abhängigkeiten</th></tr></thead>
         {% for s in bestand.seiten %}
@@ -658,7 +658,7 @@ Ablage, sagt die Seite das und wartet auf den Knopf.{% endcomment %}
 </div>
 
 <div class="km-rahmen">
-    <table class="km-liste sortable">
+    <table class="km-liste sortable" data-sort-key="km-qualitaet">
         <thead><tr><th>Stufe</th><th>Werkzeug</th><th>Verfahren</th>
             <th>Wert</th><th>Stelle</th><th>Datei</th>
             <th>Befund</th></tr></thead>
@@ -707,7 +707,7 @@ hinter einem stummen `except: continue`, also aus Statistik UND Bericht.
         <span class="km-verfahren-satz">Diese Dateien konnten nicht
             gemessen werden — sie fehlen in jeder Zahl darunter.</span>
     </div>
-    <table class="km-liste sortable">
+    <table class="km-liste sortable" data-sort-key="km-pannen">
         <thead><tr><th>Datei</th><th>Verfahren</th>
             <th>Grund</th></tr></thead>
         {% for p in pannen %}
@@ -763,7 +763,7 @@ hinter einem stummen `except: continue`, also aus Statistik UND Bericht.
     {% endif %}
 
     {% if v.treffer %}
-    <table class="km-liste sortable">
+    <table class="km-liste sortable" data-sort-key="km-werkzeugbefunde">
         {% comment %}
         Das Werkzeug steht im KOPF, nicht in jeder Zeile: Innerhalb eines
         Blocks ist es fuer alle Treffer dasselbe, und eine Spalte, die
@@ -827,7 +827,7 @@ assistant 94 Sekunden kostet, obwohl die Zählung selbst zwei braucht.
 </div>
 
 <div class="km-rahmen">
-    <table class="km-liste sortable">
+    <table class="km-liste sortable" data-sort-key="km-statistik">
         {% comment %}
         „ausserhalb" (27.08.2026, auf Ansage): Die Spalte „Klassen" sagt, wie
         VIELE es gibt - nicht, wie viel Code an gar keiner haengt. Genau das
@@ -1009,7 +1009,7 @@ Skript geben konnte.
             <i class="bi bi-trash3"></i> Ausgewählte löschen</button>
         <span class="km-js" id="km-putz-stand"></span>
     </div>
-    <table class="km-liste sortable" id="km-uebrige">
+    <table class="km-liste sortable" data-sort-key="km-uebrige" id="km-uebrige">
         <thead><tr>
             {% comment %}
             MEHRFACHAUSWAHL (02.09.2026, auf Ansage: „mach auch Multi

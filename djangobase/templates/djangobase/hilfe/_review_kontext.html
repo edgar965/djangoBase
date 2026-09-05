@@ -65,15 +65,22 @@ Dieselbe Lehre wie beim Werkzeug Klassenmodell am selben Tag.
 
     const zahl = (n) => (n ?? 0).toLocaleString('de-DE');
 
-    /** Eine Tabelle bauen — Kopf, Zeilen, alles sortierbar. */
-    function tabelle(titel, kopf, zeilen) {
+    /** Eine Tabelle bauen — Kopf, Zeilen, alles sortierbar.
+     *
+     * `schluessel` ist Pflicht: Ohne `data-sort-key` sortiert die Tabelle
+     * zwar, merkt sich aber die Spaltenbreiten nicht — und weil hier drei
+     * Tabellen aus derselben Funktion kommen, muessten sie sich sonst
+     * EINEN Schluessel teilen und ihre Breiten gegenseitig ueberschreiben.
+     */
+    function tabelle(schluessel, titel, kopf, zeilen) {
         const th = kopf.map((k) => `<th>${k}</th>`).join('');
         const tr = zeilen.map(
             (z) => '<tr>' + z.map((c) => `<td>${c}</td>`).join('') + '</tr>'
         ).join('');
         return `<h4 style="margin:1.1rem 0 .4rem;font-size:.95rem;
                     color:#c8d4e0;">${titel}</h4>
-                <table class="km-liste sortable db-tabelle">
+                <table class="km-liste sortable db-tabelle"
+                       data-sort-key="${schluessel}">
                   <thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table>`;
     }
 
@@ -88,15 +95,18 @@ Dieselbe Lehre wie beim Werkzeug Klassenmodell am selben Tag.
         // „je Aufruf" ist die eigentliche Aussage: 634 Reads mit 18 KB im
         // Schnitt sind teurer als 18.863 kurze Befehle.
         const werkzeuge = tabelle(
+            'kontext-werkzeuge',
             'Nach Werkzeug — wo der Kontext hingeht',
             ['Werkzeug', 'MB', 'Token', 'Aufrufe', 'Zeichen je Aufruf'],
             d.werkzeuge.map((w) => [w.name, w.mb, zahl(w.token),
                                     zahl(w.anzahl), zahl(w.je_aufruf)]));
         const arten = tabelle(
+            'kontext-arten',
             'Nach Eintragsart',
             ['Art', 'MB', 'Token', 'Einträge'],
             d.arten.map((a) => [a.name, a.mb, zahl(a.token), zahl(a.anzahl)]));
         const brocken = tabelle(
+            'kontext-brocken',
             'Die dicksten Einzelergebnisse — dort liegt der Hebel',
             ['Token', 'Zeichen', 'Werkzeug', 'Aufruf'],
             d.groesste.map((g) => [zahl(g.token), zahl(g.zeichen), g.werkzeug,

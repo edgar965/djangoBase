@@ -87,8 +87,41 @@ class DreiZeilenartenStattEiner(BasisTest):
         self.assertEqual(self._py().kommentar, 1)
 
     def test_klassen_und_funktionen_kommen_aus_dem_ast(self):
+        u"""Eine Klasse — und KEINE Funktion, denn `machen` ist eine Methode.
+
+        Die Spalte zaehlt seit dem 02.09.2026 nur noch, was an keiner
+        Klasse haengt (auf Ansage: „Spalte Funktionen — wenn die
+        innerhalb von Klassen sind dann lass die weg"). Vorher zaehlte
+        hier jedes `def`; die Zahl sagte damit ungefaehr „wie viel Code"
+        statt „wie viel haengt an keiner Klasse".
+        """
         py = self._py()
+        self.assertEqual((py.klassen, py.funktionen), (1, 0))
+
+    def test_eine_freie_funktion_wird_sehr_wohl_gezaehlt(self):
+        u"""Die Gegenprobe. Ohne sie belegte der Fall oben nur, dass die
+        Spalte 0 zeigt — auch eine kaputte Zaehlung taete das."""
+        quelle = u''.join((u'def frei():\n',
+                           u'    return 1\n',
+                           u'\n',
+                           u'\n',
+                           u'class Ding:\n',
+                           u'    def methode(self):\n',
+                           u'        return 2\n'))
+        py = _zaehlen({'b.py': quelle}).arten[u'Python']
         self.assertEqual((py.klassen, py.funktionen), (1, 1))
+
+    def test_eine_verschachtelte_funktion_haengt_an_keiner_klasse(self):
+        u"""Ein `def` im `def` haengt an keiner Klasse — beide zaehlen.
+
+        Der Fall steht hier, damit die Regel benannt ist: Gezaehlt wird
+        „ausserhalb einer KLASSE", nicht „auf Modulebene"."""
+        quelle = u''.join((u'def aussen():\n',
+                           u'    def innen():\n',
+                           u'        return 1\n',
+                           u'    return innen\n'))
+        py = _zaehlen({'c.py': quelle}).arten[u'Python']
+        self.assertEqual(py.funktionen, 2)
 
     def test_eine_kaputte_datei_kostet_nur_ihre_klassen(self):
         u"""Die Zeilen zählen weiter — ein Syntaxfehler ist kein Grund,

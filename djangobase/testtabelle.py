@@ -28,6 +28,7 @@ vorigen Läufe — darunter ist es Rauschen.
 from django.utils.html import escape
 from django.utils.http import urlencode
 
+from .sortierschluessel import Sortierschluessel
 from .zeitformat import dauer_text
 
 __all__ = ["Eintrag", "Testtabelle"]
@@ -199,7 +200,13 @@ class Testtabelle:
                 teile.append(' colspan="%d"' % z["colspan"])
             sortwert = z.get("sort")
             if sortwert is not None:
-                teile.append(' data-sort="%s"' % escape(str(sortwert)))
+                # NICHT `str()` (05.09.2026): Eine Dauer von 0,379 s stand
+                # als `data-sort="0.379"` da, und die Sortierung las
+                # deutsch — der Punkt galt als Tausenderzeichen, aus 0,379
+                # wurde 379. Der schnellste Lauf der Seite galt damit als
+                # der langsamste.
+                teile.append(' data-sort="%s"'
+                             % escape(Sortierschluessel.aus(sortwert)))
             if z.get("titel"):
                 teile.append(' title="%s"' % escape(str(z["titel"])))
             teile.append(">")

@@ -24,6 +24,11 @@ WAS ALS FASSUNGSANGABE ZAEHLT
 =============================
 ``?t=…`` (Zeitstempel) und ``?v=…`` (Versionsnummer) — beide Schreibweisen sind
 in Gebrauch, ``?t={% now 'U' %}`` in den Vorlagen und ``?v=N`` in ES-Importen.
+Seit dem 05.09.2026 ausserdem ``{% fassungspfad "…" %}`` (`fassungsstatik.py`):
+Dort steht die Fassung im PFAD (``/statik/v-<zahl>/…``), damit relative
+ES-Importe sie erben — eine Abfrage vererbt sich nicht. Ohne diese Ausnahme
+meldete das Werkzeug alle sieben umgestellten 3DTools-Vorlagen als „ohne
+Fassungsangabe", obwohl sie die strengere Form tragen.
 
 WAS NICHT GEMELDET WIRD
 =======================
@@ -80,8 +85,9 @@ class Cachebusting(BefundWerkzeug):
 
     #: Adressen, die keine Fassungsangabe brauchen.
     FREMD = ("http://", "https://", "//", "data:", "#")
-    #: Was als Fassungsangabe gilt.
-    FASSUNG = re.compile(r"\?(?:t|v)=")
+    #: Was als Fassungsangabe gilt: eine Abfrage `?t=`/`?v=` — oder der
+    #: Fassungspfad, der die Kennung in die Adresse selbst legt.
+    FASSUNG = re.compile(r"\?(?:t|v)=|\{%\s*fassungspfad\b")
     #: ``<script src="…">`` und ``<link … href="…">``, auch ueber Zeilenumbrueche.
     SKRIPT = re.compile(r"<script\b[^>]*?\bsrc\s*=\s*\"([^\"]+)\"", re.I | re.S)
     LINK = re.compile(r"<link\b[^>]*?\bhref\s*=\s*\"([^\"]+)\"", re.I | re.S)

@@ -125,3 +125,15 @@ def de_signed(value, decimals=0):
         dec = 0
     s = de(value, decimals)
     return f"+{s}" if round(n, dec) > 0 else s   # + nur bei echt positivem (gerundetem) Wert
+
+
+@register.filter
+def sortzahl(value):
+    u"""Eine Zahl fuer ``data-sort`` — mit Komma, wie die Sortierung liest.
+
+    Die Regel steht in :class:`djangobase.sortierschluessel.Sortierschluessel`;
+    ``testtabelle`` baut seine Attribute aus derselben Quelle. Zwei Kopien
+    derselben Regel laufen auseinander, sobald eine angefasst wird.
+    """
+    from djangobase.sortierschluessel import Sortierschluessel
+    return Sortierschluessel.aus(value)

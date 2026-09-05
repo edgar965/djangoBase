@@ -98,12 +98,33 @@ class StatikCachenTest(SimpleTestCase):
         self.assertIn("immutable", steuerung)
         self.assertNotIn("no-store", steuerung)
 
-    def test_statik_ohne_kennung_bleibt_unberuehrt(self):
-        u"""Ein Jahr Cache ohne Kennung wäre eine Falle: Die geänderte Datei
-        käme nie mehr an."""
+    def test_statik_ohne_kennung_wird_nachgefragt(self):
+        u"""Ohne Kennung: liegen bleiben ja, ungefragt ausliefern nein.
+
+        BIS ZUM 05.09.2026 STAND HIER `assertIsNone` — die Antwort trug gar
+        keinen `Cache-Control`-Header, in der Annahme, dann entscheide
+        `Last-Modified`. Das tut es nicht: Ohne Angabe zur Frische schätzt
+        der Browser selbst, nämlich 10 % des Dateialters. Eine drei Wochen
+        alte Datei gilt damit zwei Tage als frisch und wird ausgeliefert,
+        OHNE zu fragen.
+
+        In 3DTools kostete das die halbe Seite: Ein ES-Modul kam frisch, sein
+        Geschwistermodul aus dem Zwischenspeicher, und der fehlende Export
+        riss den ganzen Modulbaum ab (`SyntaxError: … does not provide an
+        export named …`) — HTTP 200, leere Szene, ein einziger Konsoleneintrag.
+        """
         antwort = _durch(HttpResponse(b"/* css */", content_type="text/css"),
                          pfad="/static/app/x.css")
-        self.assertIsNone(antwort.get("Cache-Control"))
+        steuerung = (antwort.get("Cache-Control") or "").lower()
+        self.assertIn("no-cache", steuerung)
+
+    def test_und_dabei_nicht_verboten(self):
+        u"""`no-cache` heißt „vor der Benutzung fragen", nicht „nicht
+        speichern". Stünde hier `no-store`, lüde jede Seite alles neu — genau
+        der Fehler, gegen den diese Middleware geschrieben ist."""
+        antwort = _durch(HttpResponse(b"/* css */", content_type="text/css"),
+                         pfad="/static/app/x.css")
+        self.assertNotIn("no-store", (antwort.get("Cache-Control") or "").lower())
 
 
 class EingehaengtTest(SimpleTestCase):
