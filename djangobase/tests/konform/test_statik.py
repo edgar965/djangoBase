@@ -111,7 +111,11 @@ def _dateien(muster):
 
 
 #: ``{% static 'app/x.js' %}`` — in Django-Vorlagen die übliche Schreibweise.
-_STATIC_TAG = re.compile(r"""{%\s*static\s+["']([^"']+)["']""")
+#: Seit dem 06.09.2026 auch ``{% fassungspfad 'app/x.js' %}``: Dort steht die
+#: Fassung im Pfad (Hilfe → Cache). Ein Projekt, das ganz darauf umgestellt hat
+#: (3DTools, 46 Stellen), hatte sonst „keine einzige Einbindung" — und der
+#: Sucher galt als kaputt, obwohl die Vorlagen die strengere Form tragen.
+_STATIC_TAG = re.compile(r"""{%\s*(?:static|fassungspfad)\s+["']([^"']+)["']""")
 
 
 def _datei_der_adresse(adresse):
@@ -151,7 +155,7 @@ class CacheBustingTest(SimpleTestCase):
                     continue
                 # `{% static %}` mit angehängter Query zählt - die Kennung steht
                 # dann hinter dem Tag, nicht in der Adresse.
-                if "?" in adresse or "|add:" in adresse:
+                if "?" in adresse or "|add:" in adresse or "fassungspfad" in adresse:
                     continue
                 ohne.append((pfad, adresse))
         return ohne

@@ -15,6 +15,7 @@ from .aktuell import AktuellView, AktuellDatenView, AktuellLeerenView
 from .settings import EinstellungenView, EinstellungenTabsView
 from .klassenmodell import KlassenmodellView
 from .ablaufseite import AblaufView
+from .cacheseite import CacheView
 from .workflows import WorkflowsDatenView, WorkflowsView
 from .skills import SkillsView
 from .traffic import TrafficView, VerbrauchBeaconView
@@ -30,7 +31,7 @@ __all__ = [
            "ReviewBefundeView",
            "AktuellView", "AktuellDatenView", "AktuellLeerenView",
            "EinstellungenView", "EinstellungenTabsView", "SkillsView",
-           "KlassenmodellView", 
+           "KlassenmodellView", "CacheView", 
            "TrafficView", "VerbrauchBeaconView",
            "SpracheSetzenView", "UebersetzungView",
            "BenutzerListeView", "BenutzerErstellenView",

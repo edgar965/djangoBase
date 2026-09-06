@@ -103,6 +103,11 @@ class PflichtEintrag:
 #: das ist hilfreicher als ein fehlender Menüpunkt, den niemand sucht.
 PFLICHTSEITEN = (
     PflichtEintrag(
+        "Cache", "bi-hdd-network", "cache",
+        "Das Cache-Konzept: Seiten nie aus dem Zwischenspeicher, Statik mit "
+        "Fassung, ES-Module über den Fassungspfad — Regeln, Vorgeschichte, "
+        "Zustand dieses Projekts und die Befunde"),
+    PflichtEintrag(
         "Werkzeug Code Review", "bi-tools", "skills",
         "Der Werkzeugkasten: alle Prüfungen und Fixer, Stapellauf mit Bericht "
         "zum Mitnehmen, Sicherung und Netz, dazu die Lehren aus den "
