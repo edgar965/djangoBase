@@ -397,3 +397,18 @@ eigener serverseitiger Sortierung).
   abgeleitet; Geschwister-Repos mit absolutem Pfad eintragen.
 - Pro-Mandant-/Station-Logs: `DJANGOBASE['log_source_provider']` = Callable, liefert
   pro Request `(verzeichnis, sources)`; Dateinamen dürfen absolut sein.
+
+## Hilfe → Cache und das Werkzeug `cachekonzept` (06.09.2026)
+
+Das Cache-Konzept steht an EINER Stelle: `djangobase/cachekonzept.py` (Regeln mit
+Vorgeschichte, Prüfer für Vorlagen, JavaScript und Einstellungen). Drei Verbraucher
+rufen es: die Seite **Hilfe → Cache** (`views/cacheseite.py`, Pflichtmenü, Zustand des
+Projekts + Befunde + Regeln + Anleitung für neue Projekte), das Befund-Werkzeug
+`skills/cachekonzept.py` (Hilfe → Skills / Review) und die Konformitätsprüfung
+`tests/konform/test_cachekonzept.py` (jede Vorlage, jedes Skript, dazu Middleware,
+Fassungspfad, ASGI-Hülle). Kern: HTML `no-store`; Statik mit Fassung; ES-Module über
+`{% fassungspfad %}` (Fassung im Pfad, die Importe erben sie), nie über
+`{% static %}?t=`; kein `?t={% now %}` an Statik (das ist „nie cachen"); keine Kennung
+in Import-Adressen. `test_statik.py` zählt `{% fassungspfad %}` seither als versionierte
+Einbindung — 3DTools hat alle 46 Stellen umgestellt und wäre sonst „ohne Einbindung"
+gewesen.

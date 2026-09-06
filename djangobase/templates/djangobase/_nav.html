@@ -73,7 +73,7 @@ Die <li>-Einträge werden in ein vorhandenes <ul class="nav"> eingehängt.
     Schreibweisen zu lesen kostet nichts und erspart jedem Projekt, seine
     Ansichten umzustellen.
     {% endcomment %}
-    <div class="collapse {% if aktiv == 'versions' or aktiv == 'logs' or aktiv == 'tests' or aktiv == 'jobs' or aktiv == 'review' or aktiv == 'aktuell' or aktiv == 'ki_modelle' or aktiv == 'traffic' or aktiv == 'uebersetzung' or aktiv|slice:':6' == 'skills' or aktiv|slice:':4' == 'help' or aktiv|slice:':5' == 'hilfe' or aktiv == 'klassenmodell' or active_section == 'help' %}show{% endif %}" id="hilfeMenu">
+    <div class="collapse {% if aktiv == 'versions' or aktiv == 'logs' or aktiv == 'tests' or aktiv == 'jobs' or aktiv == 'review' or aktiv == 'aktuell' or aktiv == 'ki_modelle' or aktiv == 'traffic' or aktiv == 'uebersetzung' or aktiv|slice:':6' == 'skills' or aktiv|slice:':4' == 'help' or aktiv|slice:':5' == 'hilfe' or aktiv == 'klassenmodell' or aktiv == 'cache' or active_section == 'help' %}show{% endif %}" id="hilfeMenu">
         <ul class="nav flex-column submenu">
             <li><a class="nav-link {% if aktiv == 'versions' %}active{% endif %}" href="{% url 'djangobase:versionen' %}">
                 <i class="bi bi-clock-history"></i> Versionen

@@ -56,6 +56,7 @@ from .lehren import BEREICHE, LEHREN, Lehre, Lehrenstand, als_zeilen, gruppen
 from .netz import Abnahme, Umbaunetz
 from .befund import Befund, Befundsatz, BefundWerkzeug
 from .cachebusting import Cachebusting
+from .cachekonzept import Cachekonzept
 from .cssdubletten import Cssdubletten
 from .nurlesen import NurLesen
 from .pfadpraefix import Pfadpraefix
@@ -373,6 +374,10 @@ BEFUNDBASIERT = [
     # Fassung ausfuehrt. `_shell.html` haengt selbst `?v=` an; dieses
     # Werkzeug prueft, ob die Vorlagen des Projekts es genauso halten.
     Cachebusting,
+    # Und das ganze Konzept dahinter (06.09.2026): ES-Module ueber den
+    # Fassungspfad, kein Zeitstempel an Statik, keine Kennung in Importen,
+    # Fassungspfad und StatikKopfzeilen eingehaengt. Erklaert auf Hilfe -> Cache.
+    Cachekonzept,
     # Dieselbe stille Sorte, eine Ebene tiefer (28.08.2026): eine Adresse,
     # die funktioniert und zwei Sekunden je Verbindung kostet. `localhost`
     # loest unter Windows zuerst auf `::1` auf; lauscht der Dienst nur auf

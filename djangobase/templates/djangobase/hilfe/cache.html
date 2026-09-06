@@ -1,0 +1,152 @@
+{% extends djangobase.base_template|default:"djangobase/base.html" %}
+
+{% block title_extra %} · Cache{% endblock %}
+{% block topbar_title %}<i class="bi bi-hdd-network"></i> Hilfe · Cache{% endblock %}
+
+{% comment %}
+Das Cache-Konzept von djangoBase — Regeln, Vorgeschichte, Zustand dieses
+Projekts und die Befunde (06.09.2026, auf Ansage: „dokumentiere das Caching-
+Konzept (auch für ES-Module usw.) in djangoBase Hilfe - Cache, schreib da alles
+rein an Erkenntnissen und Problemen, die du hattest, und wie du das machst,
+damit neue Projekte das genau so machen").
+
+Die Regeln kommen aus `djangobase/cachekonzept.py` — dieselbe Quelle wie das
+Befund-Werkzeug `cachekonzept` und die Konformitätsprüfung
+`tests/konform/test_cachekonzept.py`. Was hier steht, wird dort geprüft.
+{% endcomment %}
+
+{% block content %}
+<style>
+.ca-abschnitt { margin-bottom: 1.6rem; }
+.ca-abschnitt h2 { font-size: 1.1rem; margin: 0 0 0.6rem; border-bottom: 1px solid var(--ct-border, #2b3540); padding-bottom: 0.3rem; }
+.ca-abschnitt h3 { font-size: 0.98rem; margin: 1rem 0 0.4rem; }
+.ca-zustand td:first-child { white-space: nowrap; }
+.ca-ja { color: #3fb950; font-weight: 600; }
+.ca-nein { color: #f85149; font-weight: 600; }
+.ca-regel { border-left: 3px solid var(--ct-accent, #38d4d8); padding: 0.4rem 0.8rem; margin: 0.6rem 0; }
+.ca-regel .ca-warum { opacity: 0.85; }
+.ca-regel .ca-wie { font-family: Consolas, monospace; font-size: 0.86em; margin-top: 0.3rem; white-space: pre-wrap; }
+.ca-fall { background: rgba(255,255,255,0.04); border-radius: 4px; padding: 0.6rem 0.9rem; margin: 0.5rem 0; }
+.ca-fall b { color: var(--ct-accent, #38d4d8); }
+pre.ca-code { background: #0d1117; border: 1px solid var(--ct-border, #2b3540); border-radius: 4px; padding: 0.6rem 0.8rem; font-size: 0.84em; overflow-x: auto; }
+table.ca-tab { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+table.ca-tab th, table.ca-tab td { border-bottom: 1px solid var(--ct-border, #2b3540); padding: 0.35rem 0.5rem; text-align: left; vertical-align: top; }
+.ca-hinweis { font-size: 0.86em; opacity: 0.8; }
+</style>
+
+<div class="ca-abschnitt">
+  <h2>Zustand dieses Projekts</h2>
+  <table class="ca-tab ca-zustand doku">
+    <thead><tr><th>Prüfung</th><th>Steht</th><th>Woran man es sieht</th></tr></thead>
+    <tbody>
+    {% for titel, ok, info in zustand %}
+      <tr><td>{{ titel }}</td><td>{% if ok %}<span class="ca-ja">ja</span>{% else %}<span class="ca-nein">nein</span>{% endif %}</td><td>{{ info }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="ca-abschnitt">
+  <h2>Befunde des Werkzeugs <code>cachekonzept</code></h2>
+  {% if fehler %}<p class="ca-nein">Der Lauf ist hingefallen: {{ fehler }}</p>{% endif %}
+  <p class="ca-hinweis">{{ kopf }} — dieselben Stellen meldet die Konformitätsprüfung <code>djangobase.tests.konform.test_cachekonzept</code> (Hilfe → Tests) und das Werkzeug unter Hilfe → Skills / Review.</p>
+  {% if befunde %}
+  <table class="ca-tab doku">
+    <thead><tr><th>Ort</th><th>Was</th><th>Wie</th></tr></thead>
+    <tbody>
+    {% for b in befunde %}
+      <tr><td><code>{{ b.ort }}</code></td><td>{{ b.was }}</td><td class="ca-hinweis">{{ b.warum }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="ca-ja">Keine Befunde — Vorlagen, Skripte und Einstellungen halten das Konzept ein.</p>
+  {% endif %}
+</div>
+
+<div class="ca-abschnitt">
+  <h2>Das Konzept in drei Sätzen</h2>
+  <ol>
+    <li><b>Seiten (HTML) kommen nie aus dem Zwischenspeicher.</b> Wer nach einem Deploy die Seite von gestern sieht, sucht den Fehler im Code und findet ihn nicht.</li>
+    <li><b>Statik (JS, CSS) kommt aus dem Zwischenspeicher</b> — und zwar ein Jahr lang, ohne Rückfrage. Dass eine geänderte Datei trotzdem ankommt, besorgt die <b>Fassung in der Adresse</b>: neue Fassung, neue Adresse, neuer Eintrag.</li>
+    <li><b>ES-Module bekommen die Fassung im Pfad</b> (<code>/statik/v-&lt;fassung&gt;/…</code>), nicht in der Abfrage: Nur ein Pfad vererbt sich auf relative Importe. Deshalb <code>{% templatetag openblock %} fassungspfad 'viewer/index.js' {% templatetag closeblock %}</code> statt <code>{% templatetag openblock %} static … {% templatetag closeblock %}?t=…</code>.</li>
+  </ol>
+  <p class="ca-hinweis">Nie „Strg+Shift+R" als Lösung vorschlagen: Damit ist der Fehler beim Entwickler weg und beim Benutzer noch da. Der Fix muss ankommen.</p>
+</div>
+
+<div class="ca-abschnitt">
+  <h2>Die Regeln — und woher jede kommt</h2>
+  {% for r in regeln %}
+  <div class="ca-regel" id="regel-{{ r.kennung }}">
+    <div><b>{{ forloop.counter }}. {{ r.titel }}</b> <span class="ca-hinweis">(<code>{{ r.kennung }}</code>)</span></div>
+    <div class="ca-warum">{{ r.warum }}</div>
+    <div class="ca-wie">{{ r.wie }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="ca-abschnitt">
+  <h2>Was schiefging, bevor es so war</h2>
+
+  <div class="ca-fall"><b>Der Fix kommt nicht an</b> (drei Projekte, wiederholt, Stunden je Fall). Eine Datei ohne Fassung liefert der Browser aus seinem Zwischenspeicher. Die Seite lädt, sie führt nur eine alte Fassung aus — kein Fehler, nirgends. Ein „Konto löschen"-Eintrag galt als fehlend (assistant, 30.05.2026); im DOM war er da, der Browser hatte die alte Datei.</div>
+
+  <div class="ca-fall"><b>Die weiße Seite</b> (WalkHop, 15.06.2026; 3DTools, 05.09.2026, zweimal an einem Tag). Ein versioniert geladenes Modul zieht seine relativen Importe <i>ohne</i> Abfrage nach; die kommen aus dem alten Zwischenspeicher. Bekommt das Modul einen neuen Export, bricht der Import: <code>SyntaxError: The requested module './skinning.js' does not provide an export named 'skelettNachfuehren'</code>. HTTP 200, leere Seite. Im Serverlog fehlt die Datei einfach — sie wurde gar nicht angefragt. Nachgestellt mit einem Playwright-Lauf, der genau ein Modul aus der alten Fassung ausliefert: das Modell weg.</div>
+
+  <div class="ca-fall"><b>Zehn Prozent des Dateialters.</b> Ohne <code>Cache-Control</code> schätzt der Browser die Frische selbst: 10 % der Zeit seit <code>Last-Modified</code>. Eine drei Wochen alte Datei gilt zwei Tage als frisch. Der Entwicklungsserver beantwortet Statik <i>vor</i> der Middleware-Kette, deshalb sah die <code>CacheHeaderMiddleware</code> sie nie — die ASGI-Hülle <code>StatikKopfzeilen</code> setzt <code>no-cache</code> („vor jeder Benutzung nachfragen", ein 304 ohne Rumpf, nicht „nicht speichern"). Dieselbe Falle traf am 06.09.2026 große Binärdateien (GLB-Figuren mit nur <code>Last-Modified</code>): eine neu gebaute Datei gleichen Namens kann der Browser für 10 % ihres Alters behalten.</div>
+
+  <div class="ca-fall"><b>Ein Modul, zwei Adressen.</b> <code>modul.js?v=123</code> hier, <code>modul.js</code> im Import dort — für den Browser zwei Module mit getrenntem Zustand. Am 21.08.2026 zeichnete die Testaufzeichnung jeden Klick doppelt auf: zwei Aufzeichner, zwei Puffer, identische Zeitstempel.</div>
+
+  <div class="ca-fall"><b>Die pauschale NoCache-Middleware.</b> <code>no-store</code> auf alles (ShortLongX, 3DTools bis 28.08.2026, Kommentar: „during development") — jede Seite lud sämtliche Module neu, und jede <code>?v=</code>-Kennung war wirkungslos, weil ohnehin nie gecacht wurde.</div>
+
+  <div class="ca-fall"><b>Der Zeitstempel an der Statik.</b> <code>?t={% templatetag openblock %} now "U" {% templatetag closeblock %}</code> an Stil- und Skriptdateien ändert sich jede Sekunde: die Datei liegt nie im Zwischenspeicher, jede Seite lädt alles neu. Für Adressen von Daten (<code>bvhUrl</code>, Job-Ergebnisse) ist der Zeitstempel richtig — für Statik ist er die Abschaltung des Zwischenspeichers durch die Hintertür.</div>
+
+  <div class="ca-fall"><b>Die Kennung, die sich nie änderte.</b> <code>Statik.kennung()</code> wurde einmal je Prozess gerechnet; der Entwicklungsserver startet bei <code>.py</code>-Änderungen neu, nicht bei <code>.js</code>. Ein neuer Listener kam nie an (18.08.2026). Seither wird die Kennung im Entwicklungsbetrieb je Aufruf frisch aus dem Dateibaum gelesen; der Fassungspfad hält seine Zahl höchstens zwei Sekunden.</div>
+
+  <div class="ca-fall"><b>Der falsche Hilfe-Präfix.</b> Nicht Cache, aber dieselbe Sorte still: <code>/help/</code> statt <code>/hilfe/</code> ließ die Testaufzeichnung bei jedem Seitenaufruf dreimal in eine 404 laufen — ohne Fehlerseite, ohne Logeintrag. Gefunden hat es eine Seitenprobe, nicht das Fehlerlog.</div>
+</div>
+
+<div class="ca-abschnitt">
+  <h2>So wird es in einem neuen Projekt eingerichtet</h2>
+  <h3>1. Middleware — nichts zu tun</h3>
+  <p><code>CacheHeaderMiddleware</code> trägt sich beim Start selbst in <code>MIDDLEWARE</code> ein (<code>djangobase.apps</code>). HTML bekommt <code>no-store</code>, Statik mit <code>?v=</code> ein Jahr <code>immutable</code>, Statik ohne Kennung <code>no-cache</code>. Eine eigene <code>NoCacheMiddleware</code> gehört gestrichen.</p>
+
+  <h3>2. Fassungspfad einhängen (<code>urls.py</code>)</h3>
+<pre class="ca-code">from django.urls import include, path
+
+urlpatterns = [
+    path('', include('djangobase.fassungsstatik')),   # /statik/v-&lt;fassung&gt;/…
+    …
+]</pre>
+
+  <h3>3. Statik-Kopfzeilen um die ASGI-Anwendung (<code>asgi.py</code>)</h3>
+<pre class="ca-code">from django.contrib.staticfiles.handlers import ASGIStaticFilesHandler
+from django.core.asgi import get_asgi_application
+from djangobase.statik_kopfzeilen import StatikKopfzeilen
+
+application = StatikKopfzeilen(ASGIStaticFilesHandler(get_asgi_application()))</pre>
+
+  <h3>4. In den Vorlagen</h3>
+<pre class="ca-code">{% templatetag openblock %} load static fassung {% templatetag closeblock %}
+
+&lt;!-- ES-Modul: Fassung im Pfad, die Importe erben sie --&gt;
+&lt;script type="module" src="{% templatetag openblock %} fassungspfad 'viewer/scene/index.js' {% templatetag closeblock %}"&gt;&lt;/script&gt;
+const { start } = await import('{% templatetag openblock %} fassungspfad "js/spieler.js" {% templatetag closeblock %}');
+
+&lt;!-- Stil und klassisches Skript: ebenfalls Fassungspfad (oder ?v= mit einer Kennung, die sich mit der Datei ändert) --&gt;
+&lt;link rel="stylesheet" href="{% templatetag openblock %} fassungspfad 'css/seite.css' {% templatetag closeblock %}"&gt;
+&lt;script src="{% templatetag openblock %} fassungspfad 'js/seite.js' {% templatetag closeblock %}"&gt;&lt;/script&gt;
+
+&lt;!-- Daten: hier ist der Zeitstempel richtig --&gt;
+bvhUrl: '{% templatetag openblock %} url "serve_bvh" job.id {% templatetag closeblock %}?t={% templatetag openblock %} now "U" {% templatetag closeblock %}'</pre>
+
+  <h3>5. In JavaScript</h3>
+<pre class="ca-code">import { Serverabruf } from '../gemeinsam/serverabruf.js';   // keine Abfrage, kein ?v=
+const modul = await import('./teil.js');                       // erbt /statik/v-…/</pre>
+
+  <h3>6. Für Dateien, die der Server rechnet (JSON, GLB, Bilder aus Jobs)</h3>
+  <p>Keine Fassung in der Adresse, also <code>Cache-Control: no-cache</code> plus <code>Last-Modified</code> oder <code>ETag</code>: Der Browser fragt nach, bekommt ein 304, solange die Datei stimmt, und sonst die neue. Ohne die Kopfzeile schätzt er — siehe „Zehn Prozent des Dateialters".</p>
+
+  <h3>7. Prüfen</h3>
+  <p>Hilfe → Tests: <code>djangobase.tests.konform</code> (darin <code>test_cache</code>, <code>test_statik</code>, <code>test_cachekonzept</code>). Hilfe → Skills: Werkzeuge <code>cachebusting</code>, <code>cachekonzept</code>, <code>esmodulimporte</code>. Und im Browser, nach jeder Änderung an einem Modul: die Seite laden und im Serverlog nachsehen, dass das geänderte Modul unter der neuen Fassung angefragt wurde — eine Datei, die gar nicht angefragt wird, kommt aus dem Zwischenspeicher.</p>
+</div>
+{% endblock %}

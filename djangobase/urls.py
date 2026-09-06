@@ -7,7 +7,7 @@ from .views.languageserver import LanguageServerView
 from .views.languageserver_status import LanguageServerStatusView
 from .views.languageserver_referenzen import LanguageServerReferenzenView
 from .views.uebrige_putz import UebrigePutzView
-from .views import (AblaufView, WorkflowsDatenView, WorkflowsView,
+from .views import (AblaufView, CacheView, WorkflowsDatenView, WorkflowsView,
                     AufzeichnungView, AktuellDatenView, AktuellLeerenView,
                     AktuellView,
                     BenutzerBearbeitenView, BenutzerErstellenView,
@@ -76,6 +76,7 @@ urlpatterns = [
          name="languageserver_referenzen"),
     path("workflows/", WorkflowsView.as_view(), name="workflows"),
     path("ablauf/", AblaufView.as_view(), name="ablauf"),
+    path("cache/", CacheView.as_view(), name="cache"),
     path("workflows/daten/", WorkflowsDatenView.as_view(),
          name="workflows_daten"),
     # Skills2 und Skills3 sind UEBERGANGSSEITEN auf dem Weg zur Abschaffung
