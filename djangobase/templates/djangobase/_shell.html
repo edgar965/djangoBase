@@ -52,16 +52,42 @@
     {% comment %}Sidebar-Breite frueh setzen (vor dem ersten Paint), damit
     kein Springen von Default- auf Wunschbreite sichtbar ist. Reihenfolge:
     server-rendered `sidebar_initial_width` (per-User, cross-device) >
-    localStorage (Browser-cache) > CSS-Default.{% endcomment %}
+    localStorage (Browser-cache) > `sidebar_default`.
+
+    DER LETZTE SCHRITT FEHLTE — UND KOSTETE JEDEN SEITENAUFBAU (10.09.2026)
+    ======================================================================
+    Ohne gespeicherten Wert liess dieser Setzer die Variable in Ruhe, und
+    es galt der CSS-Standard aus `sidebar.css` (250px). `sidebar_resizer.js`
+    setzte danach seinen `data-default` — und wer den in den Einstellungen
+    verstellt hat, bekam bei JEDEM Aufbau einen Sprung, den `.main-wrapper`
+    mit `transition: margin-left 0.2s` auch noch vorfuehrte.
+
+    Gemessen im Wirt CamTrack (`sidebar_default: 200`, frisches Profil,
+    also ohne localStorage)::
+
+        285 ms  --sidebar-width nicht gesetzt   Inhalt 1350 px breit
+        310 ms  --sidebar-width: 200px          Inhalt waechst ...
+        449 ms  ...                             Inhalt 1398 px breit
+
+    Die 165 ms dazwischen zog jede der elf Kachel-Groessen mit. Die
+    Ruhemessung des Wirts meldete das als „Kachel aendert 2x ihre Groesse"
+    fuer ALLE elf Kacheln, bei jedem Aufbau.
+
+    Es betrifft nur Wirte, die `sidebar_default` verstellen: djangoBases
+    eigener Wert (250) ist derselbe wie im Stilblatt, dort fiel es nicht
+    auf. Ein Standard, den zwei Stellen unabhaengig festlegen, ist einer zu
+    viel — deshalb setzt dieser Setzer die Variable jetzt IMMER.{% endcomment %}
     <script>(function(){
         var min={{ djangobase.sidebar_min }}, max={{ djangobase.sidebar_max }};
         function clamp(w){return Math.max(min,Math.min(max,w));}
+        function setze(w){document.documentElement.style.setProperty('--sidebar-width',clamp(w)+'px');}
         {% if sidebar_initial_width %}
-        document.documentElement.style.setProperty('--sidebar-width',clamp({{ sidebar_initial_width }})+'px');
+        setze({{ sidebar_initial_width }});
         return;
         {% endif %}
-        try{var w=parseInt(localStorage.getItem('{{ djangobase.sidebar_storage_key|default:"djangobase.sidebarWidth" }}'),10);
-            if(w){document.documentElement.style.setProperty('--sidebar-width',clamp(w)+'px');}}catch(e){}
+        var w=0;
+        try{w=parseInt(localStorage.getItem('{{ djangobase.sidebar_storage_key|default:"djangobase.sidebarWidth" }}'),10)||0;}catch(e){}
+        setze(w||{{ djangobase.sidebar_default }});
     })();</script>
     {% endif %}
 
