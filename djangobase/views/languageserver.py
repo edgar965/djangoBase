@@ -90,12 +90,24 @@ def extra_pfade():
 
     ``ls_extra_pfade`` aus der Projekt-Konfiguration (05.09.2026). Dieselbe
     Fehlerklasse noch einmal, nur projekteigen und deshalb nicht erratbar:
-    HumanBodyWeb haengt ``A:\3DTools\HumanBody`` in ``settings.py`` per
+    HumanBodyWeb haengt ``A:/3DTools/HumanBody`` in ``settings.py`` per
     ``sys.path.insert`` ein, statt es zu installieren. Der Language Server
     sieht davon nichts und meldete **151 ``reportMissingImports``** auf
     ``humanbody_core.*`` — 12 % aller Befunde des Projekts, kein einziger
     davon ein Fehler. Leere Vorgabe, also unveraendert fuer alle, die den
     Schluessel nicht setzen.
+
+    EIN ORDNER IM PROJEKT DARF DAZU (10.09.2026, assistant)
+        Bis hierher warf die Schleife jeden Pfad weg, der unter der
+        Projektwurzel liegt — mit der Begruendung, er sei ueber die Wurzel
+        schon erreichbar. Das gilt fuer die Wurzel selbst und fuer Pakete
+        darunter, aber nicht fuer einen Ordner voller **Skripte**:
+        ``werkzeug/aufteilen`` haelt 193 Gegenproben, die einander mit
+        ``from gegenprobe_basis import …`` aufrufen. Das laeuft (wer ein
+        Skript startet, bekommt dessen Ordner als ``sys.path[0]``), nur
+        aufloesen kann der Server es nicht — **157 ``reportMissingImports``**,
+        kein einziger ein Fehler. Ausgenommen bleibt allein die Wurzel:
+        Sie steht ohnehin in jeder ``pyrightconfig.json``.
 
     ZUSAMMENGEFÜHRT (02.09.2026)
         Zwei Sitzungen haben diese Funktion gleichzeitig gegen dasselbe
@@ -118,7 +130,7 @@ def extra_pfade():
         aus.append(paket)
     for pfad in conf().get("ls_extra_pfade") or ():
         ort = Path(str(pfad)).resolve()
-        if ort not in aus and not str(ort).startswith(str(eigen)):
+        if ort not in aus and ort != Path(eigen).resolve():
             aus.append(ort)
     return aus
 

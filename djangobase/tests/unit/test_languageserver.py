@@ -198,9 +198,22 @@ class DieProjekteigenenWurzelnKommenDazu(unittest.TestCase):
         self.assertEqual(len(pfade), len(set(pfade)))
         self.assertIn(ordner, pfade)
 
-    def test_ein_ordner_innerhalb_der_wurzel_kommt_nicht_dazu(self):
-        u"""Er ist über die Projektwurzel schon erreichbar; ein zweiter
+    def test_die_wurzel_selbst_kommt_nicht_dazu(self):
+        u"""Sie steht ohnehin in jeder ``pyrightconfig.json``; ein zweiter
         Eintrag wäre nur eine Zeile mehr in ``extraPaths``."""
         from djangobase.views.languageserver import wurzel
         drinnen = Path(wurzel()).resolve()
         self.assertNotIn(drinnen, self._pfade(ls_extra_pfade=[str(drinnen)]))
+
+    def test_ein_ordner_IM_projekt_kommt_dazu(self):
+        u"""Die Gegenprobe zum Fall darüber — und der Anlass vom 10.09.2026.
+
+        Ein Ordner voller Skripte, die einander ohne Paketpräfix
+        importieren (``werkzeug/aufteilen`` in assistant: 193 Gegenproben,
+        ``from gegenprobe_basis import …``), ist über die Projektwurzel
+        gerade NICHT erreichbar. Bis zum 10.09.2026 warf die Schleife ihn
+        weg, weil sein Pfad mit der Wurzel beginnt — 157 gemeldete Importe,
+        die alle auflösbar sind."""
+        from djangobase.views.languageserver import wurzel
+        unterordner = Path(wurzel()).resolve() / "werkzeug"
+        self.assertIn(unterordner, self._pfade(ls_extra_pfade=[str(unterordner)]))
