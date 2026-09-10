@@ -19,6 +19,7 @@ shortlongx/dashboard - dort war es an EIN Projekt gebunden, obwohl jedes
 Django-Projekt dieselbe Frage hat: rechnet die Maschine gerade, oder haengt sie?
 """
 import subprocess
+import sys
 import time
 
 # Am Dateikopf (09.08.2026): ``hintergrund_cache`` ist reine Standardbibliothek und
@@ -43,6 +44,26 @@ _DRIVE_MAP = None
 #: mehrere Tabs offen - der Entwicklungs-Server verbrachte damit rund ein Fuenftel
 #: seiner einzigen Bahn mit dem ANZEIGEN der Auslastung statt mit dem Rechnen.
 _HG = None
+
+
+def ohne_fenster():
+    """Startoptionen, die unter Windows KEIN Konsolenfenster aufziehen.
+
+    ANLASS (Edgar, 09.09.2026): „command shell kommt wieder hoch! fixe!!!"
+    Die Leiste fragt im Sekundentakt, und jeder ``nvidia-smi``-Aufruf liess
+    ein Fenster aufblitzen — bei geoeffneter Seite dauernd. Die
+    Laufwerkszuordnung startet zusaetzlich eine PowerShell.
+
+    CREATE_NO_WINDOW allein hat auf dem Rechner des Nutzers nicht gereicht,
+    deshalb zusaetzlich STARTF_USESHOWWINDOW mit SW_HIDE. Auf anderen
+    Systemen ein leeres Dict — dort gibt es beides nicht.
+    """
+    if sys.platform != "win32":
+        return {}
+    info = subprocess.STARTUPINFO()
+    info.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    info.wShowWindow = subprocess.SW_HIDE
+    return {"creationflags": 0x08000000, "startupinfo": info}
 
 
 class SystemStats:
@@ -91,7 +112,7 @@ class SystemStats:
                 ["nvidia-smi",
                  "--query-gpu=name,utilization.gpu,memory.used,memory.total,temperature.gpu",
                  "--format=csv,noheader,nounits"],
-                capture_output=True, text=True, timeout=2,
+                capture_output=True, text=True, timeout=2, **ohne_fenster(),
             )
             if r.returncode != 0:
                 return None
@@ -125,7 +146,7 @@ class SystemStats:
                  "Get-Partition | Where-Object DriveLetter | "
                  "Select-Object DriveLetter,DiskNumber | "
                  "ConvertTo-Csv -NoTypeInformation"],
-                capture_output=True, text=True, timeout=8,
+                capture_output=True, text=True, timeout=8, **ohne_fenster(),
             )
             if r.returncode != 0:
                 return _DRIVE_MAP
