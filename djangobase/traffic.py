@@ -24,6 +24,7 @@ from urllib.parse import urlparse
 from django.conf import settings
 
 from .conf import conf
+from .middleware_basis import ZweiwegMiddleware
 
 # Crawler/Monitoring/Tools – werden markiert und in der Statistik ausgeblendet.
 BOT_RE = re.compile(
@@ -147,20 +148,23 @@ def ist_bot(request, ua, pfad):
     return False
 
 
-class TrafficMiddleware:
+class TrafficMiddleware(ZweiwegMiddleware):
     """Erfasst jeden erfolgreichen GET-Seitenaufruf als Seitenaufruf-Zeile.
-    Muss NACH der AuthenticationMiddleware stehen (User-Zuordnung)."""
+    Muss NACH der AuthenticationMiddleware stehen (User-Zuordnung).
 
-    def __init__(self, get_response):
-        self.get_response = get_response
+    Beidseitig seit dem 11.09.2026 — siehe ``middleware_basis.py``. Das
+    Erfassen schreibt eine Zeile und liest ``request.user``, läuft also im
+    Arbeitsfaden: ``braucht_faden``. Ohne das verschluckt der ``except``-Block
+    darunter im ASGI-Betrieb jede Erfassung als ``SynchronousOnlyOperation``
+    — die Statistik bliebe still leer.
+    """
 
-    def __call__(self, request):
-        response = self.get_response(request)
-        try:
-            self._erfassen(request, response)
-        except Exception:  # noqa: BLE001 – Statistik darf nie Seiten crashen
-            pass
-        return response
+    braucht_faden = True
+
+    def nachbereiten(self, request, response):
+        # Fehler verschluckt die Basisklasse: Statistik darf nie Seiten
+        # crashen.
+        self._erfassen(request, response)
 
     def _erfassen(self, request, response):
         if request.method != "GET" or response.status_code != 200:

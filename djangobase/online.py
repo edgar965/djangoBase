@@ -15,6 +15,8 @@ Verhalten (aktive Session) erhalten – andere Projekte werden nicht verändert.
 from django.conf import settings
 from django.core.cache import cache
 
+from .middleware_basis import ZweiwegMiddleware
+
 
 def online_fenster():
     """Sekunden, die ein Nutzer nach seiner letzten Anfrage als online gilt."""
@@ -58,13 +60,24 @@ def tracking_aktiv():
     return bool(getattr(settings, "DJANGOBASE_ONLINE_TRACKING", False))
 
 
-class OnlineMiddleware:
-    """Markiert eingeloggte Nutzer bei jeder Anfrage als aktiv (Cache)."""
+class OnlineMiddleware(ZweiwegMiddleware):
+    """Markiert eingeloggte Nutzer bei jeder Anfrage als aktiv (Cache).
 
-    def __init__(self, get_response):
-        self.get_response = get_response
+    Beidseitig seit dem 11.09.2026 — siehe ``middleware_basis.py``.
+    """
 
-    def __call__(self, request):
+    @property
+    def braucht_faden(self):
+        """Nur wenn wirklich etwas getan wird, kostet es einen Faden-Wechsel.
+
+        ``request.user`` ist träge und schlägt beim ersten Zugriff in der
+        Datenbank nach; auf der Ereignisschleife gäbe das
+        ``SynchronousOnlyOperation``. Ist das Mitschreiben aber abgeschaltet,
+        wird ``user`` gar nicht angefasst — dann ist der Umweg unnötig.
+        """
+        return tracking_aktiv()
+
+    def vorbereiten(self, request):
         # Das Opt-in gilt AUCH HIER (Review 15.08.2026): Der Kopf dieser Datei
         # sagt „nur aktiv, wenn die Middleware in MIDDLEWARE steht UND
         # DJANGOBASE_ONLINE_TRACKING = True". Geprüft wurde die Einstellung aber
@@ -73,12 +86,10 @@ class OnlineMiddleware:
         # cache.get und einmal je Minute und Nutzer ein `update_or_create` in die
         # Datenbank — Arbeit für eine Anzeige, die niemand sieht.
         if not tracking_aktiv():
-            return self.get_response(request)
+            return
         u = getattr(request, "user", None)
         if u is not None and getattr(u, "is_authenticated", False):
-            try:
-                if markiere_online(u.id):           # nur wenn nicht gedrosselt
-                    schreibe_zuletzt_aktiv(u)        # persistenter Zeitstempel
-            except Exception:  # noqa: BLE001 – Online-Status darf nie die Anfrage stören
-                pass
-        return self.get_response(request)
+            # Fehler verschluckt die Basisklasse: Der Online-Status darf nie
+            # die Anfrage stören.
+            if markiere_online(u.id):               # nur wenn nicht gedrosselt
+                schreibe_zuletzt_aktiv(u)            # persistenter Zeitstempel

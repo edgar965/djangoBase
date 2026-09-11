@@ -46,28 +46,34 @@ from django.conf import settings
 from django.templatetags.static import static
 
 from .basiswurzel import Basiswurzel
+from .middleware_basis import ZweiwegMiddleware
 
 #: Vor diesem Tag wird eingehängt (das LETZTE Vorkommen, case-insensitive).
 _BODY_ENDE = re.compile(rb"</body\s*>", re.IGNORECASE)
 
 
-class AufzeichnungMiddleware:
-    u"""Hängt CSS und Module der Testaufzeichnung in jede HTML-Antwort."""
+class AufzeichnungMiddleware(ZweiwegMiddleware):
+    u"""Hängt CSS und Module der Testaufzeichnung in jede HTML-Antwort.
+
+    BEIDSEITIG SEIT DEM 11.09.2026 — siehe ``middleware_basis.py``. Ohne die
+    Zusage ``async_capable`` wickelt Django unter ASGI den Rest der Kette in
+    ``async_to_sync``; am 11.09.2026 hat dieser Rückruf den CamTrack-Dienst
+    stillgelegt.
+
+    Die Arbeit hier ist reine Zeichenarbeit am Rumpf — keine Datenbank, also
+    ``braucht_faden`` aus.
+    """
 
     def __init__(self, get_response):
-        self.get_response = get_response
+        super().__init__(get_response)
         self._schnipsel = None
 
-    def __call__(self, request):
-        antwort = self.get_response(request)
-        try:
-            if self._passt(request, antwort):
-                self._einhaengen(antwort)
-        except Exception:                                   # noqa: BLE001
-            # Eine kaputte Einbettung darf NIE eine Seite kaputt machen. Die
-            # Aufzeichnung ist ein Werkzeug, kein Bestandteil der Anwendung.
-            pass
-        return antwort
+    def nachbereiten(self, request, antwort):
+        # Fehler verschluckt die Basisklasse: Eine kaputte Einbettung darf NIE
+        # eine Seite kaputt machen. Die Aufzeichnung ist ein Werkzeug, kein
+        # Bestandteil der Anwendung.
+        if self._passt(request, antwort):
+            self._einhaengen(antwort)
 
     # ------------------------------------------------------------- Prüfungen
     def _passt(self, request, antwort):

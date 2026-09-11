@@ -87,6 +87,8 @@ bewusst cachen lässt (öffentliche Landingpage), nimmt ihren Pfad über
 """
 from django.conf import settings
 
+from .middleware_basis import ZweiwegMiddleware
+
 #: Ein Jahr — die übliche Angabe für unveränderliche, versionierte Dateien.
 EIN_JAHR = 60 * 60 * 24 * 365
 
@@ -98,20 +100,26 @@ STATIK = "public, max-age=%d, immutable" % EIN_JAHR
 NACHFRAGEN = "no-cache"
 
 
-class CacheHeaderMiddleware:
-    u"""Setzt die Cache-Header — je nach Art der Antwort verschieden."""
+class CacheHeaderMiddleware(ZweiwegMiddleware):
+    u"""Setzt die Cache-Header — je nach Art der Antwort verschieden.
 
-    def __init__(self, get_response):
-        self.get_response = get_response
+    BEIDSEITIG SEIT DEM 11.09.2026
+    ==============================
+    Diese Middleware stand am Ende der Kette und sagte Django nicht, dass sie
+    auch asynchron kann. Django wickelte deshalb den gesamten Rest in
+    ``async_to_sync`` — und genau in dieser Zeile standen im Stack-Abzug des
+    stillgelegten CamTrack-Dienstes drei Arbeitsfäden fest. Die Begründung
+    steht in ``middleware_basis.py``.
 
-    def __call__(self, request):
-        antwort = self.get_response(request)
-        try:
-            self._setzen(request, antwort)
-        except Exception:                                   # noqa: BLE001
-            # Header sind Beiwerk; eine Ausnahme hier darf keine Seite kosten.
-            pass
-        return antwort
+    Die Arbeit hier fasst die Datenbank nicht an (nur ``request.path``,
+    ``request.GET`` und Kopfzeilen), sie darf also auf der Ereignisschleife
+    laufen: ``braucht_faden`` bleibt aus.
+    """
+
+    def nachbereiten(self, request, antwort):
+        # Fehler werden von der Basisklasse verschluckt: Header sind Beiwerk,
+        # eine Ausnahme hier darf keine Seite kosten.
+        self._setzen(request, antwort)
 
     # ----------------------------------------------------------------- intern
     @staticmethod
