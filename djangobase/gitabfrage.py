@@ -37,6 +37,7 @@ HALTBARKEIT: `DJANGOBASE["git_cache_sekunden"]`, Vorgabe 20 s. Wer gerade
 committet hat, sieht die Anzahl der offenen Aenderungen also bis zu 20 s lang
 noch alt. Das ist der Preis, er steht hier.
 """
+import logging
 import subprocess
 import threading
 import time
@@ -44,6 +45,8 @@ import time
 from django.conf import settings
 
 __all__ = ["Gitabfrage"]
+
+_log = logging.getLogger("djangobase.git")
 
 #: `CREATE_NO_WINDOW` gibt es nur unter Windows - sonst 0.
 _KEIN_FENSTER = getattr(subprocess, "CREATE_NO_WINDOW", 0)
@@ -94,12 +97,57 @@ class Gitabfrage:
 
     @staticmethod
     def _roh(repo, args, timeout):
+        u"""Ein `git`-Aufruf. Leerstring bei jedem Fehler — aber NICHT still.
+
+        DER BEFUND (CamTrack, 11.09.2026)
+        =================================
+            „Keine Commits geladen. Im lokalen Pfad C:\\CamTrack\\CamTrackDjango
+             liegt kein Git-Verzeichnis ... mach das weg, das ist gaga.
+             Alles ist im git!"
+
+        Der Nutzer hatte recht: Dort liegt ein tadelloses Repo mit 100
+        Commits. Nachgemessen mit einem Lauf als SYSTEM::
+
+            fatal: detected dubious ownership in repository at
+                   'C:/CamTrack/CamTrackDjango'
+            owned by:          CAMTRACK/edgar
+            but current user:  NT-AUTORITÄT/SYSTEM
+
+        Der Webdienst läuft als LocalSystem, das Arbeitsverzeichnis gehört
+        dem angemeldeten Benutzer. Git verweigert dann seit CVE-2022-24765
+        die Auskunft.
+
+        ZWEI FEHLER, UND DER ZWEITE IST DER SCHLIMMERE
+        ==============================================
+        Erstens fehlte `safe.directory`. Als AUFRUF-Option, nicht als
+        dauerhafte Konfiguration: Die Maschine bleibt unangetastet, und es
+        wirkt für jedes Dienstkonto. Genau so steht es seit Längerem in
+        CamTracks `context_processors.py` — eine Stelle wusste es, die
+        andere nicht.
+
+        Zweitens, und deshalb hat es monatelang niemand gesehen: Hier stand
+        `return lauf.stdout if lauf.returncode == 0 else ""`. Ein
+        Fehlschlag sah aus wie ein leeres Repo, und die Seite riet dem
+        Leser daraufhin zu `gh auth login` — in eine Richtung, in der
+        nichts kaputt war. Ein stiller Fehlschlag ist schlimmer als ein
+        lauter: Er erzeugt eine falsche Erklärung.
+
+        Der Leerstring bleibt (die Seite soll ohne git stehen), aber der
+        Grund geht ins Protokoll.
+        """
         try:
-            lauf = subprocess.run(["git", "-C", str(repo), *args],
-                                  capture_output=True, text=True,
-                                  timeout=timeout, encoding="utf-8",
-                                  errors="replace",
-                                  creationflags=_KEIN_FENSTER)
-            return lauf.stdout if lauf.returncode == 0 else ""
-        except (OSError, subprocess.TimeoutExpired):
+            lauf = subprocess.run(
+                # `safe.directory=*` deckt auch die Repos ab, die neben
+                # diesem liegen; der Aufruf liest ausschliesslich.
+                ["git", "-c", "safe.directory=*", "-C", str(repo), *args],
+                capture_output=True, text=True,
+                timeout=timeout, encoding="utf-8", errors="replace",
+                creationflags=_KEIN_FENSTER)
+        except (OSError, subprocess.TimeoutExpired) as fehler:
+            _log.warning("git %s in %s: %s", " ".join(args), repo, fehler)
             return ""
+        if lauf.returncode != 0:
+            _log.warning("git %s in %s: rc=%s %s", " ".join(args), repo,
+                         lauf.returncode, (lauf.stderr or "").strip()[:200])
+            return ""
+        return lauf.stdout

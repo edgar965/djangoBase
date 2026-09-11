@@ -12,7 +12,9 @@
 
     <p class="vw-meta">
         Aktuell installiert: <code>v{{ current_version|default:"-" }}</code>.
-        Daten aus GitHub-API via <code>gh</code> (Cache 5 min).
+        Daten aus der GitHub-Schnittstelle über <code>gh</code> (Zwischenspeicher
+        5 min); ist <code>gh</code> nicht da, wird stattdessen das lokale
+        <code>git log</code> gelesen.
     </p>
 
     <div class="ver-card">
@@ -87,7 +89,28 @@
                 </div>
             </article>
             {% empty %}
-            <p class="vw-empty">Keine Commits geladen — GitHub-API nicht erreichbar oder Repo privat ohne <code>gh auth</code>.</p>
+            {% comment %}
+            Diese Meldung nannte bis zum 11.09.2026 zwei Gründe („GitHub-API
+            nicht erreichbar oder Repo privat ohne gh auth") und verschwieg den
+            dritten, der in CamTrack tatsächlich zutraf: Der lokale Pfad wird
+            gegen `log_verzeichnis` aufgelöst, nicht gegen die Projektwurzel.
+            Der Eintrag '.' zeigte damit in den Protokoll-Ordner, und dort gibt
+            es kein Git. Wer die Meldung las, suchte den Fehler bei GitHub.
+            Deshalb steht jetzt da, WO gesucht wurde.
+            {% endcomment %}
+            <p class="vw-empty">
+              Keine Commits geladen.
+              {% if not repo.gh_repo %}Kein <code>owner/repo</code> gesetzt und kein
+              <code>origin</code>-Remote gefunden.{% endif %}
+              {% if not repo.local_exists %}Der lokale Pfad <code>{{ repo.local_path }}</code>
+              gibt es nicht.{% else %}Im lokalen Pfad <code>{{ repo.local_path }}</code>
+              liegt kein Git-Verzeichnis (oder <code>git log</code> lieferte
+              nichts).{% endif %}
+              Der Pfad in <code>DJANGOBASE["repos"]</code> wird relativ zu
+              <code>log_verzeichnis</code> aufgelöst — nicht zur Projektwurzel.
+              Der Weg über die GitHub-Schnittstelle braucht zusätzlich
+              <code>gh</code> im Pfad und <code>gh auth login</code>.
+            </p>
             {% endfor %}
         </div>
     {% empty %}
