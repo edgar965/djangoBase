@@ -106,10 +106,15 @@ def umschichten(konto, kurse, ziel):
             tabelle = self._tabellen_namen(d)
             klassennamen = {k.name for k in d.baum.body
                             if isinstance(k, ast.ClassDef)}
+            # Ohne dekorierte Funktionen — wie ``klassenplan``: Ein
+            # ``@receiver(post_save)`` bekommt ``sender, instance, created``
+            # vom Rahmen vorgeschrieben; sechs Empfaenger in ``signals.py``
+            # teilen die Namen, aber keinen Zustand (12.09.2026, assistant).
             funktionen = [k for k in d.baum.body
                           if isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef))
                           and k.name not in self.EINSTIEGE
                           and k.name not in tabelle
+                          and not k.decorator_list
                           and not self._huelle(k, klassennamen)]
             if len(funktionen) < self.AB_ANZAHL:
                 continue

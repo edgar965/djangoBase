@@ -94,10 +94,13 @@ if __name__ == "__main__":
         # Befund ab, statt ihn zu schaerfen. Der Filter greift unten in
         # `_woerter_zaehlen`, wo eine Erwaehnung in ignoriertem Code eine echte
         # Altlast faelschlich am Leben hielte.
+        dateien = self.dateien()
         for p in sorted(wurzel.rglob("*")):
             if not p.is_dir() or p.name not in self.SICHERUNGSNAMEN:
                 continue
             if any(t in AUSGESCHLOSSEN - self.SICHERUNGSNAMEN for t in p.parts):
+                continue
+            if self._ist_paket_in_gebrauch(p, wurzel, dateien):
                 continue
             anzahl = len(list(p.rglob("*.py")))
             if anzahl:
@@ -112,7 +115,6 @@ if __name__ == "__main__":
         # bei 1.400 Namen und 15 MB Text lief sie in die Zeitüberschreitung.
         # Genau der Fehler, den das Nachbarwerkzeug „Arbeit in Schleifen"
         # meldet; hier stand er im Prüfer selbst.
-        dateien = self.dateien()
         haeufigkeit = self._woerter_zaehlen(dateien)
         for d in dateien:
             if d.baum is None or self._sonderfall(d):
@@ -121,6 +123,14 @@ if __name__ == "__main__":
                 if not isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
                     continue
                 if k.name in self.EINSTIEGE or k.name.startswith("__"):
+                    continue
+                # Ein DEKORIERTER Name ist registriert, nicht vergessen:
+                # ``@receiver(post_save)``, ``@register.filter``,
+                # ``@app.task`` — der Dekorator IST der Aufrufer, und der
+                # Name faellt danach absichtlich nirgends mehr. Vier
+                # Signal-Empfaenger in ``mail/signals.py`` standen so als
+                # Altlast in der Liste (12.09.2026).
+                if k.decorator_list and not isinstance(k, ast.ClassDef):
                     continue
                 if haeufigkeit.get(k.name, 0) <= 1:
                     zeilen.append({
@@ -133,6 +143,21 @@ if __name__ == "__main__":
             "%d Verdachtsfälle" % len(zeilen),
             "Ein Namensvergleich sieht keine dynamischen Aufrufe. Vorlagen und "
             "JS sind mitdurchsucht; alles Übrige ist ein Verdacht, kein Urteil.")
+
+    @staticmethod
+    def _ist_paket_in_gebrauch(ordner, wurzel, dateien):
+        u"""Ein Paket, das jemand importiert, ist kein Sicherungsordner.
+
+        DER FEHLALARM (12.09.2026, assistant): ``mail/backup`` — vier Klassen,
+        die das Backup MACHEN (EmlBackupRunner, PgDumpRunner, ResticUploader),
+        gerufen aus ``mail_backup``. Der Ordner heisst nur so wie ein Altstand.
+        Kennzeichen des lebenden Pakets: ein ``__init__.py`` UND ein Import
+        seines gepunkteten Namens irgendwo im Projekt."""
+        if not (ordner / "__init__.py").is_file():
+            return False
+        name = ".".join(ordner.relative_to(wurzel).parts)
+        muster = re.compile(r"(?:from|import)\s+" + re.escape(name) + r"\b")
+        return any(muster.search(d.text) for d in dateien)
 
     def _woerter_zaehlen(self, dateien):
         """{Wort: Anzahl} über den gesamten Quelltext - Python, Vorlagen, JS.
