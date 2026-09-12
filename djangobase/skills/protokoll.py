@@ -86,9 +86,15 @@ class Protokoll(EigenesWerkzeug):
     #: als stumm. Aufgefallen ist es, weil ``fix-ausnahme`` dort einen Log-Aufruf
     #: setzte und die eigene Gegenprobe danach weiter „stumm" meldete.
     #: ``self\._?log`` deckt dieselbe Schreibweise als Attribut ab.
+    #:
+    #: DAZU (12.09.2026, assistant): ein Logger, der als Parameter
+    #: ``protokoll`` hereingereicht wird (``protokoll.exception(...)``), und
+    #: einer am Ende einer Attributkette (``self.skript.logger.exception``).
+    #: Acht Stellen galten sonst als „ohne Log", obwohl dort geloggt wurde —
+    #: und der Fixer setzte eine zweite Zeile daneben.
     LOGGER_RUF = re.compile(
-        r"(?:(?<![\w.])(?:\w*_)?(?:logger|logging|log)(?:_\w+)?"
-        r"|self\._?log(?:ger)?|getLogger\([^)]*\))"
+        r"(?:(?<![\w.])(?:\w*_)?(?:logger|logging|log|protokoll)(?:_\w+)?"
+        r"|(?:self|\w+)(?:\.\w+)*\._?log(?:ger)?|getLogger\([^)]*\))"
         r"\s*\.\s*"
         r"(?:debug|info|warning|warn|error|exception|critical)")
     #: Die Methodennamen eines Loggers. Als Menge fuer den Syntaxbaum -

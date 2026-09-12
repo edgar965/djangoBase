@@ -46,6 +46,11 @@ class Doppelrumpf(Werkzeug):
     #: (``return self.x`` steht zu Recht ueberall).
     MINDEST_ZEILEN = 4
 
+    #: Pflichtnamen des Rahmens — ``class Meta`` mit ``ordering`` steht in
+    #: jedem zweiten Modell gleich und ist keine Kopie, sondern die Bauart
+    #: (12.09.2026, assistant: zwei ``Meta`` als Dublette gemeldet).
+    RAHMENNAMEN = {"Meta", "Command", "Migration"}
+
     #: Derselbe Rumpf in zwei Dateien, mit ABWEICHENDER Begruendung im
     #: Docstring - so sehen echte Kopien aus. Verglichen wird deshalb der Rumpf
     #: ohne Docstrings und Kommentare.
@@ -76,12 +81,15 @@ class Doppelrumpf(Werkzeug):
             if d.baum is None:
                 continue
             for k in d.knoten(ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef):
-                if self._laenge(k) < self.MINDEST_ZEILEN:
+                if k.name in self.RAHMENNAMEN:
                     continue
-                schluessel = self._fingerabdruck(k)
+                koerper = self._rumpf(k)
+                laenge = self._laenge(koerper)
+                if laenge < self.MINDEST_ZEILEN:
+                    continue
+                schluessel = self._fingerabdruck(koerper)
                 if schluessel:
-                    gruppen[schluessel].append((d.name, k.lineno, k.name,
-                                                self._laenge(k)))
+                    gruppen[schluessel].append((d.name, k.lineno, k.name, laenge))
         zeilen = []
         for eintraege in gruppen.values():
             if len(eintraege) < 2:
@@ -100,9 +108,24 @@ class Doppelrumpf(Werkzeug):
             "Je größer der Rumpf, desto teurer die Doppelung.")
 
     @staticmethod
-    def _laenge(knoten):
-        ende = getattr(knoten, "end_lineno", None) or knoten.lineno
-        return ende - knoten.lineno + 1
+    def _rumpf(knoten):
+        """Die Anweisungen ohne den Docstring."""
+        return [x for x in knoten.body
+                if not (isinstance(x, ast.Expr)
+                        and isinstance(getattr(x, "value", None), ast.Constant)
+                        and isinstance(x.value.value, str))]
+
+    @staticmethod
+    def _laenge(koerper):
+        """Zeilen von der ersten bis zur letzten ANWEISUNG.
+
+        Bis 12.09.2026 zaehlte die ganze Definition mit — Docstring und
+        Kommentare. Eine Zeile ``DATEI = __file__`` unter drei Zeilen
+        Erklaerung galt so als vierzeiliger Rumpf, achtzehnmal."""
+        if not koerper:
+            return 0
+        ende = getattr(koerper[-1], "end_lineno", None) or koerper[-1].lineno
+        return ende - koerper[0].lineno + 1
 
     @staticmethod
     def _ist_weiterleitung(koerper):
@@ -116,12 +139,8 @@ class Doppelrumpf(Werkzeug):
                 and isinstance(koerper[0].value, ast.Call))
 
     @staticmethod
-    def _fingerabdruck(knoten):
-        """Der Rumpf ohne Docstring als Zeichenkette - oder None."""
-        koerper = [x for x in knoten.body
-                   if not (isinstance(x, ast.Expr)
-                           and isinstance(getattr(x, "value", None), ast.Constant)
-                           and isinstance(x.value.value, str))]
+    def _fingerabdruck(koerper):
+        """Der Rumpf (ohne Docstring, siehe ``_rumpf``) als Zeichenkette - oder None."""
         if not koerper or Doppelrumpf._ist_weiterleitung(koerper):
             return None
         try:

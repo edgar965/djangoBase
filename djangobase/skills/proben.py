@@ -97,7 +97,10 @@ class Proben(Werkzeug):
            re.compile(r"sys\.exit\(\s*(?!0\s*\))"),
            re.compile(r"^\s*assert\s", re.M),
            re.compile(r"\bthrow\s+new\s"),
-           re.compile(r"^\s*raise\s", re.M))
+           re.compile(r"^\s*raise\s", re.M),
+           # Eine Probe als unittest-Mischklasse (``assistant/gruppenprobe.py``,
+           # 12.09.2026): ``self.assertTrue(...)`` faellt genauso wie ``assert``.
+           re.compile(r"\bself\.assert\w*\("))
 
     #: Aus dem Kopf gelesen: „Start: <befehl>" bzw. „Aufruf: <befehl>".
     AUFRUF = re.compile(r"^\s*(?:\*\s*)?(?:Start|Aufruf|Lauf)\s*:\s*(.+)$",
