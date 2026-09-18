@@ -335,7 +335,33 @@ class GrundtestEsModule(SimpleTestCase):
             except OSError:
                 continue
             for treffer in muster.findall(text):
-                ziel = (pfad.parent / treffer.split("?")[0]).resolve()
-                if not ziel.exists():
+                rel = treffer.split("?")[0]
+                ziel = (pfad.parent / rel).resolve()
+                if not ziel.exists() and not _statisch_vorhanden(pfad, rel):
                     fehlt.append("%s -> %s" % (pfad.name, treffer))
         self.assertEqual(fehlt, [], "JS-Importe ins Leere: %s" % fehlt)
+
+
+def _statisch_vorhanden(pfad, rel):
+    """Ein relativer Import über eine App-Grenze hinweg.
+
+    ``search/static/search/js/widget.js`` importiert
+    ``../../djangobase/js/system_stats.js`` — auf der Platte gibt es das
+    nicht, im Browser schon: ``/statik/v-<n>/`` bedient alle Apps unter
+    einem Dach, und genau so bleibt ein geteiltes Modul EIN Modul (absolut
+    über ``/static/`` geladen war es ein zweites mit eigenem Zustand,
+    assistant 18.09.2026). Gerechnet wird ab dem ``static``-Ordner, den Rest
+    beantwortet der Static-Finder — derselbe, den die Auslieferung nimmt."""
+    import posixpath
+
+    from django.contrib.staticfiles import finders
+
+    teile = list(pfad.parts)
+    if "static" not in teile:
+        return False
+    ab = len(teile) - 1 - teile[::-1].index("static")
+    innen = "/".join(teile[ab + 1 : -1])
+    ziel = posixpath.normpath(posixpath.join(innen, rel))
+    if ziel.startswith(".."):
+        return False
+    return bool(finders.find(ziel))
