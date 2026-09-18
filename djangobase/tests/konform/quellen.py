@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Welche Dateien eine Konformitätsprüfung überhaupt ansehen darf.
+"""Welche Dateien eine Konformitätsprüfung überhaupt ansehen darf.
 
 DER VORFALL, DER DAS NÖTIG MACHTE (assistant, 21.08.2026)
 ========================================================
@@ -35,6 +35,7 @@ erneut. Hier wird stattdessen mit ``os.walk`` gelaufen und der Ast **vor** dem
 Abstieg abgeschnitten; das Ergebnis liegt danach im Zwischenspeicher. Der Lauf
 der Konformitätsprüfungen fiel dadurch von 81 s auf wenige Sekunden.
 """
+
 import os
 from functools import lru_cache
 from pathlib import Path
@@ -69,9 +70,23 @@ __all__ = ["TABU", "dateien", "wurzel", "ausnahmen"]
 #: sie einzeln gruen.
 #: Der zweite Riegel (``p.exists()`` unten) greift hier NICHT: Geraeumt
 #: wird per ``atexit``, also erst nach dem letzten Prueffall.
-TABU = {"node_modules", "__pycache__", "venv", ".venv", "pythonVENV", ".git",
-        "site-packages", "migrations", ".mypy_cache", ".pytest_cache", ".tox",
-        "sicherung", "backup", "_anlassfall", "_wegwerf"}
+TABU = {
+    "node_modules",
+    "__pycache__",
+    "venv",
+    ".venv",
+    "pythonVENV",
+    ".git",
+    "site-packages",
+    "migrations",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".tox",
+    "sicherung",
+    "backup",
+    "_anlassfall",
+    "_wegwerf",
+}
 
 #: Wurzel des djangoBase-Pakets — Konsumenten-Regeln gelten nicht für es selbst.
 PAKET = Path(__file__).resolve().parents[2]
@@ -82,26 +97,26 @@ def wurzel():
 
 
 def ausnahmen():
-    u"""Die Pfad-Teilstrings aus ``DJANGOBASE_KONFORM_AUS`` (mit ``/``)."""
+    """Die Pfad-Teilstrings aus ``DJANGOBASE_KONFORM_AUS`` (mit ``/``)."""
     roh = getattr(settings, "DJANGOBASE_KONFORM_AUS", ()) or ()
     return tuple(str(t).replace("\\", "/").strip("/") for t in roh if str(t).strip())
 
 
 def _media():
-    u"""``MEDIA_ROOT``, falls er im Projekt liegt — dort stehen Nutzerdaten."""
+    """``MEDIA_ROOT``, falls er im Projekt liegt — dort stehen Nutzerdaten."""
     roh = getattr(settings, "MEDIA_ROOT", "") or ""
     if not roh:
         return None
     try:
         return Path(str(roh)).resolve()
-    except OSError:                                    # pragma: no cover
+    except OSError:  # pragma: no cover
         return None
 
 
 def ausgenommen(pfad, aus=None):
-    u"""Liegt der Pfad in einem Bereich, den das Projekt ausnimmt?"""
+    """Liegt der Pfad in einem Bereich, den das Projekt ausnimmt?"""
     text = str(pfad).replace("\\", "/")
-    for teil in (aus if aus is not None else ausnahmen()):
+    for teil in aus if aus is not None else ausnahmen():
         if teil and teil in text:
             return True
     return False
@@ -109,17 +124,20 @@ def ausgenommen(pfad, aus=None):
 
 @lru_cache(maxsize=64)
 def _gesammelt(endungen, basis, aus, media):
-    u"""Der eigentliche Lauf — einmal je Kombination, danach aus dem Speicher."""
+    """Der eigentliche Lauf — einmal je Kombination, danach aus dem Speicher."""
     treffer = []
     basis_p = Path(basis)
     for ordner, unter, namen in os.walk(basis_p):
         p_ordner = Path(ordner)
         # VOR dem Abstieg abschneiden: Was hier herausfliegt, wird nie betreten.
-        unter[:] = [u for u in unter
-                    if u not in TABU
-                    and not ausgenommen((p_ordner / u).as_posix() + "/", aus)
-                    and not (media and (p_ordner / u).resolve() == Path(media))
-                    and (p_ordner / u).resolve() != PAKET]
+        unter[:] = [
+            u
+            for u in unter
+            if u not in TABU
+            and not ausgenommen((p_ordner / u).as_posix() + "/", aus)
+            and not (media and (p_ordner / u).resolve() == Path(media))
+            and (p_ordner / u).resolve() != PAKET
+        ]
         for name in namen:
             if not name.lower().endswith(endungen):
                 continue
@@ -131,15 +149,13 @@ def _gesammelt(endungen, basis, aus, media):
 
 
 def dateien(*endungen):
-    u"""Alle Projektdateien mit diesen Endungen (``".js"``, ``".html"`` …).
+    """Alle Projektdateien mit diesen Endungen (``".js"``, ``".html"`` …).
 
     Reihenfolge ist stabil (sortiert), damit Fehlermeldungen zwischen zwei
     Läufen dieselben Beispiele nennen."""
-    endungen = tuple(e.lower() if e.startswith(".") else "." + e.lower()
-                     for e in endungen)
+    endungen = tuple(e.lower() if e.startswith(".") else "." + e.lower() for e in endungen)
     media = _media()
-    gefunden = _gesammelt(endungen, str(wurzel()), ausnahmen(),
-                          str(media) if media else "")
+    gefunden = _gesammelt(endungen, str(wurzel()), ausnahmen(), str(media) if media else "")
     # ZWEITER RIEGEL gegen fluechtige Dateien (26.08.2026): Der
     # Zwischenspeicher haelt eine Liste, die einmal je Prozess entsteht.
     # Legt IRGENDEINE Pruefung waehrenddessen kurz Dateien unter BASE_DIR
@@ -151,7 +167,7 @@ def dateien(*endungen):
 
 
 def text_von(pfad):
-    u"""Dateiinhalt oder ``None`` — eine unlesbare Datei bricht keine Prüfung ab."""
+    """Dateiinhalt oder ``None`` — eine unlesbare Datei bricht keine Prüfung ab."""
     try:
         return Path(pfad).read_text(encoding="utf-8", errors="replace")
     except OSError:

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Sind die Tabellen dieses Projekts djangoBase-konform?
+"""Sind die Tabellen dieses Projekts djangoBase-konform?
 
 DER AUFTRAG (Edgar, 21.08.2026)
 ==============================
@@ -50,6 +50,7 @@ AUSNAHMEN
 Wer bewusst abweicht, trägt es dort ein — das ist eine Entscheidung, die man
 sieht, statt einer Regel, die niemand einhält.
 """
+
 import re
 from pathlib import Path
 
@@ -57,6 +58,8 @@ from django.conf import settings
 from django.test import SimpleTestCase
 
 from djangobase.tests.konform.quellen import TABU, dateien, text_von  # noqa: F401
+
+from .basis import KonformTest
 
 #: Klassen, die eine Tabelle als Doku ausweisen (kein Datenraster).
 DOKU_KLASSEN = ("plain", "doku", "legende", "info")
@@ -72,17 +75,17 @@ _KLASSEN = re.compile(r'class\s*=\s*"([^"]*)"', re.IGNORECASE)
 #: genau diese Erklärung als Tabelle ohne Sortierung. Dieselbe Falle wie in
 #: ``test_tabellen_js`` (dort ``risiko.js``).
 _KOMMENTAR = re.compile(
-    r"{%\s*comment\s*%}.*?{%\s*endcomment\s*%}|{#.*?#}|<!--.*?-->",
-    re.IGNORECASE | re.DOTALL)
+    r"{%\s*comment\s*%}.*?{%\s*endcomment\s*%}|{#.*?#}|<!--.*?-->", re.IGNORECASE | re.DOTALL
+)
 
 
 def ohne_kommentare(text):
-    u"""Kommentare durch Leerzeilen ersetzen (Zeilennummern bleiben erhalten)."""
+    """Kommentare durch Leerzeilen ersetzen (Zeilennummern bleiben erhalten)."""
     return _KOMMENTAR.sub(lambda m: "\n" * m.group(0).count("\n"), text)
 
 
 def _templates():
-    u"""Alle HTML-Vorlagen des Projekts (ohne djangoBase selbst)."""
+    """Alle HTML-Vorlagen des Projekts (ohne djangoBase selbst)."""
     return dateien(".html")
 
 
@@ -94,13 +97,13 @@ def _ausgenommen(pfad):
 
 
 def _rumpf(text, ab):
-    u"""Der Text einer Tabelle: vom ``<table …>`` bis zum ``</table>``."""
+    """Der Text einer Tabelle: vom ``<table …>`` bis zum ``</table>``."""
     ende = text.lower().find("</table>", ab)
     return text[ab:] if ende < 0 else text[ab:ende]
 
 
 def _hat_kopfzeile(text, treffer):
-    u"""Hat DIESE Tabelle eine Kopfzeile - oder holt sie sich eine?
+    """Hat DIESE Tabelle eine Kopfzeile - oder holt sie sich eine?
 
     JE TABELLE STATT JE DATEI (31.08.2026, Projekt assistant)
     ========================================================
@@ -124,7 +127,7 @@ def _hat_kopfzeile(text, treffer):
 
 
 def datentabellen(vorlagen=None):
-    u"""[(pfad, attribute)] aller Tabellen, die ein Datenraster sein wollen.
+    """[(pfad, attribute)] aller Tabellen, die ein Datenraster sein wollen.
 
     ``vorlagen`` überschreibt die Dateiquelle. Gebraucht wird das von
     ``test_eigene_tabellen``: djangoBase nimmt sich aus den Konsumenten-Regeln
@@ -132,7 +135,7 @@ def datentabellen(vorlagen=None):
     Prüfstand - obwohl sein Code in allen Projekten gleichzeitig wirkt.
     """
     aus = []
-    for pfad in (vorlagen if vorlagen is not None else _templates()):
+    for pfad in vorlagen if vorlagen is not None else _templates():
         if _ausgenommen(pfad):
             continue
         roh = text_von(pfad)
@@ -140,7 +143,7 @@ def datentabellen(vorlagen=None):
             continue
         text = ohne_kommentare(roh)
         if "<thead" not in text.lower():
-            continue                                    # ohne Kopfzeile kein Raster
+            continue  # ohne Kopfzeile kein Raster
         for treffer in _TABELLE.finditer(text):
             attribute = treffer.group(1)
             klassen = " ".join(_KLASSEN.findall(attribute)).lower()
@@ -152,8 +155,8 @@ def datentabellen(vorlagen=None):
     return aus
 
 
-class TabellenKonformTest(SimpleTestCase):
-    u"""Sortierbar UND in der Breite ziehbar."""
+class TabellenKonformTest(KonformTest):
+    """Sortierbar UND in der Breite ziehbar."""
 
     @classmethod
     def setUpClass(cls):
@@ -161,21 +164,26 @@ class TabellenKonformTest(SimpleTestCase):
         cls.tabellen = datentabellen()
 
     def _melden(self, treffer, was, rat):
-        u"""Eine Fehlermeldung, mit der man arbeiten kann: Zahl, Beispiele, Rat."""
-        beispiele = "\n".join(
-            "    %s: <table %s>" % (Path(p).name, a[:70].strip())
-            for p, a in treffer[:8])
-        return (u"%d von %d Datentabellen %s.\n%s%s\n\n%s"
-                % (len(treffer), len(self.tabellen), was, beispiele,
-                   "\n    …" if len(treffer) > 8 else "", rat))
+        """Eine Fehlermeldung, mit der man arbeiten kann: Zahl, Beispiele, Rat."""
+        beispiele = "\n".join("    %s: <table %s>" % (Path(p).name, a[:70].strip()) for p, a in treffer[:8])
+        return "%d von %d Datentabellen %s.\n%s%s\n\n%s" % (
+            len(treffer),
+            len(self.tabellen),
+            was,
+            beispiele,
+            "\n    …" if len(treffer) > 8 else "",
+            rat,
+        )
 
     def test_es_gibt_ueberhaupt_datentabellen(self):
-        u"""Ohne Fund prüfen die beiden Regeln unten nichts — dann stimmt die
+        """Ohne Fund prüfen die beiden Regeln unten nichts — dann stimmt die
         Erkennung nicht, und das wäre schlimmer als ein Verstoß."""
-        self.assertTrue(self.tabellen,
-                        u"Keine einzige Datentabelle gefunden. Entweder hat das "
-                        u"Projekt keine, oder DOKU_KLASSEN/das Suchmuster passt "
-                        u"nicht mehr.")
+        self.assertTrue(
+            self.tabellen,
+            "Keine einzige Datentabelle gefunden. Entweder hat das "
+            "Projekt keine, oder DOKU_KLASSEN/das Suchmuster passt "
+            "nicht mehr.",
+        )
 
     #: Eine Tabelle, deren ZEILENFOLGE etwas bedeutet: die Gliederung einer
     #: BWA, die Kennzahlen einer Steuererklaerung, die Tage eines
@@ -196,23 +204,30 @@ class TabellenKonformTest(SimpleTestCase):
     ORDNUNG_ZAEHLT = "data-sort-aus"
 
     def test_alle_sind_sortierbar(self):
-        ohne = [(p, a) for p, a in self.tabellen
-                if "sortable" not in " ".join(_KLASSEN.findall(a)).lower().split()
-                and self.ORDNUNG_ZAEHLT not in a.lower()]
+        ohne = [
+            (p, a)
+            for p, a in self.tabellen
+            if "sortable" not in " ".join(_KLASSEN.findall(a)).lower().split()
+            and self.ORDNUNG_ZAEHLT not in a.lower()
+        ]
         if ohne:
-            self.fail(self._melden(
-                ohne, u"tragen kein class=\"sortable\"",
-            u"TabellenSortierung bindet an table.sortable. Ohne die Klasse "
-                u"lassen sich die Spalten nicht sortieren — auch nicht, wenn "
-                u"das Modul geladen ist.\n"
-                u"Bedeutet die ZEILENFOLGE etwas (BWA-Gliederung, "
-                u"Steuer-Kennzahlen, Tage eines Stundenzettels)? Dann "
-                u"stattdessen <table data-sort-aus data-sort-key=\"…\"> — "
-                u"gemerkte Spaltenbreiten ohne Sortierung."))
+            self.fail(
+                self._melden(
+                    ohne,
+                    'tragen kein class="sortable"',
+                    "TabellenSortierung bindet an table.sortable. Ohne die Klasse "
+                    "lassen sich die Spalten nicht sortieren — auch nicht, wenn "
+                    "das Modul geladen ist.\n"
+                    "Bedeutet die ZEILENFOLGE etwas (BWA-Gliederung, "
+                    "Steuer-Kennzahlen, Tage eines Stundenzettels)? Dann "
+                    'stattdessen <table data-sort-aus data-sort-key="…"> — '
+                    "gemerkte Spaltenbreiten ohne Sortierung.",
+                )
+            )
 
     @staticmethod
     def auto_bindung_aktiv():
-        u"""Bindet djangoBase die Tabellen selbst an?
+        """Bindet djangoBase die Tabellen selbst an?
 
         ``tabellen_auto.js`` läuft über die Middleware auf jeder Seite, bindet
         alle ``table.sortable`` an und LEITET einen Schlüssel AB, wenn keiner
@@ -224,13 +239,15 @@ class TabellenKonformTest(SimpleTestCase):
         dazu geführt: 91 Vorlagen von Hand zu ergänzen hätte dieselbe Lücke beim
         nächsten neuen Template wieder aufgemacht."""
         from django.conf import settings as s
+
         if not getattr(s, "DJANGOBASE_AUFZEICHNUNG", True):
-            return False                      # derselbe Kanal wie die Aufzeichnung
+            return False  # derselbe Kanal wie die Aufzeichnung
         from djangobase.apps import AUFZEICHNUNG_MIDDLEWARE
+
         return AUFZEICHNUNG_MIDDLEWARE in list(getattr(s, "MIDDLEWARE", []))
 
     def test_alle_merken_ihre_spaltenbreiten(self):
-        u"""``data-sort-key`` im Markup — auch wenn die Auto-Bindung läuft.
+        """``data-sort-key`` im Markup — auch wenn die Auto-Bindung läuft.
 
         ``tabellen_auto.js`` leitet einen Schlüssel ab, wenn keiner dasteht, und
         rettet damit jedes neue Template. Als ERSATZ taugt das trotzdem nicht:
@@ -242,16 +259,20 @@ class TabellenKonformTest(SimpleTestCase):
         Sicherheitsgurt, nicht die Lösung."""
         ohne = [(p, a) for p, a in self.tabellen if "data-sort-key" not in a.lower()]
         if ohne:
-            self.fail(self._melden(
-                ohne, u"tragen kein data-sort-key",
-            u"TabellenBreiten merkt Spaltenbreiten unter diesem Schlüssel. "
-            u"Ohne ihn sieht die Tabelle normal aus, aber die Spalten lassen "
-            u"sich nicht ziehen. Anschluss:\n"
-            u"    <table class=\"db-tabelle sortable\" data-sort-key=\"meine-seite\">\n"
-                u"    new TabellenBreiten([t], t.dataset.sortKey).binden();"))
+            self.fail(
+                self._melden(
+                    ohne,
+                    "tragen kein data-sort-key",
+                    "TabellenBreiten merkt Spaltenbreiten unter diesem Schlüssel. "
+                    "Ohne ihn sieht die Tabelle normal aus, aber die Spalten lassen "
+                    "sich nicht ziehen. Anschluss:\n"
+                    '    <table class="db-tabelle sortable" data-sort-key="meine-seite">\n'
+                    "    new TabellenBreiten([t], t.dataset.sortKey).binden();",
+                )
+            )
 
     def test_schluessel_sind_eindeutig(self):
-        u"""Zwei Tabellen mit demselben Schlüssel teilen sich die gemerkten
+        """Zwei Tabellen mit demselben Schlüssel teilen sich die gemerkten
         Breiten — die schmale übernimmt die der breiten, und die Hälfte der
         Spalten liegt außerhalb (am 21.08.2026 im Aufzeichnungs-Popup passiert)."""
         gesehen = {}
@@ -259,37 +280,39 @@ class TabellenKonformTest(SimpleTestCase):
         for pfad, attribute in self.tabellen:
             m = re.search(r'data-sort-key\s*=\s*"([^"]+)"', attribute, re.I)
             if not m or "{{" in m.group(1):
-                continue                                # dynamisch = je Ort anders
+                continue  # dynamisch = je Ort anders
             schluessel = m.group(1)
             if schluessel in gesehen and gesehen[schluessel] != pfad:
                 doppelt.append((schluessel, gesehen[schluessel], pfad))
             gesehen.setdefault(schluessel, pfad)
-        self.assertFalse(doppelt,
-                         u"Mehrfach vergebene Sortier-Schlüssel: %s"
-                         % "; ".join("%s (%s / %s)" % (s, Path(a).name, Path(b).name)
-                                     for s, a, b in doppelt[:5]))
+        self.assertFalse(
+            doppelt,
+            "Mehrfach vergebene Sortier-Schlüssel: %s"
+            % "; ".join("%s (%s / %s)" % (s, Path(a).name, Path(b).name) for s, a, b in doppelt[:5]),
+        )
 
 
-class TabellenModuleTest(SimpleTestCase):
-    u"""Ein ``data-sort-key`` ohne gebundenes Modul bringt nichts."""
+class TabellenModuleTest(KonformTest):
+    """Ein ``data-sort-key`` ohne gebundenes Modul bringt nichts."""
 
     def test_automatische_anbindung_ist_vollstaendig(self):
-        u"""Wenn sich das Projekt auf ``tabellen_auto.js`` verlässt, muss das
+        """Wenn sich das Projekt auf ``tabellen_auto.js`` verlässt, muss das
         Modul auch beides tun — sortieren UND Breiten merken."""
         if not TabellenKonformTest.auto_bindung_aktiv():
             self.skipTest("keine automatische Anbindung")
-        pfad = (Path(__file__).resolve().parents[2] / "static" / "djangobase"
-                / "js" / "tabellen_auto.js")
-        self.assertTrue(pfad.exists(), u"tabellen_auto.js fehlt")
+        pfad = Path(__file__).resolve().parents[2] / "static" / "djangobase" / "js" / "tabellen_auto.js"
+        self.assertTrue(pfad.exists(), "tabellen_auto.js fehlt")
         text = pfad.read_text(encoding="utf-8")
-        for brocken in ("TabellenSortierung.binden", "new TabellenBreiten",
-                        "table.sortable"):
-            self.assertIn(brocken, text,
-                          u"tabellen_auto.js bindet %r nicht mehr — dann sind "
-                          u"die Tabellen still nur halb bedienbar." % brocken)
+        for brocken in ("TabellenSortierung.binden", "new TabellenBreiten", "table.sortable"):
+            self.assertIn(
+                brocken,
+                text,
+                "tabellen_auto.js bindet %r nicht mehr — dann sind "
+                "die Tabellen still nur halb bedienbar." % brocken,
+            )
 
     def test_beide_module_werden_irgendwo_gebunden(self):
-        u"""Die Attribute allein tun nichts — jemand muss die Module anbinden.
+        """Die Attribute allein tun nichts — jemand muss die Module anbinden.
 
         Geprüft wird nur, DASS es im Projekt geschieht (einmal je Seite reicht),
         nicht wo: Manche Projekte binden im Basis-Template, andere je Seite.
@@ -306,8 +329,9 @@ class TabellenModuleTest(SimpleTestCase):
             # Fall, dass `auto_bindung_aktiv()` selbst kaputt ist. Die
             # Auto-Bindung IST die Erfuellung dieser Regel, also wird sie
             # als solche zugesichert statt weggeschaltet.
-            self.assertTrue(TabellenKonformTest.auto_bindung_aktiv(),
-                            u"tabellen_auto.js bindet - das erfüllt die Regel")
+            self.assertTrue(
+                TabellenKonformTest.auto_bindung_aktiv(), "tabellen_auto.js bindet - das erfüllt die Regel"
+            )
             return
         gefunden = {"TabellenSortierung": False, "TabellenBreiten": False}
         for pfad in dateien(".html", ".js"):
@@ -321,25 +345,28 @@ class TabellenModuleTest(SimpleTestCase):
             if all(gefunden.values()):
                 return
         fehlend = [k for k, v in gefunden.items() if not v]
-        self.assertFalse(fehlend,
-                         u"Nirgends im Projekt gebunden: %s. Die Tabellen-"
-                         u"Attribute allein bewirken nichts — siehe den Kopf "
-                         u"von djangobase/_tabelle.html." % ", ".join(fehlend))
+        self.assertFalse(
+            fehlend,
+            "Nirgends im Projekt gebunden: %s. Die Tabellen-"
+            "Attribute allein bewirken nichts — siehe den Kopf "
+            "von djangobase/_tabelle.html." % ", ".join(fehlend),
+        )
 
 
 class GegenprobeTest(SimpleTestCase):
-    u"""Erkennt die Regel überhaupt etwas — und lässt sie Doku in Ruhe?"""
+    """Erkennt die Regel überhaupt etwas — und lässt sie Doku in Ruhe?"""
 
     def test_doku_tabelle_wird_nicht_gemeldet(self):
         klassen = "plain"
-        self.assertTrue(any(k in klassen.split() for k in DOKU_KLASSEN),
-                        u"class=\"plain\" muss als Doku gelten, sonst meldet der "
-                        u"Prüfer 181 Hilfe-Tabellen und wird abgeschaltet")
+        self.assertTrue(
+            any(k in klassen.split() for k in DOKU_KLASSEN),
+            'class="plain" muss als Doku gelten, sonst meldet der '
+            "Prüfer 181 Hilfe-Tabellen und wird abgeschaltet",
+        )
 
     def test_fehlendes_attribut_wird_erkannt(self):
         attribute = ' class="stats sortable db-rahmen"'
-        self.assertNotIn("data-sort-key", attribute.lower(),
-                         u"Diese Probe MUSS als Verstoß gelten")
+        self.assertNotIn("data-sort-key", attribute.lower(), "Diese Probe MUSS als Verstoß gelten")
         self.assertIn("sortable", " ".join(_KLASSEN.findall(attribute)).split())
 
     def test_muster_findet_eine_tabelle(self):
@@ -347,18 +374,20 @@ class GegenprobeTest(SimpleTestCase):
         self.assertTrue(_TABELLE.search("<table\n  data-sort-key='x'>"))
 
     def test_kommentare_werden_uebersprungen(self):
-        u"""Sonst meldet der Pruefer die Erklaerung, warum eine Datei KEINE
+        """Sonst meldet der Pruefer die Erklaerung, warum eine Datei KEINE
         Tabelle hat - am 21.08.2026 genau so passiert."""
-        quelle = ('{% comment %}Keine <table>/<thead> hier, damit nur EINE '
-                  'Tabelle existiert.{% endcomment %}\n'
-                  '<table class="daten sortable" data-sort-key="x">'
-                  '<thead></thead></table>\n'
-                  '<!-- auch <table> im HTML-Kommentar -->\n')
+        quelle = (
+            "{% comment %}Keine <table>/<thead> hier, damit nur EINE "
+            "Tabelle existiert.{% endcomment %}\n"
+            '<table class="daten sortable" data-sort-key="x">'
+            "<thead></thead></table>\n"
+            "<!-- auch <table> im HTML-Kommentar -->\n"
+        )
         sauber = ohne_kommentare(quelle)
         self.assertEqual(sauber.count("<table"), 1, sauber)
 
     def test_kurzer_kommentar_frisst_nicht_die_datei(self):
-        u"""``{# ... #}`` ist einzeilig - ein gieriges Muster loeschte sonst
+        """``{# ... #}`` ist einzeilig - ein gieriges Muster loeschte sonst
         alles zwischen dem ersten und dem letzten Vorkommen."""
-        quelle = '{# eins #}\n<table><thead></thead></table>\n{# zwei #}'
+        quelle = "{# eins #}\n<table><thead></thead></table>\n{# zwei #}"
         self.assertIn("<table", ohne_kommentare(quelle))

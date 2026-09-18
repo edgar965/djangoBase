@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""`protokoll`: im Ergebnis gemeldet ist gemeldet.
+"""`protokoll`: im Ergebnis gemeldet ist gemeldet.
 
 DER FALL (31.08.2026, 3DTools)
 ==============================
@@ -37,20 +37,29 @@ BDD - GEGEBEN / DANN
     EinLeeresTextfeld          ... wird gemeldet
     EinStummerBlock            ... wird gemeldet
 """
+
 from djangobase.skills.protokoll import Protokoll
 
 from .test_neue_werkzeuge import WerkzeugBasis
 
 
 class ProtokollBasis(WerkzeugBasis):
-    u"""Faehrt `protokoll` auf eine einzelne Datei."""
+    """Faehrt `protokoll` auf eine einzelne Datei.
+
+    NUR DIE DATEIBEZOGENEN BEFUNDE (18.09.2026): `protokoll` prueft daneben
+    die LOGGING-Einstellung des WIRTS — im Pruef-Wirt von djangoBase gibt es
+    keine, und jeder Fall hier bekam einen Befund „LOGGING fehlt" dazu, der
+    mit dem geprueften Code nichts zu tun hat (sieben rote Faelle). Der
+    Anlassfall des Werkzeugs nennt diese Art selbst (``ohne_arten``).
+    """
 
     def befunde(self, quelle):
-        return self.projekt({'dienst.py': quelle}).fahren(Protokoll)
+        zeilen = self.projekt({"dienst.py": quelle}).fahren(Protokoll)
+        return Protokoll.anlassfall.dateibezogen(zeilen)
 
 
 class EinErgebnisMitFehlertext(ProtokollBasis):
-    u"""Gegeben: Der Block gibt Schalter UND Text zurueck."""
+    """Gegeben: Der Block gibt Schalter UND Text zurueck."""
 
     ECHT = """def lauf(pfad):
     try:
@@ -63,24 +72,22 @@ class EinErgebnisMitFehlertext(ProtokollBasis):
         self.assertEqual(self.befunde(self.ECHT), [])
 
     def test_auch_mit_einem_festen_text(self):
-        u"""Der Text muss nicht die Ausnahme nennen — `Blender not found
+        """Der Text muss nicht die Ausnahme nennen — `Blender not found
         at …` sagt genug."""
-        quelle = self.ECHT.replace("f'nicht gefunden: {e}'",
-                                   "'Blender nicht am erwarteten Ort'")
+        quelle = self.ECHT.replace("f'nicht gefunden: {e}'", "'Blender nicht am erwarteten Ort'")
         self.assertEqual(self.befunde(quelle), [])
 
     def test_auch_mit_success_und_error(self):
-        u"""Andere Projekte schreiben `success`/`error`."""
-        quelle = (self.ECHT.replace("'ok'", "'success'")
-                           .replace("'log'", "'error'"))
+        """Andere Projekte schreiben `success`/`error`."""
+        quelle = self.ECHT.replace("'ok'", "'success'").replace("'log'", "'error'")
         self.assertEqual(self.befunde(quelle), [])
 
 
 class EinErgebnisOhneText(ProtokollBasis):
-    u"""Gegeben: Nur der Schalter, kein Grund."""
+    """Gegeben: Nur der Schalter, kein Grund."""
 
     def test_es_bleibt_ein_befund(self):
-        u"""Die Gegenprobe: Sonst waere die Ausnahme ein Schalter, mit dem
+        """Die Gegenprobe: Sonst waere die Ausnahme ein Schalter, mit dem
         sich jeder Befund abstellen laesst."""
         quelle = """def lauf(pfad):
     try:
@@ -101,10 +108,10 @@ class EinErgebnisOhneText(ProtokollBasis):
 
 
 class EinLeeresTextfeld(ProtokollBasis):
-    u"""Gegeben: Das Textfeld ist da, aber leer."""
+    """Gegeben: Das Textfeld ist da, aber leer."""
 
     def test_es_bleibt_ein_befund(self):
-        u"""`'log': ''` sagt genauso wenig wie gar kein Feld."""
+        """`'log': ''` sagt genauso wenig wie gar kein Feld."""
         quelle = """def lauf(pfad):
     try:
         return {'ok': True, 'log': 'fertig'}
@@ -115,7 +122,7 @@ class EinLeeresTextfeld(ProtokollBasis):
 
 
 class EinStummerBlock(ProtokollBasis):
-    u"""Gegeben: Der Block schluckt wirklich."""
+    """Gegeben: Der Block schluckt wirklich."""
 
     def test_pass_bleibt_ein_befund(self):
         quelle = """def lauf(pfad):
@@ -126,4 +133,4 @@ class EinStummerBlock(ProtokollBasis):
 """
         zeilen = self.befunde(quelle)
         self.assertEqual(len(zeilen), 1, zeilen)
-        self.assertIn('verschluckt', zeilen[0]['art'])
+        self.assertIn("verschluckt", zeilen[0]["art"])

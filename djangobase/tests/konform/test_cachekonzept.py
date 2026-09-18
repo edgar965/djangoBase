@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Haelt das Projekt das Cache-Konzept ein — Seiten, Statik und ES-Module?
+"""Haelt das Projekt das Cache-Konzept ein — Seiten, Statik und ES-Module?
 
 DER AUFTRAG (Edgar, 06.09.2026)
 ==============================
@@ -23,10 +23,11 @@ Vier Pruefungen, je eine Regel, plus die Einstellungen:
     3. Keine Kennung in JavaScript-Importen (ein Modul, eine Adresse).
     4. Middleware, Fassungspfad und ASGI-Huelle sind eingehaengt.
 """
-from django.test import SimpleTestCase
 
 from djangobase.cachekonzept import Cachekonzept
 from djangobase.tests.konform.quellen import dateien, wurzel
+
+from .basis import KonformTest
 
 __all__ = ["CachekonzeptTest"]
 
@@ -54,14 +55,14 @@ def _befunde(regel, endung, pruefer):
 
 def _meldung(regel, befunde):
     r = Cachekonzept.regel(regel)
-    zeilen = [u"  %s  →  %s" % (b["ort"], b["was"]) for b in befunde[:12]]
+    zeilen = ["  %s  →  %s" % (b["ort"], b["was"]) for b in befunde[:12]]
     if len(befunde) > 12:
-        zeilen.append(u"  … und %d weitere" % (len(befunde) - 12))
-    return u"%s\n%s\nWie: %s\nFundstellen:\n%s" % (r.titel, r.warum, r.wie, "\n".join(zeilen))
+        zeilen.append("  … und %d weitere" % (len(befunde) - 12))
+    return "%s\n%s\nWie: %s\nFundstellen:\n%s" % (r.titel, r.warum, r.wie, "\n".join(zeilen))
 
 
-class CachekonzeptTest(SimpleTestCase):
-    u"""Jede Vorlage, jedes Skript, dazu die Einstellungen."""
+class CachekonzeptTest(KonformTest):
+    """Jede Vorlage, jedes Skript, dazu die Einstellungen."""
 
     databases = []
 
@@ -79,9 +80,9 @@ class CachekonzeptTest(SimpleTestCase):
 
     def test_middleware_fassungspfad_und_asgi_huelle(self):
         befunde = Cachekonzept.einstellungen()
-        zeilen = [u"%s: %s — %s" % (b["ort"], b["was"], Cachekonzept.regel(b["regel"]).wie) for b in befunde]
-        self.assertEqual(befunde, [], u"Einstellungen gegen das Cache-Konzept:\n" + "\n".join(zeilen))
+        zeilen = ["%s: %s — %s" % (b["ort"], b["was"], Cachekonzept.regel(b["regel"]).wie) for b in befunde]
+        self.assertEqual(befunde, [], "Einstellungen gegen das Cache-Konzept:\n" + "\n".join(zeilen))
 
     def test_es_wurde_wirklich_gesucht(self):
-        u"""Eine Pruefung ueber null Dateien ist keine Pruefung."""
-        self.assertTrue(list(dateien(".html")), u"Keine einzige Vorlage gefunden — stimmt die Wurzel?")
+        """Eine Pruefung ueber null Dateien ist keine Pruefung."""
+        self.assertTrue(list(dateien(".html")), "Keine einzige Vorlage gefunden — stimmt die Wurzel?")

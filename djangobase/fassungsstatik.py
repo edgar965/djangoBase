@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Statik unter einem Pfad, der die Fassung traegt.
+"""Statik unter einem Pfad, der die Fassung traegt.
 
 DAS PROBLEM (05.09.2026, 3DTools)
 =================================
@@ -48,12 +48,14 @@ und der Browser sie ZWEIMAL laedt — mit getrennten Modulzustaenden. Das ist
 in diesem Projekt schon einmal schiefgegangen und steht seither als Regel
 in `CLAUDE.md`.
 """
+
 import mimetypes
 import os
 import posixpath
 import threading
 import time
 
+from django.apps import apps
 from django.conf import settings
 from django.contrib.staticfiles import finders
 from django.http import FileResponse, Http404
@@ -61,15 +63,15 @@ from django.urls import path, register_converter
 
 from .cache_middleware import STATIK
 
-__all__ = ['Fassungsstatik', 'urlpatterns']
+__all__ = ["Fassungsstatik", "urlpatterns"]
 
 
 class Fassungsstatik:
-    u"""Liefert statische Dateien unter ``/<PRAEFIX>/v-<fassung>/<pfad>``."""
+    """Liefert statische Dateien unter ``/<PRAEFIX>/v-<fassung>/<pfad>``."""
 
     #: Ausserhalb von ``STATIC_URL``, sonst faengt der Statik-Handler von
     #: ``runserver`` die Adresse ab, bevor irgendein Code sie sieht.
-    PRAEFIX = 'statik'
+    PRAEFIX = "statik"
 
     #: So oft wird der Dateibaum hoechstens neu abgesucht. Ein Durchlauf ueber
     #: 427 Dateien kostet gemessene 17 ms — zu viel je Seitenaufruf, zu wenig,
@@ -84,7 +86,7 @@ class Fassungsstatik:
 
     @classmethod
     def fassung(cls):
-        u"""Die Kennung: die juengste Aenderungszeit im Statik-Baum.
+        """Die Kennung: die juengste Aenderungszeit im Statik-Baum.
 
         Eine Zahl, die sich genau dann aendert, wenn sich eine Datei
         aendert — nicht bei jedem Seitenaufruf (dann laedt der Browser
@@ -99,6 +101,18 @@ class Fassungsstatik:
             cls._fassung = cls._juengste()
             cls._geprueft = jetzt
             return cls._fassung
+
+    @classmethod
+    def vergessen(cls):
+        """Die gemerkte Fassung verwerfen — der naechste Aufruf sucht neu.
+
+        Fuer Pruefungen, die den Statik-Baum wechseln (``override_settings``):
+        Ohne das saehe die zweite Pruefung noch die Zahl der ersten, solange
+        ``FRISCHE_S`` nicht abgelaufen ist (18.09.2026).
+        """
+        with cls._schloss:
+            cls._fassung = 0
+            cls._geprueft = 0.0
 
     @classmethod
     def _juengste(cls):
@@ -117,34 +131,74 @@ class Fassungsstatik:
                         juengste = zeit
         return int(juengste)
 
-    @staticmethod
-    def _ordner():
-        u"""Die durchsuchten Baeume: ``STATICFILES_DIRS`` und ``STATIC_ROOT``.
+    @classmethod
+    def _ordner(cls):
+        """Die durchsuchten Baeume: ``STATICFILES_DIRS``, ``STATIC_ROOT`` und
+        die ``static``-Ordner der PROJEKTEIGENEN Anwendungen.
 
-        Bewusst NICHT die ``static``-Ordner der Anwendungen: Die aendern sich
-        nur beim Aktualisieren eines Pakets, und der Durchlauf ueber
-        ``site-packages`` waere teuer.
+        Bewusst NICHT die Anwendungen aus ``site-packages``: Die aendern sich
+        nur beim Aktualisieren eines Pakets, und der Durchlauf darueber waere
+        teuer. Die Grenze zieht ``BASE_DIR``.
+
+        WARUM DIE APP-ORDNER DAZUGEHOEREN (06.09.2026, in Roomguest gemessen):
+        Ein Projekt, das seine Statik nach Django-Art in ``<app>/static/``
+        legt und kein ``STATICFILES_DIRS`` setzt, hatte hier **null** Ordner
+        zu durchsuchen. Die Fassung war damit konstant ``0`` — jede Adresse
+        lautete ``/statik/v-0/…`` und aenderte sich nie, waehrend
+        ``ausliefern`` sie mit ``immutable`` fuer ein Jahr freigibt. Das ist
+        schlechter als gar keine Kennung: Eine Aenderung kaeme beim Browser
+        NIE an. Betroffen waren ausser Roomguest auch shortlongx und
+        HumanBodyWeb (beide ohne ``STATICFILES_DIRS``).
         """
-        aus = [str(o[1] if isinstance(o, (tuple, list)) else o)
-               for o in (getattr(settings, 'STATICFILES_DIRS', ()) or ())]
-        wurzel = getattr(settings, 'STATIC_ROOT', None)
+        aus = [
+            str(o[1] if isinstance(o, (tuple, list)) else o)
+            for o in (getattr(settings, "STATICFILES_DIRS", ()) or ())
+        ]
+        wurzel = getattr(settings, "STATIC_ROOT", None)
         if wurzel:
             aus.append(str(wurzel))
+        aus.extend(cls._app_ordner())
         return [o for o in aus if o and os.path.isdir(o)]
+
+    #: Ein Wegweiser auf eine INSTALLIERTE Anwendung, auch wenn sie unterhalb
+    #: von ``BASE_DIR`` liegt. Das ist der Normalfall bei einer virtuellen
+    #: Umgebung im Projektordner (``A:\\Roomguest\\pythonVENV``, gemessen
+    #: 06.09.2026) — ohne diese Pruefung landete Djangos eigene Admin-Statik
+    #: im Durchlauf, also genau das, was der Kopf ausschliessen will.
+    FREMD = ("site-packages", "dist-packages")
+
+    @classmethod
+    def _app_ordner(cls):
+        """``<app>/static`` jeder PROJEKTEIGENEN Anwendung unter ``BASE_DIR``."""
+        basis = getattr(settings, "BASE_DIR", None)
+        if not basis:
+            return []
+        basis = os.path.abspath(str(basis))
+        gefunden = []
+        for konfig in apps.get_app_configs():
+            ort = os.path.abspath(str(konfig.path))
+            if ort == basis or not ort.startswith(basis + os.sep):
+                continue
+            teile = ort.replace("\\", "/").split("/")
+            if any(fremd in teile for fremd in cls.FREMD):
+                continue
+            ordner = os.path.join(ort, "static")
+            if os.path.isdir(ordner):
+                gefunden.append(ordner)
+        return gefunden
 
     # ------------------------------------------------------------ Adressen
 
     @classmethod
     def pfad(cls, relativ):
-        u"""``'viewer/viewer/index.js'`` -> ``'/statik/v-123/viewer/…'``."""
-        return '/%s/v-%d/%s' % (cls.PRAEFIX, cls.fassung(),
-                                str(relativ).lstrip('/'))
+        """``'viewer/viewer/index.js'`` -> ``'/statik/v-123/viewer/…'``."""
+        return "/%s/v-%d/%s" % (cls.PRAEFIX, cls.fassung(), str(relativ).lstrip("/"))
 
     # ------------------------------------------------------------ Ausliefern
 
     @classmethod
     def ausliefern(cls, request, fassung, pfad):
-        u"""Die Datei zu diesem Pfad — die Fassung selbst wird ignoriert.
+        """Die Datei zu diesem Pfad — die Fassung selbst wird ignoriert.
 
         Sie steht nur in der Adresse, damit eine Aenderung eine neue Adresse
         ergibt. Zu pruefen, ob sie die aktuelle ist, waere falsch: Eine Seite,
@@ -154,24 +208,24 @@ class Fassungsstatik:
         del fassung
         ort = cls._datei(pfad)
         if ort is None:
-            raise Http404('Statische Datei nicht gefunden: %s' % pfad)
-        typ = mimetypes.guess_type(ort)[0] or 'application/octet-stream'
-        antwort = FileResponse(open(ort, 'rb'), content_type=typ)
+            raise Http404("Statische Datei nicht gefunden: %s" % pfad)
+        typ = mimetypes.guess_type(ort)[0] or "application/octet-stream"
+        antwort = FileResponse(open(ort, "rb"), content_type=typ)
         # Die Adresse traegt die Fassung, also darf sie ein Jahr liegen —
         # `immutable` spart sogar die Rueckfrage.
-        antwort['Cache-Control'] = STATIK
+        antwort["Cache-Control"] = STATIK
         return antwort
 
     @staticmethod
     def _datei(pfad):
-        u"""Der echte Ort auf der Platte — oder ``None``.
+        """Der echte Ort auf der Platte — oder ``None``.
 
         ``normpath`` VOR der Pruefung: ``a/../../geheim`` sieht ohne sie
         harmlos aus. Und der Fund geht ueber die Finder, damit derselbe
         Suchweg gilt wie fuer ``{% static %}``.
         """
-        sauber = posixpath.normpath('/' + str(pfad).replace('\\', '/')).lstrip('/')
-        if not sauber or sauber.startswith('../') or sauber == '..':
+        sauber = posixpath.normpath("/" + str(pfad).replace("\\", "/")).lstrip("/")
+        if not sauber or sauber.startswith("../") or sauber == "..":
             return None
         gefunden = finders.find(sauber)
         if isinstance(gefunden, (list, tuple)):
@@ -180,20 +234,23 @@ class Fassungsstatik:
 
 
 class Fassungskennung:
-    u"""``v-1788611870`` in der Adresse."""
+    """``v-1788611870`` in der Adresse."""
 
-    regex = r'v-\d+'
+    regex = r"v-\d+"
 
     def to_python(self, wert):
         return int(wert[2:])
 
     def to_url(self, wert):
-        return 'v-%d' % int(wert)
+        return "v-%d" % int(wert)
 
 
-register_converter(Fassungskennung, 'fassung')
+register_converter(Fassungskennung, "fassung")
 
 urlpatterns = [
-    path('%s/<fassung:fassung>/<path:pfad>' % Fassungsstatik.PRAEFIX,
-         Fassungsstatik.ausliefern, name='fassungsstatik'),
+    path(
+        "%s/<fassung:fassung>/<path:pfad>" % Fassungsstatik.PRAEFIX,
+        Fassungsstatik.ausliefern,
+        name="fassungsstatik",
+    ),
 ]
