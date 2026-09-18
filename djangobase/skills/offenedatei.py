@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Offene Datei — ``open()`` ohne ``with`` und ohne ``close()``.
+"""Offene Datei — ``open()`` ohne ``with`` und ohne ``close()``.
 
 DAS MUSTER
 ==========
@@ -46,6 +46,7 @@ WAS NICHT GEMELDET WIRD
   ob DER sie schliesst, kann diese Pruefung nicht wissen.
 * Tests.
 """
+
 import ast
 
 from .anlassfall import Anlassfall
@@ -55,53 +56,63 @@ __all__ = ["OffeneDatei"]
 
 
 class OffeneDatei(BefundWerkzeug):
-    u"""``open()`` ohne ``with`` und ohne ``close()``."""
+    """``open()`` ohne ``with`` und ohne ``close()``."""
 
     slug = "offene-datei"
     titel = "Datei geoeffnet, nie geschlossen"
-    zweck = ("Findet `f = open(...)` ohne `with` und ohne `close()` in "
-             "derselben Funktion.")
-    befund = ("Fuenfmal in assistant gefunden, viermal als Abschrift "
-              "voneinander: Logdatei auf, an `Popen` weitergegeben, nie zu. "
-              "Die Ausgabe stimmt trotzdem — deshalb faellt es nicht auf.")
-    abhilfe = ("`with open(...) as f:` — oder `try/finally` mit `close()`. "
-               "Der Subprozess hat seine eigene Kopie und schreibt weiter.")
+    zweck = "Findet `f = open(...)` ohne `with` und ohne `close()` in derselben Funktion."
+    befund = (
+        "Fuenfmal in assistant gefunden, viermal als Abschrift "
+        "voneinander: Logdatei auf, an `Popen` weitergegeben, nie zu. "
+        "Die Ausgabe stimmt trotzdem — deshalb faellt es nicht auf."
+    )
+    abhilfe = (
+        "`with open(...) as f:` — oder `try/finally` mit `close()`. "
+        "Der Subprozess hat seine eigene Kopie und schreibt weiter."
+    )
     dauer = "unter 1 s"
     kriterium = 0
 
     anlassfall = Anlassfall(
-        {"starter.py": (
-            "import subprocess\n"
-            "\n"
-            "\n"
-            "def starten(befehl, pfad):\n"
-            "    protokoll = open(pfad, 'w')\n"
-            "    subprocess.Popen(befehl, stdout=protokoll)\n"),
-         "sauber.py": (
-            "import subprocess\n"
-            "\n"
-            "\n"
-            "def starten(befehl, pfad):\n"
-            "    protokoll = open(pfad, 'w')\n"
-            "    try:\n"
-            "        subprocess.Popen(befehl, stdout=protokoll)\n"
-            "    finally:\n"
-            "        protokoll.close()\n"
-            "\n"
-            "\n"
-            "def mit_block(befehl, pfad):\n"
-            "    with open(pfad, 'w') as protokoll:\n"
-            "        subprocess.Popen(befehl, stdout=protokoll)\n"
-            "\n"
-            "\n"
-            "def gehoert_dem_aufrufer(pfad):\n"
-            "    datei = open(pfad, 'w')\n"
-            "    return datei\n")},
-        mindestens=1, hoechstens=1, erwartet_in="starter.py",
+        {
+            "starter.py": (
+                "import subprocess\n"
+                "\n"
+                "\n"
+                "def starten(befehl, pfad):\n"
+                "    protokoll = open(pfad, 'w')\n"
+                "    subprocess.Popen(befehl, stdout=protokoll)\n"
+            ),
+            "sauber.py": (
+                "import subprocess\n"
+                "\n"
+                "\n"
+                "def starten(befehl, pfad):\n"
+                "    protokoll = open(pfad, 'w')\n"
+                "    try:\n"
+                "        subprocess.Popen(befehl, stdout=protokoll)\n"
+                "    finally:\n"
+                "        protokoll.close()\n"
+                "\n"
+                "\n"
+                "def mit_block(befehl, pfad):\n"
+                "    with open(pfad, 'w') as protokoll:\n"
+                "        subprocess.Popen(befehl, stdout=protokoll)\n"
+                "\n"
+                "\n"
+                "def gehoert_dem_aufrufer(pfad):\n"
+                "    datei = open(pfad, 'w')\n"
+                "    return datei\n"
+            ),
+        },
+        mindestens=1,
+        hoechstens=1,
+        erwartet_in="starter.py",
         warum="Der Deskriptor bleibt im Serverprozess liegen, einer je "
-              "Start. `sauber.py` haelt die drei Ausnahmen fest: "
-              "`try/finally`, `with`, und die Datei, die dem Aufrufer "
-              "gehoert — ohne sie meldete das Werkzeug jede Fabrikmethode.")
+        "Start. `sauber.py` haelt die drei Ausnahmen fest: "
+        "`try/finally`, `with`, und die Datei, die dem Aufrufer "
+        "gehoert — ohne sie meldete das Werkzeug jede Fabrikmethode.",
+    )
 
     #: Diese Datei beschreibt den Fehler, statt ihn zu machen.
     AUSNAHMEN = ("offenedatei.py",)
@@ -117,15 +128,12 @@ class OffeneDatei(BefundWerkzeug):
                 continue
             dateien += 1
             befunde += self._aus_baum(baum, self.kurz(pfad))
-        kopf = ["%d Python-Dateien gelesen" % dateien,
-                "%d offene Dateien" % len(befunde)]
+        kopf = ["%d Python-Dateien gelesen" % dateien, "%d offene Dateien" % len(befunde)]
         return Befundsatz(self.titel, kopf, befunde)
 
     @staticmethod
     def _ist_test(pfad):
-        return (pfad.name.startswith("test_")
-                or "tests" in pfad.parts
-                or "test" in pfad.parts)
+        return pfad.name.startswith("test_") or "tests" in pfad.parts or "test" in pfad.parts
 
     @staticmethod
     def _baum(pfad):
@@ -144,7 +152,7 @@ class OffeneDatei(BefundWerkzeug):
         return raus
 
     def _aus_funktion(self, funktion, name):
-        u"""Die Namen, die in dieser Funktion eine Datei bekommen."""
+        """Die Namen, die in dieser Funktion eine Datei bekommen."""
         geschlossen = self._geschlossene(funktion)
         zurueck = self._zurueckgegebene(funktion)
         raus = []
@@ -158,48 +166,52 @@ class OffeneDatei(BefundWerkzeug):
                     continue
                 if ziel.id in geschlossen or ziel.id in zurueck:
                     continue
-                raus.append(Befund(
-                    "%s:%d" % (name, knoten.lineno),
-                    "`%s = open(...)` ohne `close()`" % ziel.id,
-                    "Der Deskriptor bleibt im Prozess liegen — einer je "
-                    "Aufruf. Die Ausgabe stimmt trotzdem, deshalb faellt "
-                    "es nicht auf.",
-                    Befund.WARNUNG))
+                raus.append(
+                    Befund(
+                        "%s:%d" % (name, knoten.lineno),
+                        "`%s = open(...)` ohne `close()`" % ziel.id,
+                        "Der Deskriptor bleibt im Prozess liegen — einer je "
+                        "Aufruf. Die Ausgabe stimmt trotzdem, deshalb faellt "
+                        "es nicht auf.",
+                        Befund.WARNUNG,
+                    )
+                )
         return raus
 
     @staticmethod
     def _ist_open(knoten):
-        return (isinstance(knoten, ast.Call)
-                and isinstance(knoten.func, ast.Name)
-                and knoten.func.id == "open")
+        return isinstance(knoten, ast.Call) and isinstance(knoten.func, ast.Name) and knoten.func.id == "open"
 
     @staticmethod
     def _geschlossene(funktion):
-        u"""Namen, auf denen irgendwo ``close()`` gerufen wird."""
+        """Namen, auf denen irgendwo ``close()`` gerufen wird."""
         namen = set()
         for knoten in ast.walk(funktion):
-            if (isinstance(knoten, ast.Call)
-                    and isinstance(knoten.func, ast.Attribute)
-                    and knoten.func.attr == "close"
-                    and isinstance(knoten.func.value, ast.Name)):
+            if (
+                isinstance(knoten, ast.Call)
+                and isinstance(knoten.func, ast.Attribute)
+                and knoten.func.attr == "close"
+                and isinstance(knoten.func.value, ast.Name)
+            ):
                 namen.add(knoten.func.value.id)
             # Auch die Uebergabe an einen Helfer zaehlt: `self._zu(datei)`
             elif isinstance(knoten, ast.Call):
                 for arg in knoten.args:
-                    if (isinstance(arg, ast.Name)
-                            and isinstance(knoten.func, ast.Attribute)
-                            and "schliess" in knoten.func.attr.lower()):
+                    if (
+                        isinstance(arg, ast.Name)
+                        and isinstance(knoten.func, ast.Attribute)
+                        and "schliess" in knoten.func.attr.lower()
+                    ):
                         namen.add(arg.id)
         return namen
 
     @staticmethod
     def _zurueckgegebene(funktion):
-        u"""Namen, die zurueckgegeben werden — dann gehoert die Datei
+        """Namen, die zurueckgegeben werden — dann gehoert die Datei
         dem Aufrufer, und ob DER sie schliesst, ist hier nicht zu
         sehen."""
         namen = set()
         for knoten in ast.walk(funktion):
-            if isinstance(knoten, ast.Return) and isinstance(knoten.value,
-                                                             ast.Name):
+            if isinstance(knoten, ast.Return) and isinstance(knoten.value, ast.Name):
                 namen.add(knoten.value.id)
         return namen

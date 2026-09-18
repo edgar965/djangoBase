@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""`pause.Pause` — Warten, das man hineinreicht, abbricht und nachzählt.
+"""`pause.Pause` — Warten, das man hineinreicht, abbricht und nachzählt.
 
 DER ANLASS (gunSlinger, 18.09.2026)
 ===================================
@@ -16,6 +16,7 @@ Drei Eigenschaften, jede mit ihrer Gegenrichtung:
    ohne Abbruch läuft die Zeit durch.
 3. Nach `zuruecksetzen()` wartet dieselbe Pause wieder.
 """
+
 import threading
 
 from django.test import SimpleTestCase
@@ -24,7 +25,6 @@ from djangobase.pause import Pause
 
 
 class EineSofortPause(SimpleTestCase):
-
     def test_wartet_nicht_zaehlt_aber_jede_anforderung(self):
         pause = Pause.sofort()
         start = Pause.jetzt()
@@ -41,9 +41,8 @@ class EineSofortPause(SimpleTestCase):
 
 
 class EineEchtePause(SimpleTestCase):
-
     def test_wartet_wirklich(self):
-        u"""Die Gegenrichtung zu `sofort()`: ohne Ersatz vergeht Zeit."""
+        """Die Gegenrichtung zu `sofort()`: ohne Ersatz vergeht Zeit."""
         pause = Pause()
         start = Pause.jetzt()
         self.assertTrue(pause.warten(0.05))
@@ -53,10 +52,10 @@ class EineEchtePause(SimpleTestCase):
         pause = Pause()
         threading.Timer(0.05, pause.abbrechen).start()
         start = Pause.jetzt()
-        self.assertFalse(pause.warten(30), 'False = abgebrochen')
-        self.assertLess(Pause.jetzt() - start, 2.0, 'Ein Abbruch darf nicht die 30 s abwarten')
+        self.assertFalse(pause.warten(30), "False = abgebrochen")
+        self.assertLess(Pause.jetzt() - start, 2.0, "Ein Abbruch darf nicht die 30 s abwarten")
         self.assertTrue(pause.abgebrochen)
-        self.assertFalse(pause.warten(5), 'Nach dem Abbruch kehrt jedes Warten sofort zurück')
+        self.assertFalse(pause.warten(5), "Nach dem Abbruch kehrt jedes Warten sofort zurück")
 
     def test_wartet_nach_dem_zuruecksetzen_wieder(self):
         pause = Pause()

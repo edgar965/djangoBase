@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Testbefehle - die Eintraege fuer Hilfe -> Tests aus der Platte ableiten.
+"""Testbefehle - die Eintraege fuer Hilfe -> Tests aus der Platte ableiten.
 
     Kriterium 17: Untermenues fuer Unit-, Component-, UI-Tests und Longrunner;
     bei grossen Projekten mehrere Gruppen (Bereich x Art).
@@ -40,6 +40,7 @@ Benutzung in ``settings.py``:
         "test_befehle": Testbefehle(BASE_DIR).liste(),
     }
 """
+
 import sys
 from pathlib import Path
 
@@ -53,17 +54,42 @@ class Testbefehle:
     #: ``automated`` steht vorn — es ist der Lauf, den man bei JEDER Aenderung
     #: fahren koennen muss (Grundfunktion, Sekunden, kein Netz/GPU).
     ARTEN = ("automated", "unit", "component", "ui", "performance", "longrunner")
-    ARTNAMEN = {"automated": "Automated (Grundfunktion)", "unit": "Unit",
-                "component": "Component", "ui": "UI",
-                "performance": "Performance (Ladezeiten)",
-                "longrunner": "Longrunner"}
+    ARTNAMEN = {
+        "automated": "Automated (Grundfunktion)",
+        "unit": "Unit",
+        "component": "Component",
+        "ui": "UI",
+        "performance": "Performance (Ladezeiten)",
+        "longrunner": "Longrunner",
+    }
     #: Fuer die Reiter - dort ist Platz knapp.
-    KURZ = {"automated": "Automated", "unit": "Unit", "component": "Component",
-            "ui": "UI", "performance": "Performance", "longrunner": "Longrunner"}
+    KURZ = {
+        "automated": "Automated",
+        "unit": "Unit",
+        "component": "Component",
+        "ui": "UI",
+        "performance": "Performance",
+        "longrunner": "Longrunner",
+    }
     #: Ordner, die keine App sind.
-    KEINE_APP = {"__pycache__", "static", "templates", "media", "logs", "venv",
-                 "pythonVENV", ".venv", "node_modules", ".git", "docs", "tmp",
-                 "vendor", "models", "migrations", "fixtures"}
+    KEINE_APP = {
+        "__pycache__",
+        "static",
+        "templates",
+        "media",
+        "logs",
+        "venv",
+        "pythonVENV",
+        ".venv",
+        "node_modules",
+        ".git",
+        "docs",
+        "tmp",
+        "vendor",
+        "models",
+        "migrations",
+        "fixtures",
+    }
 
     def __init__(self, basis, python=None, apps=None, verbose=True):
         self.basis = Path(str(basis))
@@ -105,18 +131,16 @@ class Testbefehle:
         aus = [self._eintrag(app, "Alles", app.capitalize())]
         # Bauform 1: app/tests/<art>/
         for art in arten:
-            aus.append(self._eintrag("%s.tests.%s" % (app, art),
-                                     self.ARTNAMEN[art], app.capitalize(), art))
+            aus.append(self._eintrag("%s.tests.%s" % (app, art), self.ARTNAMEN[art], app.capitalize(), art))
         # Bauform 2: app/tests/<bereich>/<art>/ - je Bereich eine Gruppe
         for bereich in bereiche:
             gruppe = "%s · %s" % (app.capitalize(), bereich)
-            aus.append(self._eintrag("%s.tests.%s" % (app, bereich),
-                                     "Alles", gruppe))
+            aus.append(self._eintrag("%s.tests.%s" % (app, bereich), "Alles", gruppe))
             for art in self.ARTEN:
                 if self._hat_tests(wurzel / bereich / art):
-                    aus.append(self._eintrag(
-                        "%s.tests.%s.%s" % (app, bereich, art),
-                        self.ARTNAMEN[art], gruppe, art))
+                    aus.append(
+                        self._eintrag("%s.tests.%s.%s" % (app, bereich, art), self.ARTNAMEN[art], gruppe, art)
+                    )
         return aus
 
     def _eintrag(self, ziel, was, gruppe, art=None):
@@ -124,10 +148,15 @@ class Testbefehle:
         # ``art`` und ``ziel`` braucht die Seite, um daraus die Kategorie-Reiter
         # und die Sammelbefehle zu bauen; aeltere Eintraege ohne beides bleiben
         # nutzbar (sie landen dann unter „Nach App").
-        return {"slug": ziel.replace(".", "-"),
-                "name": "%s · %s" % (gruppe, was) if gruppe != was else gruppe,
-                "kurz": was, "gruppe": gruppe, "art": art, "ziel": ziel,
-                "cmd": self._befehl([ziel])}
+        return {
+            "slug": ziel.replace(".", "-"),
+            "name": "%s · %s" % (gruppe, was) if gruppe != was else gruppe,
+            "kurz": was,
+            "gruppe": gruppe,
+            "art": art,
+            "ziel": ziel,
+            "cmd": self._befehl([ziel]),
+        }
 
     def _befehl(self, ziele):
         """``manage.py test <ziel …> --noinput -v 2`` - ohne Ziel: das ganze Projekt."""
@@ -155,5 +184,4 @@ class Testbefehle:
         """Liegt dort mindestens eine Testdatei? (sonst wirft der Befehl)"""
         if not ordner.is_dir():
             return False
-        return any(p.name.startswith("test_") and p.suffix == ".py"
-                   for p in ordner.rglob("test_*.py"))
+        return any(p.name.startswith("test_") and p.suffix == ".py" for p in ordner.rglob("test_*.py"))

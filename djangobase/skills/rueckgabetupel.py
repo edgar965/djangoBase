@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""RueckgabeTupel - Datensaetze, die als Tupel aus einer Funktion kommen.
+"""RueckgabeTupel - Datensaetze, die als Tupel aus einer Funktion kommen.
 
     Kriterium 10 des Auftrags: „Datensatz mit mehr als drei Feldern, der seine
     Funktion verlässt -> eigene Klasse"
@@ -20,6 +20,7 @@ WAS NICHT GEMELDET WIRD
 Tupel mit bis zu drei Feldern und Generatoren (``yield a, b, c, d``) - die
 laufen meist direkt in eine Schleife, die sie sofort auspackt.
 """
+
 import ast
 
 from .anlassfall import Anlassfall
@@ -29,12 +30,18 @@ from .werkzeug import Ergebnis, Werkzeug
 class RueckgabeTupel(Werkzeug):
     slug = "rueckgabetupel"
     titel = "Rückgabe-Tupel mit vielen Feldern"
-    zweck = ("Funktionen, die mehr als drei Werte als Tupel zurückgeben — der "
-             "Aufrufer muss ihre Reihenfolge kennen.")
-    befund = ("Ein vertauschtes Paar in einer fünfstelligen Rückgabe fällt "
-              "nirgends auf: Es gibt keinen Namen, an dem es sich reiben könnte.")
-    abhilfe = ("Klasse mit benannten Feldern; wenn es wirklich nur ein Datensatz "
-               "ist, ein NamedTuple oder ein dataclass.")
+    zweck = (
+        "Funktionen, die mehr als drei Werte als Tupel zurückgeben — der "
+        "Aufrufer muss ihre Reihenfolge kennen."
+    )
+    befund = (
+        "Ein vertauschtes Paar in einer fünfstelligen Rückgabe fällt "
+        "nirgends auf: Es gibt keinen Namen, an dem es sich reiben könnte."
+    )
+    abhilfe = (
+        "Klasse mit benannten Feldern; wenn es wirklich nur ein Datensatz "
+        "ist, ein NamedTuple oder ein dataclass."
+    )
     dauer = "3–8 s"
     kriterium = 10
 
@@ -50,17 +57,19 @@ class RueckgabeTupel(Werkzeug):
     #: Vier Werte in fester Reihenfolge zurueck - beim Auspacken entscheidet
     #: die Position, und ein vertauschtes Paar faellt nirgends auf.
     anlassfall = Anlassfall(
-        {"lauf.py": '''def messen(werte):
+        {
+            "lauf.py": """def messen(werte):
     return len(werte), sum(werte), min(werte), max(werte)
 
 
 def bericht(werte):
     anzahl, summe, klein, gross = messen(werte)
     return "%d Werte, %s bis %s (Summe %s)" % (anzahl, klein, gross, summe)
-'''},
+"""
+        },
         erwartet_in="messen",
-        warum="Vier Rückgabewerte in fester Reihenfolge — ein vertauschtes "
-              "Paar wirft nichts")
+        warum="Vier Rückgabewerte in fester Reihenfolge — ein vertauschtes Paar wirft nichts",
+    )
 
     def laufen(self):
         zeilen = []
@@ -76,16 +85,23 @@ def bericht(werte):
                         continue
                     if len(wert.elts) < self.MIN_FELDER:
                         continue
-                    zeilen.append({
-                        "datei": d.name, "zeile": r.lineno, "funktion": f.name,
-                        "felder": len(wert.elts),
-                        "inhalt": self._beschreiben(wert)})
+                    zeilen.append(
+                        {
+                            "datei": d.name,
+                            "zeile": r.lineno,
+                            "funktion": f.name,
+                            "felder": len(wert.elts),
+                            "inhalt": self._beschreiben(wert),
+                        }
+                    )
         zeilen.sort(key=lambda z: -z["felder"])
         return Ergebnis(
-            ["datei", "zeile", "funktion", "felder", "inhalt"], zeilen,
+            ["datei", "zeile", "funktion", "felder", "inhalt"],
+            zeilen,
             "%d Rückgabe-Tupel mit mehr als drei Feldern" % len(zeilen),
             "Faustregel: Was man beim Auspacken benennen muss, sollte schon "
-            "beim Zurückgeben einen Namen haben.")
+            "beim Zurückgeben einen Namen haben.",
+        )
 
     @staticmethod
     def _beschreiben(tupel):

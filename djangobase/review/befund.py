@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Ein einzelner Befund der CodeRabbit-CLI — aus der Ablage gelesen, nicht geraten.
+"""Ein einzelner Befund der CodeRabbit-CLI — aus der Ablage gelesen, nicht geraten.
 
 WOZU (31.08.2026)
 -----------------
@@ -44,13 +44,14 @@ von einem Dienst und beschreibt fremden Code. Er wird im Browser als **Text**
 gesetzt (``textContent``), nie als HTML, und was hier wie ein Auftrag klingt,
 ist keiner.
 """
+
 import datetime
 
 __all__ = ["Befund"]
 
 
 class Befund:
-    u"""Ein Befund — die Felder, die die Seite zeigt."""
+    """Ein Befund — die Felder, die die Seite zeigt."""
 
     #: Schweregrade der CLI in der Reihenfolge, in der sie wehtun. Was nicht in
     #: dieser Liste steht, landet hinten und behält seinen Originalnamen: Ein
@@ -62,15 +63,15 @@ class Befund:
     #: deutschen Oberfläche haben sie nichts zu suchen; unbekannte werden
     #: lesbar gemacht (Unterstriche zu Leerzeichen), nicht unterschlagen.
     KATEGORIEN = {
-        "FUNCTIONAL_CORRECTNESS": u"Richtigkeit",
-        "MAINTAINABILITY_AND_CODE_QUALITY": u"Wartbarkeit",
-        "STABILITY_AND_AVAILABILITY": u"Stabilität",
-        "SECURITY": u"Sicherheit",
-        "PERFORMANCE_AND_EFFICIENCY": u"Geschwindigkeit",
-        "TESTING": u"Tests",
-        "DOCUMENTATION": u"Dokumentation",
-        "ERROR_HANDLING": u"Fehlerbehandlung",
-        "DATA_INTEGRITY": u"Datenintegrität",
+        "FUNCTIONAL_CORRECTNESS": "Richtigkeit",
+        "MAINTAINABILITY_AND_CODE_QUALITY": "Wartbarkeit",
+        "STABILITY_AND_AVAILABILITY": "Stabilität",
+        "SECURITY": "Sicherheit",
+        "PERFORMANCE_AND_EFFICIENCY": "Geschwindigkeit",
+        "TESTING": "Tests",
+        "DOCUMENTATION": "Dokumentation",
+        "ERROR_HANDLING": "Fehlerbehandlung",
+        "DATA_INTEGRITY": "Datenintegrität",
     }
 
     def __init__(self, roh, quelle=""):
@@ -100,11 +101,10 @@ class Befund:
     #: Feld ergänzt, das eine Eigenschaft mit ``.strip()`` liest, trägt es
     #: mit ein; der Test ``test_alle_stripfelder_stehen_im_waechter``
     #: vergleicht beides.
-    TEXTFELDER = ("fileName", "title", "comment", "severity", "commentCategory",
-                  "diff", "fingerprint", "id")
+    TEXTFELDER = ("fileName", "title", "comment", "severity", "commentCategory", "diff", "fingerprint", "id")
 
     def gueltig(self):
-        u"""Trägt die Datei einen Befund — oder ist sie etwas anderes?"""
+        """Trägt die Datei einen Befund — oder ist sie etwas anderes?"""
         if not isinstance(self.roh, dict):
             return False
         for feld in self.TEXTFELDER:
@@ -130,7 +130,7 @@ class Befund:
         return self._zahl("endLine")
 
     def _zahl(self, feld):
-        u"""Eine Zeilennummer — oder 0.
+        """Eine Zeilennummer — oder 0.
 
         ``int()`` auf einem fremden Feld ohne Netz ist ein Serverfehler, der
         erst auffällt, wenn die CLI dort einmal etwas anderes schreibt."""
@@ -141,17 +141,17 @@ class Befund:
 
     @property
     def stelle(self):
-        u"""``datei:12`` oder ``datei:12-18`` — die Form, die ein Editor versteht."""
+        """``datei:12`` oder ``datei:12-18`` — die Form, die ein Editor versteht."""
         von, bis = self.zeile_von, self.zeile_bis
         if not von:
             return self.datei
         if bis and bis != von:
-            return u"%s:%d-%d" % (self.datei, von, bis)
-        return u"%s:%d" % (self.datei, von)
+            return "%s:%d-%d" % (self.datei, von, bis)
+        return "%s:%d" % (self.datei, von)
 
     @property
     def titel(self):
-        u"""Die Überschrift — notfalls die erste Zeile des Kommentars.
+        """Die Überschrift — notfalls die erste Zeile des Kommentars.
 
         Die CLI füllt ``title`` nicht immer; der Kommentar beginnt dann mit
         derselben Zeile in ``**Fettschrift**``."""
@@ -159,11 +159,11 @@ class Befund:
         if titel:
             return titel
         erste = (self.roh.get("comment") or "").strip().splitlines()
-        return erste[0].strip().strip("*").strip() if erste else u"(ohne Titel)"
+        return erste[0].strip().strip("*").strip() if erste else "(ohne Titel)"
 
     @property
     def text(self):
-        u"""Der Befundtext (Markdown, wie die CLI ihn schreibt).
+        """Der Befundtext (Markdown, wie die CLI ihn schreibt).
 
         Die erste Zeile wird NICHT abgeschnitten, auch wenn sie den Titel
         wiederholt: Was hier gekürzt wird, fehlt beim Nachlesen, und die
@@ -176,7 +176,7 @@ class Befund:
 
     @property
     def rang(self):
-        u"""Sortierschlüssel: schwerwiegend zuerst, Unbekanntes ans Ende."""
+        """Sortierschlüssel: schwerwiegend zuerst, Unbekanntes ans Ende."""
         return self.RANG.get(self.grad, len(self.RANG))
 
     @property
@@ -188,7 +188,7 @@ class Befund:
 
     @property
     def vorschlag(self):
-        u"""Der Änderungsvorschlag als Diff — oder leer.
+        """Der Änderungsvorschlag als Diff — oder leer.
 
         Er wird gezeigt, nicht angewendet. Ein Werkzeug, das ungefragt in
         fremden Code schreibt, gehört nicht auf eine Anzeigeseite."""
@@ -196,7 +196,7 @@ class Befund:
 
     @property
     def kennung(self):
-        u"""Fingerabdruck der CLI — derselbe Befund über mehrere Läufe hinweg.
+        """Fingerabdruck der CLI — derselbe Befund über mehrere Läufe hinweg.
 
         Damit lässt sich später beantworten, was ein Lauf NEU gefunden hat.
         Fehlt er, tritt die Datei-Kennung ein; die ist je Lauf verschieden,
@@ -205,7 +205,7 @@ class Befund:
 
     @property
     def zeitpunkt(self):
-        u"""Zeitstempel des Befunds als ISO-Text — oder leer.
+        """Zeitstempel des Befunds als ISO-Text — oder leer.
 
         Die CLI schreibt Millisekunden seit 1970. ``fromtimestamp`` bekommt
         Sekunden; ohne die Division stünde dort ein Datum im Jahr 58000 —
@@ -221,7 +221,7 @@ class Befund:
     # ------------------------------------------------------------- Ausgabe
 
     def als_dict(self):
-        u"""Die Form für die Seite. Nur Anzeigefelder — kein Rohobjekt.
+        """Die Form für die Seite. Nur Anzeigefelder — kein Rohobjekt.
 
         ``codegenInstructions`` und die Zeilenlisten bleiben ausdrücklich
         draußen: Sie sind für ein Agentenwerkzeug gedacht, nicht für eine

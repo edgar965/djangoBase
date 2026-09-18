@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Laufzeiten lesbar schreiben — EINE Regel fuer die ganze Oberflaeche.
+"""Laufzeiten lesbar schreiben — EINE Regel fuer die ganze Oberflaeche.
 
 Ansage 17.08.2026: *„wenn die ausführungszeit unter 1 s ist dann schreibe immer
 ms als Zeit"*. Vorher lag die Grenze bei 10 ms; alles darueber stand als
@@ -16,11 +16,11 @@ Sortiert wird ueberall nach dem Rohwert (``data-sort``), nie nach dem Text —
 die Anzeige darf also frei die passende Einheit waehlen.
 """
 
-GRENZE = 1.0        # darunter Millisekunden
+GRENZE = 1.0  # darunter Millisekunden
 
 
 def dauer_text(wert, stellen=2):
-    u"""Sekunden als Text: unter :data:`GRENZE` in ms, sonst mit Komma.
+    """Sekunden als Text: unter :data:`GRENZE` in ms, sonst mit Komma.
 
     >>> dauer_text(0.002), dauer_text(0.42), dauer_text(3.9)
     ('2 ms', '420 ms', '3,90 s')

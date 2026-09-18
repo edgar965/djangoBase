@@ -33,8 +33,13 @@ dependencies = ["Django>=4.2", "Pillow", "concurrent-log-handler>=0.9.20"]
 # die Namen stehen, raet jedes Konsumenten-Projekt neu.
 #
 #     pip install -e "A:/shared/djangoBase[codequalitaet]"
+#
+# ruff (18.09.2026) gehoert in dasselbe Extra: Hilfe -> Skills -> „ruff" faehrt
+# es ueber `sys.executable -m ruff`, also muss es in der Umgebung des PROJEKTS
+# stehen, nicht irgendwo im PATH. Die gemeinsamen Regeln liegen in
+# `djangobase/ruff_vorgabe.toml` (siehe [tool.ruff] unten).
 [project.optional-dependencies]
-codequalitaet = ["radon>=6", "pyflakes>=3", "pycodestyle>=2.11"]
+codequalitaet = ["radon>=6", "pyflakes>=3", "pycodestyle>=2.11", "ruff>=0.6"]
 # Hilfe -> Werkzeug Language Server (02.09.2026): beide Werkzeuge, auf der
 # Seite umschaltbar; django-types nimmt dem Server die Fehlalarme am Manager.
 languageserver = ["basedpyright>=1.19", "pyright>=1.1", "django-types"]
@@ -50,4 +55,17 @@ include-package-data = true
 include = ["djangobase*"]
 
 [tool.setuptools.package-data]
-djangobase = ["templates/**/*", "static/**/*"]
+djangobase = ["templates/**/*", "static/**/*", "ruff_vorgabe.toml"]
+
+# djangoBase selbst prueft sich mit derselben Vorgabe, die es den Konsumenten
+# gibt — eine Datei, ein Regelsatz. Der Bestand ist seit dem 18.09.2026 danach
+# formatiert und frei von Befunden (`ruff check .` und `ruff format --check .`).
+[tool.ruff]
+extend = "djangobase/ruff_vorgabe.toml"
+
+# `extend-`, sonst ersetzt diese Tabelle die Ausnahmen der Vorgabe (__init__,
+# Migrationen, Settings) statt sie zu ergaenzen.
+[tool.ruff.lint.extend-per-file-ignores]
+# Messprotokoll: Urteile und Beispielantworten der Modelle als Zeichenketten —
+# Daten, keine Zeilen zum Umbrechen (29 Zeilen bis 253 Zeichen).
+"djangobase/ki/messungen.py" = ["E501"]

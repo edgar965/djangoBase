@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Hilfe · Werkzeug Language Server — ein Language Server auf Knopfdruck.
+"""Hilfe · Werkzeug Language Server — ein Language Server auf Knopfdruck.
 
 DIE ANSAGE (Edgar, 02.09.2026)
 ==============================
@@ -17,6 +17,7 @@ Das Ergebnis liegt in der Ablage (``umbau/ablage.py``), Schlüssel = Wurzel +
 Abdruck der Einstellungen + Abdruck der Quellmodule. Andere Einstellungen,
 anderes Ergebnis.
 """
+
 import logging
 import time
 from pathlib import Path
@@ -29,36 +30,47 @@ from django.views import View
 from ..conf import conf
 from ..mixins import ZugriffMixin
 from ..skills.werkzeug import Werkzeug
-from ..umbau import ablage
-from ..umbau import ausschlussliste as ausschlussliste_modul
-from ..umbau import languageserver as languageserver_modul
-from ..umbau import ls_befunde as ls_befunde_modul
-from ..umbau import ls_konfig as ls_konfig_modul
+from ..umbau import (
+    ablage,
+    ausschlussliste as ausschlussliste_modul,
+    languageserver as languageserver_modul,
+    ls_befunde as ls_befunde_modul,
+    ls_konfig as ls_konfig_modul,
+)
 from ..umbau.ablage import Speicher
 from ..umbau.ausschlussliste import Ausschlussliste
 from ..umbau.globalbestand import hauptaeste
 from ..umbau.languageserver import LanguageServer
-from ..umbau.ls_javascript import JsPruefer
 from ..umbau.ls_befunde import LsBefunde
+from ..umbau.ls_javascript import JsPruefer
 from ..umbau.ls_konfig import AUSSCHLUESSE, JS_REGELN, REGELN, STUFEN, LsKonfig
 from ..umbau.ls_lauf import LAUF
 from ..umbau.rahmenmodule import Rahmenmodule
 
 logger = logging.getLogger("djangobase.languageserver")
 
-__all__ = ["LanguageServerView", "LsSpeicher", "wurzel", "ordner", "konfig_laden",
-           "schluessel", "extra_pfade", "static_wurzeln", "liste"]
+__all__ = [
+    "LanguageServerView",
+    "LsSpeicher",
+    "wurzel",
+    "ordner",
+    "konfig_laden",
+    "schluessel",
+    "extra_pfade",
+    "static_wurzeln",
+    "liste",
+]
 
 
 # ── Orte ────────────────────────────────────────────────────────────────
 def wurzel():
-    u"""Die Projektwurzel — eine Ebene über BASE_DIR, wenn dort das Repo liegt
+    """Die Projektwurzel — eine Ebene über BASE_DIR, wenn dort das Repo liegt
     (shortlongx: brain/, depot/, werkzeug/ neben shortlongxWeb/)."""
     return Werkzeug().wurzel()
 
 
 def extra_pfade():
-    u"""Import-Wurzeln neben der Projektwurzel.
+    """Import-Wurzeln neben der Projektwurzel.
 
     Zwei Stück, beide gemessen nötig:
 
@@ -125,6 +137,7 @@ def extra_pfade():
     if basis != eigen:
         aus.append(basis)
     import djangobase
+
     paket = Path(djangobase.__file__).resolve().parent.parent
     if paket not in aus and not str(paket).startswith(str(eigen)):
         aus.append(paket)
@@ -136,7 +149,7 @@ def extra_pfade():
 
 
 def static_wurzeln():
-    u"""``static``-Ordner der installierten Apps, die NICHT im Projekt liegen.
+    """``static``-Ordner der installierten Apps, die NICHT im Projekt liegen.
 
     Die Vorlagen binden djangoBase-Module über die URL ein
     (``import … from '/static/djangobase/js/tabellen_sortierung.js'``). Diese
@@ -145,6 +158,7 @@ def static_wurzeln():
     raus, eigen = [], str(wurzel())
     try:
         from django.contrib.staticfiles.finders import get_finders
+
         for finder in get_finders():
             for pfad in getattr(finder, "locations", []) or []:
                 ort = pfad[1] if isinstance(pfad, (tuple, list)) else pfad
@@ -154,7 +168,7 @@ def static_wurzeln():
                 ziel = getattr(ort, "location", "")
                 if ziel and not str(ziel).startswith(eigen):
                     raus.append(str(ziel))
-    except Exception:                                     # noqa: BLE001
+    except Exception:  # noqa: BLE001
         logger.exception("static-Ordner nicht ermittelbar")
     return sorted(set(raus))
 
@@ -164,12 +178,12 @@ def ordner():
 
 
 def liste():
-    u"""Die Ausschlussliste des Projekts — ``pruefausschluss.txt`` in der Wurzel."""
+    """Die Ausschlussliste des Projekts — ``pruefausschluss.txt`` in der Wurzel."""
     return Ausschlussliste(wurzel())
 
 
 def konfig_laden():
-    u"""Einstellungen aus dem Ablage-Ordner, Ausschlussliste aus dem Projekt.
+    """Einstellungen aus dem Ablage-Ordner, Ausschlussliste aus dem Projekt.
 
     Zwei Orte mit Absicht: Was nur diesen Rechner angeht (Interpreter, Deckel,
     Zeitlimit), bleibt im Zwischenspeicher; was das Projekt angeht, steht im
@@ -180,25 +194,24 @@ def konfig_laden():
 
 
 def schluessel(konfig):
-    return u"%s|%s" % (wurzel(), konfig.abdruck())
+    return "%s|%s" % (wurzel(), konfig.abdruck())
 
 
 class LsSpeicher(Speicher):
-    u"""Das Ergebnis des letzten Laufs — je Einstellungs-Abdruck eines."""
+    """Das Ergebnis des letzten Laufs — je Einstellungs-Abdruck eines."""
 
     bereich = "languageserver"
-    quellen = (languageserver_modul, ls_konfig_modul, ls_befunde_modul,
-               ausschlussliste_modul)
+    quellen = (languageserver_modul, ls_konfig_modul, ls_befunde_modul, ausschlussliste_modul)
 
     @staticmethod
-    def bauen(wurzel):                                    # pragma: no cover
+    def bauen(wurzel):  # pragma: no cover
         raise RuntimeError("der Language Server rechnet nur im Hintergrund-Lauf")
 
     @classmethod
     def ablegen(cls, wurzel_schluessel, ergebnis):
-        u"""Gegenstück zu ``nachsehen``: derselbe zusammengesetzte Schlüssel."""
+        """Gegenstück zu ``nachsehen``: derselbe zusammengesetzte Schlüssel."""
         abdruck = cls.abdruck()
-        voll = u"%s#%s" % (wurzel_schluessel, abdruck) if abdruck else str(wurzel_schluessel)
+        voll = "%s#%s" % (wurzel_schluessel, abdruck) if abdruck else str(wurzel_schluessel)
         cls._gemerkt()[voll] = (ergebnis, time.time())
         ablage.schreiben(cls.bereich, voll, ergebnis)
 
@@ -213,7 +226,7 @@ def aeste():
     if eintrag is None or time.time() - eintrag[0] > 600:
         try:
             gefunden = hauptaeste(w)
-        except Exception:                                 # noqa: BLE001
+        except Exception:  # noqa: BLE001
             logger.exception("Hauptäste nicht zählbar")
             gefunden = []
         _AESTE[w] = (time.time(), gefunden)
@@ -244,8 +257,7 @@ class LanguageServerView(ZugriffMixin, View):
         return redirect(request.path)
 
     def _starten(self, request, konfig, neu):
-        server = LanguageServer(konfig, wurzel(), ordner(), extra_pfade(),
-                               static_wurzeln=static_wurzeln())
+        server = LanguageServer(konfig, wurzel(), ordner(), extra_pfade(), static_wurzeln=static_wurzeln())
         key = schluessel(konfig)
         if neu:
             LsSpeicher.leeren()
@@ -256,8 +268,7 @@ class LanguageServerView(ZugriffMixin, View):
         return redirect(request.path)
 
     def _seite(self, request, konfig):
-        server = LanguageServer(konfig, wurzel(), ordner(), extra_pfade(),
-                               static_wurzeln=static_wurzeln())
+        server = LanguageServer(konfig, wurzel(), ordner(), extra_pfade(), static_wurzeln=static_wurzeln())
         gefunden = server.finden()
         ergebnis, alter = LsSpeicher.nachsehen(schluessel(konfig))
         eigene = liste()
@@ -269,7 +280,7 @@ class LanguageServerView(ZugriffMixin, View):
             "liste_namen": eigene.namen(),
             "liste_fehler": eigene.fehler(),
             "liste_gespeichert": request.GET.get("ausschluss"),
-            "titel": u"Werkzeug Language Server",
+            "titel": "Werkzeug Language Server",
             "aktiv": "languageserver",
             "konfig": konfig,
             "werkzeuge": LsKonfig.WERKZEUGE,
@@ -277,8 +288,7 @@ class LanguageServerView(ZugriffMixin, View):
             "stufen": STUFEN[:3],
             "regeln": [(r, konfig.regeln.get(r, s), t) for r, s, t in REGELN],
             "regel_stufen": STUFEN,
-            "ausschluesse": [(k, konfig.ausschluss.get(k, v), l)
-                             for k, _m, v, l in AUSSCHLUESSE],
+            "ausschluesse": [(k, konfig.ausschluss.get(k, v), text) for k, _m, v, text in AUSSCHLUESSE],
             "js_regeln": [(r, r in konfig.js_stumm, t) for r, _s, t in JS_REGELN],
             "aeste": aeste(),
             "wurzel": str(wurzel()),
@@ -294,10 +304,12 @@ class LanguageServerView(ZugriffMixin, View):
             # ``LsSpeicher.quellen``: Der Filter wirkt auf ein fertiges
             # Ergebnis, ein Umschalten darf keine Neurechnung auslösen.
             befunde = LsBefunde(ergebnis, konfig, Rahmenmodule(wurzel()))
-            daten.update({
-                "kennzahlen": befunde.kennzahlen(),
-                "tabelle": befunde.tabelle(),
-                "je_regel": befunde.je_regel(),
-                "je_datei": befunde.je_datei(),
-            })
+            daten.update(
+                {
+                    "kennzahlen": befunde.kennzahlen(),
+                    "tabelle": befunde.tabelle(),
+                    "je_regel": befunde.je_regel(),
+                    "je_datei": befunde.je_datei(),
+                }
+            )
         return render(request, self.vorlage, daten)

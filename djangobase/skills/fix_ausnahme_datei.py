@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Ausnahmedatei - eine Python-Datei mit ihren stummen except-Bloecken umschreiben.
+"""Ausnahmedatei - eine Python-Datei mit ihren stummen except-Bloecken umschreiben.
 
 Hilfsklasse zu ``fix_ausnahme.FixAusnahme``; hier steht die ganze Textarbeit, dort
 Vorschau, Sicherung und Netz.
@@ -31,6 +31,7 @@ WAS ABSICHTLICH NICHT PASSIERT
 * Dateien unter ``tests`` bleiben unberuehrt: Dort ist ein geschluckter Fehler
   die Sache des Tests, nicht der Anwendung.
 """
+
 import ast
 import re
 
@@ -43,8 +44,7 @@ class Ausnahmedatei:
     #: Typen, bei denen Schweigen richtig ist - mit dem Grund, der gesetzt wird.
     STUMM_ERLAUBT = {
         "ImportError": "optionale Abhängigkeit — ohne sie läuft der Rest weiter",
-        "ModuleNotFoundError": "optionale Abhängigkeit — ohne sie läuft der "
-                               "Rest weiter",
+        "ModuleNotFoundError": "optionale Abhängigkeit — ohne sie läuft der Rest weiter",
         "KeyboardInterrupt": "Abbruch durch den Nutzer ist kein Fehler",
     }
     #: Modulweiter Logger: ``name = logging.getLogger(...)``
@@ -62,7 +62,7 @@ class Ausnahmedatei:
     # ------------------------------------------------------------------ Logger
 
     def loggername(self):
-        u"""Name des vorhandenen Modul-Loggers - oder ``None``.
+        """Name des vorhandenen Modul-Loggers - oder ``None``.
 
         Es wird der VORHANDENE Name benutzt (``log``, ``logger``, ``LOG`` …),
         nie ein neuer daneben gelegt: zwei Logger im selben Modul sind eine
@@ -75,7 +75,7 @@ class Ausnahmedatei:
         return None
 
     def bindet_logging(self):
-        u"""Ist der NAME ``logging`` auf Modulebene verfuegbar?
+        """Ist der NAME ``logging`` auf Modulebene verfuegbar?
 
         NICHT per Textsuche: ``^\\s*import logging`` traf am 17.08.2026zweimal
         daneben und hat ``mail/models.py`` zerlegt.
@@ -90,13 +90,13 @@ class Ausnahmedatei:
         NameError), und die ganze Anwendung startete nicht mehr. Deshalb
         entscheidet der Syntaxbaum, und nur die Modulebene zaehlt.
         """
-        return any(isinstance(k, ast.Import)
-                   and any(a.name == "logging" and a.asname is None
-                           for a in k.names)
-                   for k in self.baum.body)
+        return any(
+            isinstance(k, ast.Import) and any(a.name == "logging" and a.asname is None for a in k.names)
+            for k in self.baum.body
+        )
 
     def logger_anlegen(self):
-        u"""``logger = logging.getLogger(__name__)`` nach den Importen einsetzen.
+        """``logger = logging.getLogger(__name__)`` nach den Importen einsetzen.
 
         ``__name__`` und nicht ein fester Name: Die Projekte konfigurieren einen
         Logger je App (``mail``, ``search``); ``mail.services.X`` erbt davon
@@ -116,8 +116,7 @@ class Ausnahmedatei:
                 # ist ein SyntaxError, den nur das Netz noch abgefangen hat.
                 if not (isinstance(k, ast.ImportFrom) and k.module == "__future__"):
                     erster_import = erster_import or k.lineno
-                letzter_import = max(letzter_import,
-                                     getattr(k, "end_lineno", k.lineno))
+                letzter_import = max(letzter_import, getattr(k, "end_lineno", k.lineno))
             elif letzter_import:
                 break
         hat_import = self.bindet_logging()
@@ -134,8 +133,7 @@ class Ausnahmedatei:
             # schieben sich gegenseitig nach unten). Zwei Dateien bestehen genau
             # daraus (`bank/context_processors.py`, `firma/…`) und wurden vom
             # Netz zurueckgespielt.
-            self._einschuebe.append((letzter_import + 1,
-                                     ["import logging"] + zuweisung))
+            self._einschuebe.append((letzter_import + 1, ["import logging"] + zuweisung))
         return "logger"
 
     # ---------------------------------------------------------------- Bloecke
@@ -147,8 +145,7 @@ class Ausnahmedatei:
         if t is None:
             return []
         if isinstance(t, ast.Tuple):
-            return [getattr(e, "id", None) or getattr(e, "attr", "") or "?"
-                    for e in t.elts]
+            return [getattr(e, "id", None) or getattr(e, "attr", "") or "?" for e in t.elts]
         return [getattr(t, "id", None) or getattr(t, "attr", "") or "?"]
 
     @classmethod
@@ -174,8 +171,7 @@ class Ausnahmedatei:
         if not grund:
             return False
         einzug = " " * handler.col_offset
-        self._einschuebe.append((handler.lineno,
-                                 ["%s# stumm gewollt: %s" % (einzug, grund)]))
+        self._einschuebe.append((handler.lineno, ["%s# stumm gewollt: %s" % (einzug, grund)]))
         self.gesetzt["vermerk"] += 1
         return True
 
@@ -183,14 +179,24 @@ class Ausnahmedatei:
     #: Schluessel fehlt, ein Datensatz ist nicht da. Ein Traceback je Vorkommen
     #: waere unbrauchbar (``_to_float`` laeuft ueber jede Zelle einer Tabelle),
     #: deshalb Meldung ohne Traceback.
-    ERWARTET = {"ValueError", "TypeError", "KeyError", "IndexError",
-                "AttributeError", "JSONDecodeError", "DoesNotExist",
-                "UnicodeDecodeError", "StopIteration", "ZeroDivisionError",
-                "ObjectDoesNotExist", "MultipleObjectsReturned"}
+    ERWARTET = {
+        "ValueError",
+        "TypeError",
+        "KeyError",
+        "IndexError",
+        "AttributeError",
+        "JSONDecodeError",
+        "DoesNotExist",
+        "UnicodeDecodeError",
+        "StopIteration",
+        "ZeroDivisionError",
+        "ObjectDoesNotExist",
+        "MultipleObjectsReturned",
+    }
 
     @classmethod
     def stufe(cls, handler, typen):
-        u"""Welche Log-Stufe passt - aus dem Code abgeleitet, nicht geraten.
+        """Welche Log-Stufe passt - aus dem Code abgeleitet, nicht geraten.
 
         * ``continue`` im Rumpf: Der Block sitzt in einer Schleife und
           überspringt einen Eintrag. ``debug`` — bei 100.000 Zeilen wäre alles
@@ -208,7 +214,7 @@ class Ausnahmedatei:
         return "exception"
 
     def protokollieren(self, handler, logger):
-        u"""Log-Aufruf als erste Anweisung des Blocks einsetzen.
+        """Log-Aufruf als erste Anweisung des Blocks einsetzen.
 
         Drei Fälle, alle am Rumpf ablesbar:
 
@@ -232,9 +238,9 @@ class Ausnahmedatei:
             # wandert eine Zeile tiefer.
             kopf = self.zeilen[handler.lineno - 1]
             schnitt = self._doppelpunkt(kopf)
-            rumpf = kopf[schnitt + 1:].strip()
+            rumpf = kopf[schnitt + 1 :].strip()
             tiefer = " " * (handler.col_offset + 4)
-            neu = [kopf[:schnitt + 1], "%s%s.%s('%s')" % (tiefer, logger, stufe, text)]
+            neu = [kopf[: schnitt + 1], "%s%s.%s('%s')" % (tiefer, logger, stufe, text)]
             if rumpf and rumpf != "pass":
                 neu.append(tiefer + rumpf)
             self._ersetzungen[handler.lineno] = neu
@@ -247,7 +253,7 @@ class Ausnahmedatei:
 
     @staticmethod
     def _doppelpunkt(zeile):
-        u"""Position des Doppelpunkts, der den Block öffnet.
+        """Position des Doppelpunkts, der den Block öffnet.
 
         ``except (A, B):`` und ``except X as e:`` haben nur einen; ein
         Doppelpunkt in einer Zeichenkette dahinter darf nicht gewinnen, deshalb
@@ -266,7 +272,7 @@ class Ausnahmedatei:
     # ------------------------------------------------------------- Ergebnis
 
     def neuer_text(self):
-        u"""Der geaenderte Dateiinhalt.
+        """Der geaenderte Dateiinhalt.
 
         ALLE Eingriffe in EINER Liste, streng von unten nach oben. Der erste
         Wurf lief zweimal durch (erst Ersetzungen, dann Einschuebe) - und weil
@@ -274,12 +280,12 @@ class Ausnahmedatei:
         zeigten die danach angewandten Zeilennummern ins Verrutschte. Von unten
         nach oben kann keine Änderung die Nummern der noch offenen treffen.
         """
-        eingriffe = ([(n, "ersetzen", z) for n, z in self._ersetzungen.items()]
-                     + [(n, "einschub", z) for n, z in self._einschuebe])
+        eingriffe = [(n, "ersetzen", z) for n, z in self._ersetzungen.items()] + [
+            (n, "einschub", z) for n, z in self._einschuebe
+        ]
         # Gleiche Zeile: erst ersetzen, dann davor einschieben - so landet ein
         # Vermerk ueber dem neuen Text und nicht mitten darin.
-        for nummer, art, neu in sorted(
-                eingriffe, key=lambda x: (-x[0], 0 if x[1] == "ersetzen" else 1)):
+        for nummer, art, neu in sorted(eingriffe, key=lambda x: (-x[0], 0 if x[1] == "ersetzen" else 1)):
             if art == "ersetzen":
                 zeilen_bereich = slice(nummer - 1, nummer)
             else:
@@ -293,5 +299,4 @@ class Ausnahmedatei:
 
     @property
     def was(self):
-        return ("%d Log-Aufruf(e), %d Vermerk(e)"
-                % (self.gesetzt["log"], self.gesetzt["vermerk"]))
+        return "%d Log-Aufruf(e), %d Vermerk(e)" % (self.gesetzt["log"], self.gesetzt["vermerk"])

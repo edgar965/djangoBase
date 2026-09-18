@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Objektwurzeln — wie viele Klassen entstehen ausserhalb jeder Klasse?
+"""Objektwurzeln — wie viele Klassen entstehen ausserhalb jeder Klasse?
 
 DER MASSSTAB (Edgar, 23.08.2026)
 ================================
@@ -59,16 +59,15 @@ WAS NICHT GEZAEHLT WIRD
 """
 
 import ast
-import os
 
 from .anlassfall import Anlassfall
 from .befund import Befund, Befundsatz, BefundWerkzeug
 
 
 class Wurzel:
-    u"""Eine Klasse, die außerhalb jeder Klasse erzeugt wird."""
+    """Eine Klasse, die außerhalb jeder Klasse erzeugt wird."""
 
-    __slots__ = ('name', 'stellen', 'besitzer')
+    __slots__ = ("name", "stellen", "besitzer")
 
     def __init__(self, name, stellen, besitzer):
         self.name = name
@@ -88,7 +87,7 @@ class Wurzel:
 
 
 class Baumsicht:
-    u"""Wie die Klassen eines Projekts zueinander stehen.
+    """Wie die Klassen eines Projekts zueinander stehen.
 
     Die vier Toepfe sind erschoepfend: Jede Klasse liegt in genau einem.
 
@@ -110,7 +109,7 @@ class Baumsicht:
     die an keinem haengen.
     """
 
-    __slots__ = ('alle', 'im_baum', 'wurzeln', 'nur_lokal', 'nie', 'haelt')
+    __slots__ = ("alle", "im_baum", "wurzeln", "nur_lokal", "nie", "haelt")
 
     def __init__(self, alle, im_baum, wurzeln, nie, haelt):
         self.alle = alle
@@ -130,101 +129,146 @@ class Baumsicht:
 
     def zeilen(self) -> list:
         return [
-            '%d Klassen im Projekt' % len(self.alle),
-            'im Baum (haengen als self.x an einer anderen): %d (%.0f %%)'
+            "%d Klassen im Projekt" % len(self.alle),
+            "im Baum (haengen als self.x an einer anderen): %d (%.0f %%)"
             % (len(self.im_baum), self.anteil(self.im_baum)),
-            'Wurzeln (auf Modulebene erzeugt): %d (%.0f %%)'
-            % (len(self.wurzeln), self.anteil(self.wurzeln)),
-            'nur oertlich in Funktionen erzeugt: %d (%.0f %%)'
+            "Wurzeln (auf Modulebene erzeugt): %d (%.0f %%)" % (len(self.wurzeln), self.anteil(self.wurzeln)),
+            "nur oertlich in Funktionen erzeugt: %d (%.0f %%)"
             % (len(self.nur_lokal), self.anteil(self.nur_lokal)),
-            'nirgends erzeugt: %d (%.0f %%)'
-            % (len(self.nie), self.anteil(self.nie)),
-            'größte Aeste: %s' % (', '.join(
-                '%s (%d)' % (n, z) for n, z in
-                sorted(self.haelt.items(), key=lambda p: -p[1])[:5]) or "—"),
+            "nirgends erzeugt: %d (%.0f %%)" % (len(self.nie), self.anteil(self.nie)),
+            "größte Aeste: %s"
+            % (
+                ", ".join("%s (%d)" % (n, z) for n, z in sorted(self.haelt.items(), key=lambda p: -p[1])[:5])
+                or "—"
+            ),
         ]
 
 
 class Objektwurzeln(BefundWerkzeug):
-
-    slug = 'objektwurzeln'
+    slug = "objektwurzeln"
     kriterium = 4
-    titel = 'Wurzeln des Objektmodells'
-    zweck = ('Zählt die Klassen, die auf Modulebene erzeugt werden. Ein '
-             'Objektmodell hat idealerweise EINE Wurzel; alles andere hängt '
-             'als Instanz daran.')
-    abhilfe = ('Die Instanz dorthin verschieben, wo sie gebraucht wird — als '
-               'Attribut der Klasse, die sie benutzt. Wird sie an mehreren '
-               'Stellen gebraucht, gehört sie der gemeinsamen Oberklasse '
-               'bzw. dem Dienst, der beide hält.')
-    befund = ('CamTrack: 29 eigene Klassen entstehen auf Modulebene statt '
-              'einer. Eine davon war eine Stillstands-Wache für elf '
-              'Kameras — jede laufende Kamera setzte den Zähler der blinden '
-              'zurück, vier liefen zehn Stunden blind.')
-    dauer = 'Sekunden'
-    eingabe = ('ab', 'Ab wie vielen Wurzeln melden? (0 = jede)', '1')
+    titel = "Wurzeln des Objektmodells"
+    zweck = (
+        "Zählt die Klassen, die auf Modulebene erzeugt werden. Ein "
+        "Objektmodell hat idealerweise EINE Wurzel; alles andere hängt "
+        "als Instanz daran."
+    )
+    abhilfe = (
+        "Die Instanz dorthin verschieben, wo sie gebraucht wird — als "
+        "Attribut der Klasse, die sie benutzt. Wird sie an mehreren "
+        "Stellen gebraucht, gehört sie der gemeinsamen Oberklasse "
+        "bzw. dem Dienst, der beide hält."
+    )
+    befund = (
+        "CamTrack: 29 eigene Klassen entstehen auf Modulebene statt "
+        "einer. Eine davon war eine Stillstands-Wache für elf "
+        "Kameras — jede laufende Kamera setzte den Zähler der blinden "
+        "zurück, vier liefen zehn Stunden blind."
+    )
+    dauer = "Sekunden"
+    eingabe = ("ab", "Ab wie vielen Wurzeln melden? (0 = jede)", "1")
 
     #: Klassen der Standardbibliothek und gaengiger Pakete. Ein ``Lock`` ist
     #: kein Ast eines Objektmodells, sondern ein Wertobjekt.
-    FREMD = frozenset({
-        'Lock', 'RLock', 'Semaphore', 'Event', 'Condition', 'Barrier',
-        'Path', 'PurePath', 'Queue', 'LifoQueue', 'PriorityQueue',
-        'Decimal', 'Fraction', 'Counter', 'OrderedDict', 'ChainMap',
-        'ThreadPoolExecutor', 'ProcessPoolExecutor', 'Logger', 'Template',
-    })
+    FREMD = frozenset(
+        {
+            "Lock",
+            "RLock",
+            "Semaphore",
+            "Event",
+            "Condition",
+            "Barrier",
+            "Path",
+            "PurePath",
+            "Queue",
+            "LifoQueue",
+            "PriorityQueue",
+            "Decimal",
+            "Fraction",
+            "Counter",
+            "OrderedDict",
+            "ChainMap",
+            "ThreadPoolExecutor",
+            "ProcessPoolExecutor",
+            "Logger",
+            "Template",
+        }
+    )
 
     #: Was das Rahmenwerk auf Modulebene VERLANGT. Wer das meldet, meldet
     #: eine Vorschrift.
-    RAHMENWERK = frozenset({'Library', 'Router', 'DefaultRouter', 'Signal',
-                            'AdminSite', 'App', 'Blueprint'})
+    RAHMENWERK = frozenset({"Library", "Router", "DefaultRouter", "Signal", "AdminSite", "App", "Blueprint"})
 
     #: Dateien, deren Modulebene die Datenstruktur IST.
-    DATEIEN_AUS = ('settings.py', 'conf.py', 'urls.py', 'apps.py', 'wsgi.py',
-                   'asgi.py', 'manage.py', 'routing.py', 'admin.py')
+    DATEIEN_AUS = (
+        "settings.py",
+        "conf.py",
+        "urls.py",
+        "apps.py",
+        "wsgi.py",
+        "asgi.py",
+        "manage.py",
+        "routing.py",
+        "admin.py",
+    )
 
     #: Was eine Klasse haelt, das einen Aufruf UEBERLEBEN muss. Wer so
     #: etwas haelt und trotzdem in jeder Funktion frisch entsteht, wirft
     #: es bei jedem Aufruf weg — oder legt es doppelt an.
-    RESSOURCEN = frozenset({
-        'Thread', 'Process', 'Popen', 'Lock', 'RLock', 'Semaphore',
-        'Event', 'Condition', 'Queue', 'ThreadPoolExecutor',
-        'ProcessPoolExecutor', 'Session', 'Connection', 'SharedMemory',
-    })
+    RESSOURCEN = frozenset(
+        {
+            "Thread",
+            "Process",
+            "Popen",
+            "Lock",
+            "RLock",
+            "Semaphore",
+            "Event",
+            "Condition",
+            "Queue",
+            "ThreadPoolExecutor",
+            "ProcessPoolExecutor",
+            "Session",
+            "Connection",
+            "SharedMemory",
+        }
+    )
 
     #: Ab so vielen verschiedenen Stellen gilt „wird ueberall erzeugt".
     #: Drei ist die Grenze, ab der es kein Zufall mehr ist.
     VIELE_STELLEN = 3
 
     #: Verzeichnisse, in denen Modulebene normal ist.
-    ORDNER_AUS = ('tests', 'test', 'migrations')
+    ORDNER_AUS = ("tests", "test", "migrations")
 
     anlassfall = Anlassfall(
-        {"wache.py": (
-            "class Wache:\n"
-            "    def __init__(self):\n"
-            "        self.blind = 0\n\n\n"
-            "WACHE = Wache()\n"),
-         "zaehler.py": (
-            "class Zaehler:\n"
-            "    def __init__(self):\n"
-            "        self.stand = 0\n\n\n"
-            "ZAEHLER = Zaehler()\n"),
-         "kamera.py": (
-            "from wache import Wache\n\n\n"
-            "class Kamera:\n"
-            "    def __init__(self):\n"
-            "        self.wache = Wache()\n")},
-        mindestens=1, erwartet_in="Wache",
+        {
+            "wache.py": (
+                "class Wache:\n    def __init__(self):\n        self.blind = 0\n\n\nWACHE = Wache()\n"
+            ),
+            "zaehler.py": (
+                "class Zaehler:\n    def __init__(self):\n        self.stand = 0\n\n\nZAEHLER = Zaehler()\n"
+            ),
+            "kamera.py": (
+                "from wache import Wache\n\n\n"
+                "class Kamera:\n"
+                "    def __init__(self):\n"
+                "        self.wache = Wache()\n"
+            ),
+        },
+        mindestens=1,
+        erwartet_in="Wache",
         warum="Eine Stillstands-Wache für elf Kameras (CamTrack, "
-              "09.05.2026): Weil sie niemandem gehoerte, setzte jede "
-              "laufende Kamera den Zähler der blinden zurück. `Kamera` "
-              "hält daneben schon eine eigene — der Platz im Baum ist da. "
-              "ZWEI Wurzeln, denn EINE ist per Vorgabe kein Fehler: Der "
-              "erste Wurf hatte nur eine und war damit blind, was der "
-              "`anlassfall-check` sofort meldete")
+        "09.05.2026): Weil sie niemandem gehoerte, setzte jede "
+        "laufende Kamera den Zähler der blinden zurück. `Kamera` "
+        "hält daneben schon eine eigene — der Platz im Baum ist da. "
+        "ZWEI Wurzeln, denn EINE ist per Vorgabe kein Fehler: Der "
+        "erste Wurf hatte nur eine und war damit blind, was der "
+        "`anlassfall-check` sofort meldete",
+    )
 
     # ---------------------------------------------------------------- Ablauf
-    def pruefen(self, ab='1', **_argumente):
+    def pruefen(self, ab="1", **_argumente):
         try:
             grenze = max(0, int(str(ab).strip() or 1))
         except ValueError:
@@ -233,7 +277,7 @@ class Objektwurzeln(BefundWerkzeug):
         eigene, stellen, besitz = set(), {}, {}
         erzeugt, basen, geerbt, dateien = set(), set(), {}, 0
         ressourcen, orte = {}, {}
-        for pfad in self.projektdateien('.py'):
+        for pfad in self.projektdateien(".py"):
             baum = self._lesen(pfad)
             if baum is None:
                 continue
@@ -253,26 +297,26 @@ class Objektwurzeln(BefundWerkzeug):
             self._ressourcen(baum, ressourcen)
             self._erzeugungsorte(baum, self.kurz(pfad), orte)
 
-        sicht = self._baumsicht(eigene, besitz, stellen, erzeugt,
-                                basen, geerbt)
-        wurzeln = [Wurzel(name, orte, sorted(besitz.get(name, ())))
-                   for name, orte in stellen.items() if name in eigene]
-        wurzeln.sort(key=lambda w: (w.gewicht != Befund.WARNUNG,
-                                    -len(w.stellen), w.name))
+        sicht = self._baumsicht(eigene, besitz, stellen, erzeugt, basen, geerbt)
+        wurzeln = [
+            Wurzel(name, orte, sorted(besitz.get(name, ())))
+            for name, orte in stellen.items()
+            if name in eigene
+        ]
+        wurzeln.sort(key=lambda w: (w.gewicht != Befund.WARNUNG, -len(w.stellen), w.name))
 
-        kopf = ['%d Dateien' % dateien] + sicht.zeilen()
-        kopf.append('Idealwert: EINE Wurzel, alles andere hängt daran')
+        kopf = ["%d Dateien" % dateien] + sicht.zeilen()
+        kopf.append("Idealwert: EINE Wurzel, alles andere hängt daran")
 
         befunde = []
         if len(wurzeln) > grenze:
             befunde += [self._befund(w) for w in wurzeln]
         befunde += [self._tot(name) for name in sorted(sicht.nie)]
-        befunde += self._fluechtig_mit_ressource(sicht, ressourcen, orte,
-                                                 besitz)
+        befunde += self._fluechtig_mit_ressource(sicht, ressourcen, orte, besitz)
         return Befundsatz(self.titel, kopf, befunde)
 
     def _baumsicht(self, eigene, besitz, stellen, erzeugt, basen, geerbt):
-        u"""Die vier Toepfe — und wer beim "nirgends erzeugt" nicht zählt."""
+        """Die vier Toepfe — und wer beim "nirgends erzeugt" nicht zählt."""
         haelt = {}
         for kind, eltern in besitz.items():
             if kind not in eigene:
@@ -281,25 +325,47 @@ class Objektwurzeln(BefundWerkzeug):
                 haelt[e] = haelt.get(e, 0) + 1
         im_baum = {n for n in eigene if besitz.get(n)}
         wurzeln = {n for n in eigene if n in stellen}
-        nie = {n for n in eigene
-               if n not in erzeugt
-               and not self._darf_ruhen(n, basen, geerbt)}
+        nie = {n for n in eigene if n not in erzeugt and not self._darf_ruhen(n, basen, geerbt)}
         return Baumsicht(eigene, im_baum, wurzeln, nie, haelt)
 
     #: Erbt eine Klasse hiervon, erzeugt sie das Rahmenwerk — nicht der
     #: Quelltext. Ohne diese Liste meldet das Werkzeug halb Django als
     #: toten Bestand.
-    RAHMEN_BASEN = frozenset({
-        'Model', 'Form', 'ModelForm', 'Serializer', 'ModelSerializer',
-        'BaseCommand', 'View', 'TemplateView', 'ListView', 'DetailView',
-        'Migration', 'AppConfig', 'ModelAdmin', 'Manager', 'QuerySet',
-        'Exception', 'BaseException', 'ValueError', 'RuntimeError',
-        'Enum', 'IntEnum', 'StrEnum', 'Protocol', 'ABC', 'NamedTuple',
-        'AsyncWebsocketConsumer', 'WebsocketConsumer', 'Thread',
-    })
+    RAHMEN_BASEN = frozenset(
+        {
+            "Model",
+            "Form",
+            "ModelForm",
+            "Serializer",
+            "ModelSerializer",
+            "BaseCommand",
+            "View",
+            "TemplateView",
+            "ListView",
+            "DetailView",
+            "Migration",
+            "AppConfig",
+            "ModelAdmin",
+            "Manager",
+            "QuerySet",
+            "Exception",
+            "BaseException",
+            "ValueError",
+            "RuntimeError",
+            "Enum",
+            "IntEnum",
+            "StrEnum",
+            "Protocol",
+            "ABC",
+            "NamedTuple",
+            "AsyncWebsocketConsumer",
+            "WebsocketConsumer",
+            "Thread",
+        }
+    )
 
     def _darf_ruhen(self, name, basen, geerbt) -> bool:
-        u"""Wird diese Klasse zu Recht nirgends mit ``X()`` erzeugt?
+        """Wird diese Klasse zu Recht nirgends mit ``X()`` erzeugt?
 
         Vier Faelle, alle legitim:
 
@@ -310,46 +376,48 @@ class Objektwurzeln(BefundWerkzeug):
           die URL-Tabelle bzw. ``manage.py``.
         * **``Meta``** — eine Beschreibung, kein Objekt.
         """
-        if name in basen or name == 'Meta':
+        if name in basen or name == "Meta":
             return True
-        return any(elter in self.RAHMEN_BASEN
-                   for elter in geerbt.get(name, ()))
+        return any(elter in self.RAHMEN_BASEN for elter in geerbt.get(name, ()))
 
     # --------------------------------------------------------------- Ausgabe
     @staticmethod
     def _befund(w):
-        ort = '%s:%d' % w.stellen[0]
-        mehr = (' (+%d weitere)' % (len(w.stellen) - 1)
-                if len(w.stellen) > 1 else '')
-        was = '%s wird auf Modulebene erzeugt%s' % (w.name, mehr)
+        ort = "%s:%d" % w.stellen[0]
+        mehr = " (+%d weitere)" % (len(w.stellen) - 1) if len(w.stellen) > 1 else ""
+        was = "%s wird auf Modulebene erzeugt%s" % (w.name, mehr)
         if w.besitzer:
-            warum = ('%s hält dieselbe Klasse schon als Instanz-Attribut — '
-                     'der Platz im Baum ist da, die globale Instanz ist der '
-                     'Umweg.' % ', '.join(w.besitzer[:3]))
+            warum = (
+                "%s hält dieselbe Klasse schon als Instanz-Attribut — "
+                "der Platz im Baum ist da, die globale Instanz ist der "
+                "Umweg." % ", ".join(w.besitzer[:3])
+            )
         else:
-            warum = ('Sie gehört niemandem: entsteht beim Import, lebt bis '
-                     'zum Prozessende, ist von überall erreichbar. Wer sie '
-                     'benutzt, sollte sie halten.')
+            warum = (
+                "Sie gehört niemandem: entsteht beim Import, lebt bis "
+                "zum Prozessende, ist von überall erreichbar. Wer sie "
+                "benutzt, sollte sie halten."
+            )
         return Befund(ort, was, warum, w.gewicht)
 
     # ------------------------------------------------------------------ Baum
     @staticmethod
     def _lesen(pfad):
         try:
-            return ast.parse(pfad.read_text(encoding='utf-8', errors='replace'))
+            return ast.parse(pfad.read_text(encoding="utf-8", errors="replace"))
         except (SyntaxError, OSError):
             return None
 
     def _ueberspringen(self, pfad) -> bool:
         if pfad.name in self.DATEIEN_AUS:
             return True
-        if pfad.name.startswith('test_'):
+        if pfad.name.startswith("test_"):
             return True
         return any(teil in self.ORDNER_AUS for teil in pfad.parts)
 
     @staticmethod
     def _klassen(baum, hinein: set, basen: set, geerbt: dict) -> None:
-        u"""Klassen sammeln — samt ihrer Oberklassen.
+        """Klassen sammeln — samt ihrer Oberklassen.
 
         Die Oberklassen braucht es zweimal: Wer Oberklasse IST, wird zu
         Recht nie selbst erzeugt; und wer von einem Rahmenwerk-Typ erbt,
@@ -360,8 +428,7 @@ class Objektwurzeln(BefundWerkzeug):
                 continue
             hinein.add(knoten.name)
             for elter in knoten.bases:
-                name = (elter.id if isinstance(elter, ast.Name)
-                        else getattr(elter, 'attr', ''))
+                name = elter.id if isinstance(elter, ast.Name) else getattr(elter, "attr", "")
                 if not name:
                     continue
                 basen.add(name)
@@ -381,15 +448,13 @@ class Objektwurzeln(BefundWerkzeug):
             if not isinstance(knoten, ast.ClassDef):
                 continue
             for teil in ast.walk(knoten):
-                if (isinstance(teil, ast.Call)
-                        and isinstance(teil.func, ast.Name)
-                        and teil.func.id == 'cls'):
+                if isinstance(teil, ast.Call) and isinstance(teil.func, ast.Name) and teil.func.id == "cls":
                     hinein.add(knoten.name)
                     break
 
     @classmethod
     def _ressourcen(cls, baum, hinein: dict) -> None:
-        u"""Was hält eine Klasse, das einen Aufruf ueberleben muss?
+        """Was hält eine Klasse, das einen Aufruf ueberleben muss?
 
         Ein ``Thread``, ein ``Popen``, eine ``Lock``, ein Zwischenspeicher.
         Solche Dinge haben nur einen Sinn, wenn sie bleiben — wer sie in
@@ -401,40 +466,37 @@ class Objektwurzeln(BefundWerkzeug):
             for teil in ast.walk(knoten):
                 if isinstance(teil, ast.Call):
                     ruf = teil.func
-                    name = (ruf.id if isinstance(ruf, ast.Name)
-                            else getattr(ruf, 'attr', ''))
+                    name = ruf.id if isinstance(ruf, ast.Name) else getattr(ruf, "attr", "")
                     if name in cls.RESSOURCEN:
                         hinein.setdefault(knoten.name, set()).add(name)
                 elif isinstance(teil, ast.Assign):
                     if not isinstance(teil.value, (ast.Dict, ast.List)):
                         continue
                     for ziel in teil.targets:
-                        if (isinstance(ziel, ast.Attribute)
-                                and isinstance(ziel.value, ast.Name)
-                                and ziel.value.id == 'self'):
-                            hinein.setdefault(knoten.name,
-                                              set()).add('Speicher')
+                        if (
+                            isinstance(ziel, ast.Attribute)
+                            and isinstance(ziel.value, ast.Name)
+                            and ziel.value.id == "self"
+                        ):
+                            hinein.setdefault(knoten.name, set()).add("Speicher")
 
     @classmethod
     def _erzeugungsorte(cls, baum, kurz: str, hinein: dict) -> None:
-        u"""In welchen Funktionen entsteht eine Klasse?"""
+        """In welchen Funktionen entsteht eine Klasse?"""
         for knoten in ast.walk(baum):
-            if not isinstance(knoten, (ast.FunctionDef,
-                                       ast.AsyncFunctionDef)):
+            if not isinstance(knoten, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 continue
             for teil in ast.walk(knoten):
                 if not isinstance(teil, ast.Call):
                     continue
                 ruf = teil.func
-                name = (ruf.id if isinstance(ruf, ast.Name)
-                        else getattr(ruf, 'attr', ''))
+                name = ruf.id if isinstance(ruf, ast.Name) else getattr(ruf, "attr", "")
                 if cls._wie_eine_klasse(name):
-                    hinein.setdefault(name, set()).add(
-                        '%s:%s' % (kurz, knoten.name))
+                    hinein.setdefault(name, set()).add("%s:%s" % (kurz, knoten.name))
 
     @staticmethod
     def _benutzt(baum, hinein: set) -> None:
-        u"""Jeder Zugriff auf einen Klassennamen zählt als Verwendung.
+        """Jeder Zugriff auf einen Klassennamen zählt als Verwendung.
 
         DER FEHLER, DEN DER NUTZER GEFUNDEN HAT (23.08.2026)
         ====================================================
@@ -478,8 +540,7 @@ class Objektwurzeln(BefundWerkzeug):
         for knoten in ast.walk(baum):
             if isinstance(knoten, ast.Attribute):
                 traeger = knoten.value
-                if (isinstance(traeger, ast.Name)
-                        and Objektwurzeln._wie_eine_klasse(traeger.id)):
+                if isinstance(traeger, ast.Name) and Objektwurzeln._wie_eine_klasse(traeger.id):
                     hinein.add(traeger.id)
                 # Auch der Attributname selbst: `consumers.TestConsumer`
                 # traegt den Klassennamen HINTEN, und `consumers` ist klein.
@@ -492,21 +553,20 @@ class Objektwurzeln(BefundWerkzeug):
                 for eintrag in knoten.names:
                     if Objektwurzeln._wie_eine_klasse(eintrag.name):
                         hinein.add(eintrag.name)
-            elif (isinstance(knoten, ast.Constant)
-                    and isinstance(knoten.value, str)):
+            elif isinstance(knoten, ast.Constant) and isinstance(knoten.value, str):
                 name = Objektwurzeln._aus_pfadtext(knoten.value)
                 if name:
                     hinein.add(name)
 
     def _erzeugt(self, baum, hinein: set) -> None:
-        u"""Jede Stelle, an der ueberhaupt ``Klasse(...)`` steht."""
+        """Jede Stelle, an der ueberhaupt ``Klasse(...)`` steht."""
         for knoten in ast.walk(baum):
             name = self._gerufene_klasse(knoten)
             if name:
                 hinein.add(name)
 
     def _fluechtig_mit_ressource(self, sicht, ressourcen, orte, besitz):
-        u"""Klassen, die etwas Bleibendes halten und trotzdem überall
+        """Klassen, die etwas Bleibendes halten und trotzdem überall
         frisch entstehen.
 
         DIE FRAGE DAHINTER (Edgar, 23.08.2026)
@@ -534,38 +594,47 @@ class Objektwurzeln(BefundWerkzeug):
             if not haelt or len(stellen) < self.VIELE_STELLEN:
                 continue
             gehalten = besitz.get(name)
-            raus.append(Befund(
-                name, '%s hält %s, entsteht aber an %d Stellen neu'
-                % (name, ', '.join(sorted(haelt)[:3]), len(stellen)),
-                ('%s hält sie schon als Instanz — dort gehört sie hin.'
-                 % ', '.join(sorted(gehalten)[:2]) if gehalten else
-                 'Was sie hält, muss den Aufruf ueberleben. Wer es in jeder'
-                 ' Funktion neu anlegt, hat es beim nächsten Aufruf nicht'
-                 ' mehr — oder doppelt.'),
-                Befund.WARNUNG if gehalten else Befund.HINWEIS))
+            raus.append(
+                Befund(
+                    name,
+                    "%s hält %s, entsteht aber an %d Stellen neu"
+                    % (name, ", ".join(sorted(haelt)[:3]), len(stellen)),
+                    (
+                        "%s hält sie schon als Instanz — dort gehört sie hin."
+                        % ", ".join(sorted(gehalten)[:2])
+                        if gehalten
+                        else "Was sie hält, muss den Aufruf ueberleben. Wer es in jeder"
+                        " Funktion neu anlegt, hat es beim nächsten Aufruf nicht"
+                        " mehr — oder doppelt."
+                    ),
+                    Befund.WARNUNG if gehalten else Befund.HINWEIS,
+                )
+            )
         return raus
 
     @staticmethod
     def _tot(name: str) -> Befund:
         return Befund(
-            name, '%s wird nirgends erzeugt' % name,
-            'Keine Oberklasse, kein Model, keine Ansicht — und ihr Name '
-            'kommt im ganzen Projekt nirgends vor: weder `%s(...)` noch '
-            '`%s.etwas`. Vor dem Löschen trotzdem von Hand '
-            'nachsehen — Namen können als Zeichenkette stehen.'
-            % (name, name), Befund.HINWEIS)
+            name,
+            "%s wird nirgends erzeugt" % name,
+            "Keine Oberklasse, kein Model, keine Ansicht — und ihr Name "
+            "kommt im ganzen Projekt nirgends vor: weder `%s(...)` noch "
+            "`%s.etwas`. Vor dem Löschen trotzdem von Hand "
+            "nachsehen — Namen können als Zeichenkette stehen." % (name, name),
+            Befund.HINWEIS,
+        )
 
     def _modulebene(self, baum, kurz: str, hinein: dict) -> None:
-        u"""``X = Klasse(...)`` GANZ AUSSEN — nicht in Funktion oder Klasse."""
-        for knoten in baum.body:              # NUR Modulebene
+        """``X = Klasse(...)`` GANZ AUSSEN — nicht in Funktion oder Klasse."""
+        for knoten in baum.body:  # NUR Modulebene
             if not isinstance(knoten, (ast.Assign, ast.AnnAssign)):
                 continue
-            name = self._gerufene_klasse(getattr(knoten, 'value', None))
+            name = self._gerufene_klasse(getattr(knoten, "value", None))
             if name:
                 hinein.setdefault(name, []).append((kurz, knoten.lineno))
 
     def _besitz(self, baum, hinein: dict) -> None:
-        u"""``self.x = Klasse(...)`` — wer haelt wen?"""
+        """``self.x = Klasse(...)`` — wer haelt wen?"""
         for knoten in ast.walk(baum):
             if not isinstance(knoten, ast.ClassDef):
                 continue
@@ -576,27 +645,29 @@ class Objektwurzeln(BefundWerkzeug):
                 if not name:
                     continue
                 for ziel in teil.targets:
-                    if (isinstance(ziel, ast.Attribute)
-                            and isinstance(ziel.value, ast.Name)
-                            and ziel.value.id == 'self'):
+                    if (
+                        isinstance(ziel, ast.Attribute)
+                        and isinstance(ziel.value, ast.Name)
+                        and ziel.value.id == "self"
+                    ):
                         hinein.setdefault(name, set()).add(knoten.name)
 
     @staticmethod
     def _aus_pfadtext(text: str) -> str:
-        u"""Der Klassenname aus einem gepunkteten Pfad — oder ``''``.
+        """Der Klassenname aus einem gepunkteten Pfad — oder ``''``.
 
         ``'ui.same_origin.GleicherUrsprungMiddleware'`` -> der letzte Teil.
         Nur MIT Punkt und nur aus Bezeichnerzeichen: Sonst zaehlte jeder
         Satz, der mit einem grossen Wort beginnt, als Verwendung.
         """
-        if '.' not in text or len(text) > 200:
-            return ''
-        if not all(z.isalnum() or z in '._' for z in text):
-            return ''
-        letzter = text.rsplit('.', 1)[-1]
+        if "." not in text or len(text) > 200:
+            return ""
+        if not all(z.isalnum() or z in "._" for z in text):
+            return ""
+        letzter = text.rsplit(".", 1)[-1]
         if not letzter.isidentifier():
-            return ''
-        return letzter if Objektwurzeln._wie_eine_klasse(letzter) else ''
+            return ""
+        return letzter if Objektwurzeln._wie_eine_klasse(letzter) else ""
 
     @staticmethod
     def _wie_eine_klasse(name: str) -> bool:
@@ -611,11 +682,11 @@ class Objektwurzeln(BefundWerkzeug):
         ``_UnionFind``, ``_Kamera``, ``_LogServiceProxy``, ``_SperrenKarte``
         — acht von elf verbliebenen Meldungen.
         """
-        blank = (name or '').lstrip('_')
+        blank = (name or "").lstrip("_")
         return bool(blank) and blank[:1].isupper()
 
     def _gerufene_klasse(self, wert) -> str:
-        u"""Der Name der erzeugten Klasse — oder ``''``.
+        """Der Name der erzeugten Klasse — oder ``''``.
 
         Erkannt an der Grossschreibung. Das ist eine Uebereinkunft, keine
         Regel der Sprache — aber sie gilt in jedem Python-Projekt, und die
@@ -623,15 +694,14 @@ class Objektwurzeln(BefundWerkzeug):
         mehrere Ebenen ohnehin nicht mehr.
         """
         if not isinstance(wert, ast.Call):
-            return ''
+            return ""
         ruf = wert.func
-        name = (ruf.id if isinstance(ruf, ast.Name)
-                else getattr(ruf, 'attr', ''))
+        name = ruf.id if isinstance(ruf, ast.Name) else getattr(ruf, "attr", "")
         if not self._wie_eine_klasse(name):
-            return ''
+            return ""
         if name in self.FREMD or name in self.RAHMENWERK:
-            return ''
+            return ""
         return name
 
 
-__all__ = ['Objektwurzeln', 'Wurzel']
+__all__ = ["Objektwurzeln", "Wurzel"]

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Altlast - ungenutzter Code und aufgehobene Alt-Staende.
+"""Altlast - ungenutzter Code und aufgehobene Alt-Staende.
 
     Kriterium 5 des Auftrags: „Entferne ungenutzten Code, kein alter Code
     (Legacy), der als Sicherung noch behalten wurde"
@@ -23,6 +23,7 @@ Was danach übrig bleibt, ist ein begruendeter VERDACHT - keine Freigabe zum
 Löschen. Ein Pruefwerk dieser Art hat in shortlongx einmal 122 lebende Namen
 für tot erklärt; seither steht der Satz in jedem Befund.
 """
+
 import ast
 import re
 from collections import Counter
@@ -34,12 +35,18 @@ from .werkzeug import AUSGESCHLOSSEN, Ergebnis, Werkzeug
 class Altlast(Werkzeug):
     slug = "altlast"
     titel = "Alter und ungenutzter Code"
-    zweck = ("Sicherungs-Ordner, nie importierte Module und Namen, die im ganzen "
-             "Projekt nur an ihrer Definition vorkommen.")
-    befund = ("Ein Sicherungsordner mit 405 Dateien neben dem Code — und "
-              "Funktionen, die seit einem Umbau niemand mehr ruft.")
-    abhilfe = ("Sicherungsordner löschen (Git hält den Stand). Bei einzelnen "
-               "Namen erst nachsehen: Ein Verdacht ist keine Freigabe.")
+    zweck = (
+        "Sicherungs-Ordner, nie importierte Module und Namen, die im ganzen "
+        "Projekt nur an ihrer Definition vorkommen."
+    )
+    befund = (
+        "Ein Sicherungsordner mit 405 Dateien neben dem Code — und "
+        "Funktionen, die seit einem Umbau niemand mehr ruft."
+    )
+    abhilfe = (
+        "Sicherungsordner löschen (Git hält den Stand). Bei einzelnen "
+        "Namen erst nachsehen: Ein Verdacht ist keine Freigabe."
+    )
     dauer = "5–15 s"
     kriterium = 5
 
@@ -52,23 +59,24 @@ class Altlast(Werkzeug):
     #: ausgefuehrt statt importiert und darf nicht als tot gelten; genau diese
     #: Verwechslung hat einmal Loeschvorschlaege fuer lebenden Code erzeugt.
     anlassfall = Anlassfall(
-        {"benutzt.py": '''from .helfer import gebraucht
+        {
+            "benutzt.py": """from .helfer import gebraucht
 
 
 def haupt():
     return gebraucht()
-''',
-         "helfer.py": '''def gebraucht():
+""",
+            "helfer.py": """def gebraucht():
     return 1
 
 
 def nie_gerufen():
     return 2
-''',
-         "tot.py": '''def niemand_importiert_mich():
+""",
+            "tot.py": """def niemand_importiert_mich():
     return 3
-''',
-         "werkzeug_start.py": '''import sys
+""",
+            "werkzeug_start.py": """import sys
 
 
 def main():
@@ -78,10 +86,12 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
-'''},
+""",
+        },
         erwartet_in="tot.py",
         warum="„Modul wird nirgends erwähnt“ hielt fünf lebende Dateien für "
-              "tot — die teuerste Sorte Fehlalarm")
+        "tot — die teuerste Sorte Fehlalarm",
+    )
 
     def laufen(self):
         wurzel = self.wurzel()
@@ -104,10 +114,15 @@ if __name__ == "__main__":
                 continue
             anzahl = len(list(p.rglob("*.py")))
             if anzahl:
-                zeilen.append({"art": "Sicherungsordner",
-                               "datei": p.relative_to(wurzel).as_posix(),
-                               "zeile": 0, "name": p.name,
-                               "hinweis": "%d Python-Dateien" % anzahl})
+                zeilen.append(
+                    {
+                        "art": "Sicherungsordner",
+                        "datei": p.relative_to(wurzel).as_posix(),
+                        "zeile": 0,
+                        "name": p.name,
+                        "hinweis": "%d Python-Dateien" % anzahl,
+                    }
+                )
         # 2) Namen, die nur an ihrer Definition vorkommen.
         #
         # EINMAL ZÄHLEN, DANN NACHSCHLAGEN (Korrektur beim ersten Lauf): Die
@@ -133,20 +148,27 @@ if __name__ == "__main__":
                 if k.decorator_list and not isinstance(k, ast.ClassDef):
                     continue
                 if haeufigkeit.get(k.name, 0) <= 1:
-                    zeilen.append({
-                        "art": "Klasse" if isinstance(k, ast.ClassDef) else "Funktion",
-                        "datei": d.name, "zeile": k.lineno, "name": k.name,
-                        "hinweis": "Name kommt nur an der Definition vor — nachsehen, "
-                                   "nicht blind löschen"})
+                    zeilen.append(
+                        {
+                            "art": "Klasse" if isinstance(k, ast.ClassDef) else "Funktion",
+                            "datei": d.name,
+                            "zeile": k.lineno,
+                            "name": k.name,
+                            "hinweis": "Name kommt nur an der Definition vor — nachsehen, "
+                            "nicht blind löschen",
+                        }
+                    )
         return Ergebnis(
-            ["art", "datei", "zeile", "name", "hinweis"], zeilen,
+            ["art", "datei", "zeile", "name", "hinweis"],
+            zeilen,
             "%d Verdachtsfälle" % len(zeilen),
             "Ein Namensvergleich sieht keine dynamischen Aufrufe. Vorlagen und "
-            "JS sind mitdurchsucht; alles Übrige ist ein Verdacht, kein Urteil.")
+            "JS sind mitdurchsucht; alles Übrige ist ein Verdacht, kein Urteil.",
+        )
 
     @staticmethod
     def _ist_paket_in_gebrauch(ordner, wurzel, dateien):
-        u"""Ein Paket, das jemand importiert, ist kein Sicherungsordner.
+        """Ein Paket, das jemand importiert, ist kein Sicherungsordner.
 
         DER FEHLALARM (12.09.2026, assistant): ``mail/backup`` — vier Klassen,
         die das Backup MACHEN (EmlBackupRunner, PgDumpRunner, ResticUploader),
@@ -174,10 +196,9 @@ if __name__ == "__main__":
             # echte Altlast als lebendig ausweisen.
             for p in self.pfade(endung):
                 try:
-                    if p.stat().st_size > 2_000_000:      # Datendateien überspringen
+                    if p.stat().st_size > 2_000_000:  # Datendateien überspringen
                         continue
-                    zaehler.update(muster.findall(
-                        p.read_text(encoding="utf-8", errors="replace")))
+                    zaehler.update(muster.findall(p.read_text(encoding="utf-8", errors="replace")))
                 except OSError:
                     continue
         return zaehler
@@ -185,10 +206,13 @@ if __name__ == "__main__":
     @staticmethod
     def _sonderfall(d):
         name = d.name
-        if ("/migrations/" in name or "/management/commands/" in name
-                or name.endswith(("/urls.py", "/admin.py", "/apps.py",
-                                  "/settings.py", "/views.py"))
-                or "/tests" in name or "test_" in name.rsplit("/", 1)[-1]):
+        if (
+            "/migrations/" in name
+            or "/management/commands/" in name
+            or name.endswith(("/urls.py", "/admin.py", "/apps.py", "/settings.py", "/views.py"))
+            or "/tests" in name
+            or "test_" in name.rsplit("/", 1)[-1]
+        ):
             return True
         return Altlast._ist_skript(d)
 
@@ -207,11 +231,15 @@ if __name__ == "__main__":
         falsch."""
         if "__main__" in d.text:
             return True
-        for k in (d.baum.body if d.baum is not None else []):
+        for k in d.baum.body if d.baum is not None else []:
             if not isinstance(k, ast.Expr) or not isinstance(k.value, ast.Call):
                 continue
             ruf = k.value.func
             if (getattr(ruf, "id", None) or getattr(ruf, "attr", None) or "") in (
-                    "print", "setup", "main", "exit"):
+                "print",
+                "setup",
+                "main",
+                "exit",
+            ):
                 return True
         return False

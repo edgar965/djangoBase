@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Ein Gedankenstrich darf keine Prüfung reißen.
+"""Ein Gedankenstrich darf keine Prüfung reißen.
 
 DER BEFUND (25.08.2026)
 =======================
@@ -27,6 +27,7 @@ Wand voller Fragezeichen — fast so wertlos wie der Absturz. Die Liste
 setzt die Handvoll Zeichen um, die dieses Projekt wirklich benutzt; erst
 was sie nicht kennt, wird ersetzt.
 """
+
 import io
 
 from djangobase.jobctx import TimestampedStream
@@ -35,7 +36,7 @@ from ..base import BasisTest
 
 
 class _Strom:
-    u"""Ein Strom, der behauptet, nur cp1252 zu können — und es einhält.
+    """Ein Strom, der behauptet, nur cp1252 zu können — und es einhält.
 
     Kein ``io.StringIO``-Abkömmling: Dessen ``encoding`` ist
     schreibgeschützt (``AttributeError: attribute 'encoding' of
@@ -43,7 +44,7 @@ class _Strom:
     muss der Test stellen können.
     """
 
-    def __init__(self, kodierung='cp1252'):
+    def __init__(self, kodierung="cp1252"):
         self.encoding = kodierung
         self._teile = []
 
@@ -59,10 +60,10 @@ class _Strom:
         pass
 
     def getvalue(self):
-        return ''.join(self._teile)
+        return "".join(self._teile)
 
 
-def _schreiben(text, kodierung='cp1252'):
+def _schreiben(text, kodierung="cp1252"):
     ziel = _Strom(kodierung)
     strom = TimestampedStream(ziel)
     strom.write(text)
@@ -71,76 +72,72 @@ def _schreiben(text, kodierung='cp1252'):
 
 
 class EinPfeilReisstNichtsMehr(BasisTest):
-
     def test_der_pfeil_wird_umgesetzt(self):
-        u"""``→`` ist das Zeichen, an dem der Katalog zerbrach."""
-        self.assertIn('->', _schreiben(u'Kachel → Strom\n'))
+        """``→`` ist das Zeichen, an dem der Katalog zerbrach."""
+        self.assertIn("->", _schreiben("Kachel → Strom\n"))
 
     def test_die_deutsche_typografie_bleibt_stehen(self):
-        u"""cp1252 KANN Gedankenstrich und Anführungszeichen.
+        """cp1252 KANN Gedankenstrich und Anführungszeichen.
 
         Nachgemessen: ``— – „ " " ' ' … · •`` sind alle in cp1252
         enthalten; nur ``→ ← ✅ ❌ ⚠`` fehlen. Ein Fix, der vorsorglich
         alles umsetzt, verschlechterte die Ausgabe ohne Grund — also
         wird nur umgesetzt, was der Strom wirklich nicht kann.
         """
-        ergebnis = _schreiben(u'er sagte „so nicht" — und ging …\n')
-        self.assertIn(u'„so nicht"', ergebnis)
-        self.assertIn(u'—', ergebnis)
+        ergebnis = _schreiben('er sagte „so nicht" — und ging …\n')
+        self.assertIn('„so nicht"', ergebnis)
+        self.assertIn("—", ergebnis)
 
     def test_bei_engerer_kodierung_greift_die_umsetzung_doch(self):
-        u"""latin-1 kann den Gedankenstrich NICHT — dort trägt die Liste."""
-        ergebnis = _schreiben(u'gemessen — nicht geraten\n', 'latin-1')
-        self.assertIn('--', ergebnis)
-        self.assertNotIn(u'—', ergebnis)
+        """latin-1 kann den Gedankenstrich NICHT — dort trägt die Liste."""
+        ergebnis = _schreiben("gemessen — nicht geraten\n", "latin-1")
+        self.assertIn("--", ergebnis)
+        self.assertNotIn("—", ergebnis)
 
     def test_was_die_liste_nicht_kennt_wird_ersetzt(self):
-        u"""Lieber ein Fragezeichen als ein abgebrochener Bericht."""
-        ergebnis = _schreiben(u'Zustand: 中\n')
-        self.assertIn('?', ergebnis)
+        """Lieber ein Fragezeichen als ein abgebrochener Bericht."""
+        ergebnis = _schreiben("Zustand: 中\n")
+        self.assertIn("?", ergebnis)
 
     def test_umlaute_bleiben_umlaute(self):
-        u"""ä, ö, ü und ß KANN cp1252 — sie dürfen nicht angefasst werden.
+        """ä, ö, ü und ß KANN cp1252 — sie dürfen nicht angefasst werden.
 
         Sonst löst dieser Fix genau das Problem aus, gegen das die harte
         Regel „Umlaute direkt schreiben" antritt.
         """
-        self.assertIn(u'läuft grün, größer, weiß',
-                      _schreiben(u'läuft grün, größer, weiß\n'))
+        self.assertIn("läuft grün, größer, weiß", _schreiben("läuft grün, größer, weiß\n"))
 
 
 class AufUtf8BleibtAllesWieEsIst(BasisTest):
-
     def test_der_pfeil_ueberlebt(self):
-        self.assertIn(u'→', _schreiben(u'Kachel → Strom\n', 'utf-8'))
+        self.assertIn("→", _schreiben("Kachel → Strom\n", "utf-8"))
 
     def test_auch_was_die_liste_nicht_kennt(self):
-        self.assertIn(u'中', _schreiben(u'Zustand: 中\n', 'utf-8'))
+        self.assertIn("中", _schreiben("Zustand: 中\n", "utf-8"))
 
 
 class DerRestBleibtWieVorher(BasisTest):
-
     def test_der_zeitstempel_steht_weiter_davor(self):
-        ergebnis = _schreiben(u'eine Zeile\n')
-        self.assertRegex(ergebnis, r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} ')
+        ergebnis = _schreiben("eine Zeile\n")
+        self.assertRegex(ergebnis, r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} ")
 
     def test_eine_schon_gestempelte_zeile_bekommt_keinen_zweiten(self):
-        ergebnis = _schreiben(u'2026-08-25 12:00:00 schon fertig\n')
-        self.assertEqual(ergebnis.count('2026-08-25'), 1)
+        ergebnis = _schreiben("2026-08-25 12:00:00 schon fertig\n")
+        self.assertEqual(ergebnis.count("2026-08-25"), 1)
 
     def test_teilstuecke_werden_bis_zum_umbruch_gesammelt(self):
-        u"""Sonst bekäme jeder tqdm-Tick einen eigenen Zeitstempel."""
+        """Sonst bekäme jeder tqdm-Tick einen eigenen Zeitstempel."""
         ziel = _Strom()
         strom = TimestampedStream(ziel)
-        strom.write(u'halb')
-        self.assertEqual(ziel.getvalue(), '')
-        strom.write(u' und ganz\n')
-        self.assertIn('halb und ganz', ziel.getvalue())
+        strom.write("halb")
+        self.assertEqual(ziel.getvalue(), "")
+        strom.write(" und ganz\n")
+        self.assertIn("halb und ganz", ziel.getvalue())
 
     def test_ein_strom_ohne_kodierung_wirft_nicht(self):
-        u"""``getattr(..., 'encoding', None)`` kann None liefern."""
+        """``getattr(..., 'encoding', None)`` kann None liefern."""
         ziel = io.StringIO()
         strom = TimestampedStream(ziel)
-        strom.write(u'Kachel → Strom\n')
+        strom.write("Kachel → Strom\n")
         strom.flush()
-        self.assertIn(u'→', ziel.getvalue())
+        self.assertIn("→", ziel.getvalue())

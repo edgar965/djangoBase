@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Netzsperre — im Prüflauf ist jeder Zugriff nach draußen ein Fehler, keine Frage der Disziplin.
+"""Netzsperre — im Prüflauf ist jeder Zugriff nach draußen ein Fehler, keine Frage der Disziplin.
 
 DER ANLASS (gunSlinger, 18.09.2026)
 ===================================
@@ -54,13 +54,14 @@ Der Proactor-Loop verbindet über ``ConnectEx``, nicht über ``socket.connect``
 Deshalb hängt die Prüfung zusätzlich in ``sock_connect`` beider Loop-Arten;
 ``create_connection`` führt dort hindurch.
 """
+
 import contextlib
 import socket
 import threading
 
 
 class NetzImTestVerboten(RuntimeError):
-    u"""Ein Test wollte nach draußen. Die Meldung nennt Ziel und Ausweg."""
+    """Ein Test wollte nach draußen. Die Meldung nennt Ziel und Ausweg."""
 
     def __init__(self, ziel):
         self.ziel = ziel
@@ -68,11 +69,12 @@ class NetzImTestVerboten(RuntimeError):
             "Netzwerkzugriff im Test verboten: %s. Antwort mocken (respx, "
             "unittest.mock) oder den einen Fall in "
             "`with Netzsperre.erlaubt():` stellen; Rechner dauerhaft freigeben "
-            "über DJANGOBASE_NETZ_ERLAUBT." % (ziel,))
+            "über DJANGOBASE_NETZ_ERLAUBT." % (ziel,)
+        )
 
 
 class Netzsperre:
-    u"""Klassenweiter Schalter — es gibt je Prozess nur einen Socket-Typ."""
+    """Klassenweiter Schalter — es gibt je Prozess nur einen Socket-Typ."""
 
     #: Loopback-Namen; Adressen werden über das Präfix erkannt.
     LOKAL = ("localhost", "127.", "::1", "0.0.0.0", "::")
@@ -87,7 +89,7 @@ class Netzsperre:
 
     @classmethod
     def einrichten(cls, erlaubt=None):
-        u"""Sperre setzen. Mehrfach aufrufen ist harmlos; ``erlaubt`` ergänzt die Liste."""
+        """Sperre setzen. Mehrfach aufrufen ist harmlos; ``erlaubt`` ergänzt die Liste."""
         for name in list(erlaubt or ()) + cls._aus_einstellungen():
             cls._erlaubte |= cls._aufloesen(str(name).lower())
         if cls._original_connect is not None:
@@ -115,7 +117,7 @@ class Netzsperre:
 
     @classmethod
     def aufheben(cls):
-        u"""Zurück zum Original — für Tests der Sperre selbst und Läufer-Abbau."""
+        """Zurück zum Original — für Tests der Sperre selbst und Läufer-Abbau."""
         if cls._original_connect is None:
             return
         socket.socket.connect = cls._original_connect
@@ -128,7 +130,7 @@ class Netzsperre:
 
     @classmethod
     def zuruecksetzen(cls):
-        u"""Freigaben und Protokoll leeren — für Tests der Sperre selbst."""
+        """Freigaben und Protokoll leeren — für Tests der Sperre selbst."""
         cls._erlaubte = set()
         cls.gesperrt = []
 
@@ -139,7 +141,7 @@ class Netzsperre:
     @classmethod
     @contextlib.contextmanager
     def erlaubt(cls):
-        u"""Innerhalb dieses Blocks darf DIESER Thread nach draußen."""
+        """Innerhalb dieses Blocks darf DIESER Thread nach draußen."""
         vorher = getattr(cls._freigaben, "tiefe", 0)
         cls._freigaben.tiefe = vorher + 1
         try:
@@ -149,11 +151,11 @@ class Netzsperre:
 
     @classmethod
     def zulaessig(cls, adresse):
-        u"""Darf dieser Socket dorthin? ``adresse`` wie bei ``connect``."""
+        """Darf dieser Socket dorthin? ``adresse`` wie bei ``connect``."""
         if getattr(cls._freigaben, "tiefe", 0) > 0:
             return True
         if not isinstance(adresse, tuple) or len(adresse) < 2:
-            return True                       # Unix-Socket, Pfad, Sonderfall
+            return True  # Unix-Socket, Pfad, Sonderfall
         host = str(adresse[0]).lower()
         if host in cls._erlaubte:
             return True
@@ -169,20 +171,22 @@ class Netzsperre:
 
     @staticmethod
     def _aufloesen(name):
-        u"""Name plus seine Adressen: ``connect`` sieht nur noch die IP, nie den Namen."""
+        """Name plus seine Adressen: ``connect`` sieht nur noch die IP, nie den Namen."""
         adressen = {name}
         try:
             for eintrag in socket.getaddrinfo(name, None):
                 adressen.add(str(eintrag[4][0]).lower())
         except (OSError, ValueError):
-            pass                              # unbekannter Name: bleibt als Text drin
+            pass  # unbekannter Name: bleibt als Text drin
         return adressen
 
     @staticmethod
     def _loop_klassen():
         klassen = []
-        for modul, name in (("asyncio.selector_events", "BaseSelectorEventLoop"),
-                            ("asyncio.proactor_events", "BaseProactorEventLoop")):
+        for modul, name in (
+            ("asyncio.selector_events", "BaseSelectorEventLoop"),
+            ("asyncio.proactor_events", "BaseProactorEventLoop"),
+        ):
             try:
                 klassen.append(getattr(__import__(modul, fromlist=[name]), name))
             except (ImportError, AttributeError):
@@ -196,12 +200,14 @@ class Netzsperre:
         async def sock_connect(loop, sock, adresse):
             cls._pruefen(adresse)
             return await original(loop, sock, adresse)
+
         return sock_connect
 
     @staticmethod
     def _aus_einstellungen():
         try:
             from django.conf import settings
+
             return list(getattr(settings, "DJANGOBASE_NETZ_ERLAUBT", None) or [])
-        except Exception:                     # ohne Django-Einstellungen: leer
+        except Exception:  # ohne Django-Einstellungen: leer
             return []

@@ -4,15 +4,15 @@ import ast
 import re
 from collections import Counter, defaultdict
 
-from .befund import Befund, Befundsatz, BefundWerkzeug
 from .anlassfall import Anlassfall
+from .befund import Befund, Befundsatz, BefundWerkzeug
 from .rahmenvorschrift import Rahmenvorschrift
 
 
 class Modulsicht:
     """Was auf Modulebene steht: freie Funktionen, Klassen, gemeinsame Praefixe."""
 
-    __slots__ = ('pfad', 'funktionen', 'klassen', 'zeilen', 'weiterleitungen')
+    __slots__ = ("pfad", "funktionen", "klassen", "zeilen", "weiterleitungen")
 
     def __init__(self, pfad, funktionen, klassen, zeilen, weiterleitungen=0):
         self.pfad = pfad
@@ -24,13 +24,12 @@ class Modulsicht:
         self.weiterleitungen = weiterleitungen
 
     def ist_fassade(self):
-        u"""Steht hier eine Klasse, und davor nur Einzeiler?
+        """Steht hier eine Klasse, und davor nur Einzeiler?
 
         Dann fehlt keine Klasse — dann steht eine Fassade davor. Ein
         anderer Befund, und ein viel weniger dringender.
         """
-        return bool(self.klassen) and self.weiterleitungen >= max(
-            2, len(self.funktionen) - 1)
+        return bool(self.klassen) and self.weiterleitungen >= max(2, len(self.funktionen) - 1)
 
     #: Namensteile, die KEINEN Gegenstand benennen, sondern eine Taetigkeit.
     #:
@@ -41,13 +40,44 @@ class Modulsicht:
     #: `get_persons_dir`, `get_ffmpeg`. Das Verb ist allen gemeinsam, der
     #: Gegenstand keinem. Ein solcher Vorschlag ist schlechter als keiner,
     #: weil er so aussieht, als haette jemand nachgedacht.
-    VERBEN = frozenset((
-        'get', 'set', 'is', 'has', 'build', 'make', 'create', 'load',
-        'save', 'read', 'write', 'publish', 'send', 'run', 'do', 'ensure',
-        'check', 'try', 'init', 'update', 'delete', 'remove', 'add',
-        'hole', 'setze', 'lade', 'schreibe', 'pruefe', 'melde', 'baue',
-        'ist', 'hat', 'mach', 'lies',
-    ))
+    VERBEN = frozenset(
+        (
+            "get",
+            "set",
+            "is",
+            "has",
+            "build",
+            "make",
+            "create",
+            "load",
+            "save",
+            "read",
+            "write",
+            "publish",
+            "send",
+            "run",
+            "do",
+            "ensure",
+            "check",
+            "try",
+            "init",
+            "update",
+            "delete",
+            "remove",
+            "add",
+            "hole",
+            "setze",
+            "lade",
+            "schreibe",
+            "pruefe",
+            "melde",
+            "baue",
+            "ist",
+            "hat",
+            "mach",
+            "lies",
+        )
+    )
 
     def gruppen(self):
         """Funktionen mit gemeinsamem Namensanfang — die deutlichsten Kandidaten.
@@ -62,7 +92,7 @@ class Modulsicht:
         nach_anfang = defaultdict(list)
         nach_ende = defaultdict(list)
         for name, zeile, laenge, _erstes in self.funktionen:
-            teile = name.strip('_').split('_')
+            teile = name.strip("_").split("_")
             if len(teile) > 1:
                 nach_anfang[teile[0]].append((name, zeile, laenge))
                 nach_ende[teile[-1]].append((name, zeile, laenge))
@@ -76,39 +106,49 @@ class Modulsicht:
 
 
 class FreieFunktionen(BefundWerkzeug):
-
-    slug = 'freie-funktionen'
+    slug = "freie-funktionen"
 
     #: Auftrags-Kriterium (kam bis 18.08.2026 aus der
 
     #: Tabelle ALT_KRITERIUM neben der Registrierung).
 
     kriterium = 1
-    titel = 'Freie Funktionen'
-    zweck = ('Zeigt Module mit vielen Funktionen auf Modulebene und findet '
-             'Bündel gleichen Namensanfangs — die naheliegenden Kandidaten '
-             'für eine Klasse.')
-    abhilfe = ('Beim Umstieg auf Objektorientierung. Drei Funktionen mit demselben '
-            'Namensanfang und demselben ersten Argument sind fast immer eine '
-            'Klasse, die noch niemand geschrieben hat.')
-    befund = ('So entstanden im Ursprungsprojekt u. a. Skingewichte, '
-             'Bvhbibliothek und Animationsauswahl — vorher lose Funktionen mit '
-             'globalen Zwischenspeichern in einer 6.000-Zeilen-Datei.')
-    dauer = 'Sekunden'
+    titel = "Freie Funktionen"
+    zweck = (
+        "Zeigt Module mit vielen Funktionen auf Modulebene und findet "
+        "Bündel gleichen Namensanfangs — die naheliegenden Kandidaten "
+        "für eine Klasse."
+    )
+    abhilfe = (
+        "Beim Umstieg auf Objektorientierung. Drei Funktionen mit demselben "
+        "Namensanfang und demselben ersten Argument sind fast immer eine "
+        "Klasse, die noch niemand geschrieben hat."
+    )
+    befund = (
+        "So entstanden im Ursprungsprojekt u. a. Skingewichte, "
+        "Bvhbibliothek und Animationsauswahl — vorher lose Funktionen mit "
+        "globalen Zwischenspeichern in einer 6.000-Zeilen-Datei."
+    )
+    dauer = "Sekunden"
     #: ALLE melden, nicht erst ab fuenf (24.08.2026, auf Ansage: „der test
     #: soll sie alle melden"). Die Vorgabe 5 versteckte an CamTrack 238 von
     #: 283 Modulen — gemeldet wurden 45. Wer die Zahl kleiner haben will,
     #: dreht sie hier hoch; die Voreinstellung darf nichts verschweigen.
-    eingabe = ('ab', 'Ab wie vielen freien Funktionen je Datei melden?', '1')
+    eingabe = ("ab", "Ab wie vielen freien Funktionen je Datei melden?", "1")
 
     anlassfall = Anlassfall(
-        {"helfer.py": "".join("def schritt%d(wert):\n    return wert + %d\n\n\n"
-                              % (i, i) for i in range(1, 9))},
-        mindestens=1, erwartet_in="helfer.py",
+        {
+            "helfer.py": "".join(
+                "def schritt%d(wert):\n    return wert + %d\n\n\n" % (i, i) for i in range(1, 9)
+            )
+        },
+        mindestens=1,
+        erwartet_in="helfer.py",
         warum="Acht lose Funktionen auf Modulebene: Der Zusammenhang steht "
-              "nirgends, und jede trägt ihren Zustand selbst")
+        "nirgends, und jede trägt ihren Zustand selbst",
+    )
 
-    def pruefen(self, ab='1', **_argumente):
+    def pruefen(self, ab="1", **_argumente):
         try:
             grenze = max(1, int(str(ab).strip() or 1))
         except ValueError:
@@ -120,7 +160,7 @@ class FreieFunktionen(BefundWerkzeug):
         # Modulebene stehen (siehe `rahmenvorschrift.py`). Einmal gelesen,
         # nicht je Datei.
         vorgeschrieben = Rahmenvorschrift.namen()
-        for datei in self.projektdateien('.py'):
+        for datei in self.projektdateien(".py"):
             self._ansichten_sammeln(datei, ansichten)
             sicht = self._modul(datei, rufer, vorgeschrieben)
             if sicht is not None:
@@ -132,14 +172,16 @@ class FreieFunktionen(BefundWerkzeug):
             if sicht.ist_fassade():
                 # Die Klasse gibt es schon — hier steht nur eine Fassade
                 # davor. Kein Auftrag zum Schreiben, ein Hinweis zum Wissen.
-                befunde.append(Befund(
-                    sicht.pfad,
-                    '%d Weiterleitungen vor %d Klasse(n)'
-                    % (sicht.weiterleitungen, sicht.klassen),
-                    'Die Klasse steht schon da; die freien Funktionen geben '
-                    'nur weiter. Abreissen kostet so viele Änderungen, wie '
-                    'es Aufrufstellen gibt — erst zählen, dann entscheiden.',
-                    Befund.HINWEIS))
+                befunde.append(
+                    Befund(
+                        sicht.pfad,
+                        "%d Weiterleitungen vor %d Klasse(n)" % (sicht.weiterleitungen, sicht.klassen),
+                        "Die Klasse steht schon da; die freien Funktionen geben "
+                        "nur weiter. Abreissen kostet so viele Änderungen, wie "
+                        "es Aufrufstellen gibt — erst zählen, dann entscheiden.",
+                        Befund.HINWEIS,
+                    )
+                )
                 continue
 
             gruppen = sicht.gruppen()
@@ -152,35 +194,37 @@ class FreieFunktionen(BefundWerkzeug):
                 # ihren Gegenstand nennt: `mqtt.py` haelt `get_client`,
                 # `publish_sighting`, `publish_offline` — kein gemeinsames
                 # Wort, aber ganz offensichtlich EINE Sache.
-                schluessel, eintraege = None, [(n, z, l) for n, z, l, _e
-                                               in sicht.funktionen]
+                schluessel, eintraege = None, [(n, z, laenge) for n, z, laenge, _e in sicht.funktionen]
             platz = self._wo_hin(eintraege, rufer, ansichten, sicht.klassen)
-            hinweis = ('%d Funktionen als Klasse `%s`: %s. %s'
-                       % (len(eintraege),
-                          self._klassenname(schluessel, sicht.pfad),
-                          ', '.join(n for n, _z, _l in eintraege[:6]),
-                          platz))
-            befunde.append(Befund(
-                sicht.pfad,
-                '%d freie Funktionen, %d Klassen' % (len(sicht.funktionen),
-                                                     sicht.klassen),
-                hinweis,
-                self._gewicht(sicht, grenze)))
+            hinweis = "%d Funktionen als Klasse `%s`: %s. %s" % (
+                len(eintraege),
+                self._klassenname(schluessel, sicht.pfad),
+                ", ".join(n for n, _z, _l in eintraege[:6]),
+                platz,
+            )
+            befunde.append(
+                Befund(
+                    sicht.pfad,
+                    "%d freie Funktionen, %d Klassen" % (len(sicht.funktionen), sicht.klassen),
+                    hinweis,
+                    self._gewicht(sicht, grenze),
+                )
+            )
 
         gesamt = sum(len(s.funktionen) for s in sichten)
         gebuendelt = sum(len(g[1]) for s in sichten for g in s.gruppen())
-        kopf = ['%d Module, %d Funktionen auf Modulebene' % (len(sichten), gesamt),
-                '%d Module mit mindestens %d freien Funktionen'
-                % (len(befunde), grenze),
-                '%d davon stehen in einem Bündel gleichen Namensanfangs — '
-                'das sind die Klassen, die noch niemand geschrieben hat'
-                % gebuendelt]
+        kopf = [
+            "%d Module, %d Funktionen auf Modulebene" % (len(sichten), gesamt),
+            "%d Module mit mindestens %d freien Funktionen" % (len(befunde), grenze),
+            "%d davon stehen in einem Bündel gleichen Namensanfangs — "
+            "das sind die Klassen, die noch niemand geschrieben hat" % gebuendelt,
+        ]
         return Befundsatz(self.titel, kopf, befunde)
 
     #: Klassen, an die nichts gehaengt wird. Ein Test RUFT den Code, er
     #: BESITZT ihn nicht — der erste Lauf schlug `ComputeAcceptThresholdTests`
     #: als Halter fuer drei Schwellen-Funktionen vor.
-    KEIN_HALTER = ('Test', 'Tests', 'TestCase', 'Mixin')
+    KEIN_HALTER = ("Test", "Tests", "TestCase", "Mixin")
 
     #: Rollen, in denen eine Funktion auf Modulebene die UEBLICHE Schreibweise
     #: ist — nicht eine Klasse, die niemand geschrieben hat.
@@ -206,10 +250,10 @@ class FreieFunktionen(BefundWerkzeug):
     #:
     #: Gemeldet wird weiter JEDES Modul; nur das Gewicht folgt der Rolle.
     #: Wer die echten Kandidaten will, filtert auf `warnung`.
-    UEBLICH = ('Ansichten', 'Tests')
+    UEBLICH = ("Ansichten", "Tests")
 
     def _gewicht(self, sicht, grenze):
-        u"""Wie schwer wiegt dieser Fund?
+        """Wie schwer wiegt dieser Fund?
 
         Eine Ansicht oder eine Testhilfe ist ein HINWEIS — sie steht dort
         richtig. Alles andere mit genuegend Funktionen ist eine WARNUNG.
@@ -218,18 +262,16 @@ class FreieFunktionen(BefundWerkzeug):
 
         if rolle(sicht.pfad) in self.UEBLICH:
             return Befund.HINWEIS
-        return (Befund.WARNUNG if len(sicht.funktionen) >= grenze * 2
-                else Befund.HINWEIS)
+        return Befund.WARNUNG if len(sicht.funktionen) >= grenze * 2 else Befund.HINWEIS
 
     def _rufer_sammeln(self, baum, hinein, datei=None):
-        u"""Welche KLASSE ruft welche Funktion beim Namen?
+        """Welche KLASSE ruft welche Funktion beim Namen?
 
         Damit lässt sich die zweite Haelfte der Frage beantworten: nicht
         nur „diese drei gehören in eine Klasse", sondern auch „und diese
         Klasse gehört dorthin".
         """
-        if datei is not None and ('test' in datei.name.lower()
-                                 or 'tests' in datei.parts):
+        if datei is not None and ("test" in datei.name.lower() or "tests" in datei.parts):
             return
         for knoten in ast.walk(baum):
             if not isinstance(knoten, ast.ClassDef):
@@ -242,7 +284,7 @@ class FreieFunktionen(BefundWerkzeug):
 
     @staticmethod
     def _klassenname(schluessel, pfad=None):
-        u"""Ein Klassenname — aus dem Bündel, sonst aus dem DATEINAMEN.
+        """Ein Klassenname — aus dem Bündel, sonst aus dem DATEINAMEN.
 
         `person` -> `PersonVerwaltung`, `marzahn` -> `MarzahnVerwaltung`.
 
@@ -257,38 +299,36 @@ class FreieFunktionen(BefundWerkzeug):
         ein Vorschlag ist leichter zu widersprechen als ein leeres Feld.
         """
         if schluessel:
-            return (schluessel.strip('_').replace('_', ' ').title()
-                    .replace(' ', '') + 'Verwaltung')
-        stamm = str(pfad or '').replace('\\', '/').split('/')[-1]
-        stamm = stamm[:-3] if stamm.endswith('.py') else stamm
-        if stamm in ('__init__', ''):
+            return schluessel.strip("_").replace("_", " ").title().replace(" ", "") + "Verwaltung"
+        stamm = str(pfad or "").replace("\\", "/").split("/")[-1]
+        stamm = stamm[:-3] if stamm.endswith(".py") else stamm
+        if stamm in ("__init__", ""):
             # `__init__.py` sagt nichts — dann gilt das Verzeichnis.
-            teile = [t for t in str(pfad or '').replace('\\', '/').split('/')
-                     if t and not t.endswith('.py')]
-            stamm = teile[-1] if teile else 'Modul'
-        return stamm.strip('_').replace('_', ' ').title().replace(' ', '')
+            teile = [t for t in str(pfad or "").replace("\\", "/").split("/") if t and not t.endswith(".py")]
+            stamm = teile[-1] if teile else "Modul"
+        return stamm.strip("_").replace("_", " ").title().replace(" ", "")
 
     def _ansichten_sammeln(self, datei, hinein):
-        u"""Namen, die in einer `urls.py` als Ansicht eingetragen sind.
+        """Namen, die in einer `urls.py` als Ansicht eingetragen sind.
 
         Sie werden vom URL-Router gerufen, nicht von einer Klasse. „Niemand
         ruft sie" wäre deshalb die falsche Auskunft — richtig ist: Django
         hat dafür die klassenbasierte Ansicht, und djangoBase benutzt sie
         durchgehend (`SkillsView(ZugriffMixin, View)`).
         """
-        if datei.name != 'urls.py':
+        if datei.name != "urls.py":
             return
         try:
-            text = datei.read_text(encoding='utf-8', errors='replace')
+            text = datei.read_text(encoding="utf-8", errors="replace")
         except OSError:
             return
-        for treffer in re.finditer(r'views\.(\w+)|path\([^,]+,\s*(\w+)', text):
+        for treffer in re.finditer(r"views\.(\w+)|path\([^,]+,\s*(\w+)", text):
             name = treffer.group(1) or treffer.group(2)
             if name:
                 hinein.add(name)
 
     def _wo_hin(self, eintraege, rufer, ansichten, eigene_klassen):
-        u"""In welchen Baum gehört die neue Klasse?
+        """In welchen Baum gehört die neue Klasse?
 
         DIE ZWEITE HAELFTE DER FRAGE (Edgar, 24.08.2026)
         ================================================
@@ -308,22 +348,24 @@ class FreieFunktionen(BefundWerkzeug):
             gesamt.update(rufer.get(name) or {})
         if gesamt:
             klasse, zahl = gesamt.most_common(1)[0]
-            return ('Hängt an `%s` — die ruft sie %dx, wer sie braucht soll '
-                    'sie halten.' % (klasse, zahl))
+            return "Hängt an `%s` — die ruft sie %dx, wer sie braucht soll sie halten." % (klasse, zahl)
         treffer = sum(1 for n, _z, _l in eintraege if n in ansichten)
         if treffer:
-            return ('%d davon sind Django-Ansichten: gehören in eine '
-                    'klassenbasierte Ansicht (`View`), nicht in eine eigene '
-                    'Klasse daneben.' % treffer)
+            return (
+                "%d davon sind Django-Ansichten: gehören in eine "
+                "klassenbasierte Ansicht (`View`), nicht in eine eigene "
+                "Klasse daneben." % treffer
+            )
         if eigene_klassen:
-            return ('Im selben Modul steht schon eine Klasse — dort '
-                    'anhaengen statt eine zweite Wurzel aufzumachen.')
-        return ('Niemand ruft sie aus einer Klasse: eine neue Wurzel, '
-                'sparsam einsetzen.')
+            return (
+                "Im selben Modul steht schon eine Klasse — dort "
+                "anhaengen statt eine zweite Wurzel aufzumachen."
+            )
+        return "Niemand ruft sie aus einer Klasse: eine neue Wurzel, sparsam einsetzen."
 
     def _modul(self, datei, rufer=None, vorgeschrieben=()):
         try:
-            baum = ast.parse(datei.read_text(encoding='utf-8', errors='replace'))
+            baum = ast.parse(datei.read_text(encoding="utf-8", errors="replace"))
         except (SyntaxError, OSError):
             return None
         if rufer is not None:
@@ -335,11 +377,11 @@ class FreieFunktionen(BefundWerkzeug):
         # Modulebene stehen — sonst startet das Werkzeug nicht mehr.
         vorgeschrieben = set(vorgeschrieben) | Rahmenvorschrift.selbst_gerufen(baum)
         funktionen, klassen, weiterleitungen = [], 0, 0
-        for knoten in baum.body:          # nur Modulebene, nicht ast.walk
+        for knoten in baum.body:  # nur Modulebene, nicht ast.walk
             if isinstance(knoten, ast.ClassDef):
                 klassen += 1
             elif isinstance(knoten, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                if knoten.name.startswith('__'):
+                if knoten.name.startswith("__"):
                     continue
                 # Kontextprozessor, Middleware-Fabrik & Co.: In eine Klasse
                 # verschoben findet `import_string` sie nicht mehr.
@@ -350,19 +392,19 @@ class FreieFunktionen(BefundWerkzeug):
                 # nichts mehr an — siehe `Rahmenvorschrift`.
                 if Rahmenvorschrift.wird_angemeldet(knoten):
                     continue
-                ende = getattr(knoten, 'end_lineno', knoten.lineno) or knoten.lineno
-                erstes = (knoten.args.args[0].arg if knoten.args.args else '')
-                funktionen.append((knoten.name, knoten.lineno,
-                                   ende - knoten.lineno + 1, erstes))
+                ende = getattr(knoten, "end_lineno", knoten.lineno) or knoten.lineno
+                erstes = knoten.args.args[0].arg if knoten.args.args else ""
+                funktionen.append((knoten.name, knoten.lineno, ende - knoten.lineno + 1, erstes))
                 weiterleitungen += 1 if self._weiterleitung(knoten) else 0
         if not funktionen:
             return None
-        return Modulsicht(self.kurz(datei), funktionen, klassen,
-                          getattr(baum, 'end_lineno', 0) or 0, weiterleitungen)
+        return Modulsicht(
+            self.kurz(datei), funktionen, klassen, getattr(baum, "end_lineno", 0) or 0, weiterleitungen
+        )
 
     @staticmethod
     def _weiterleitung(knoten):
-        u"""Ein Einzeiler, der nur weitergibt: ``return Pfade.medien()``.
+        """Ein Einzeiler, der nur weitergibt: ``return Pfade.medien()``.
 
         DER UNTERSCHIED, DER GEFEHLT HAT (24.08.2026)
         =============================================
@@ -376,8 +418,11 @@ class FreieFunktionen(BefundWerkzeug):
         Aenderungen, waehrend die fehlende Klasse zu schreiben eine kostet.
         Ohne die Unterscheidung sieht beides gleich dringend aus.
         """
-        koerper = [z for z in knoten.body
-                   if not (isinstance(z, ast.Expr)
-                           and isinstance(z.value, ast.Constant))]
-        return (len(koerper) == 1 and isinstance(koerper[0], ast.Return)
-                and isinstance(koerper[0].value, ast.Call))
+        koerper = [
+            z for z in knoten.body if not (isinstance(z, ast.Expr) and isinstance(z.value, ast.Constant))
+        ]
+        return (
+            len(koerper) == 1
+            and isinstance(koerper[0], ast.Return)
+            and isinstance(koerper[0].value, ast.Call)
+        )

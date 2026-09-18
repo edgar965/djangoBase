@@ -23,10 +23,11 @@ Beispiel (im Projekt, AppConfig.ready)::
         trigger=cron_runner.trigger_now,
     )
 """
+
 import threading
 
 _lock = threading.Lock()
-_jobs: dict = {}   # slug -> dict(slug, name, beschreibung, state, trigger, set_enabled)
+_jobs: dict = {}  # slug -> dict(slug, name, beschreibung, state, trigger, set_enabled)
 
 
 def register(slug, name, state, *, beschreibung="", trigger=None, set_enabled=None):
@@ -44,8 +45,12 @@ def register(slug, name, state, *, beschreibung="", trigger=None, set_enabled=No
         raise TypeError("jobs.register: 'state' muss callable sein")
     with _lock:
         _jobs[slug] = {
-            "slug": slug, "name": name, "beschreibung": beschreibung,
-            "state": state, "trigger": trigger, "set_enabled": set_enabled,
+            "slug": slug,
+            "name": name,
+            "beschreibung": beschreibung,
+            "state": state,
+            "trigger": trigger,
+            "set_enabled": set_enabled,
         }
 
 
@@ -76,14 +81,16 @@ def snapshot():
     for job in jobs:
         try:
             st = dict(job["state"]() or {})
-        except Exception as e:   # noqa: BLE001 — Job-State darf die Seite nie crashen
+        except Exception as e:  # noqa: BLE001 — Job-State darf die Seite nie crashen
             st = {"fehler": f"{type(e).__name__}: {e}"}
-        out.append({
-            "slug": job["slug"],
-            "name": job["name"],
-            "beschreibung": job["beschreibung"],
-            "state": st,
-            "kann_triggern": job["trigger"] is not None,
-            "kann_schalten": job["set_enabled"] is not None,
-        })
+        out.append(
+            {
+                "slug": job["slug"],
+                "name": job["name"],
+                "beschreibung": job["beschreibung"],
+                "state": st,
+                "kann_triggern": job["trigger"] is not None,
+                "kann_schalten": job["set_enabled"] is not None,
+            }
+        )
     return out

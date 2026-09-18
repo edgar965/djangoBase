@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Tests des Werkzeugkastens ``djangobase.umbau``.
+"""Tests des Werkzeugkastens ``djangobase.umbau``.
 
 WARUM UEBERHAUPT TESTS FUER WERKZEUGE, DIE NUR AUF DER KOMMANDOZEILE LAUFEN:
 Sie schreiben Quelltext. Ein Werkzeug, das beim Import scheitert, faellt beim
@@ -14,6 +14,7 @@ jede Klasse in ``KLASSEN`` muss erreichbar sein, und der verzoegerte Import darf
 kein Modul beim Paketimport mitladen (sonst laeuft
 ``python -m djangobase.umbau.<modul>`` zweimal).
 """
+
 import shutil
 import sys
 import tempfile
@@ -23,10 +24,9 @@ from djangobase import umbau
 
 from ..base import BasisTest
 
-
 #: Eine Datei mit genau einem echten offenen Namen — alles andere ist
 #: Parameter, lokale Variable, Ausnahmename, Konstante, Import oder Builtin.
-QUELLE = '''# -*- coding: utf-8 -*-
+QUELLE = """# -*- coding: utf-8 -*-
 import os
 import re
 from pathlib import Path
@@ -51,26 +51,24 @@ def gross(pfad):
 
 def bleibt():
     return GRENZE
-'''
+"""
 
 
 class UmbauPaketTest(BasisTest):
-
     def test_jede_klasse_ist_erreichbar(self):
         for name in umbau.KLASSEN:
-            self.assertTrue(hasattr(umbau, name),
-                            "%s fehlt im Modul %s" % (name, umbau.KLASSEN[name]))
+            self.assertTrue(hasattr(umbau, name), "%s fehlt im Modul %s" % (name, umbau.KLASSEN[name]))
 
     def test_all_und_klassen_stimmen_ueberein(self):
         self.assertEqual(sorted(umbau.__all__), sorted(umbau.KLASSEN))
 
     def test_unbekannter_name_wirft(self):
-        u"""Ein Tippfehler muss auffallen, nicht None liefern."""
+        """Ein Tippfehler muss auffallen, nicht None liefern."""
         with self.assertRaises(AttributeError):
-            umbau.GibtEsNicht
+            _ = umbau.GibtEsNicht
 
     def test_paketimport_laedt_keine_module(self):
-        u"""Sonst laeuft `python -m djangobase.umbau.<modul>` zweimal.
+        """Sonst laeuft `python -m djangobase.umbau.<modul>` zweimal.
 
         Python warnt dann mit „found in sys.modules after import of package",
         und die Warnung stand vor der Ausgabe des Werkzeugs. Bei Werkzeugen, die
@@ -80,14 +78,13 @@ class UmbauPaketTest(BasisTest):
         for modul in set(umbau.KLASSEN.values()):
             sys.modules.pop("djangobase.umbau." + modul, None)
         import importlib
+
         importlib.reload(umbau)
-        geladen = [m for m in set(umbau.KLASSEN.values())
-                   if "djangobase.umbau." + m in sys.modules]
+        geladen = [m for m in set(umbau.KLASSEN.values()) if "djangobase.umbau." + m in sys.modules]
         self.assertEqual(geladen, [], "beim Paketimport mitgeladen: %s" % geladen)
 
 
 class ModulSchneiderTest(BasisTest):
-
     def setUp(self):
         self.ordner = Path(tempfile.mkdtemp(prefix="umbau_schnitt_"))
         self.addCleanup(shutil.rmtree, self.ordner, True)
@@ -96,9 +93,9 @@ class ModulSchneiderTest(BasisTest):
 
     def bericht(self):
         schneider = umbau.ModulSchneider(self.quelle)
-        return schneider.schreiben(["gross", "klein"],
-                                   self.ordner / "neu.py",
-                                   "# -*- coding: utf-8 -*-", trocken=True)
+        return schneider.schreiben(
+            ["gross", "klein"], self.ordner / "neu.py", "# -*- coding: utf-8 -*-", trocken=True
+        )
 
     def test_offen_nennt_nur_den_echten_fall(self):
         self.assertEqual(self.bericht()["offen"], ["FEHLT_WIRKLICH"])
@@ -109,7 +106,7 @@ class ModulSchneiderTest(BasisTest):
             self.assertNotIn(name, offen)
 
     def test_builtins_sind_nicht_offen(self):
-        u"""`dir(__builtins__)` griff nur im direkt gestarteten Skript.
+        """`dir(__builtins__)` griff nur im direkt gestarteten Skript.
 
         In einem importierten Modul ist `__builtins__` ein dict — `dir()` liefert
         dann `keys`/`items`/… statt `len`/`str`/`range`.
@@ -130,9 +127,10 @@ class ModulSchneiderTest(BasisTest):
 
     def test_schreiben_teilt_und_beides_parst(self):
         import ast
+
         umbau.ModulSchneider(self.quelle).schreiben(
-            ["gross", "klein"], self.ordner / "neu.py",
-            "# -*- coding: utf-8 -*-")
+            ["gross", "klein"], self.ordner / "neu.py", "# -*- coding: utf-8 -*-"
+        )
         neu = (self.ordner / "neu.py").read_text(encoding="utf-8")
         rest = self.quelle.read_text(encoding="utf-8")
         ast.parse(neu)
@@ -143,7 +141,6 @@ class ModulSchneiderTest(BasisTest):
 
 
 class UnbekannteNamenTest(BasisTest):
-
     def setUp(self):
         self.ordner = Path(tempfile.mkdtemp(prefix="umbau_namen_"))
         self.addCleanup(shutil.rmtree, self.ordner, True)
@@ -154,17 +151,18 @@ class UnbekannteNamenTest(BasisTest):
         return pfad
 
     def test_findet_undeklarierten_namen(self):
-        pfad = self.datei("modul.js",
-                          "export function x() { return ss.wert; }\n")
+        pfad = self.datei("modul.js", "export function x() { return ss.wert; }\n")
         self.assertIn("ss", umbau.Modulnamen(pfad).unbekannt())
 
     def test_browser_globale_sind_kein_befund(self):
-        u"""`getComputedStyle`, `PerformanceObserver` und `Option` wurden
+        """`getComputedStyle`, `PerformanceObserver` und `Option` wurden
         gemeldet — drei Fehlalarme in drei Dateien."""
-        pfad = self.datei("global.js",
-                          "export function x() {\n"
-                          "    new PerformanceObserver(() => {});\n"
-                          "    const o = new Option('a', 'b');\n"
-                          "    return getComputedStyle(document.body).color + o;\n"
-                          "}\n")
+        pfad = self.datei(
+            "global.js",
+            "export function x() {\n"
+            "    new PerformanceObserver(() => {});\n"
+            "    const o = new Option('a', 'b');\n"
+            "    return getComputedStyle(document.body).color + o;\n"
+            "}\n",
+        )
         self.assertEqual(umbau.Modulnamen(pfad).unbekannt(), [])

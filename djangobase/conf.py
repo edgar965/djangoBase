@@ -1,5 +1,6 @@
 """Zentraler Zugriff auf die Projekt-Konfiguration `settings.DJANGOBASE`
 mit sinnvollen Defaults (Assistant-Look als Standard)."""
+
 from pathlib import Path
 
 from django.conf import settings
@@ -42,7 +43,7 @@ DEFAULTS = {
     #   ("HumanBodyWeb", "", "HumanBodyWeb")
     "repos": [],
     # Tests
-    "test_befehle": [],   # {"slug","name","cmd": [..]}  – ganze Suiten (Batch), Tab „Suiten"
+    "test_befehle": [],  # {"slug","name","cmd": [..]}  – ganze Suiten (Batch), Tab „Suiten"
     # Einzeltest-Discovery pro Typ → Tabs mit Run-Button je Test. Optional/opt-in:
     #   [{"typ": "Unit", "labels": ["tests.unit", "djangobase.tests.unit"]}, ...]
     # Jeder gefundene Test (z. B. tests.unit.test_geo.GeoTest.test_x) ist einzeln
@@ -132,11 +133,11 @@ DEFAULTS = {
     # Datei mit dem API-Schluessel fuer "online" — EINE Zeile, ausserhalb des
     # Projekts. None -> ~/.sparring_key
     "review_schluessel_datei": None,
-    "review_ollama_url": None,   # None -> http://127.0.0.1:11434/api/chat
-    "review_online_url": None,   # None -> https://openrouter.ai/api/v1/chat/completions
+    "review_ollama_url": None,  # None -> http://127.0.0.1:11434/api/chat
+    "review_online_url": None,  # None -> https://openrouter.ai/api/v1/chat/completions
     # Navigation
-    "menu": [],           # [{label, icon, url} | {label, icon, untermenu:[{label, icon, url}]}]
-                          #  (Untermenü-Key heißt "untermenu", NICHT "items" -> dict.items-Kollision!)
+    "menu": [],  # [{label, icon, url} | {label, icon, untermenu:[{label, icon, url}]}]
+    #  (Untermenü-Key heißt "untermenu", NICHT "items" -> dict.items-Kollision!)
     # djangoBase-eigene Menue-Gruppen im Nav-Block (djangobase/_nav.html):
     # Einstellungen (Website/djangoBase) + Hilfe. Projekte mit eigener Sidebar
     # koennen den Block per {% include "djangobase/_nav.html" %} einhaengen und
@@ -175,7 +176,7 @@ DEFAULTS = {
     # ----- Layout-Erweiterungen (von Apps konsumiert) ----------------------
     # Pfade fuer {% static %}. Werden NACH djangoBase-CSS geladen
     # (Cascade-Override moeglich).
-    "extra_css": [],            # ["mail/css/mail.css", ...]
+    "extra_css": [],  # ["mail/css/mail.css", ...]
     # Frueh-im-Head-Scripts (htmx, importmap-Snippet etc.). Roh-Strings
     # oder Static-Pfade: {"static": "search/js/htmx.min.js"} bzw.
     # {"raw": "<script>...</script>"}.
@@ -197,10 +198,10 @@ DEFAULTS = {
     # Sidebar-Override: wenn gesetzt, wird statt djangobase/_sidebar.html
     # dieses Template per {% include %} eingehaengt — Projekte koennen
     # ihre eigene Live-Sidebar weiterverwenden.
-    "sidebar_template": None,   # z.B. "search/_sidebar.html"
+    "sidebar_template": None,  # z.B. "search/_sidebar.html"
     # Theme-Switcher im Topbar von base_app.html. Liste von
     # (slug, label, indicator_hex). Bei [] kein Switcher.
-    "theme_modes": [],          # [("dark", "Dark", "#4ea8f6"), ...]
+    "theme_modes": [],  # [("dark", "Dark", "#4ea8f6"), ...]
     # Default-Theme (body data-theme="..."). Fallback: erstes Element
     # aus theme_modes, sonst "".
     "theme_default": "",
@@ -278,7 +279,7 @@ DEFAULTS = {
     # spammige Quellen, deren _PROGRESS_RE-Filter nicht reicht (z.B.
     # PST-Import-Worker, der auch ohne Progress-Bar Zigtausend Zeilen
     # pro Minute schreiben kann).
-    "log_noisy_sources": [],        # ["mail_import", ...]
+    "log_noisy_sources": [],  # ["mail_import", ...]
     # Optionaler Hook fuer projektspezifische Log-Quellen (dotted path oder
     # Callable). Wird pro Request mit `request` aufgerufen und darf die
     # Quellen dynamisch bestimmen — z.B. pro Mandant/Station, oder mit
@@ -287,7 +288,7 @@ DEFAULTS = {
     #   - ein Tupel (verzeichnis, sources).
     # Dateinamen in sources duerfen ABSOLUT sein (dann gewinnt der absolute
     # Pfad gegenueber dem Basis-Verzeichnis). None -> statische log_sources.
-    "log_source_provider": None,    # "tracker.logs.log_sources"
+    "log_source_provider": None,  # "tracker.logs.log_sources"
     # ----- Language Server: zusaetzliche Import-Wurzeln --------------------
     # Ordner AUSSERHALB der Projektwurzel, aus denen das Projekt importiert.
     # Wer eine Bibliothek per `sys.path.insert` in `settings.py` einhaengt,
@@ -299,7 +300,7 @@ DEFAULTS = {
     # Es ist DIESELBE Fehlerklasse, gegen die `views.languageserver.extra_pfade`
     # den djangobase-Pfad nachtraegt; nur laesst sie sich hier nicht erraten,
     # weil der Ordner projekteigen ist. Absolute Pfade oder `Path`-Objekte.
-    "ls_extra_pfade": [],           # [HUMANBODY_ROOT]
+    "ls_extra_pfade": [],  # [HUMANBODY_ROOT]
     # ----- Konten-Freigabe (Gating neuer Registrierungen) ------------------
     # Wenn True, wird ein neues Konto der jeweiligen Rolle bei der Registrierung
     # auf is_active=False gesetzt und kann sich erst nach Admin-Freigabe
@@ -318,8 +319,7 @@ DEFAULTS = {
     "traffic_geo_db": None,
     # Pfad-Präfixe, die nicht erfasst werden (Verwaltung zählt nicht als
     # Besuch). Projekte ergänzen eigene Verwaltungspfade in den Settings.
-    "traffic_ignorierte_pfade": ["/static/", "/media/", "/favicon",
-                                 "/admin/", "/hilfe/"],
+    "traffic_ignorierte_pfade": ["/static/", "/media/", "/favicon", "/admin/", "/hilfe/"],
     # Eigene Domains, die nie als Referrer-Quelle zählen (zusätzlich zum
     # jeweiligen request.get_host()).
     "traffic_eigene_domains": [],
@@ -328,11 +328,29 @@ DEFAULTS = {
     # liefern meist 404 (werden dann gar nicht erfasst); die Markierung greift
     # bei Catch-all-Routen / vorhandenen Pfaden. Projekte können ergänzen.
     "traffic_bot_pfade": [
-        "/wp-login", "/wp-admin", "/wp-content", "/wp-includes",
-        "/xmlrpc.php", "/.env", "/.git", "/.aws", "/.ssh", "/.vscode",
-        "/phpmyadmin", "/phpunit", "/vendor/", "/cgi-bin/", "/shell",
-        "/administrator/", "/solr/", "/actuator", "/manager/html",
-        "/owa/", "/autodiscover", "/boaform/", "/hudson",
+        "/wp-login",
+        "/wp-admin",
+        "/wp-content",
+        "/wp-includes",
+        "/xmlrpc.php",
+        "/.env",
+        "/.git",
+        "/.aws",
+        "/.ssh",
+        "/.vscode",
+        "/phpmyadmin",
+        "/phpunit",
+        "/vendor/",
+        "/cgi-bin/",
+        "/shell",
+        "/administrator/",
+        "/solr/",
+        "/actuator",
+        "/manager/html",
+        "/owa/",
+        "/autodiscover",
+        "/boaform/",
+        "/hudson",
     ],
     # ----- E-Mail (SMTP) – vom StoreSMTPBackend gelesen --------------------
     "email_host": "",
@@ -369,6 +387,7 @@ def _overrides_anwenden(c):
     """Wendet gespeicherte Laufzeit-Overrides (Einstellungen-Seite) an.
     Importiert store lokal, um Import-Zyklen zu vermeiden."""
     from .store import FARB_KEYS, laden
+
     for key, wert in laden().items():
         if key in FARB_KEYS:
             c["farben"][key] = wert

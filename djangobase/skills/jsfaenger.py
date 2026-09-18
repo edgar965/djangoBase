@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""JsFaenger - werfende Server-Abrufe, die niemand faengt.
+"""JsFaenger - werfende Server-Abrufe, die niemand faengt.
 
 DER BEFUND (3DTools, 16.08.2026)
 ================================
@@ -33,6 +33,7 @@ getrennt: im try, über den Aufrufer gedeckt, offen.
 ANPASSEN: ``DJANGOBASE["skills2_abrufklassen"] = ["Serverabruf", "Api"]`` nennt
 die Klassen, deren Methoden werfen.
 """
+
 import re
 
 from django.conf import settings
@@ -48,14 +49,20 @@ __all__ = ["JsFaenger"]
 class JsFaenger(Werkzeug):
     slug = "jsfaenger"
     titel = "Server-Abrufe ohne try-Block"
-    zweck = ("Findet Aufrufe einer werfenden Abrufklasse (Vorgabe: "
-             "`Serverabruf.json/text/senden`), die weder selbst im try stehen "
-             "noch von einem Aufrufer gefangen werden.")
-    befund = ("3DTools: 16 von 101 Aufrufen ohne Faenger. Zwei davon hingen "
-              "direkt an einer Nutzeraktion (Koerperart wechseln, Pose "
-              "anwenden) - ein Serverfehler blieb dort voellig stumm.")
-    abhilfe = ("try/catch mit sichtbarer Meldung ergänzen. Die Spalte "
-               "„aufrufer\" nennt die Stelle, an der die Kette abreisst.")
+    zweck = (
+        "Findet Aufrufe einer werfenden Abrufklasse (Vorgabe: "
+        "`Serverabruf.json/text/senden`), die weder selbst im try stehen "
+        "noch von einem Aufrufer gefangen werden."
+    )
+    befund = (
+        "3DTools: 16 von 101 Aufrufen ohne Faenger. Zwei davon hingen "
+        "direkt an einer Nutzeraktion (Koerperart wechseln, Pose "
+        "anwenden) - ein Serverfehler blieb dort voellig stumm."
+    )
+    abhilfe = (
+        "try/catch mit sichtbarer Meldung ergänzen. Die Spalte "
+        '„aufrufer" nennt die Stelle, an der die Kette abreisst.'
+    )
     dauer = "1–5 s"
     kriterium = 13
 
@@ -64,15 +71,15 @@ class JsFaenger(Werkzeug):
     METHODEN = ("json", "text", "senden", "formular")
 
     def klassen(self):
-        eigen = (getattr(settings, "DJANGOBASE", {}) or {}).get(
-            "skills2_abrufklassen")
+        eigen = (getattr(settings, "DJANGOBASE", {}) or {}).get("skills2_abrufklassen")
         return tuple(eigen) if eigen else JsFaenger.VORGABE_KLASSEN
 
     #: Drei Faelle in einer Datei: ungefangen (Befund), im try-Block (darf nicht
     #: zaehlen) und ueber den Aufrufer gedeckt (darf auch nicht zaehlen — das
     #: war der Zustand, in dem 18 von 20 Zeilen Fehlalarm waren).
     anlassfall = Anlassfall(
-        {"abruf.js": '''export async function ohneNetz(url) {
+        {
+            "abruf.js": """export async function ohneNetz(url) {
   const d = await Serverabruf.json(url);
   return d.wert;
 }
@@ -94,24 +101,28 @@ async function _helfer(url) {
 export async function ruftDenHelfer(url) {
   try { return await _helfer(url); } catch (e) { return null; }
 }
-'''},
-        mindestens=1, hoechstens=1,
+"""
+        },
+        mindestens=1,
+        hoechstens=1,
         erwartet_in="ohneNetz",
         warum="Ein werfender Serverabruf ohne try lässt die Seite still "
-              "stehenbleiben. Die zwei anderen Fälle sind die Ausnahmen: "
-              "eigener try-Block und ein Aufrufer, der fängt.")
+        "stehenbleiben. Die zwei anderen Fälle sind die Ausnahmen: "
+        "eigener try-Block und ein Aufrufer, der fängt.",
+    )
 
     def laufen(self):
         klassen = self.klassen()
-        muster = re.compile(r"\b(?:%s)\.(?:%s)\s*\("
-                            % ("|".join(re.escape(k) for k in klassen),
-                               "|".join(JsFaenger.METHODEN)))
+        muster = re.compile(
+            r"\b(?:%s)\.(?:%s)\s*\(" % ("|".join(re.escape(k) for k in klassen), "|".join(JsFaenger.METHODEN))
+        )
         # Die Abrufklasse selbst SOLL werfen.
         eigene = tuple("%s.js" % k.lower() for k in klassen)
-        quellen = [(kurz, pfad.read_text(encoding="utf-8",
-                                         errors="replace").split("\n"))
-                   for pfad, kurz in self._quellen()
-                   if kurz.rsplit("/", 1)[-1] not in eigene]
+        quellen = [
+            (kurz, pfad.read_text(encoding="utf-8", errors="replace").split("\n"))
+            for pfad, kurz in self._quellen()
+            if kurz.rsplit("/", 1)[-1] not in eigene
+        ]
         kette = Aufrufkette(quellen, tuple("%s." % k for k in klassen))
         offen, gefangen, ueber_aufrufer = [], 0, 0
         for kurz, zeilen in quellen:
@@ -130,15 +141,15 @@ export async function ruftDenHelfer(url) {
                 else:
                     offen.append(stelle.als_zeile(urteil))
         return Ergebnis(
-            ["ort", "text", "aufrufer"], offen,
+            ["ort", "text", "aufrufer"],
+            offen,
             zusammenfassung="%d Aufrufe, %d in einem try-Block, %d über den "
-                            "Aufrufer gedeckt, %d offen"
-                            % (gefangen + ueber_aufrufer + len(offen), gefangen,
-                               ueber_aufrufer, len(offen)),
+            "Aufrufer gedeckt, %d offen"
+            % (gefangen + ueber_aufrufer + len(offen), gefangen, ueber_aufrufer, len(offen)),
             hinweis="Die Aufrufkette wird bis zu %d Ebenen verfolgt und nur "
-                    "dort, wo der Name sichtbar ist (Import oder Sammelstelle). "
-                    "Was übrig bleibt, nennt die Stelle, an der sie abreißt."
-                    % Aufrufkette.TIEFE)
+            "dort, wo der Name sichtbar ist (Import oder Sammelstelle). "
+            "Was übrig bleibt, nennt die Stelle, an der sie abreißt." % Aufrufkette.TIEFE,
+        )
 
     #: Ausschlussliste und Suche stehen seit dem 17.08.2026 in
     #: ``Frontendquellen`` — vorher hatte sie jedes JS-Werkzeug einzeln,

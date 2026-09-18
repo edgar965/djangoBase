@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Der Vermerk, der eine Stelle von einer Lehre ausnimmt.
+"""Der Vermerk, der eine Stelle von einer Lehre ausnimmt.
 
 WAS ER LEISTET
 ==============
@@ -25,14 +25,15 @@ jeden anderen mit einem Fehler ab).
 Zwei Werkzeuge, die dieselbe Lehre durchsetzen, muessen dieselbe
 Ausnahme anerkennen — sonst ist die Schreibweise nichts wert.
 """
+
 import ast
 
 
 class Vermerk:
-    u"""Liest die Vermerke einer Quelldatei und beantwortet Fragen dazu."""
+    """Liest die Vermerke einer Quelldatei und beantwortet Fragen dazu."""
 
     #: Die Einleitung, an der ein Vermerk erkannt wird.
-    TEXT = 'Lehre gilt hier nicht'
+    TEXT = "Lehre gilt hier nicht"
 
     #: So viele Zeichen hinter der Einleitung darf der Name der Lehre
     #: stehen. Eine belegte Ausnahme braucht Platz fuer ihre Begruendung.
@@ -44,7 +45,7 @@ class Vermerk:
         self.kopfzeilen = self._kopfende()
 
     def gilt_nicht(self, zeile, lehre):
-        u"""Nimmt ein Vermerk diese Zeile von DIESER Lehre aus?
+        """Nimmt ein Vermerk diese Zeile von DIESER Lehre aus?
 
         DOCSTRINGS ZAEHLEN MIT — UND DAS BLEIBT SO (geprueft 31.08.2026):
         CodeRabbit hat vorgeschlagen, nur noch Python-Kommentar-Tokens zu
@@ -60,10 +61,10 @@ class Vermerk:
         Dateikopf). Beides ist durch Prueffaelle abgedeckt.
         """
         for von, bis in self._bereiche(zeile):
-            block = '\n'.join(self.zeilen[von:bis])
+            block = "\n".join(self.zeilen[von:bis])
             for absatz in block.split(self.TEXT)[1:]:
                 # Der Name der Lehre steht im selben oder im naechsten Satz.
-                if lehre in absatz[:self.REICHWEITE]:
+                if lehre in absatz[: self.REICHWEITE]:
                     return True
             if lehre in block and self.TEXT in block:
                 # Auch die Schreibweise „Lehre gilt hier nicht" VOR dem
@@ -74,7 +75,7 @@ class Vermerk:
     # ── intern ──────────────────────────────────────────────────
 
     def _bereiche(self, zeile):
-        u"""Erst die umgebende Funktion, dann der Dateikopf."""
+        """Erst die umgebende Funktion, dann der Dateikopf."""
         for von, bis in self.funktionen:
             if von <= zeile <= bis:
                 yield von - 1, bis
@@ -82,7 +83,7 @@ class Vermerk:
 
     @staticmethod
     def _funktionen(quelle):
-        u"""(erste, letzte) Zeile jeder Funktion — auch der verschachtelten."""
+        """(erste, letzte) Zeile jeder Funktion — auch der verschachtelten."""
         try:
             baum = ast.parse(quelle)
         except (SyntaxError, ValueError):
@@ -90,13 +91,13 @@ class Vermerk:
         raus = []
         for knoten in ast.walk(baum):
             if isinstance(knoten, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                ende = getattr(knoten, 'end_lineno', None) or knoten.lineno
+                ende = getattr(knoten, "end_lineno", None) or knoten.lineno
                 raus.append((knoten.lineno, ende))
         return raus
 
     def _kopfende(self):
-        u"""Die letzte Zeile vor der ersten ``def``/``class``."""
+        """Die letzte Zeile vor der ersten ``def``/``class``."""
         for nr, zeile in enumerate(self.zeilen):
-            if zeile.startswith(('def ', 'class ', 'async def ')):
+            if zeile.startswith(("def ", "class ", "async def ")):
                 return nr
         return len(self.zeilen)

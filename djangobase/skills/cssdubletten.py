@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Cssdubletten — dieselbe CSS-Regel in mehreren Vorlagen.
+"""Cssdubletten — dieselbe CSS-Regel in mehreren Vorlagen.
 
 WARUM NICHT ``doppelcode``
 ==========================
@@ -41,6 +41,7 @@ Deshalb wird jetzt klammerbewusst zerlegt: Ein ``@keyframes``-Block ist
 EINE Regel (Name + ganzer Rumpf), und in einem ``@media``-Block traegt
 jede Regel ihre Bedingung im Schluessel.
 """
+
 import re
 from collections import defaultdict
 
@@ -55,33 +56,38 @@ class Cssdubletten(BefundWerkzeug):
 
     slug = "css-dubletten"
     titel = "CSS: dieselbe Regel in mehreren Vorlagen"
-    zweck = ("Vergleicht vollstaendige Regeln (Selektor + Rumpf) statt "
-             "Zeilenfenster. Was in mehreren Vorlagen wortgleich steht, "
-             "gehoert in eine gemeinsame Stildatei.")
-    befund = ("`doppelcode` meldet CSS als Bruchstuecke — 20 doppelte Zeilen "
-              "ergeben dort 15 Eintraege, aus denen niemand ablesen kann, "
-              "WELCHE Regel sich lohnt.")
-    abhilfe = ("Die Regel in eine Stildatei ziehen und die Vorlagen darauf "
-               "verweisen lassen.")
+    zweck = (
+        "Vergleicht vollstaendige Regeln (Selektor + Rumpf) statt "
+        "Zeilenfenster. Was in mehreren Vorlagen wortgleich steht, "
+        "gehoert in eine gemeinsame Stildatei."
+    )
+    befund = (
+        "`doppelcode` meldet CSS als Bruchstuecke — 20 doppelte Zeilen "
+        "ergeben dort 15 Eintraege, aus denen niemand ablesen kann, "
+        "WELCHE Regel sich lohnt."
+    )
+    abhilfe = "Die Regel in eine Stildatei ziehen und die Vorlagen darauf verweisen lassen."
     dauer = "unter 1 s"
     kriterium = 6
     eingabe = ("ab", "Ab wie vielen Dateien melden?", "3")
 
     anlassfall = Anlassfall(
-        {"templates/a.html": (
-            "<style>/* Vermerk */ .karte{padding:8px;color:red}\n"
-            ".nur-hier{margin:0}</style>\n"),
-         "templates/b.html": (
-            "<style>/* Vermerk */ .karte { padding: 8px; color: red; }"
-            "</style>\n"),
-         "templates/c.html": (
-            "<style>.karte{padding:8px;color:red}</style>\n")},
-        mindestens=1, hoechstens=1, erwartet_in=".karte",
+        {
+            "templates/a.html": (
+                "<style>/* Vermerk */ .karte{padding:8px;color:red}\n.nur-hier{margin:0}</style>\n"
+            ),
+            "templates/b.html": ("<style>/* Vermerk */ .karte { padding: 8px; color: red; }</style>\n"),
+            "templates/c.html": ("<style>.karte{padding:8px;color:red}</style>\n"),
+        },
+        mindestens=1,
+        hoechstens=1,
+        erwartet_in=".karte",
         warum="`.karte` steht in drei Vorlagen wortgleich — einmal mit "
-              "Leerzeichen, einmal ohne. `.nur-hier` und der Kommentar "
-              "`/* Vermerk */` stehen daneben: Der Kommentar wanderte im "
-              "ersten Wurf in den Selektor und wurde selbst als Dublette "
-              "gemeldet.")
+        "Leerzeichen, einmal ohne. `.nur-hier` und der Kommentar "
+        "`/* Vermerk */` stehen daneben: Der Kommentar wanderte im "
+        "ersten Wurf in den Selektor und wurde selbst als Dublette "
+        "gemeldet.",
+    )
 
     #: Der ``<style>``-Block einer Vorlage.
     STILBLOCK = re.compile(r"<style[^>]*>(.*?)</style>", re.S | re.I)
@@ -126,7 +132,7 @@ class Cssdubletten(BefundWerkzeug):
 
     @classmethod
     def _am_stueck(cls, kopf):
-        u"""Ist diese At-Regel EINE Regel — auch mit Herstellervorsatz?
+        """Ist diese At-Regel EINE Regel — auch mit Herstellervorsatz?
 
         MIT VORSATZ (Befund CodeRabbit, 31.08.2026): ``@-webkit-keyframes``
         stand nicht in der Liste. Seine ``from``/``to``-Schritte wurden dann
@@ -166,9 +172,9 @@ class Cssdubletten(BefundWerkzeug):
             ende = cls._blockende(css, anfang)
             if anfang < 0 or ende < 0:
                 continue
-            rest.append(css[stelle:treffer.start()])
+            rest.append(css[stelle : treffer.start()])
             kopf = " ".join(treffer.group(0).split())
-            rumpf = css[anfang + 1:ende]
+            rumpf = css[anfang + 1 : ende]
             if cls._am_stueck(kopf):
                 # Als EINE Regel: der Name gehoert zum Rumpf.
                 raus.append((kopf, " ".join(rumpf.split())))
@@ -193,7 +199,7 @@ class Cssdubletten(BefundWerkzeug):
         if anfang < 0:
             return -1
         tiefe = 0
-        zeichenkette = None          # das offene Anfuehrungszeichen oder None
+        zeichenkette = None  # das offene Anfuehrungszeichen oder None
         i = anfang
         while i < len(css):
             z = css[i]
@@ -248,15 +254,19 @@ class Cssdubletten(BefundWerkzeug):
         mehrfach = {k: v for k, v in vorkommen.items() if len(v) >= grenze}
         gespart = sum(umfang[k] * (len(v) - 1) for k, v in mehrfach.items())
         befunde = []
-        for schluessel, orte in sorted(mehrfach.items(),
-                                       key=lambda p: (-len(p[1]), p[0])):
-            befunde.append(Befund(
-                sorted(orte)[0],
-                "%dx: %s" % (len(orte), schluessel[:70]),
-                "Steht wortgleich in: %s" % ", ".join(sorted(orte)[:4]),
-                Befund.WARNUNG if len(orte) >= 5 else Befund.HINWEIS))
-        kopf = ["%d Dateien gelesen" % dateien,
-                "%d verschiedene Regeln" % len(vorkommen),
-                "%d davon in mindestens %d Dateien" % (len(mehrfach), grenze),
-                "etwa %d Zeilen zu sparen" % gespart]
+        for schluessel, orte in sorted(mehrfach.items(), key=lambda p: (-len(p[1]), p[0])):
+            befunde.append(
+                Befund(
+                    sorted(orte)[0],
+                    "%dx: %s" % (len(orte), schluessel[:70]),
+                    "Steht wortgleich in: %s" % ", ".join(sorted(orte)[:4]),
+                    Befund.WARNUNG if len(orte) >= 5 else Befund.HINWEIS,
+                )
+            )
+        kopf = [
+            "%d Dateien gelesen" % dateien,
+            "%d verschiedene Regeln" % len(vorkommen),
+            "%d davon in mindestens %d Dateien" % (len(mehrfach), grenze),
+            "etwa %d Zeilen zu sparen" % gespart,
+        ]
         return Befundsatz(self.titel, kopf, befunde)

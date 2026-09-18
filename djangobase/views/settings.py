@@ -11,6 +11,7 @@ Profile: mehrere benannte Einstellungs-Saetze (z. B. "djangoBase Standard" und
 "CleanOrga"); genau eines ist aktiv und wird von conf() angewendet. Persistiert
 als JSON via store.py — keine DB/Migration.
 """
+
 from django.contrib import messages
 from django.shortcuts import redirect, render
 from django.template import TemplateDoesNotExist
@@ -28,7 +29,7 @@ TAB_GRUPPEN = ["website", "djangobase", "freigabe", "email"]
 
 
 def _zeilen_text(key, wert):
-    u"""Wert eines „zeilen"-Feldes als Text — eine Angabe je Zeile.
+    """Wert eines „zeilen"-Feldes als Text — eine Angabe je Zeile.
 
     Die Listen in ``settings.py`` sind Dictionaries; im Formular müssen sie in
     dem Format stehen, das beim Speichern wieder gelesen wird. Sonst macht ein
@@ -39,9 +40,11 @@ def _zeilen_text(key, wert):
         return wert
     if key == "test_bereiche":
         from ..testbereiche import Bereiche
+
         return "\n".join(Bereiche.als_zeilen(wert))
     if key == "test_kategorien":
         from ..testarten import Arten
+
         return "\n".join(Arten.als_zeilen(wert))
     return "\n".join(str(x) for x in (wert or []))
 
@@ -110,8 +113,8 @@ def _base_template_pruefen(request, werte):
     if bt and not _template_existiert(bt):
         messages.error(
             request,
-            f"Basis-Template „{bt}“ nicht gefunden — nicht gespeichert. "
-            "(Leer lassen = djangoBase-Standard.)")
+            f"Basis-Template „{bt}“ nicht gefunden — nicht gespeichert. (Leer lassen = djangoBase-Standard.)",
+        )
         return False
     return True
 
@@ -121,21 +124,28 @@ class EinstellungenTabsView(ZugriffMixin, View):
 
     def get(self, request):
         c = conf()
-        tabs = [{
-            "slug": slug,
-            "label": GRUPPEN[slug]["label"],
-            "icon": GRUPPEN[slug]["icon"],
-            "beschreibung": GRUPPEN[slug]["beschreibung"],
-            "felder": _felder_werte(c, slug),
-        } for slug in TAB_GRUPPEN]
-        return render(request, "djangobase/hilfe/einstellungen_tabs.html", {
-            "aktiv": "einstellungen",
-            "tabs": tabs,
-            "theme_modes": c["theme_modes"],
-            "layouts": _layout_optionen(),
-            "profile": store.profile_liste(),
-            "base_template_aktiv": c["base_template"],
-        })
+        tabs = [
+            {
+                "slug": slug,
+                "label": GRUPPEN[slug]["label"],
+                "icon": GRUPPEN[slug]["icon"],
+                "beschreibung": GRUPPEN[slug]["beschreibung"],
+                "felder": _felder_werte(c, slug),
+            }
+            for slug in TAB_GRUPPEN
+        ]
+        return render(
+            request,
+            "djangobase/hilfe/einstellungen_tabs.html",
+            {
+                "aktiv": "einstellungen",
+                "tabs": tabs,
+                "theme_modes": c["theme_modes"],
+                "layouts": _layout_optionen(),
+                "profile": store.profile_liste(),
+                "base_template_aktiv": c["base_template"],
+            },
+        )
 
     def post(self, request):
         aktion = request.POST.get("aktion")
@@ -148,7 +158,8 @@ class EinstellungenTabsView(ZugriffMixin, View):
                         request,
                         f"Profil aktiviert, aber dessen Basis-Template "
                         f"„{c['base_template']}“ existiert hier nicht — es greift der "
-                        "djangoBase-Standard, bis du es korrigierst.")
+                        "djangoBase-Standard, bis du es korrigierst.",
+                    )
                 else:
                     messages.success(request, "Profil gewechselt.")
             else:
@@ -191,6 +202,7 @@ class EinstellungenTabsView(ZugriffMixin, View):
 
 class EinstellungenView(ZugriffMixin, View):
     """Einzelseite je Gruppe (Rueckwaerts-Kompatibilitaet)."""
+
     gruppe = "djangobase"  # via .as_view(gruppe="website") ueberschrieben
 
     def _aktiv(self):
@@ -200,18 +212,22 @@ class EinstellungenView(ZugriffMixin, View):
         c = conf()
         g = GRUPPEN[self.gruppe]
         keys = {k for k, _t, _l in g["felder"]}
-        return render(request, "djangobase/hilfe/einstellungen.html", {
-            "aktiv": self._aktiv(),
-            "gruppe": self.gruppe,
-            "gruppe_label": g["label"],
-            "gruppe_titel": g["titel"],
-            "gruppe_icon": g["icon"],
-            "gruppe_beschreibung": g["beschreibung"],
-            "felder": _felder_werte(c, self.gruppe),
-            "theme_modes": c["theme_modes"],
-            "layouts": _layout_optionen(),
-            "hat_overrides": any(k in store.laden() for k in keys),
-        })
+        return render(
+            request,
+            "djangobase/hilfe/einstellungen.html",
+            {
+                "aktiv": self._aktiv(),
+                "gruppe": self.gruppe,
+                "gruppe_label": g["label"],
+                "gruppe_titel": g["titel"],
+                "gruppe_icon": g["icon"],
+                "gruppe_beschreibung": g["beschreibung"],
+                "felder": _felder_werte(c, self.gruppe),
+                "theme_modes": c["theme_modes"],
+                "layouts": _layout_optionen(),
+                "hat_overrides": any(k in store.laden() for k in keys),
+            },
+        )
 
     def post(self, request):
         if request.POST.get("zuruecksetzen"):

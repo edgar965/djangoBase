@@ -23,6 +23,7 @@ Darstellung zugleich trug. Jetzt:
     testlauf.Testlauf           Kommando fahren + Laufzeiten festhalten
     testtabelle.Testtabelle     EINE Tabelle für alle Testcase-Listen
 """
+
 import logging
 import unittest
 
@@ -36,8 +37,8 @@ from ..testbefehle import Testbefehle
 from ..testhistorie import Testhistorie
 from ..testkarten import Karten
 from ..testkategorien import Kategorien
-from ..testpanel import Panel
 from ..testlauf import Testlauf
+from ..testpanel import Panel
 from ..testtabelle import Testtabelle
 from ..testziele import Testziele
 
@@ -52,6 +53,7 @@ def _discover_ids(label):
     """
     try:
         from django.test.runner import DiscoverRunner
+
         suite = DiscoverRunner(verbosity=0).build_suite([label])
     except Exception:  # noqa: BLE001  – Label fehlt/Import-Fehler -> einfach leer
         return []
@@ -63,8 +65,7 @@ def _discover_ids(label):
                 walk(t)
             else:
                 tid = t.id()
-                if "ModuleImportFailure" in tid or "LoadTestsFailure" in tid \
-                        or tid.endswith("_FailedTest"):
+                if "ModuleImportFailure" in tid or "LoadTestsFailure" in tid or tid.endswith("_FailedTest"):
                     continue
                 ids.append(tid)
 
@@ -73,7 +74,7 @@ def _discover_ids(label):
 
 
 def _kurz(test_id):
-    u"""``tests.unit.test_geo.GeoTest.test_distanz`` -> ein LESBARER Satz.
+    """``tests.unit.test_geo.GeoTest.test_distanz`` -> ein LESBARER Satz.
 
         „verbessere meine testcases, so dass es die Gherkin BDD
          Anforderungen erfuellt, z. B. Wer kann es lesen: auch
@@ -89,6 +90,7 @@ def _kurz(test_id):
     schon da.
     """
     from ..testsatz import Testsatz
+
     return Testsatz(test_id).satz()
 
 
@@ -102,7 +104,7 @@ class TestsView(ZugriffMixin, View):
 
     @classmethod
     def _ids_gecacht(cls, label):
-        u"""Test-IDs eines Labels, kurz zwischengespeichert.
+        """Test-IDs eines Labels, kurz zwischengespeichert.
 
         Ohne den Zwischenspeicher lädt JEDER Aufruf von /hilfe/tests/ alle
         Testmodule neu — im Projekt assistant sind das über dreissig Labels.
@@ -111,6 +113,7 @@ class TestsView(ZugriffMixin, View):
         Modulebene gilt für ALLE Anfragen gleichzeitig.
         """
         from django.core.cache import cache
+
         schluessel = "djangobase:testids:%s" % label
         ids = cache.get(schluessel)
         if ids is None:
@@ -123,7 +126,7 @@ class TestsView(ZugriffMixin, View):
 
     @classmethod
     def _befehle_abgeleitet(cls):
-        u"""``test_befehle`` aus dem Dateibestand - wenn das Projekt keine pflegt.
+        """``test_befehle`` aus dem Dateibestand - wenn das Projekt keine pflegt.
 
         VORGABE FUER ALLE (Ansage 17.08.2026: „aktiviere das per default für alle
         in djangoBase!"). Ohne das war die Seite in jedem Konsumenten leer, der
@@ -135,8 +138,9 @@ class TestsView(ZugriffMixin, View):
         Ein Projekt, das ``DJANGOBASE["test_befehle"]`` setzt, behält seine
         Liste — die Vorgabe greift nur, wo nichts steht.
         """
-        from django.core.cache import cache
         from django.conf import settings
+        from django.core.cache import cache
+
         gecacht = cache.get("djangobase:testbefehle")
         if gecacht is not None:
             return gecacht
@@ -144,8 +148,10 @@ class TestsView(ZugriffMixin, View):
             befehle = Testbefehle(settings.BASE_DIR).liste()
         except Exception:  # noqa: BLE001
             # Nicht stumm: Bleibt die Seite leer, soll im Log stehen, warum.
-            log.exception("test_befehle konnten nicht aus dem Dateibestand "
-                          "abgeleitet werden — die Tests-Seite bleibt leer")
+            log.exception(
+                "test_befehle konnten nicht aus dem Dateibestand "
+                "abgeleitet werden — die Tests-Seite bleibt leer"
+            )
             befehle = []
         cache.set("djangobase:testbefehle", befehle, cls.BEFEHLE_FRIST)
         return befehle
@@ -153,7 +159,7 @@ class TestsView(ZugriffMixin, View):
     # ------------------------------------------------------------------ Seite
 
     def post(self, request):
-        u"""Die angehakten Fälle fahren — in EINEM Lauf.
+        """Die angehakten Fälle fahren — in EINEM Lauf.
 
         Kommt von den Knöpfen im Kartenkopf (``tests_auswahl.js``). POST und
         nicht GET: Bei „Alle auswählen" stehen hunderte Kennungen in der
@@ -170,7 +176,8 @@ class TestsView(ZugriffMixin, View):
         discover = c.get("test_discover", []) or kat.discover()
 
         kategorien, bekannte_ids = self._einzeltests(
-            discover, mit_djangobase=bool(c.get("tests_djangobase_sichtbar")))
+            discover, mit_djangobase=bool(c.get("tests_djangobase_sichtbar"))
+        )
         slug = request.GET.get("run")
         # Die Sammel-Labels der Karten („Alle ausführen" im Kartenkopf) VOR dem
         # Lauf bilden — sie sind erlaubte Laufziele. Die Karten selbst entstehen
@@ -178,8 +185,7 @@ class TestsView(ZugriffMixin, View):
         labels = {Karten.label(k.get("tests") or []) for k in kategorien}
         labels.discard("")
         if ids:
-            ergebnis = self._lauf_auswahl(ids, kat, befehle,
-                                          bekannte_ids, labels)
+            ergebnis = self._lauf_auswahl(ids, kat, befehle, bekannte_ids, labels)
         else:
             ergebnis = self._lauf(slug, kat, befehle, bekannte_ids, labels)
 
@@ -192,8 +198,7 @@ class TestsView(ZugriffMixin, View):
         # aenderst??", 17.08.2026). Jetzt: eine Tabellen-Definition
         # (``Testtabelle``), eine Karte (``_testkarte.html``), vier Aufrufe.
         historie = Testhistorie()
-        tabellen = Testtabelle(historie, aktiver_slug=slug or "",
-                               tab=request.GET.get("tab", ""))
+        tabellen = Testtabelle(historie, aktiver_slug=slug or "", tab=request.GET.get("tab", ""))
         karten = Karten(tabellen)
         gruppen = kat.gruppen()
         # NUR DAS SICHTBARE BAUEN (Ansage 18.08.2026 „der aufbau der testseiten
@@ -206,46 +211,49 @@ class TestsView(ZugriffMixin, View):
         panel = bauer.bauen(aktiv)
         if request.GET.get("teil") == "1":
             # Nur das Fragment - ohne Shell, ohne Reiterleiste.
-            return render(request, "djangobase/_testpanel.html",
-                          {"panel": panel})
+            return render(request, "djangobase/_testpanel.html", {"panel": panel})
 
-        return render(request, "djangobase/hilfe/tests.html", {
-            "aktiv": "tests",
-            "befehle": befehle,
-            "alles": kat.alles,
-            "alle_arten": kat.arten,
-            # Fuer die Reiterleiste: Wie viele Reiter „Alle" zusammenfasst.
-            "arten_anzahl": len(kat.arten),
-            "suiten": kat.suiten,
-            "kategorien": kategorien,
-            "ui": ui,
-            # Der Inhalt des AKTIVEN Reiters; die übrigen sind leere Hüllen.
-            "panel": panel,
-            # Die Reiter in ihrer Reihenfolge - dieselbe Quelle, aus der auch
-            # der aktive Name geprüft wird.
-            "tab_namen": bauer.namen(),
-            "ergebnis": ergebnis,
-            # Ziel der Combo-Box „Verschieben" (siehe tests_verschieben.js).
-            "verschieben_url": reverse("djangobase:tests_verschieben"),
-            # Ziel des LIVE-Laufs (tests_strom.js). Steht als json_script im
-            # DOM, damit das Skript eine eigene Datei bleibt.
-            "strom_url": reverse("djangobase:tests_strom"),
-            # Ziel der Nummern-Spalte (tests_nummer.js).
-            "nummer_url": reverse("djangobase:tests_nummer"),
-            # Die vollstaendigen Auswahllisten der Combo-Boxen - EINMAL je
-            # Seite statt in jeder Zeile (siehe tests_combo.js).
-            "combo_kategorie": tabellen.optionen()["kategorie"],
-            "combo_bereich": tabellen.optionen()["bereich"],
-            "aktiver_slug": slug,
-            "aktiver_tab": aktiv,
-            "aktiver_unter": request.GET.get("unter", ""),
-        })
+        return render(
+            request,
+            "djangobase/hilfe/tests.html",
+            {
+                "aktiv": "tests",
+                "befehle": befehle,
+                "alles": kat.alles,
+                "alle_arten": kat.arten,
+                # Fuer die Reiterleiste: Wie viele Reiter „Alle" zusammenfasst.
+                "arten_anzahl": len(kat.arten),
+                "suiten": kat.suiten,
+                "kategorien": kategorien,
+                "ui": ui,
+                # Der Inhalt des AKTIVEN Reiters; die übrigen sind leere Hüllen.
+                "panel": panel,
+                # Die Reiter in ihrer Reihenfolge - dieselbe Quelle, aus der auch
+                # der aktive Name geprüft wird.
+                "tab_namen": bauer.namen(),
+                "ergebnis": ergebnis,
+                # Ziel der Combo-Box „Verschieben" (siehe tests_verschieben.js).
+                "verschieben_url": reverse("djangobase:tests_verschieben"),
+                # Ziel des LIVE-Laufs (tests_strom.js). Steht als json_script im
+                # DOM, damit das Skript eine eigene Datei bleibt.
+                "strom_url": reverse("djangobase:tests_strom"),
+                # Ziel der Nummern-Spalte (tests_nummer.js).
+                "nummer_url": reverse("djangobase:tests_nummer"),
+                # Die vollstaendigen Auswahllisten der Combo-Boxen - EINMAL je
+                # Seite statt in jeder Zeile (siehe tests_combo.js).
+                "combo_kategorie": tabellen.optionen()["kategorie"],
+                "combo_bereich": tabellen.optionen()["bereich"],
+                "aktiver_slug": slug,
+                "aktiver_tab": aktiv,
+                "aktiver_unter": request.GET.get("unter", ""),
+            },
+        )
 
     # ------------------------------------------------------------- Bausteine
 
     @classmethod
     def _einzeltests(cls, discover, mit_djangobase=False):
-        u"""Die Reiter je Typ mit ihren Einzeltests - und alle bekannten IDs.
+        """Die Reiter je Typ mit ihren Einzeltests - und alle bekannten IDs.
 
         ``mit_djangobase`` schaltet die Fälle zu, die djangoBase SELBST
         mitbringt (Grundtests, Endpunktprobe). Sie laufen im Wirt-Projekt mit,
@@ -254,6 +262,7 @@ class TestsView(ZugriffMixin, View):
         (Ansage 17.08.2026).
         """
         from ..testverschieben import Verschieber
+
         kategorien, bekannte = [], set()
         for d in discover:
             tests = []
@@ -264,13 +273,12 @@ class TestsView(ZugriffMixin, View):
                     tests.append({"id": tid, "kurz": _kurz(tid)})
                     bekannte.add(tid)
             tests.sort(key=lambda t: t["id"])
-            kategorien.append({"typ": d.get("typ", "Tests"), "tests": tests,
-                               "anzahl": len(tests)})
+            kategorien.append({"typ": d.get("typ", "Tests"), "tests": tests, "anzahl": len(tests)})
         return kategorien, bekannte
 
     @staticmethod
     def _lauf_auswahl(ids, kat, befehle, bekannte_ids, labels=()):
-        u"""Mehrere angehakte Einträge in EINEM ``manage.py test``-Aufruf.
+        """Mehrere angehakte Einträge in EINEM ``manage.py test``-Aufruf.
 
         Geprüft wird in :class:`~.testziele.Testziele` — dieselbe Stelle, die
         auch der Live-Lauf (``/hilfe/tests/strom/``) benutzt. Zwei Prüfungen für
@@ -281,16 +289,22 @@ class TestsView(ZugriffMixin, View):
         if not cmd:
             # Dictionary gewollt: dasselbe Format wie ein echter Lauf, damit die
             # Vorlage nichts Zusätzliches können muss.
-            return {"name": "Auswahl", "cmd": "", "rc": -1, "ok": False,
-                    "out": "", "dauer": 0.0, "dauer_text": "0,00 s", "dauern": 0,
-                    "err": "Keine gültige Auswahl — %d Einträge verworfen."
-                           % verworfen}
-        return Testlauf().fahren(cmd, Testziele.name(ziele, verworfen),
-                                 Kategorien.SAMMEL_FRIST)
+            return {
+                "name": "Auswahl",
+                "cmd": "",
+                "rc": -1,
+                "ok": False,
+                "out": "",
+                "dauer": 0.0,
+                "dauer_text": "0,00 s",
+                "dauern": 0,
+                "err": "Keine gültige Auswahl — %d Einträge verworfen." % verworfen,
+            }
+        return Testlauf().fahren(cmd, Testziele.name(ziele, verworfen), Kategorien.SAMMEL_FRIST)
 
     @staticmethod
     def _lauf(slug, kat, befehle, bekannte_ids, labels=()):
-        u"""Den angeforderten Lauf fahren - oder None.
+        """Den angeforderten Lauf fahren - oder None.
 
         NUR konfigurierte Befehle, ENTDECKTE Test-IDs und die Sammel-Labels der
         Karten; ein Label aus der Query wird nie ausgefuehrt. Die abgeleiteten
@@ -304,11 +318,9 @@ class TestsView(ZugriffMixin, View):
         kandidaten = list(befehle) + kat.sammelbefehle()
         b = next((x for x in kandidaten if x.get("slug") == slug), None)
         if b:
-            return laeufer.fahren(b["cmd"], b.get("name", slug), b.get("frist"),
-                                  slug=slug)
+            return laeufer.fahren(b["cmd"], b.get("name", slug), b.get("frist"), slug=slug)
         if slug in bekannte_ids or slug in (labels or ()):
-            cmd = [Kategorien.python(befehle), "manage.py", "test", slug,
-                   "--noinput", "-v", "2"]
+            cmd = [Kategorien.python(befehle), "manage.py", "test", slug, "--noinput", "-v", "2"]
             # Ein Karten-Label faehrt viele Faelle - es braucht die lange Frist.
             frist = None if slug in bekannte_ids else Kategorien.SAMMEL_FRIST
             return laeufer.fahren(cmd, _kurz(slug), frist)

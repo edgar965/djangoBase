@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Frontendquellen - welche JS- und HTML-Dateien ein Werkzeug ansehen darf.
+"""Frontendquellen - welche JS- und HTML-Dateien ein Werkzeug ansehen darf.
 
 WARUM ES DIESE KLASSE GIBT (17.08.2026)
 =======================================
@@ -46,6 +46,7 @@ Ohne die Messung meldete ``protokoll`` in 3DTools 40 ``console.*``-Stellen aus
 dem Vite-Buendel - Code, den niemand geschrieben hat, und dessen Quelle
 (``main.js``) daneben nochmal.
 """
+
 import re
 from pathlib import Path
 
@@ -105,7 +106,7 @@ class Frontendquellen:
 
     @classmethod
     def ausgabe_gewollt(cls, kurz, zeilen):
-        u"""Darf diese Datei in die Konsole schreiben, ohne dass es ein Befund ist?
+        """Darf diese Datei in die Konsole schreiben, ohne dass es ein Befund ist?
 
         DREI WEGE, und der dritte ist der wichtige: **``dauerhaft gewollt`` im
         Dateikopf** nimmt die ganze Datei aus. Damit steht die Begründung DORT,
@@ -121,17 +122,16 @@ class Frontendquellen:
             return True
         if cls.TESTMUSTER.search(kurz):
             return True
-        return "dauerhaft gewollt" in "\n".join(zeilen[:cls.KOPFZEILEN])
+        return "dauerhaft gewollt" in "\n".join(zeilen[: cls.KOPFZEILEN])
 
     def paare(self, *endungen):
         """[(Pfad, kurzer Pfad)] - kurzer Pfad relativ zur Wurzel, mit ``/``."""
-        return [(p, p.relative_to(self.wurzel).as_posix())
-                for p in self.pfade(*endungen)]
+        return [(p, p.relative_to(self.wurzel).as_posix()) for p in self.pfade(*endungen)]
 
     def pfade(self, *endungen):
         """Nur die Pfade, sortiert. Vorgabe: ``.js``."""
         aus = []
-        for endung in (endungen or (".js",)):
+        for endung in endungen or (".js",):
             for pfad in sorted(self.wurzel.rglob("*" + endung)):
                 if self._ueberspringen(pfad):
                     continue
@@ -143,8 +143,7 @@ class Frontendquellen:
         aus = []
         for pfad, kurz in self.paare(*endungen):
             try:
-                aus.append((kurz, pfad.read_text(encoding="utf-8",
-                                                 errors="replace").split("\n")))
+                aus.append((kurz, pfad.read_text(encoding="utf-8", errors="replace").split("\n")))
             except OSError:
                 continue
         return aus
@@ -159,8 +158,7 @@ class Frontendquellen:
         # In shortlongx waren 21 von 63 „Waisen" genau das (18.08.2026).
         if self.gitfilter is not None and not self.gitfilter.erlaubt(pfad):
             return True
-        if Pfadteile.trifft(pfad, self.wurzel,
-                            Frontendquellen.NICHT_IM_PFAD):
+        if Pfadteile.trifft(pfad, self.wurzel, Frontendquellen.NICHT_IM_PFAD):
             return True
         if ".min." in pfad.name:
             return True

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Fixer und Lehren nennen Nummern, die es in der Tabelle wirklich gibt.
+"""Fixer und Lehren nennen Nummern, die es in der Tabelle wirklich gibt.
 
 DIE ANSAGE (Edgar, 26.08.2026)
 ==============================
@@ -23,6 +23,7 @@ distinct``, ``kdtree-workers``, ``regressionsnetz-vorher`` und die anderen.
 Das steht jetzt auf der Seite („prüft kein Werkzeug"), statt dass man es
 vermuten muss.
 """
+
 from djangobase.skills import fixer, werkzeuge
 from djangobase.skills.lehren_review import LEHREN
 from djangobase.skills.rangliste import rangliste
@@ -31,96 +32,89 @@ from ..base import BasisTest
 
 
 def _raenge():
-    u"""``{slug: rang}`` — so, wie die Tabelle sie zeigt."""
+    """``{slug: rang}`` — so, wie die Tabelle sie zeigt."""
     aus = {}
     for abschnitt in rangliste().abschnitte(list(werkzeuge())):
-        for rang, w in abschnitt['eintraege']:
+        for rang, w in abschnitt["eintraege"]:
             aus[w.slug] = rang
     return aus
 
 
 class JederFixerNenntSeinePruefung(BasisTest):
-
     def test_jeder_nennt_ein_werkzeug(self):
-        ohne = [f.slug for f in fixer() if not getattr(f, 'behebt', '')]
-        self.assertEqual(ohne, [],
-                         'Diese Fixer sagen nicht, welchen Befund sie '
-                         'beheben: %s' % ohne)
+        ohne = [f.slug for f in fixer() if not getattr(f, "behebt", "")]
+        self.assertEqual(ohne, [], "Diese Fixer sagen nicht, welchen Befund sie beheben: %s" % ohne)
 
     def test_das_genannte_werkzeug_gibt_es(self):
         da = {w.slug for w in werkzeuge()}
-        falsch = [(f.slug, f.behebt) for f in fixer()
-                  if getattr(f, 'behebt', '') and f.behebt not in da]
-        self.assertEqual(falsch, [],
-                         'Diese Fixer zeigen auf ein Werkzeug, das es nicht '
-                         'gibt: %s' % falsch)
+        falsch = [(f.slug, f.behebt) for f in fixer() if getattr(f, "behebt", "") and f.behebt not in da]
+        self.assertEqual(falsch, [], "Diese Fixer zeigen auf ein Werkzeug, das es nicht gibt: %s" % falsch)
 
     def test_die_nummer_stimmt_mit_der_tabelle(self):
         raenge = _raenge()
         for f in fixer():
             with self.subTest(fixer=f.slug):
                 p = f.nummer()
-                self.assertIsNotNone(p, 'keine Nummer aufloesbar')
-                self.assertEqual(p['nr'], raenge[f.behebt])
+                self.assertIsNotNone(p, "keine Nummer aufloesbar")
+                self.assertEqual(p["nr"], raenge[f.behebt])
 
     def test_ohne_zuordnung_gibt_es_keine_nummer(self):
-        u"""Lieber nichts als eine erfundene Zahl."""
+        """Lieber nichts als eine erfundene Zahl."""
+
         class Leer(type(fixer()[0])):
-            behebt = ''
+            behebt = ""
+
         self.assertIsNone(Leer().nummer())
 
     def test_ein_unbekanntes_werkzeug_ergibt_keine_nummer(self):
         class Falsch(type(fixer()[0])):
-            behebt = 'gibt-es-nicht'
+            behebt = "gibt-es-nicht"
+
         self.assertIsNone(Falsch().nummer())
 
 
 class DieLehrenNennenIhrePruefung(BasisTest):
-
     def test_jedes_genannte_werkzeug_gibt_es(self):
         da = {w.slug for w in werkzeuge()}
-        falsch = [(l.slug, s) for l in LEHREN
-                  for s in l.werkzeuge if s not in da]
-        self.assertEqual(falsch, [],
-                         'Diese Lehren zeigen auf Werkzeuge, die es nicht '
-                         'gibt: %s' % falsch)
+        falsch = [(lehre.slug, s) for lehre in LEHREN for s in lehre.werkzeuge if s not in da]
+        self.assertEqual(falsch, [], "Diese Lehren zeigen auf Werkzeuge, die es nicht gibt: %s" % falsch)
 
     def test_die_nummern_stimmen_mit_der_tabelle(self):
         raenge = _raenge()
-        for l in LEHREN:
-            if not l.werkzeuge:
+        for lehre in LEHREN:
+            if not lehre.werkzeuge:
                 continue
-            with self.subTest(lehre=l.slug):
-                self.assertEqual([nr for nr, _t in l.nummern()],
-                                 [raenge[s] for s in l.werkzeuge])
+            with self.subTest(lehre=lehre.slug):
+                self.assertEqual([nr for nr, _t in lehre.nummern()], [raenge[s] for s in lehre.werkzeuge])
 
     def test_ohne_werkzeug_kommt_eine_leere_liste(self):
-        u"""Kein Werkzeug ist eine AUSSAGE, kein Fehler — die Seite schreibt
+        """Kein Werkzeug ist eine AUSSAGE, kein Fehler — die Seite schreibt
         dann „prüft kein Werkzeug" hin."""
-        ohne = [l for l in LEHREN if not l.werkzeuge]
-        self.assertTrue(ohne, 'Wenn jede Lehre ein Werkzeug hat, ist dieser '
-                              'Test ueberfluessig — dann bitte löschen.')
-        for l in ohne:
-            with self.subTest(lehre=l.slug):
-                self.assertEqual(l.nummern(), [])
+        ohne = [lehre for lehre in LEHREN if not lehre.werkzeuge]
+        self.assertTrue(
+            ohne, "Wenn jede Lehre ein Werkzeug hat, ist dieser Test ueberfluessig — dann bitte löschen."
+        )
+        for lehre in ohne:
+            with self.subTest(lehre=lehre.slug):
+                self.assertEqual(lehre.nummern(), [])
 
     def test_mindestens_die_haelfte_ist_gedeckt(self):
-        u"""Ein Deckel gegen Verfall: Heute haben 12 von 22 ein Werkzeug.
+        """Ein Deckel gegen Verfall: Heute haben 12 von 22 ein Werkzeug.
 
         Fällt das unter die Haelfte, ist entweder eine Zuordnung verloren
         gegangen oder es sind Regeln dazugekommen, die niemand prüft.
         """
-        mit = sum(1 for l in LEHREN if l.werkzeuge)
+        mit = sum(1 for lehre in LEHREN if lehre.werkzeuge)
         self.assertGreaterEqual(
-            mit * 2, len(LEHREN),
-            'Nur %d von %d Lehren haben eine Prüfung.' % (mit, len(LEHREN)))
+            mit * 2, len(LEHREN), "Nur %d von %d Lehren haben eine Prüfung." % (mit, len(LEHREN))
+        )
 
 
 class KeineKriteriumsNummernMehrAufDenKarten(BasisTest):
-    u"""Der Rückfall, gegen den diese Datei geschrieben ist."""
+    """Der Rückfall, gegen den diese Datei geschrieben ist."""
 
     def test_die_fixer_karte_zeigt_kein_kriterium(self):
-        u"""OHNE KOMMENTARE GESUCHT (26.08.2026)
+        """OHNE KOMMENTARE GESUCHT (26.08.2026)
 
         Der erste Wurf fiel durch — an seiner EIGENEN Erklärung: Im
         ``{% comment %}``-Block über der Zeile steht der alte Ausdruck
@@ -136,10 +130,12 @@ class KeineKriteriumsNummernMehrAufDenKarten(BasisTest):
         from django.template.loader import get_template
 
         from djangobase.tests.konform.test_statik import ohne_kommentare
+
         markup = ohne_kommentare(
-            Path(get_template('djangobase/hilfe/skills.html').origin.name
-                 ).read_text(encoding='utf-8'))
+            Path(get_template("djangobase/hilfe/skills.html").origin.name).read_text(encoding="utf-8")
+        )
         self.assertNotIn(
-            '· Kr. {{ f.kriterium }}', markup,
-            'Die Fixer-Karte zeigt wieder eine Kriteriums-Nummer — die steht '
-            'in der Tabelle nirgends.')
+            "· Kr. {{ f.kriterium }}",
+            markup,
+            "Die Fixer-Karte zeigt wieder eine Kriteriums-Nummer — die steht in der Tabelle nirgends.",
+        )

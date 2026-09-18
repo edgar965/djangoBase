@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Hilfe -> KI-Modelle: welches Modell taugt als Sparringspartner?
+"""Hilfe -> KI-Modelle: welches Modell taugt als Sparringspartner?
 
 Die Seite zeigt DREI Tabellen (Ansage Edgar, 11.08.2026):
 
@@ -26,6 +26,7 @@ stand in der GEMESSENEN Bestenliste, fehlte aber im Katalog darunter - dieselbe
 Seite zeigte das Modell einmal mit Note und einmal gar nicht. Wer ein Modell
 testet, trägt seinen Anbieter hier nach.
 """
+
 import logging
 from pathlib import Path
 
@@ -41,8 +42,19 @@ logger = logging.getLogger(__name__)
 #: nicht nennt - hier ``stealth/ox-alpha``. Ohne den Eintrag stuende das Modell
 #: mit Note in der Bestenliste und fehlte im Katalog darunter, genau wie Kimi K3
 #: am 11.08.2026.
-ANBIETER = ("qwen", "nvidia", "gemini", "gemma", "llama", "deepseek",
-            "openai", "anthropic", "mistral", "moonshot", "stealth")
+ANBIETER = (
+    "qwen",
+    "nvidia",
+    "gemini",
+    "gemma",
+    "llama",
+    "deepseek",
+    "openai",
+    "anthropic",
+    "mistral",
+    "moonshot",
+    "stealth",
+)
 
 
 class KiModelleView(View):
@@ -54,7 +66,7 @@ class KiModelleView(View):
         return (getattr(settings, "DJANGOBASE", {}) or {}).get(name, vorgabe)
 
     def _cache_verzeichnis(self):
-        u"""Wohin der Katalog zwischengespeichert wird.
+        """Wohin der Katalog zwischengespeichert wird.
 
         ``BASE_DIR`` statt einer festen Projektwurzel: In shortlongx stand hier
         ``PROJEKT_WURZEL / "output" / "KI_Modelle"`` - ein Pfad, den es in
@@ -66,13 +78,12 @@ class KiModelleView(View):
         return Path(str(getattr(settings, "BASE_DIR", "."))) / "output" / "KI_Modelle"
 
     def get(self, request):
-        from ..ki import BEFUNDE, Bestenliste, GB_JE_MRD, ModellKatalog
+        from ..ki import BEFUNDE, GB_JE_MRD, Bestenliste, ModellKatalog
 
         katalog = ModellKatalog(cache_verzeichnis=self._cache_verzeichnis())
         frei, bezahlt, lokal, beste = [], [], [], []
         try:
-            frei, bezahlt = katalog.tabellen(
-                anbieter=tuple(self._konf("ki_anbieter", ANBIETER)))
+            frei, bezahlt = katalog.tabellen(anbieter=tuple(self._konf("ki_anbieter", ANBIETER)))
             # EINMAL holen und diese Liste weiterreichen. Seit dem 30.08.2026
             # merkt der Katalog sie sich selbst (``ModellKatalog.lokal``) - bis
             # dahin baute jeder Aufruf frische Wörterbücher, und die Messwerte
@@ -89,20 +100,28 @@ class KiModelleView(View):
             for zeile in frei + bezahlt + lokal:
                 m = gemessen.get(zeile["kennung"])
                 if m:
-                    zeile.update(note=m.get("note"), note_grund=m.get("note_grund"),
-                                 sek_je_frage=m.get("sek_je_frage"), kern=m.get("kern"),
-                                 kern_moeglich=m.get("kern_moeglich"),
-                                 ct_je_frage=m.get("ct_je_frage"))
-        except Exception:                                   # noqa: BLE001
+                    zeile.update(
+                        note=m.get("note"),
+                        note_grund=m.get("note_grund"),
+                        sek_je_frage=m.get("sek_je_frage"),
+                        kern=m.get("kern"),
+                        kern_moeglich=m.get("kern_moeglich"),
+                        ct_je_frage=m.get("ct_je_frage"),
+                    )
+        except Exception:  # noqa: BLE001
             logger.exception("Modellkatalog konnte nicht aufgebaut werden")
 
-        return render(request, self.vorlage, {
-            "beste": beste,
-            "frei": frei,
-            "bezahlt": bezahlt,
-            "lokal": lokal,
-            "befunde": BEFUNDE,
-            "quelle": katalog.quelle,
-            "stand": katalog.stand,
-            "gb_je_mrd": GB_JE_MRD,
-        })
+        return render(
+            request,
+            self.vorlage,
+            {
+                "beste": beste,
+                "frei": frei,
+                "bezahlt": bezahlt,
+                "lokal": lokal,
+                "befunde": BEFUNDE,
+                "quelle": katalog.quelle,
+                "stand": katalog.stand,
+                "gb_je_mrd": GB_JE_MRD,
+            },
+        )

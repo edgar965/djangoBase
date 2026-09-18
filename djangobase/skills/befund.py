@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Befund, Befundsatz, BefundWerkzeug - die zweite Bauform, EINE Basis.
+"""Befund, Befundsatz, BefundWerkzeug - die zweite Bauform, EINE Basis.
 
     „ich brauche keine AlteBasis, merge alles" (Edgar, 18.08.2026)
 
@@ -25,6 +25,7 @@ etwas taugt: „wo, was, warum, wie schwer" ist bei einer Code-Prüfung fast imm
 die richtige Frage. Elf Werkzeuge dafür Zeile für Zeile umzuschreiben wäre
 Arbeit ohne Ertrag — und jede Umschreibung ein Anlass für neue Fehler.
 """
+
 import time
 
 from .pfadteile import Pfadteile
@@ -34,7 +35,7 @@ __all__ = ["Befund", "Befundsatz", "BefundWerkzeug"]
 
 
 class Befund:
-    u"""Ein einzelner Fund: wo, was, warum - und wie schwer.
+    """Ein einzelner Fund: wo, was, warum - und wie schwer.
 
     Eigene Klasse statt Dictionary — genau die Regel, die dieser Durchgang
     hervorgebracht hat: Ein Datensatz mit mehr als drei Feldern, der seine
@@ -100,11 +101,11 @@ class BefundWerkzeug(Werkzeug):
     #: True, wenn das Werkzeug Endpunkte des laufenden Servers aufruft.
     ruft_endpunkte_auf = False
 
-    def pruefen(self, **argumente):          # pragma: no cover - Schnittstelle
+    def pruefen(self, **argumente):  # pragma: no cover - Schnittstelle
         raise NotImplementedError
 
     def laufen(self, **argumente):
-        u"""Prüfen, Fehler abfangen, in die Tabelle umrechnen.
+        """Prüfen, Fehler abfangen, in die Tabelle umrechnen.
 
         Der Fehlerfall wird zu einem HINWEIS, nicht zu einer Ausnahme: Ein
         Werkzeug ist ein Hilfsmittel, und ein Hilfsmittel darf die Hilfe-Seite
@@ -114,14 +115,14 @@ class BefundWerkzeug(Werkzeug):
         try:
             satz = self.pruefen(**argumente)
         except Exception as fehler:  # noqa: BLE001
-            return Ergebnis(self.SPALTEN, [], "",
-                            "FEHLER: %s: %s" % (type(fehler).__name__, fehler))
+            return Ergebnis(self.SPALTEN, [], "", "FEHLER: %s: %s" % (type(fehler).__name__, fehler))
         dauer = time.perf_counter() - start
         if satz.fehler:
-            return Ergebnis(self.SPALTEN, [], " · ".join(satz.kopf),
-                            "FEHLER: %s" % satz.fehler)
-        zeilen = [{"schwere": b.gewicht, "ort": str(b.ort),
-                   "befund": b.was, "hinweis": b.warum} for b in satz.befunde]
+            return Ergebnis(self.SPALTEN, [], " · ".join(satz.kopf), "FEHLER: %s" % satz.fehler)
+        zeilen = [
+            {"schwere": b.gewicht, "ort": str(b.ort), "befund": b.was, "hinweis": b.warum}
+            for b in satz.befunde
+        ]
         kopf = list(satz.kopf)
         if dauer >= 1:
             kopf.append("%.1f s" % dauer)
@@ -130,7 +131,7 @@ class BefundWerkzeug(Werkzeug):
     # ------------------------------------------------------------ Hilfsmittel
 
     def projektdateien(self, endung=".py", ausser=None):
-        u"""Alle Projektdateien mit dieser Endung - als Pfade.
+        """Alle Projektdateien mit dieser Endung - als Pfade.
 
         Führt über :meth:`~.werkzeug.Werkzeug.dateien`, also über DIESELBE
         Wurzel und DIESELBE Ausschlussliste wie jedes andere Werkzeug. Vorher

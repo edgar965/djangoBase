@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Namensvarianten - dasselbe Ding, zwei Schreibweisen.
+"""Namensvarianten - dasselbe Ding, zwei Schreibweisen.
 
     Kriterium 7 des Auftrags: „keine abweichenden Namen"
 
@@ -25,6 +25,7 @@ Nicht jeder Treffer ist ein Fehler - ``max_tage`` als Python-Feld und
 ``maxTage`` als JS-Variable können absichtlich verschieden heißen. Der Befund
 sagt: Diese beiden gehören zusammen, sieh nach, ob sie es auch tun.
 """
+
 import ast
 import re
 from collections import defaultdict
@@ -36,41 +37,61 @@ from .werkzeug import Ergebnis, Werkzeug
 class Namensvarianten(Werkzeug):
     slug = "namensvarianten"
     titel = "Dasselbe Ding, zwei Schreibweisen"
-    zweck = ("Bezeichner, die sich nur in Groß-/Kleinschreibung oder "
-             "Trennzeichen unterscheiden — über Python, JS und Vorlagen hinweg.")
-    befund = ("Zwei Parameter waren wirkungslos, weil Formular, JSON und Engine "
-              "denselben Wert leicht verschieden schrieben. Nichts wurde rot; es "
-              "wurde nur still etwas anderes gerechnet.")
-    abhilfe = ("Eine Schreibweise festlegen und die Übersetzungen an den "
-               "Schnittstellen einmalig prüfen — dort, wo der Wert die Sprache "
-               "wechselt.")
+    zweck = (
+        "Bezeichner, die sich nur in Groß-/Kleinschreibung oder "
+        "Trennzeichen unterscheiden — über Python, JS und Vorlagen hinweg."
+    )
+    befund = (
+        "Zwei Parameter waren wirkungslos, weil Formular, JSON und Engine "
+        "denselben Wert leicht verschieden schrieben. Nichts wurde rot; es "
+        "wurde nur still etwas anderes gerechnet."
+    )
+    abhilfe = (
+        "Eine Schreibweise festlegen und die Übersetzungen an den "
+        "Schnittstellen einmalig prüfen — dort, wo der Wert die Sprache "
+        "wechselt."
+    )
     dauer = "5–15 s"
     kriterium = 7
 
     #: Zu kurze Namen erzeugen nur Rauschen.
     MIN_LAENGE = 5
     #: Namen, die ueberall vorkommen und nichts aussagen.
-    RAUSCHEN = {"value", "values", "index", "result", "results", "config",
-                "params", "options", "context", "request", "response"}
+    RAUSCHEN = {
+        "value",
+        "values",
+        "index",
+        "result",
+        "results",
+        "config",
+        "params",
+        "options",
+        "context",
+        "request",
+        "response",
+    }
 
     #: DERSELBE Name in zwei Schreibweisen, nicht zwei verwandte Namen - beim
     #: ersten Versuch standen hier ``datenbasis_laden`` und
     #: ``daten_basis_pruefen``, deren Kerne sich unterscheiden (…laden gegen
     #: …pruefen). Verglichen wird der Kern ohne Trennzeichen und Grossschreibung.
     anlassfall = Anlassfall(
-        {"konto.py": '''def laden(datenbasis):
+        {
+            "konto.py": """def laden(datenbasis):
     return {"name": datenbasis}
 
 
 def pruefen(daten_basis):
     return bool(laden(daten_basis))
-''',
-         "sicht.py": '''def zeigen(datenBasis):
+""",
+            "sicht.py": """def zeigen(datenBasis):
     return str(datenBasis)
-'''},
+""",
+        },
         erwartet_in="daten",
         warum="Kriterium 7: zwei Parameter blieben wirkungslos, weil Formular, "
-              "JSON und Engine denselben Wert leicht verschieden schrieben")
+        "JSON und Engine denselben Wert leicht verschieden schrieben",
+    )
 
     def laufen(self):
         # kern -> name -> {(Datei, Welt)}
@@ -106,27 +127,30 @@ def pruefen(daten_basis):
                 continue
             geordnet = sorted(namen.items(), key=lambda x: -len(x[1]))
             dateien = {d for _, stellen in geordnet for d, _w in stellen}
-            zeilen.append({
-                "kern": kern,
-                "varianten": " · ".join(n for n, _ in geordnet[:4]),
-                "anzahl": len(namen),
-                "bruch": self._bruch(namen),
-                "wo": ", ".join(sorted(dateien)[:3]),
-            })
-        zeilen.sort(key=lambda z: (z["bruch"] != "in einer Sprache",
-                                   -z["anzahl"], z["kern"]))
+            zeilen.append(
+                {
+                    "kern": kern,
+                    "varianten": " · ".join(n for n, _ in geordnet[:4]),
+                    "anzahl": len(namen),
+                    "bruch": self._bruch(namen),
+                    "wo": ", ".join(sorted(dateien)[:3]),
+                }
+            )
+        zeilen.sort(key=lambda z: (z["bruch"] != "in einer Sprache", -z["anzahl"], z["kern"]))
         eine = sum(1 for z in zeilen if z["bruch"] == "in einer Sprache")
         return Ergebnis(
-            ["kern", "varianten", "anzahl", "bruch", "wo"], zeilen,
+            ["kern", "varianten", "anzahl", "bruch", "wo"],
+            zeilen,
             "%d Namen mit mehreren Schreibweisen — %d davon INNERHALB einer "
             "Sprache (die echten)" % (len(zeilen), eine),
             "Über Sprachgrenzen ist der Unterschied Konvention: Python schreibt "
             "`body_type`, JavaScript `bodyType`, HTML `data-body-type`. "
-            "Interessant ist, wo BEIDE Schreibweisen in derselben Sprache stehen.")
+            "Interessant ist, wo BEIDE Schreibweisen in derselben Sprache stehen.",
+        )
 
     @classmethod
     def _bruch(cls, namen):
-        u"""Stehen beide Schreibweisen in DERSELBEN Welt?
+        """Stehen beide Schreibweisen in DERSELBEN Welt?
 
         Der Unterschied entscheidet alles. In 3DTools waren von 147 Befunden die
         allermeisten Uebersetzungen über eine Grenze — ``job_id`` als
@@ -151,16 +175,14 @@ def pruefen(daten_basis):
         # Sobald eine Schreibweise irgendwo als Drahtname gesehen wurde, zählt
         # sie überall als Drahtname. Das waren acht der 24 „echten" Befunde
         # (crop_x/y/w/h, start_time, end_time und zwei weitere).
-        drahtnamen = {name for name, stellen in namen.items()
-                      if any(w == "Draht" for _d, w in stellen)}
+        drahtnamen = {name for name, stellen in namen.items() if any(w == "Draht" for _d, w in stellen)}
         # EIN VORGEFUNDENER NAME IST NIRGENDS EINE SCHREIBWEISE (31.08.2026).
         # `lCollar` heisst in Daz Genesis so, `l_collar` in MocapNET, und
         # `LeftShoulder` in Mixamo. Das sind DREI Formate und nicht drei
         # Schreibweisen — angleichen hiesse, drei Zuordnungstabellen kaputt
         # zu machen. Wo ein Name als „Fremd" gesehen wurde, ist er fremd,
         # und Fremdes wird unten gar nicht erst verglichen.
-        fremdnamen = {name for name, stellen in namen.items()
-                      if any(w == "Fremd" for _d, w in stellen)}
+        fremdnamen = {name for name, stellen in namen.items() if any(w == "Fremd" for _d, w in stellen)}
         je_welt = {}
         for name, stellen in namen.items():
             for _datei, welt in stellen:
@@ -180,8 +202,7 @@ def pruefen(daten_basis):
                 continue
             if len({cls._form(n) for n in gesehen}) > 1:
                 return "in einer Sprache"
-        return "über Grenze (%s)" % ", ".join(
-            sorted({w for w, _r in je_welt}))
+        return "über Grenze (%s)" % ", ".join(sorted({w for w, _r in je_welt}))
 
     @staticmethod
     def _rolle(name):
@@ -202,7 +223,7 @@ def pruefen(daten_basis):
 
     @staticmethod
     def _hat_trenner(name):
-        u"""Trennzeichen INNERHALB des Namens — nicht am Rand.
+        """Trennzeichen INNERHALB des Namens — nicht am Rand.
 
         Ein führender Unterstrich sagt „privat", ein Anhang „…-" stammt aus
         einem Datenattribut. Beides ist eine ROLLE, keine Schreibweise. Ohne
@@ -223,7 +244,7 @@ def pruefen(daten_basis):
 
     @staticmethod
     def _python_namen(d):
-        u"""(Name, Welt) — Bezeichner und Drahtnamen getrennt.
+        """(Name, Welt) — Bezeichner und Drahtnamen getrennt.
 
         Eine ZEICHENKETTE in Python ist kein Python-Name: ``daten["jobId"]``
         schreibt bewusst so, wie der Empfaenger es liest. Beides in denselben
@@ -241,8 +262,7 @@ def pruefen(daten_basis):
                 aus.add((k.arg, "Python"))
             elif isinstance(k, ast.Constant) and isinstance(k.value, str):
                 if re.fullmatch(r"[A-Za-z][\w-]{3,40}", k.value):
-                    aus.add((k.value,
-                             "Fremd" if k.value in vorgefunden else "Draht"))
+                    aus.add((k.value, "Fremd" if k.value in vorgefunden else "Draht"))
             elif isinstance(k, ast.Attribute):
                 welt = "Fremd" if Namensvarianten._wurzel(k) in module else "Python"
                 aus.add((k.attr, welt))
@@ -254,7 +274,7 @@ def pruefen(daten_basis):
 
     @staticmethod
     def _vorgefundene_namen(baum):
-        u"""Zeichenketten, die NICHT benannt, sondern VORGEFUNDEN sind.
+        """Zeichenketten, die NICHT benannt, sondern VORGEFUNDEN sind.
 
         DER FEHLALARM (3DTools, 31.08.2026): Von 21 Befunden „in einer
         Sprache" waren sechzehn Knochennamen fremder Skelettformate —
@@ -280,11 +300,14 @@ def pruefen(daten_basis):
         for k in ast.walk(baum):
             # Form 1: grosse Zuordnungstabelle, beide Seiten Zeichenketten.
             if isinstance(k, ast.Dict):
-                paare = [(s, w) for s, w in zip(k.keys, k.values)
-                         if isinstance(s, ast.Constant)
-                         and isinstance(s.value, str)
-                         and isinstance(w, ast.Constant)
-                         and isinstance(w.value, str)]
+                paare = [
+                    (s, w)
+                    for s, w in zip(k.keys, k.values, strict=True)
+                    if isinstance(s, ast.Constant)
+                    and isinstance(s.value, str)
+                    and isinstance(w, ast.Constant)
+                    and isinstance(w.value, str)
+                ]
                 if len(paare) >= Namensvarianten.TABELLE_MINDESTENS:
                     for s, w in paare:
                         raus.add(s.value)
@@ -304,14 +327,13 @@ def pruefen(daten_basis):
             # ast.Assign)` fängt jede Zuweisung ab; ein zweiter
             # `elif`-Zweig für Zuweisungen wird nie erreicht.
             elif isinstance(k, ast.Assign):
-                if not (isinstance(k.value, ast.Constant)
-                        and isinstance(k.value.value, str)):
+                if not (isinstance(k.value, ast.Constant) and isinstance(k.value.value, str)):
                     continue
                 if any(isinstance(z, ast.Attribute) for z in k.targets):
                     raus.add(k.value.value)
-                elif any(isinstance(z, ast.Name)
-                         and z.id.upper() in Namensvarianten.ORDNERNAMEN
-                         for z in k.targets):
+                elif any(
+                    isinstance(z, ast.Name) and z.id.upper() in Namensvarianten.ORDNERNAMEN for z in k.targets
+                ):
                     raus.add(k.value.value)
             # Form 3: ein Bestandteil eines Pfades. Ordner heissen auf der
             # Platte, wie sie heissen — `.../photoTo3D/SMPLX` neben
@@ -319,21 +341,28 @@ def pruefen(daten_basis):
             # Schreibweisen (3DTools, 31.08.2026).
             elif isinstance(k, ast.Call) and Namensvarianten._ist_pfadbau(k):
                 for teil in k.args:
-                    if (isinstance(teil, ast.Constant)
-                            and isinstance(teil.value, str)):
+                    if isinstance(teil, ast.Constant) and isinstance(teil.value, str):
                         raus.add(teil.value)
         return raus
 
     #: Aufrufe, deren Argumente Bestandteile eines Dateipfades sind.
-    PFADBAUER = {'join', 'Path', 'PurePath', 'with_name', 'with_suffix'}
+    PFADBAUER = {"join", "Path", "PurePath", "with_name", "with_suffix"}
 
     #: Konstantennamen, deren Wert ein Verzeichnis auf der Platte ist.
-    ORDNERNAMEN = {'ORDNER', 'UNTERORDNER', 'ORDNERNAME', 'VERZEICHNIS',
-                   'UNTERVERZEICHNIS', 'DIR', 'DIRNAME', 'SUBDIR'}
+    ORDNERNAMEN = {
+        "ORDNER",
+        "UNTERORDNER",
+        "ORDNERNAME",
+        "VERZEICHNIS",
+        "UNTERVERZEICHNIS",
+        "DIR",
+        "DIRNAME",
+        "SUBDIR",
+    }
 
     @staticmethod
     def _ist_pfadbau(knoten):
-        u"""Baut dieser Aufruf einen Pfad zusammen?"""
+        """Baut dieser Aufruf einen Pfad zusammen?"""
         ziel = knoten.func
         if isinstance(ziel, ast.Attribute):
             return ziel.attr in Namensvarianten.PFADBAUER
@@ -341,7 +370,7 @@ def pruefen(daten_basis):
 
     @staticmethod
     def _modulnamen(baum):
-        u"""Namen, die in dieser Datei ein importiertes MODUL bezeichnen."""
+        """Namen, die in dieser Datei ein importiertes MODUL bezeichnen."""
         aus = set()
         for k in ast.walk(baum):
             if isinstance(k, ast.Import):
@@ -359,16 +388,16 @@ def pruefen(daten_basis):
 
     @staticmethod
     def _web_namen(text):
-        u"""(Name, Welt) — JS-Objektschluessel gegen Markup-Namen.
+        """(Name, Welt) — JS-Objektschluessel gegen Markup-Namen.
 
         ``data-…`` und ``id="…"`` folgen der HTML-Konvention (Bindestrich), ein
         Objektschluessel der von JavaScript (camelCase). Beide in einem Topf
         machten aus jedem ``bulkDeleteBtn``/``bulk-delete-btn`` einen Befund.
         """
         aus = set()
-        for m in re.finditer(r"\b([a-zA-Z][\w-]{3,40})\s*:", text):     # Objektschlüssel
+        for m in re.finditer(r"\b([a-zA-Z][\w-]{3,40})\s*:", text):  # Objektschlüssel
             aus.add((m.group(1), "JavaScript"))
-        for m in re.finditer(r'\bdata-([\w-]{3,40})=', text):
+        for m in re.finditer(r"\bdata-([\w-]{3,40})=", text):
             aus.add((m.group(1), "Markup"))
         for m in re.finditer(r'\bid="([\w-]{3,40})"', text):
             aus.add((m.group(1), "Markup"))

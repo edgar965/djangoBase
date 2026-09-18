@@ -31,8 +31,11 @@ class ZugriffMixin:
     def dispatch(self, request, *args, **kwargs):
         z = conf()["zugriff"]
         if z not in STUFEN:
-            logger.warning("DJANGOBASE['zugriff'] = %r ist unbekannt — es gilt "
-                           "'staff'. Erlaubt: %s", z, ", ".join(STUFEN))
+            logger.warning(
+                "DJANGOBASE['zugriff'] = %r ist unbekannt — es gilt 'staff'. Erlaubt: %s",
+                z,
+                ", ".join(STUFEN),
+            )
             z = "staff"
         if z != "none":
             if not request.user.is_authenticated:

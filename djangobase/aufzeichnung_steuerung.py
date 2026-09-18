@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Starten, Ereignisse anhaengen, Beenden, Umbenennen, Loeschen.
+"""Starten, Ereignisse anhaengen, Beenden, Umbenennen, Loeschen.
 
 Getrennt von ``aufzeichnung.py``: Dort steht, WAS eine Aufzeichnung ist und wie
 sie auf der Platte liegt; hier, was mit ihr geschieht. Beides in einer Datei
@@ -12,6 +12,7 @@ gleichzeitig. Lesen, aendern und schreiben ohne Schutz wuerde Puffer verlieren,
 und zwar still: Die fehlenden Klicks faende niemand, weil der Testfall danach
 einfach kuerzer ist.
 """
+
 import logging
 from datetime import datetime
 
@@ -23,7 +24,7 @@ __all__ = ["Steuerung"]
 
 
 class Steuerung:
-    u"""Die schreibenden Vorgaenge auf dem Aufzeichnungs-Bestand."""
+    """Die schreibenden Vorgaenge auf dem Aufzeichnungs-Bestand."""
 
     #: Ereignisarten, die angenommen werden. Alles andere wird verworfen - der
     #: Browser darf hier nicht beliebige Strukturen ablegen.
@@ -34,7 +35,7 @@ class Steuerung:
 
     # ---------------------------------------------------------------- Start
     def starten(self, name="", seite=""):
-        u"""Neue Aufzeichnung beginnen. Laeuft schon eine, wird SIE geliefert.
+        """Neue Aufzeichnung beginnen. Laeuft schon eine, wird SIE geliefert.
 
         Kein zweiter Start neben einer laufenden: Zwei gleichzeitige Aufnahmen
         hätten dieselben Ereignisse in beiden - und keine wäre ein Testfall."""
@@ -48,7 +49,9 @@ class Steuerung:
             neu = Aufzeichnung(
                 kennung,
                 name or ("Aufzeichnung %s" % jetzt.strftime("%d.%m.%Y %H:%M")),
-                jetzt.isoformat(timespec="seconds"), seite=seite)
+                jetzt.isoformat(timespec="seconds"),
+                seite=seite,
+            )
             liste.append(neu)
             self.bestand._schreiben(liste)
         log.info("Aufzeichnung %s gestartet (%s)", kennung, seite or "-")
@@ -56,7 +59,7 @@ class Steuerung:
 
     # ------------------------------------------------------------ Ereignisse
     def anhaengen(self, kennung, schritte):
-        u"""Ereignisse an eine LAUFENDE Aufzeichnung haengen. -> Zahl der neuen.
+        """Ereignisse an eine LAUFENDE Aufzeichnung haengen. -> Zahl der neuen.
 
         Eine beendete Aufzeichnung nimmt nichts mehr an: Ein Nachzuegler-Puffer
         aus einem Tab, den der Nutzer offen gelassen hat, wuerde ihr sonst
@@ -83,13 +86,12 @@ class Steuerung:
 
     @staticmethod
     def _signatur(schritt):
-        u"""Was eine Marke eindeutig macht: Zeitpunkt und Ziel."""
-        return (schritt.get("t"), schritt.get("art"),
-                schritt.get("ziel") or schritt.get("seite") or "")
+        """Was eine Marke eindeutig macht: Zeitpunkt und Ziel."""
+        return (schritt.get("t"), schritt.get("art"), schritt.get("ziel") or schritt.get("seite") or "")
 
     @classmethod
     def _einfuegen(cls, vorhandene, neue):
-        u"""Neue Ereignisse anhaengen - wiederkehrende Abrufe dabei ZAEHLEN.
+        """Neue Ereignisse anhaengen - wiederkehrende Abrufe dabei ZAEHLEN.
 
         WARUM (gemessen 21.08.2026, ShortLongX): Die Paper-Seite fragt im
         Sekundentakt drei Endpunkte ab. Sechs Sekunden Klicken ergaben **115
@@ -122,8 +124,7 @@ class Steuerung:
         # derselben Zehntelsekunde faenden hier zusammen - ein Doppelklick, der
         # als einer gilt. Das ist der guenstigere Fehler: eine verdoppelte
         # Aufnahme ist unbrauchbar, ein verschluckter Doppelklick eine Nuance.
-        vorhanden = {cls._signatur(a) for a in vorhandene
-                     if a.get("art") in cls.MARKEN}
+        vorhanden = {cls._signatur(a) for a in vorhandene if a.get("art") in cls.MARKEN}
         neu_gezaehlt = 0
         for s in neue:
             if s.get("art") in cls.MARKEN:
@@ -135,11 +136,13 @@ class Steuerung:
             if s.get("art") == "abruf":
                 for alt in reversed(vorhandene):
                     if alt.get("art") in cls.MARKEN:
-                        break                       # Abschnittsgrenze erreicht
-                    if (alt.get("art") == "abruf"
-                            and alt.get("methode") == s.get("methode")
-                            and alt.get("pfad") == s.get("pfad")
-                            and alt.get("status") == s.get("status")):
+                        break  # Abschnittsgrenze erreicht
+                    if (
+                        alt.get("art") == "abruf"
+                        and alt.get("methode") == s.get("methode")
+                        and alt.get("pfad") == s.get("pfad")
+                        and alt.get("status") == s.get("status")
+                    ):
                         treffer = alt
                         break
             if treffer is not None:
@@ -152,23 +155,31 @@ class Steuerung:
 
     @classmethod
     def _pruefen(cls, s):
-        u"""Ein Ereignis auf die erlaubten Felder eindampfen - oder verwerfen.
+        """Ein Ereignis auf die erlaubten Felder eindampfen - oder verwerfen.
 
         Was aus dem Browser kommt, ist Eingabe von aussen. Hier wird sie auf
         bekannte Schluessel und Laengen begrenzt, bevor sie in einer Datei
         landet, die später Testcode erzeugt."""
         if not isinstance(s, dict) or s.get("art") not in cls.ARTEN:
             return None
+
         def text(k, n=300):
             v = s.get(k)
             return str(v)[:n] if v is not None else ""
+
         try:
             t = round(float(s.get("t") or 0), 2)
         except (TypeError, ValueError):
             t = 0.0
         aus = {"t": t, "art": s["art"]}
-        for feld, laenge in (("ziel", 300), ("text", 200), ("wert", 200),
-                             ("seite", 300), ("methode", 10), ("pfad", 300)):
+        for feld, laenge in (
+            ("ziel", 300),
+            ("text", 200),
+            ("wert", 200),
+            ("seite", 300),
+            ("methode", 10),
+            ("pfad", 300),
+        ):
             wert = text(feld, laenge)
             if wert:
                 aus[feld] = wert
@@ -200,7 +211,7 @@ class Steuerung:
 
     # ----------------------------------------------------------------- Ende
     def beenden(self, kennung="", logs=None):
-        u"""Aufzeichnung schliessen und die Server-Logs des Zeitraums anhaengen."""
+        """Aufzeichnung schliessen und die Server-Logs des Zeitraums anhaengen."""
         with self.bestand._sperre:
             liste = self.bestand._lesen()
             for a in liste:
@@ -209,8 +220,13 @@ class Steuerung:
                     if logs:
                         a.logs = list(logs)
                     self.bestand._schreiben(liste)
-                    log.info("Aufzeichnung %s beendet: %d Schritte, %d Log-Zeilen, %.0f s",
-                             a.id, len(a.schritte), len(a.logs), a.dauer_s)
+                    log.info(
+                        "Aufzeichnung %s beendet: %d Schritte, %d Log-Zeilen, %.0f s",
+                        a.id,
+                        len(a.schritte),
+                        len(a.logs),
+                        a.dauer_s,
+                    )
                     return a
         return None
 

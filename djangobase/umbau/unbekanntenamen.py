@@ -40,16 +40,17 @@ Hinweis, kein Urteil.
 
 Aufruf:  python -m djangobase.umbau.unbekanntenamen <ordner> [<ordner> ...]
 """
+
 import re
 import sys
 from pathlib import Path
-
 
 from .codesicht import Codesicht
 from .kommateilung import Kommateilung
 
 #: Bezeichner, die es in jeder Browser-Umgebung gibt.
-GLOBAL = set("""
+GLOBAL = set(
+    """
 window document console navigator location history localStorage sessionStorage
 fetch FormData Headers Request Response URL URLSearchParams Blob File FileReader
 setTimeout clearTimeout setInterval clearInterval requestAnimationFrame
@@ -70,7 +71,8 @@ matchMedia scrollTo scrollBy open close print focus blur getSelection
 HTMLImageElement HTMLInputElement HTMLSelectElement HTMLTextAreaElement
 HTMLFormElement HTMLVideoElement HTMLAudioElement DocumentFragment
 CSS WeakRef FinalizationRegistry Notification Range Text Comment
-""".split())
+""".split()
+)
 #: NACHTRAG (17.08.2026): Die ersten drei Zeilen kamen aus echten Fehlalarmen —
 #: `getComputedStyle` (2x), `PerformanceObserver` und `Option` wurden als
 #: „nirgends deklariert" gemeldet. Ein Pruefer, der Standard-Globale des Browsers
@@ -79,17 +81,19 @@ CSS WeakRef FinalizationRegistry Notification Range Text Comment
 #: dass ein echter Fall (Tippfehler im Namen) weiter rot wird.
 
 #: Schluesselwoerter, die wie Bezeichner aussehen.
-SCHLUESSEL = set("""
+SCHLUESSEL = set(
+    """
 if else for while do switch case default break continue return function class
 const let var new delete typeof instanceof in of void yield await async try
 catch finally throw extends static get set null true false this super import
 export from as with debugger
-""".split())
+""".split()
+)
 
 #: Woerter, hinter denen eine Klammer KEINE Parameterliste ist.
-STEUERWORTE = {'if', 'while', 'for', 'switch', 'catch', 'return', 'typeof', 'with'}
+STEUERWORTE = {"if", "while", "for", "switch", "catch", "return", "typeof", "with"}
 
-BEZEICHNER = re.compile(r'[A-Za-z_$][\w$]*')
+BEZEICHNER = re.compile(r"[A-Za-z_$][\w$]*")
 
 
 class Modulnamen:
@@ -97,7 +101,7 @@ class Modulnamen:
 
     def __init__(self, pfad):
         self.pfad = Path(pfad)
-        self.quelle = self.pfad.read_text(encoding='utf-8')
+        self.quelle = self.pfad.read_text(encoding="utf-8")
         self.code = self._ohne_kommentare_und_texte(self.quelle)
 
     @staticmethod
@@ -108,24 +112,24 @@ class Modulnamen:
         `x1a1a2e`. Fehlalarm aus dem ersten Lauf.
         """
         text = Codesicht(text).code
-        text = re.sub(r'\b0[xXbBoO][0-9a-fA-F_]+n?', ' ', text)
-        return re.sub(r'\b\d[\d_]*(?:\.\d+)?(?:[eE][+-]?\d+)?n?', ' ', text)
+        text = re.sub(r"\b0[xXbBoO][0-9a-fA-F_]+n?", " ", text)
+        return re.sub(r"\b\d[\d_]*(?:\.\d+)?(?:[eE][+-]?\d+)?n?", " ", text)
 
     def importiert(self):
         namen = set()
-        for m in re.finditer(r'import\s+([\s\S]*?)\s+from\s', self.code):
+        for m in re.finditer(r"import\s+([\s\S]*?)\s+from\s", self.code):
             teil = m.group(1)
-            for inner in re.findall(r'\{([^}]*)\}', teil):
-                for stueck in inner.split(','):
+            for inner in re.findall(r"\{([^}]*)\}", teil):
+                for stueck in inner.split(","):
                     stueck = stueck.strip()
                     if not stueck:
                         continue
-                    namen.add(stueck.split(' as ')[-1].strip())
-            teil = re.sub(r'\{[^}]*\}', '', teil)
-            for stueck in teil.split(','):
+                    namen.add(stueck.split(" as ")[-1].strip())
+            teil = re.sub(r"\{[^}]*\}", "", teil)
+            for stueck in teil.split(","):
                 stueck = stueck.strip()
-                if stueck.startswith('*'):
-                    namen.add(stueck.split(' as ')[-1].strip())
+                if stueck.startswith("*"):
+                    namen.add(stueck.split(" as ")[-1].strip())
                 elif stueck and BEZEICHNER.fullmatch(stueck):
                     namen.add(stueck)
         return namen
@@ -133,43 +137,51 @@ class Modulnamen:
     def deklariert(self):
         namen = set()
         c = self.code
-        for muster in (r'\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)',
-                       r'\bfunction\s*\*?\s*([A-Za-z_$][\w$]*)',
-                       r'\bclass\s+([A-Za-z_$][\w$]*)',
-                       # Statisches Klassenfeld: `static camera = null;`
-                       r'(?m)^\s*static\s+([A-Za-z_$][\w$]*)\s*=',
-                       r'\bcatch\s*\(\s*([A-Za-z_$][\w$]*)'):
+        for muster in (
+            r"\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)",
+            r"\bfunction\s*\*?\s*([A-Za-z_$][\w$]*)",
+            r"\bclass\s+([A-Za-z_$][\w$]*)",
+            # Statisches Klassenfeld: `static camera = null;`
+            r"(?m)^\s*static\s+([A-Za-z_$][\w$]*)\s*=",
+            r"\bcatch\s*\(\s*([A-Za-z_$][\w$]*)",
+        ):
             namen.update(re.findall(muster, c))
         # Mehrfachdeklaration mit und ohne Startwert: `let a, b;` / `let cy = 0, cz = 0;`
         # Je Komma-Abschnitt zaehlt nur der fuehrende Bezeichner.
         # Bis zum Semikolon, nicht bis zum Zeilenende: `const R = …,\n  B = …;`
         # stand in licht.js ueber zwei Zeilen, `B` galt darum als unbekannt.
-        for m in re.finditer(r'\b(?:const|let|var)\s+([^;{}]{0,400})', c):
+        for m in re.finditer(r"\b(?:const|let|var)\s+([^;{}]{0,400})", c):
             for abschnitt in Kommateilung.teile(m.group(1)):
                 kopf = BEZEICHNER.match(abschnitt.strip())
                 if kopf:
                     namen.add(kopf.group(0))
         # Zerlegung: const { a, b: c } = …   /   const [a, b] = …
-        for m in re.finditer(r'\b(?:const|let|var)\s*[\{\[]([^\}\]]*)[\}\]]'
-                             r'\s*(?:=|\bof\b|\bin\b)', c):
+        for m in re.finditer(
+            r"\b(?:const|let|var)\s*[\{\[]([^\}\]]*)[\}\]]"
+            r"\s*(?:=|\bof\b|\bin\b)",
+            c,
+        ):
             teil = m.group(1)
-            for stueck in teil.split(','):
+            for stueck in teil.split(","):
                 stueck = stueck.strip()
-                if ':' in stueck:
-                    stueck = stueck.split(':')[-1]
-                stueck = stueck.split('=')[0].strip().lstrip('.')
-                if BEZEICHNER.fullmatch(stueck or ''):
+                if ":" in stueck:
+                    stueck = stueck.split(":")[-1]
+                stueck = stueck.split("=")[0].strip().lstrip(".")
+                if BEZEICHNER.fullmatch(stueck or ""):
                     namen.add(stueck)
         # Parameterlisten (Pfeil, Funktion, Methode) — grob, dafuer vollstaendig
-        for muster in (r'\(([^()]*)\)\s*=>', r'([A-Za-z_$][\w$]*)\s*=>',
-                       r'\bfunction\s*\*?\s*[A-Za-z_$\w$]*\s*\(([^()]*)\)'):
+        for muster in (
+            r"\(([^()]*)\)\s*=>",
+            r"([A-Za-z_$][\w$]*)\s*=>",
+            r"\bfunction\s*\*?\s*[A-Za-z_$\w$]*\s*\(([^()]*)\)",
+        ):
             for m in re.finditer(muster, c):
                 namen.update(BEZEICHNER.findall(m.group(1)))
         # Methodendefinition: `name(a, b) {` — Name UND Parameter zaehlen.
         # Steuerwoerter ausnehmen: Sonst gilt in `if (state._x) {` der Name
         # `state` als Parameter und damit als deklariert. Genau so blieb ein
         # fehlender `state`-Import in teilnetz_auswahl.js unbemerkt (16.08.2026).
-        for m in re.finditer(r'(?<![\w.$])([A-Za-z_$][\w$]*)\s*\(([^()]*)\)\s*\{', c):
+        for m in re.finditer(r"(?<![\w.$])([A-Za-z_$][\w$]*)\s*\(([^()]*)\)\s*\{", c):
             if m.group(1) in STEUERWORTE:
                 continue
             namen.add(m.group(1))
@@ -184,18 +196,18 @@ class Modulnamen:
         Import als unbekannt.
         """
         namen = set()
-        rumpf = re.sub(r'(?ms)^\s*import\b.*?(?:;|$)', ' ', self.code)
+        rumpf = re.sub(r"(?ms)^\s*import\b.*?(?:;|$)", " ", self.code)
         # Nur das Weiterreichen entfernen; `export { X };` benutzt die oertliche
         # Bindung und darf mitgeprueft werden.
-        rumpf = re.sub(r'(?m)^\s*export\s*\{[^}]*\}\s*from[^;\n]*;?', ' ', rumpf)
+        rumpf = re.sub(r"(?m)^\s*export\s*\{[^}]*\}\s*from[^;\n]*;?", " ", rumpf)
         for m in BEZEICHNER.finditer(rumpf):
             name = m.group(0)
-            vorher = rumpf[max(0, m.start() - 2):m.start()]
-            if vorher.rstrip().endswith('.') or vorher.rstrip().endswith('?.'):
-                continue                      # Eigenschaftszugriff
-            nachher = rumpf[m.end():m.end() + 2].lstrip()
-            if nachher.startswith(':') and Modulnamen._objektschluessel(rumpf, m.start()):
-                continue                      # Objektschluessel
+            vorher = rumpf[max(0, m.start() - 2) : m.start()]
+            if vorher.rstrip().endswith(".") or vorher.rstrip().endswith("?."):
+                continue  # Eigenschaftszugriff
+            nachher = rumpf[m.end() : m.end() + 2].lstrip()
+            if nachher.startswith(":") and Modulnamen._objektschluessel(rumpf, m.start()):
+                continue  # Objektschluessel
             namen.add(name)
         return namen
 
@@ -213,7 +225,7 @@ class Modulnamen:
         deshalb erst im Browser auf.
         """
         davor = text[:pos].rstrip()
-        return not davor or davor[-1] in '{,;'
+        return not davor or davor[-1] in "{,;"
 
     def unbekannt(self):
         bekannt = self.importiert() | self.deklariert() | GLOBAL | SCHLUESSEL
@@ -227,26 +239,25 @@ class Modulnamen:
 #: Fremdbibliothek sind einbuchstabige Namen der Normalfall und kein Befund. Wer
 #: fremden, gebauten Code prueft, erzeugt nur Rauschen; die eigenen Module gehen
 #: darin unter.
-FREMD = ('vendor', 'node_modules', 'dist', 'bundle', 'staticfiles',
-         'theatre', 'theatre-studio')
+FREMD = ("vendor", "node_modules", "dist", "bundle", "staticfiles", "theatre", "theatre-studio")
 
 
 def eigene_dateien(ordner):
-    u"""Alle eigenen .js-Dateien unter den Ordnern — ohne Fremd- und Baucode."""
+    """Alle eigenen .js-Dateien unter den Ordnern — ohne Fremd- und Baucode."""
     for o in ordner:
-        for pfad in sorted(o.rglob('*.js')):
+        for pfad in sorted(o.rglob("*.js")):
             if any(teil in FREMD for teil in pfad.parts):
                 continue
-            if '.min.' in pfad.name:
+            if ".min." in pfad.name:
                 continue
             yield pfad
 
 
-MODULMERKMAL = re.compile(r'(?m)^\s*(?:import|export)\b')
+MODULMERKMAL = re.compile(r"(?m)^\s*(?:import|export)\b")
 
 
 def ist_esmodul(text):
-    u"""Hat die Datei `import` oder `export` auf oberster Ebene?
+    """Hat die Datei `import` oder `export` auf oberster Ebene?
 
     Wenn nicht, ist sie ein klassisches Skript und teilt ihren Namensraum mit den
     anderen `<script src=…>` derselben Seite — dann sagt „Name nicht deklariert"
@@ -256,26 +267,26 @@ def ist_esmodul(text):
 
 
 def main():
-    ordner = [Path(a) for a in sys.argv[1:]] or [Path('.')]
+    ordner = [Path(a) for a in sys.argv[1:]] or [Path(".")]
     einzeln = [p for p in ordner if p.is_file()]
     dateien = einzeln or list(eigene_dateien(ordner))
     treffer, klassisch = 0, 0
     for p in dateien:
-        if not einzeln and not ist_esmodul(p.read_text(encoding='utf-8',
-                                                       errors='replace')):
+        if not einzeln and not ist_esmodul(p.read_text(encoding="utf-8", errors="replace")):
             klassisch += 1
             continue
         offen = Modulnamen(p).unbekannt()
         if offen:
             treffer += 1
-            print('%-52s %s' % (p.as_posix(), ', '.join(offen[:12])))
-    print('\n%d Dateien geprüft, %d mit unbekannten Namen'
-          % (len(dateien) - klassisch, treffer))
+            print("%-52s %s" % (p.as_posix(), ", ".join(offen[:12])))
+    print("\n%d Dateien geprüft, %d mit unbekannten Namen" % (len(dateien) - klassisch, treffer))
     if klassisch:
-        print('%d klassische Skripte übersprungen (kein import/export — ihre '
-              'Namen kommen aus Geschwisterdateien). Einzeln als Argument '
-              'nennen, um sie doch zu prüfen.' % klassisch)
+        print(
+            "%d klassische Skripte übersprungen (kein import/export — ihre "
+            "Namen kommen aus Geschwisterdateien). Einzeln als Argument "
+            "nennen, um sie doch zu prüfen." % klassisch
+        )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

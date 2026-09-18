@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Testtabelle - EINE Tabelle für alles, was man auf der Tests-Seite starten kann.
+"""Testtabelle - EINE Tabelle für alles, was man auf der Tests-Seite starten kann.
 
     „warum gibt es kein Test Seiten template, wo du das nur einmal änderst??"
     (Edgar, 17.08.2026)
@@ -25,6 +25,7 @@ ROHWERTEN (``data-sort``), angezeigt in deutscher Schreibweise; unter 10 ms in
 Millisekunden. Der Trend erscheint erst ab 25 % Abweichung vom Mittel der
 vorigen Läufe — darunter ist es Rauschen.
 """
+
 from django.utils.html import escape
 from django.utils.http import urlencode
 
@@ -59,51 +60,69 @@ class Eintrag:
     @classmethod
     def aus_befehl(cls, befehl):
         """Aus ``DJANGOBASE["test_befehle"]`` bzw. einem abgeleiteten Sammler."""
-        return cls(befehl.get("name") or befehl.get("slug") or "",
-                   befehl.get("ziel") or "",
-                   befehl.get("slug") or "",
-                   ist_suite=True,
-                   titel=" ".join(str(x) for x in (befehl.get("cmd") or [])))
+        return cls(
+            befehl.get("name") or befehl.get("slug") or "",
+            befehl.get("ziel") or "",
+            befehl.get("slug") or "",
+            ist_suite=True,
+            titel=" ".join(str(x) for x in (befehl.get("cmd") or [])),
+        )
 
 
 class Testtabelle:
     """Baut die Tabellen-Struktur, die ``djangobase/_tabelle.html`` erwartet."""
 
     SPALTEN = (
-        {"label": "", "key": "wahl", "sortAus": True,
-         "titel": "auswählen — „Ausgewählte ausführen“ fährt sie in EINEM Lauf"},
+        {
+            "label": "",
+            "key": "wahl",
+            "sortAus": True,
+            "titel": "auswählen — „Ausgewählte ausführen“ fährt sie in EINEM Lauf",
+        },
         # Der PLATZ in der Tabelle, änderbar (Ansage 17.08.2026). Nicht
         # sortierbar über die Überschrift: Die Zeilen stehen ohnehin in dieser
         # Reihenfolge, ein Sortierpfeil daneben wäre eine zweite Wahrheit.
-        {"label": "Nr.", "key": "nummer", "sortAus": True, "num": True,
-         "titel": "Platz in der Tabelle — Zahl ändern verschiebt die Zeile "
-                  "(gilt innerhalb ihres Bereichs)"},
+        {
+            "label": "Nr.",
+            "key": "nummer",
+            "sortAus": True,
+            "num": True,
+            "titel": "Platz in der Tabelle — Zahl ändern verschiebt die Zeile "
+            "(gilt innerhalb ihres Bereichs)",
+        },
         # Die Kategorie (unit, component, …) — der ORDNER der Testdatei. Sie
         # stand bis 17.08.2026 als „Verschieben" ganz rechts; sie gehört nach
         # vorn zu der anderen Einteilung, mit der man arbeitet.
-        {"label": "Kategorie", "key": "kategorie", "sortAus": True,
-         "titel": "Kategorie des Falls — die Auswahl verschiebt seine "
-                  "Testdatei in den Ordner der Zielkategorie; weitere Fälle in "
-                  "derselben Datei gehen mit"},
+        {
+            "label": "Kategorie",
+            "key": "kategorie",
+            "sortAus": True,
+            "titel": "Kategorie des Falls — die Auswahl verschiebt seine "
+            "Testdatei in den Ordner der Zielkategorie; weitere Fälle in "
+            "derselben Datei gehen mit",
+        },
         # Die ZWEITE Einteilung neben der Kategorie (Ansage 17.08.2026:
         # „einmal Kategorien (unit, usw.), einmal Bereich (wie Chat usw.)").
         # Sie steht vorn, weil die Zeilen danach vorsortiert sind — eine
         # Gruppierung, die man rechts sucht, ist keine.
-        {"label": "Bereich", "key": "bereich",
-         "titel": "Was getestet wird — vom Projekt angegeben "
-                  "(Einstellungen → djangoBase → Test-Bereiche). Die Auswahl "
-                  "verschiebt die Testdatei; weitere Fälle darin gehen mit"},
+        {
+            "label": "Bereich",
+            "key": "bereich",
+            "titel": "Was getestet wird — vom Projekt angegeben "
+            "(Einstellungen → djangoBase → Test-Bereiche). Die Auswahl "
+            "verschiebt die Testdatei; weitere Fälle darin gehen mit",
+        },
         {"label": "Testcase", "key": "name"},
         {"label": "Ziel", "key": "ziel"},
-        {"label": "letzte", "key": "letzte", "num": True,
-         "titel": "Laufzeit des letzten Durchgangs"},
-        {"label": "Ø", "key": "schnitt", "num": True,
-         "titel": "Mittel über die gespeicherten Läufe"},
-        {"label": "Trend", "key": "trend", "num": True,
-         "titel": "letzter Lauf gegen das Mittel der vorigen — erst ab 25 % "
-                  "Abweichung"},
-        {"label": "letzte 4 Läufe", "key": "laeufe",
-         "titel": "Datum · Uhrzeit · Laufzeit, neuester zuerst"},
+        {"label": "letzte", "key": "letzte", "num": True, "titel": "Laufzeit des letzten Durchgangs"},
+        {"label": "Ø", "key": "schnitt", "num": True, "titel": "Mittel über die gespeicherten Läufe"},
+        {
+            "label": "Trend",
+            "key": "trend",
+            "num": True,
+            "titel": "letzter Lauf gegen das Mittel der vorigen — erst ab 25 % Abweichung",
+        },
+        {"label": "letzte 4 Läufe", "key": "laeufe", "titel": "Datum · Uhrzeit · Laufzeit, neuester zuerst"},
         {"label": "", "key": "run", "sortAus": True},
     )
 
@@ -124,20 +143,23 @@ class Testtabelle:
         # EIN Verschieber fuer die ganze Seite: Er sucht die Datei zu jeder
         # Test-ID auf der Platte. Je Zeile ein neuer waere derselbe Weg 173-mal.
         from .testverschieben import Verschieber
+
         self.verschieber = Verschieber()
         # Dasselbe fuer die Bereiche: Die Zuordnung kommt aus den Einstellungen
         # und ist fuer alle Zeilen dieselbe.
         from .testbereiche import Bereiche
+
         self.bereiche = Bereiche.aus_einstellungen()
         # Die vom Nutzer gesetzten Plaetze (Spalte „Nr."). Einmal geladen, fuer
         # alle Zeilen der Seite.
         from .testreihenfolge import Reihenfolge
+
         self.reihenfolge = Reihenfolge()
 
     # ------------------------------------------------------------- Umformer
 
     def aus_tests(self, kategorie, tab=None, key=None):
-        u"""Tabelle für die Einzeltests einer Kategorie (Unit, Component, …).
+        """Tabelle für die Einzeltests einer Kategorie (Unit, Component, …).
 
         ``key`` ist der Speicher-Schluessel (Sortierung, Spaltenbreiten). Er ist
         uebergebbar, weil dieselben Testfaelle an ZWEI Stellen stehen: im Reiter
@@ -148,19 +170,23 @@ class Testtabelle:
             [Eintrag.aus_test(t) for t in kategorie.get("tests", [])],
             key=key or "tests-%s" % (kategorie.get("typ") or "alle").lower(),
             tab=kategorie.get("typ") if tab is None else tab,
-            leer="Keine Tests gefunden — Labels in "
-                 "DJANGOBASE[\"test_discover\"] prüfen.")
+            leer='Keine Tests gefunden — Labels in DJANGOBASE["test_discover"] prüfen.',
+        )
 
     def aus_befehlen(self, befehle, key, tab=None, unter=""):
         """Tabelle für Suiten (Batch-Kommandos) — Gruppe oder Kategorie."""
-        return self.tabelle([Eintrag.aus_befehl(b) for b in befehle],
-                            key=key, tab=tab, unter=unter,
-                            leer="Keine Suiten konfiguriert.")
+        return self.tabelle(
+            [Eintrag.aus_befehl(b) for b in befehle],
+            key=key,
+            tab=tab,
+            unter=unter,
+            leer="Keine Suiten konfiguriert.",
+        )
 
     # -------------------------------------------------------------- Tabelle
 
     def tabelle(self, eintraege, key, tab=None, unter="", leer="keine Einträge"):
-        u"""Die Tabelle einer Kategorie — Zeilen nach Bereich vorsortiert.
+        """Die Tabelle einer Kategorie — Zeilen nach Bereich vorsortiert.
 
         EINE Tabelle je Kategorie, nicht eine je Bereich (Ansage 17.08.2026).
         Getrennte Tabellen haetten je eigene Sortierung, eigene Spaltenbreiten
@@ -172,16 +198,23 @@ class Testtabelle:
         # `Reihenfolge.OHNE` sortiert solche Faelle hinter die numerierten.
         eintraege = sorted(
             eintraege,
-            key=lambda e: (self.bereiche.platz(
-                               self.bereiche.slug_von(e.ziel or e.kennung)),
-                           self.reihenfolge.platz(e.kennung), e.kennung))
-        zeilen = self._nummerieren(self._mit_gruppen(
-            [self._zeile(e, tab, unter) for e in eintraege]))
+            key=lambda e: (
+                self.bereiche.platz(self.bereiche.slug_von(e.ziel or e.kennung)),
+                self.reihenfolge.platz(e.kennung),
+                e.kennung,
+            ),
+        )
+        zeilen = self._nummerieren(self._mit_gruppen([self._zeile(e, tab, unter) for e in eintraege]))
         for z in zeilen:
             z["html"] = self._zellen_html(z["zellen"])
         # Dictionary gewollt: geht unveraendert in `_tabelle.html`.
-        return {"key": key, "spalten": [dict(s) for s in self.SPALTEN],
-                "zeilen": zeilen, "leer": leer, "anzahl": len(zeilen)}
+        return {
+            "key": key,
+            "spalten": [dict(s) for s in self.SPALTEN],
+            "zeilen": zeilen,
+            "leer": leer,
+            "anzahl": len(zeilen),
+        }
 
     #: Die Zellen einer Zeile als fertige ``<td>``-Kette zusammensetzen.
     #: Gemessen am 18.08.2026: Der Seitenaufbau steckte zu drei Vierteln in der
@@ -205,8 +238,7 @@ class Testtabelle:
                 # deutsch — der Punkt galt als Tausenderzeichen, aus 0,379
                 # wurde 379. Der schnellste Lauf der Seite galt damit als
                 # der langsamste.
-                teile.append(' data-sort="%s"'
-                             % escape(Sortierschluessel.aus(sortwert)))
+                teile.append(' data-sort="%s"' % escape(Sortierschluessel.aus(sortwert)))
             if z.get("titel"):
                 teile.append(' title="%s"' % escape(str(z["titel"])))
             teile.append(">")
@@ -216,7 +248,7 @@ class Testtabelle:
         return "".join(stuecke)
 
     def _mit_gruppen(self, zeilen):
-        u"""Vor jedem neuen Bereich eine Abschnittszeile einziehen.
+        """Vor jedem neuen Bereich eine Abschnittszeile einziehen.
 
             „ausführen pro Teil-bereich möglich (also mach eine leere Zeile wenn
             tests zu einem neuen Bereich kommen, mit Button für Mehrauswahl und
@@ -247,12 +279,13 @@ class Testtabelle:
         for z in aus:
             if z.get("gruppe"):
                 z["zellen"][0]["html"] = z["zellen"][0]["html"].replace(
-                    "{{anzahl}}", str(z.get("anzahl") or 0))
+                    "{{anzahl}}", str(z.get("anzahl") or 0)
+                )
         return aus
 
     @staticmethod
     def _nummerieren(zeilen):
-        u"""Die Spalte „Nr." fuellen - je Bereichsabschnitt ab 1.
+        """Die Spalte „Nr." fuellen - je Bereichsabschnitt ab 1.
 
         Angezeigt wird der PLATZ, nicht der gespeicherte Wert: Nach einem
         Verschieben stehen sonst Luecken und Doppelungen in der Spalte („3, 3,
@@ -271,7 +304,7 @@ class Testtabelle:
         return zeilen
 
     def _gruppenzeile(self, slug, name):
-        u"""Die Abschnittszeile eines Bereichs - Name, Anzahl, zwei Knoepfe."""
+        """Die Abschnittszeile eines Bereichs - Name, Anzahl, zwei Knoepfe."""
         knoepfe = (
             '<button type="button" class="ts-ber-wahl" data-bereich="%(s)s" '
             'title="alle Fälle dieses Bereichs an-/abhaken">'
@@ -281,24 +314,28 @@ class Testtabelle:
             '<i class="bi bi-play-fill"></i> Bereich ausführen</button>'
         ) % {"s": escape(slug or "")}
         return {
-            "klasse": "ts-gruppe", "gruppe": True, "bereich": slug,
-            "zellen": [{"html": '<span class="ts-gruppe-name">%s</span>'
-                                '<span class="ts-count">{{anzahl}}</span>%s'
-                                % (escape(name or slug or "—"), knoepfe),
-                        "colspan": len(self.SPALTEN)}],
+            "klasse": "ts-gruppe",
+            "gruppe": True,
+            "bereich": slug,
+            "zellen": [
+                {
+                    "html": '<span class="ts-gruppe-name">%s</span>'
+                    '<span class="ts-count">{{anzahl}}</span>%s' % (escape(name or slug or "—"), knoepfe),
+                    "colspan": len(self.SPALTEN),
+                }
+            ],
         }
 
     def _zeile(self, e, tab, unter):
-        laeufe = (self.historie.suitenlaeufe(e.kennung) if e.ist_suite
-                  else self.historie.laeufe(e.kennung))
+        laeufe = self.historie.suitenlaeufe(e.kennung) if e.ist_suite else self.historie.laeufe(e.kennung)
         letzte = laeufe[0]["dauer"] if laeufe else None
         schnitt = self._schnitt(laeufe)
-        trendtext, trendklasse = ("", "") if e.ist_suite \
-            else self.historie.trend(e.kennung)
+        trendtext, trendklasse = ("", "") if e.ist_suite else self.historie.trend(e.kennung)
         b_slug, b_name = self.bereiche.zu(e.ziel or e.kennung)
         return {
             "klasse": "aktiv" if self.aktiver_slug == e.kennung else "",
-            "bereich": b_slug, "bereich_name": b_name,
+            "bereich": b_slug,
+            "bereich_name": b_name,
             # EINMAL je Zeile (30.08.2026). Vorher trug jedes Bedienelement die
             # Kennung selbst: Nummernfeld, Kategorie-Box, Bereichs-Box. Bei 742
             # Zeilen und 80 Zeichen je Kennung sind das 178 KB Verdrahtung in
@@ -307,50 +344,62 @@ class Testtabelle:
             # lesen sie jetzt ueber `closest('tr').dataset.id`.
             "id": e.kennung,
             "zellen": [
-                {"html": '<input type="checkbox" class="ts-wahl" value="%s" '
-                         'aria-label="auswählen">' % escape(e.kennung),
-                 "sort": 0, "klasse": "ts-wahl-zelle"},
+                {
+                    "html": '<input type="checkbox" class="ts-wahl" value="%s" '
+                    'aria-label="auswählen">' % escape(e.kennung),
+                    "sort": 0,
+                    "klasse": "ts-wahl-zelle",
+                },
                 # Die Nummer - der Platz in der Tabelle, aenderbar. `{{nr}}`
                 # setzt `_nummerieren` ein, sobald die Zeilen stehen (vorher ist
                 # der Platz nicht bekannt, weil die Abschnittszeilen dazwischen
                 # neu bei 1 beginnen).
-                {"html": '<input type="number" class="ts-nr" min="1" '
-                         'value="{{nr}}" aria-label="Platz in der Tabelle">',
-                 "klasse": "ts-nr-zelle"},
+                {
+                    "html": '<input type="number" class="ts-nr" min="1" '
+                    'value="{{nr}}" aria-label="Platz in der Tabelle">',
+                    "klasse": "ts-nr-zelle",
+                },
                 {"html": self._kategorie(e)},
                 # Der Bereich - als Combo-Box, wo er wechselbar ist (Ansage
                 # 17.08.2026: „der Bereich und die Kategorie können bei jedem
                 # test in der Tabelle per Combo Box geändert werden"). Sortiert
                 # wird nach dem NAMEN, nicht nach dem Auswahlfeld.
-                {"html": self._bereich(e, b_slug, b_name),
-                 "sort": self.bereiche.platz(b_slug)[1],
-                 "klasse": "ts-bereich-zelle"},
+                {
+                    "html": self._bereich(e, b_slug, b_name),
+                    "sort": self.bereiche.platz(b_slug)[1],
+                    "klasse": "ts-bereich-zelle",
+                },
                 # Im Knopf-Modus faehrt der Lauf per AJAX: Dann braucht die
                 # Zeile einen Platz, an den der Runner „läuft …“ / ✓ / ✗
                 # schreibt. Im Link-Modus laedt die Seite neu, dort waere das
                 # ein leeres Element ohne Zweck.
-                {"html": '<i class="bi bi-dot"></i> %s%s'
-                         % (escape(e.name),
-                            ' <span class="ts-status" data-status></span>'
-                            if self.run_modus == "knopf" else ""),
-                 "titel": e.titel},
+                {
+                    "html": '<i class="bi bi-dot"></i> %s%s'
+                    % (
+                        escape(e.name),
+                        ' <span class="ts-status" data-status></span>' if self.run_modus == "knopf" else "",
+                    ),
+                    "titel": e.titel,
+                },
                 # Titel dazu: Die Spalten sind gleich breit, der Modulpfad wird
                 # abgeschnitten — vollständig steht er im Tooltip.
                 {"html": escape(e.ziel), "klasse": "ts-ziel", "titel": e.ziel},
                 {"html": self._sekunden(letzte), "sort": letzte, "klasse": "num"},
                 {"html": self._sekunden(schnitt), "sort": schnitt, "klasse": "num"},
-                {"html": ('<span class="ts-trend %s">%s</span>'
-                          % (trendklasse, escape(trendtext))) if trendtext else "",
-                 "sort": self._trendwert(trendtext), "klasse": "num"},
-                {"html": self._laufliste(laeufe, mit_status=e.ist_suite),
-                 "sort": len(laeufe)},
-                {"html": self._knopf(e.kennung,
-                                     self.tab if tab is None else tab, unter)},
+                {
+                    "html": ('<span class="ts-trend %s">%s</span>' % (trendklasse, escape(trendtext)))
+                    if trendtext
+                    else "",
+                    "sort": self._trendwert(trendtext),
+                    "klasse": "num",
+                },
+                {"html": self._laufliste(laeufe, mit_status=e.ist_suite), "sort": len(laeufe)},
+                {"html": self._knopf(e.kennung, self.tab if tab is None else tab, unter)},
             ],
         }
 
     def _bereich(self, e, slug, name):
-        u"""Die Combo-Box „Bereich" - oder nur die Marke.
+        """Die Combo-Box „Bereich" - oder nur die Marke.
 
         Wechselbar ist der Bereich unter denselben Bedingungen wie die
         Kategorie: einzelner Python-Testfall, Datei in einem ``tests``-Baum,
@@ -358,8 +407,8 @@ class Testtabelle:
         djangoBase-eigene Tests zeigen ihn nur an.
         """
         from .testverschieben import Verschieber
-        marke = ('<span class="ts-bereich" data-bereich="%s">%s</span>'
-                 % (escape(slug), escape(name)))
+
+        marke = '<span class="ts-bereich" data-bereich="%s">%s</span>' % (escape(slug), escape(name))
         if e.ist_suite or Verschieber.aus_djangobase(e.kennung):
             return marke
         _slug, datei = self.verschieber.bereich_moeglich(e.kennung)
@@ -367,14 +416,16 @@ class Testtabelle:
             return marke
         # Kennung: siehe `data-id` auf der Zeile. Tooltip: nur das, was sich
         # je Zeile unterscheidet - was die Spalte tut, steht im Spaltenkopf.
-        return ('<select class="ts-ber ts-lazy" data-bereich="%s" '
-                'data-liste="ts-ber-optionen" '
-                'title="%s — weitere Fälle darin gehen mit">'
-                '<option value="%s" selected>%s</option></select>'
-                % (escape(slug), escape(datei.name), escape(slug), escape(name)))
+        return (
+            '<select class="ts-ber ts-lazy" data-bereich="%s" '
+            'data-liste="ts-ber-optionen" '
+            'title="%s — weitere Fälle darin gehen mit">'
+            '<option value="%s" selected>%s</option></select>'
+            % (escape(slug), escape(datei.name), escape(slug), escape(name))
+        )
 
     def _kategorie(self, e, kategorie_name=""):
-        u"""Die Combo-Box „Verschieben" - oder nur der Name der Kategorie.
+        """Die Combo-Box „Verschieben" - oder nur der Name der Kategorie.
 
         Aenderbar ist sie fuer einzelne Python-Testfaelle: Dort ist die Kategorie
         der ORDNER, und die Auswahl haengt die Testdatei um (siehe
@@ -383,52 +434,59 @@ class Testtabelle:
         Spalte zeigt sie dort nur an, statt einen Klick anzubieten, der nichts tut.
         """
         from .testverschieben import Verschieber
+
         if e.ist_suite:
             art = Verschieber.art_von(e.ziel) or Verschieber.art_von(e.kennung)
-            return ('<span class="ts-kat-fest" title="Kategorie steht im Ziel '
-                    'der Suite">%s</span>'
-                    % escape(Verschieber.NAMEN.get(art, art or "—")))
+            return '<span class="ts-kat-fest" title="Kategorie steht im Ziel der Suite">%s</span>' % escape(
+                Verschieber.NAMEN.get(art, art or "—")
+            )
         # Faelle, die djangoBase selbst mitbringt, tragen die Kategorie
         # „DjangoBase" (Ansage 17.08.2026). Sie gehoeren der Bibliothek und sind
         # nicht verschiebbar — vorher stand dort ein nacktes „—", das wie ein
         # Fehler aussah.
         if Verschieber.aus_djangobase(e.kennung):
-            return ('<span class="ts-kat-fest ts-kat-fremd" title="Testfall aus '
-                    'djangoBase selbst — gehört der Bibliothek, nicht diesem '
-                    'Projekt. Ein-/ausblenden über Einstellungen → djangoBase → '
-                    '„djangoBase-Testcases sichtbar“.">%s</span>'
-                    % escape(Verschieber.EIGENE_KATEGORIE))
+            return (
+                '<span class="ts-kat-fest ts-kat-fremd" title="Testfall aus '
+                "djangoBase selbst — gehört der Bibliothek, nicht diesem "
+                "Projekt. Ein-/ausblenden über Einstellungen → djangoBase → "
+                '„djangoBase-Testcases sichtbar“.">%s</span>' % escape(Verschieber.EIGENE_KATEGORIE)
+            )
         art, datei = self.verschieber.moeglich(e.kennung)
         wahl = Verschieber.auswahl(art, datei is not None)
         if datei is None:
-            return ('<span class="ts-kat-fest" title="nicht verschiebbar — die '
-                    'Datei liegt nicht in einem tests/&lt;art&gt;/-Ordner">%s</span>'
-                    % escape(kategorie_name or wahl[0][1]))
+            return (
+                '<span class="ts-kat-fest" title="nicht verschiebbar — die '
+                'Datei liegt nicht in einem tests/&lt;art&gt;/-Ordner">%s</span>'
+                % escape(kategorie_name or wahl[0][1])
+            )
         # NUR die aktuelle Option (Ansage: der Aufbau war langsam). Die
         # restlichen holt `tests_combo.js` beim Aufklappen aus EINER Liste im
         # DOM. Gemessen am 18.08.2026: 2.750 Zeilen x 21 Optionen sind rund
         # 58.000 `<option>` und damit über die Hälfte der 4,4 MB, die die Seite
         # wog — für Auswahlfelder, von denen man eines benutzt.
-        return ('<select class="ts-kat ts-lazy" data-art="%s" '
-                'data-liste="ts-kat-optionen" '
-                'title="%s — weitere Fälle darin gehen mit">'
-                '<option value="%s" selected>%s</option></select>'
-                % (escape(art), escape(datei.name), escape(art),
-                   escape(Verschieber.NAMEN.get(art, art))))
+        return (
+            '<select class="ts-kat ts-lazy" data-art="%s" '
+            'data-liste="ts-kat-optionen" '
+            'title="%s — weitere Fälle darin gehen mit">'
+            '<option value="%s" selected>%s</option></select>'
+            % (escape(art), escape(datei.name), escape(art), escape(Verschieber.NAMEN.get(art, art)))
+        )
 
     def optionen(self):
-        u"""Die vollstaendigen Auswahllisten - EINMAL je Seite.
+        """Die vollstaendigen Auswahllisten - EINMAL je Seite.
 
         Sie gehen als JSON ins DOM; `tests_combo.js` fuellt damit die Combo-Box,
         die gerade aufgeklappt wird. Vorher stand jede Liste in JEDER Zeile.
         """
         from .testverschieben import Verschieber
+
         # Dictionary gewollt: geht als json_script in die Vorlage.
         return {
-            "kategorie": [{"wert": a, "name": Verschieber.NAMEN.get(a, a)}
-                          for a, _n, _g in Verschieber.auswahl("", True)],
-            "bereich": [{"wert": w, "name": n}
-                        for w, n, _g in self.bereiche.auswahl("", True)],
+            "kategorie": [
+                {"wert": a, "name": Verschieber.NAMEN.get(a, a)}
+                for a, _n, _g in Verschieber.auswahl("", True)
+            ],
+            "bereich": [{"wert": w, "name": n} for w, n, _g in self.bereiche.auswahl("", True)],
         }
 
     @staticmethod
@@ -441,7 +499,7 @@ class Testtabelle:
 
     @staticmethod
     def _sekunden(wert, stellen=2):
-        u"""Laufzeit lesbar — Regel in :func:`.zeitformat.dauer_text`.
+        """Laufzeit lesbar — Regel in :func:`.zeitformat.dauer_text`.
 
         Hier steht nur noch der Sonderfall der Tabelle: „nie gelaufen" ist ein
         graues Zeichen, kein leerer Text.
@@ -462,7 +520,7 @@ class Testtabelle:
 
     @staticmethod
     def _kurze_zeit(zeit):
-        u"""„17.08.2026 17:02:32" -> „17.08. 17:02".
+        """„17.08.2026 17:02:32" -> „17.08. 17:02".
 
         Das Jahr steht in jeder Zeile gleich da und kostet nur Breite (im Tooltip
         ist es vollstaendig), die Sekunden interessieren beim Datum nicht. Der
@@ -476,7 +534,7 @@ class Testtabelle:
 
     @classmethod
     def _laufliste(cls, laeufe, mit_status=False):
-        u"""Die letzten Laeufe als Kette „17.08. 16:55 · 1,23 s"."""
+        """Die letzten Laeufe als Kette „17.08. 16:55 · 1,23 s"."""
         if not laeufe:
             return '<span class="ts-nie">noch nie gelaufen</span>'
         stuecke = []
@@ -484,25 +542,34 @@ class Testtabelle:
             zeit = str(lauf.get("zeit") or "")
             marke = ""
             if mit_status:
-                marke = ('<i class="bi bi-check-circle-fill ts-ok"></i> '
-                         if lauf.get("ok") else
-                         '<i class="bi bi-x-circle-fill ts-fehler"></i> ')
+                marke = (
+                    '<i class="bi bi-check-circle-fill ts-ok"></i> '
+                    if lauf.get("ok")
+                    else '<i class="bi bi-x-circle-fill ts-fehler"></i> '
+                )
             dauer = lauf.get("dauer")
             stuecke.append(
                 '<span class="ts-lauf" title="%s">%s%s · %s</span>'
-                % (escape(zeit), marke, escape(cls._kurze_zeit(zeit)),
-                   "—" if dauer is None else cls._sekunden(dauer)))
+                % (
+                    escape(zeit),
+                    marke,
+                    escape(cls._kurze_zeit(zeit)),
+                    "—" if dauer is None else cls._sekunden(dauer),
+                )
+            )
         return " ".join(stuecke)
 
     def _knopf(self, kennung, tab, unter=""):
         if self.run_modus == "knopf":
-            return ('<button type="button" class="ts-run" data-run="%s" '
-                    'title="Diesen Test ausführen">'
-                    '<i class="bi bi-play-fill"></i> Run</button>'
-                    % escape(kennung))
+            return (
+                '<button type="button" class="ts-run" data-run="%s" '
+                'title="Diesen Test ausführen">'
+                '<i class="bi bi-play-fill"></i> Run</button>' % escape(kennung)
+            )
         felder = {"run": kennung, "tab": tab or ""}
         if unter:
             felder["unter"] = unter
-        return ('<a class="ts-run" href="?%s" title="Diesen Test ausführen">'
-                '<i class="bi bi-play-fill"></i> Run</a>'
-                % escape(urlencode(felder)))
+        return (
+            '<a class="ts-run" href="?%s" title="Diesen Test ausführen">'
+            '<i class="bi bi-play-fill"></i> Run</a>' % escape(urlencode(felder))
+        )

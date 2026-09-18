@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-u"""LsSitzung: Rahmen, Antworten auf Server-Anfragen, URI-Wandlung — mit einer
+"""LsSitzung: Rahmen, Antworten auf Server-Anfragen, URI-Wandlung — mit einer
 Attrappe statt eines echten Servers. Der echte Server ist eine Gegenprobe."""
+
 import io
 import json
 import threading
@@ -11,7 +12,7 @@ from djangobase.umbau.ls_sitzung import LsSitzung, pfad_aus_uri, uri
 
 
 class Rohr:
-    u"""stdin-Attrappe: sammelt, was die Sitzung schreibt."""
+    """stdin-Attrappe: sammelt, was die Sitzung schreibt."""
 
     def __init__(self):
         self.puffer = io.BytesIO()
@@ -48,15 +49,21 @@ def _rahmen(nachricht):
 
 
 class SitzungTest(unittest.TestCase):
-
     def test_uri_rundreise(self):
         p = Path(r"C:\p\brain\a.py") if Path("C:/").exists() else Path("/p/brain/a.py")
         self.assertEqual(pfad_aus_uri(uri(p)), p.resolve())
 
     def test_anfrage_wird_gerahmt_und_antwort_zugeordnet(self):
         s = LsSitzung("server", ".", {"python": {"x": 1}})
-        s._prozess = Prozess(_rahmen({"jsonrpc": "2.0", "id": 1, "result": [{"uri": uri("a.py"),
-                             "range": {"start": {"line": 2, "character": 3}}}]}))
+        s._prozess = Prozess(
+            _rahmen(
+                {
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": [{"uri": uri("a.py"), "range": {"start": {"line": 2, "character": 3}}}],
+                }
+            )
+        )
         threading.Thread(target=s._lesen, daemon=True).start()
         raus = s.anfragen("textDocument/references", {"x": 1}, zeitlimit=5)
         self.assertEqual(raus[0]["range"]["start"]["line"], 2)
@@ -68,16 +75,23 @@ class SitzungTest(unittest.TestCase):
         einstellungen = {"python": {"venv": "v"}, "python.analysis": {"typeCheckingMode": "basic"}}
         s = LsSitzung("server", ".", einstellungen)
         s._prozess = Prozess(b"")
-        s._eingang({"jsonrpc": "2.0", "id": 7, "method": "workspace/configuration",
-                    "params": {"items": [{"section": "python.analysis"}, {"section": "fremd"}]}})
+        s._eingang(
+            {
+                "jsonrpc": "2.0",
+                "id": 7,
+                "method": "workspace/configuration",
+                "params": {"items": [{"section": "python.analysis"}, {"section": "fremd"}]},
+            }
+        )
         antwort = s._prozess.stdin.nachrichten()[0]
         self.assertEqual(antwort["id"], 7)
         self.assertEqual(antwort["result"], [{"typeCheckingMode": "basic"}, {}])
 
     def test_fehlerantwort_wird_zur_ausnahme(self):
         s = LsSitzung("server", ".", {})
-        s._prozess = Prozess(_rahmen({"jsonrpc": "2.0", "id": 1,
-                                      "error": {"code": -32601, "message": "unbekannt"}}))
+        s._prozess = Prozess(
+            _rahmen({"jsonrpc": "2.0", "id": 1, "error": {"code": -32601, "message": "unbekannt"}})
+        )
         threading.Thread(target=s._lesen, daemon=True).start()
         with self.assertRaises(RuntimeError):
             s.anfragen("x", None, zeitlimit=5)
@@ -91,6 +105,11 @@ class SitzungTest(unittest.TestCase):
     def test_diagnosen_werden_gezaehlt(self):
         s = LsSitzung("server", ".", {})
         s._prozess = Prozess(b"")
-        s._eingang({"jsonrpc": "2.0", "method": "textDocument/publishDiagnostics",
-                    "params": {"diagnostics": [{}, {}]}})
+        s._eingang(
+            {
+                "jsonrpc": "2.0",
+                "method": "textDocument/publishDiagnostics",
+                "params": {"diagnostics": [{}, {}]},
+            }
+        )
         self.assertEqual(s.diagnosen, 2)

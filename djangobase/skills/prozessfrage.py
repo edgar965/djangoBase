@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Laeuft dieser Prozess noch? — die Frage vor jedem rekursiven Loeschen.
+"""Laeuft dieser Prozess noch? — die Frage vor jedem rekursiven Loeschen.
 
 WARUM ES DIESE KLASSE GIBT (31.08.2026)
 =======================================
@@ -31,10 +31,11 @@ kostet nichts; ein geloeschter Ordner eines laufenden Prozesses kostet
 dessen Lauf (siehe ``~/.claude/rules/rekursiv-loeschen.md``: 972 von 997
 Dateien geloescht, waehrend das Programm daraus lief).
 """
+
 import os
 import sys
 
-__all__ = ['Prozessfrage']
+__all__ = ["Prozessfrage"]
 
 #: Windows: Rechte, die zum Fragen genuegen.
 _PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
@@ -44,11 +45,11 @@ _STILL_ACTIVE = 259
 
 
 class Prozessfrage:
-    u"""Auskunft ueber fremde Prozesse — ohne sie anzufassen."""
+    """Auskunft ueber fremde Prozesse — ohne sie anzufassen."""
 
     @staticmethod
     def lebt(pid):
-        u"""Laeuft der Prozess mit dieser Nummer noch?
+        """Laeuft der Prozess mit dieser Nummer noch?
 
         Gibt im Zweifel ``True`` zurueck: Wer nicht sicher weiss, dass
         ein Prozess tot ist, raeumt seine Dateien nicht weg.
@@ -59,7 +60,7 @@ class Prozessfrage:
             return True
         if pid <= 0:
             return True
-        if sys.platform == 'win32':
+        if sys.platform == "win32":
             return Prozessfrage._lebt_windows(pid)
         return Prozessfrage._lebt_posix(pid)
 
@@ -78,7 +79,7 @@ class Prozessfrage:
 
     @staticmethod
     def _lebt_windows(pid):
-        u"""``OpenProcess`` + ``GetExitCodeProcess`` — nie ``os.kill``.
+        """``OpenProcess`` + ``GetExitCodeProcess`` — nie ``os.kill``.
 
         EIN HANDLE ALLEIN REICHT NICHT als Beweis: Solange irgendwer ein
         Handle auf einen beendeten Prozess haelt, gelingt ``OpenProcess``
@@ -88,11 +89,10 @@ class Prozessfrage:
         import ctypes
 
         try:
-            kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
         except (OSError, AttributeError):
             return True
-        griff = kernel32.OpenProcess(
-            _PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+        griff = kernel32.OpenProcess(_PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
         if not griff:
             # Kein Zugriff kann auch „Rechte fehlen" heissen. Der
             # Unterschied: ERROR_INVALID_PARAMETER (87) sagt „diese
@@ -107,13 +107,13 @@ class Prozessfrage:
             kernel32.CloseHandle(griff)
 
     @staticmethod
-    def nummer_aus(name, praefix='p'):
-        u"""Die Prozessnummer aus einem Ordnernamen wie ``p60596``.
+    def nummer_aus(name, praefix="p"):
+        """Die Prozessnummer aus einem Ordnernamen wie ``p60596``.
 
         ``None``, wenn der Name keine traegt — dann weiss man nichts
         ueber ihn, und der Aufrufer laesst ihn in Ruhe.
         """
         if not name.startswith(praefix):
             return None
-        rest = name[len(praefix):]
+        rest = name[len(praefix) :]
         return int(rest) if rest.isdigit() else None

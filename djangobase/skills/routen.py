@@ -15,18 +15,18 @@ from django.urls.resolvers import URLPattern, URLResolver
 #: Datensatz waere bei Loesch-Routen fatal. Deshalb Kennungen, die es nicht
 #: gibt — die Antwort ist dann 404, und auch das ist ein stabiler Vergleichswert.
 PLATZHALTER = {
-    'int': '0',
-    'str': 'probe',
-    'slug': 'probe',
-    'uuid': '00000000-0000-0000-0000-000000000001',
-    'path': 'probe',
+    "int": "0",
+    "str": "probe",
+    "slug": "probe",
+    "uuid": "00000000-0000-0000-0000-000000000001",
+    "path": "probe",
 }
 
 
 class Route:
     """Eine aufrufbare GET-Route mit ihrem Namen."""
 
-    __slots__ = ('weg', 'name', 'ansicht')
+    __slots__ = ("weg", "name", "ansicht")
 
     def __init__(self, weg, name, ansicht):
         self.weg = weg
@@ -39,12 +39,13 @@ class Route:
 
 def _fuellen(muster):
     """`<int:pk>` und `(?P<pk>[0-9]+)` durch Platzhalter ersetzen."""
-    def ersatz(treffer):
-        konverter = treffer.group(1) or 'str'
-        return PLATZHALTER.get(konverter, 'probe')
 
-    weg = re.sub(r'<(?:(\w+):)?\w+>', ersatz, muster)
-    weg = re.sub(r'\(\?P<\w+>[^)]*\)', 'probe', weg)
+    def ersatz(treffer):
+        konverter = treffer.group(1) or "str"
+        return PLATZHALTER.get(konverter, "probe")
+
+    weg = re.sub(r"<(?:(\w+):)?\w+>", ersatz, muster)
+    weg = re.sub(r"\(\?P<\w+>[^)]*\)", "probe", weg)
     return weg
 
 
@@ -52,28 +53,27 @@ def _sammeln(resolver, praefix, gefunden, tiefe=0):
     if tiefe > 8:
         return
     for eintrag in resolver.url_patterns:
-        teil = str(getattr(eintrag.pattern, '_route', eintrag.pattern))
+        teil = str(getattr(eintrag.pattern, "_route", eintrag.pattern))
         if isinstance(eintrag, URLResolver):
             _sammeln(eintrag, praefix + teil, gefunden, tiefe + 1)
         elif isinstance(eintrag, URLPattern):
-            weg = '/' + _fuellen(praefix + teil).lstrip('/')
-            gefunden.append(Route(weg, eintrag.name or '',
-                                  getattr(eintrag.callback, '__name__', '')))
+            weg = "/" + _fuellen(praefix + teil).lstrip("/")
+            gefunden.append(Route(weg, eintrag.name or "", getattr(eintrag.callback, "__name__", "")))
 
 
-def alle_routen(ausser=('/admin/', '/static/', '/media/', '/__debug__/')):
+def alle_routen(ausser=("/admin/", "/static/", "/media/", "/__debug__/")):
     """Alle Routen des Projekts, Platzhalter gefuellt, ohne Doppelte.
 
     Admin und Dateiauslieferung bleiben aussen vor: Die eine ist fremder Code,
     die andere liefert nur Dateien und verfaelscht jede Zeitmessung.
     """
     gefunden = []
-    _sammeln(get_resolver(), '', gefunden)
+    _sammeln(get_resolver(), "", gefunden)
     gesehen, ergebnis = set(), []
     for route in gefunden:
         if any(route.weg.startswith(p) for p in ausser):
             continue
-        if route.weg in gesehen or '(' in route.weg or '<' in route.weg:
+        if route.weg in gesehen or "(" in route.weg or "<" in route.weg:
             continue
         gesehen.add(route.weg)
         ergebnis.append(route)
@@ -91,6 +91,7 @@ def klient():
     """
     from django.conf import settings
     from django.test import Client
-    if '*' not in settings.ALLOWED_HOSTS and 'testserver' not in settings.ALLOWED_HOSTS:
-        settings.ALLOWED_HOSTS = list(settings.ALLOWED_HOSTS) + ['testserver']
+
+    if "*" not in settings.ALLOWED_HOSTS and "testserver" not in settings.ALLOWED_HOSTS:
+        settings.ALLOWED_HOSTS = list(settings.ALLOWED_HOSTS) + ["testserver"]
     return Client()

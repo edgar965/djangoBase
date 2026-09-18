@@ -12,10 +12,17 @@ aktualisiert, die andere bleibt erhalten (Merge).
 Existiert keine JSON-Datei, verhaelt sich conf() exakt wie zuvor — bestehende
 Projekte (z. B. der Assistant) bleiben damit unveraendert.
 """
+
 import json
+import logging
+import os
+import re
+import tempfile
 from pathlib import Path
 
 from django.conf import settings
+
+from .pause import Pause
 
 # Feld-Definition: (key, typ, label) — typ steuert Eingabefeld + Konvertierung.
 #   "text"  -> Textfeld          "bool"  -> Checkbox
@@ -52,9 +59,12 @@ GRUPPEN = {
         "beschreibung": "Alle Layout-, Hilfe- und Versionen-Optionen von djangoBase auf einen Blick.",
         "felder": [
             # --- Layout-Auswahl ---
-            ("base_template", "layout",
-             "Layout (Basis-Template) — Auswahl der in djangoBase mitgelieferten "
-             "Layout-Shells (Optik der Seiten)."),
+            (
+                "base_template",
+                "layout",
+                "Layout (Basis-Template) — Auswahl der in djangoBase mitgelieferten "
+                "Layout-Shells (Optik der Seiten).",
+            ),
             # --- Layout / Optik ---
             ("sidebar_bg", "color", "Sidebar-Hintergrund"),
             ("sidebar_light", "color", "Sidebar-Akzent (hell)"),
@@ -65,33 +75,45 @@ GRUPPEN = {
             ("sidebar_min", "int", "Sidebar-Mindestbreite (px)"),
             ("sidebar_max", "int", "Sidebar-Maximalbreite (px)"),
             ("toast_stack", "bool", "Toast-Meldungen anzeigen"),
-            ("test_bereiche", "zeilen",
-             "Test-Bereiche (Hilfe → Tests, Spalte „Bereich“) — eine Zeile je "
-             "Bereich: slug | Anzeigename | modulpraefix, modulpraefix. "
-             "Leer = aus dem Ordner abgeleitet."),
-            ("test_kategorien", "zeilen",
-             "Test-Kategorien — Reihenfolge und Namen der Reiter, eine Zeile "
-             "je Kategorie: slug | Anzeigename. Erlaubt sind nur die Ordner "
-             "unit, component, ui, automated, performance, longrunner."),
-            ("tests_djangobase_sichtbar", "bool",
-             "djangoBase-Testcases sichtbar (Hilfe → Tests) — die Fälle, die "
-             "djangoBase selbst mitbringt (Grundtests, Endpunktprobe). Aus: "
-             "die Liste zeigt nur die Tests dieses Projekts."),
+            (
+                "test_bereiche",
+                "zeilen",
+                "Test-Bereiche (Hilfe → Tests, Spalte „Bereich“) — eine Zeile je "
+                "Bereich: slug | Anzeigename | modulpraefix, modulpraefix. "
+                "Leer = aus dem Ordner abgeleitet.",
+            ),
+            (
+                "test_kategorien",
+                "zeilen",
+                "Test-Kategorien — Reihenfolge und Namen der Reiter, eine Zeile "
+                "je Kategorie: slug | Anzeigename. Erlaubt sind nur die Ordner "
+                "unit, component, ui, automated, performance, longrunner.",
+            ),
+            (
+                "tests_djangobase_sichtbar",
+                "bool",
+                "djangoBase-Testcases sichtbar (Hilfe → Tests) — die Fälle, die "
+                "djangoBase selbst mitbringt (Grundtests, Endpunktprobe). Aus: "
+                "die Liste zeigt nur die Tests dieses Projekts.",
+            ),
             # --- Navigation / Menue ---
-            ("einstellungen_menu", "bool",
-             "Menue-Gruppe 'Einstellungen' im djangoBase-Nav-Block einblenden"),
-            ("hilfe_menu", "bool",
-             "Menue-Gruppe 'Hilfe' im djangoBase-Nav-Block einblenden"),
+            ("einstellungen_menu", "bool", "Menue-Gruppe 'Einstellungen' im djangoBase-Nav-Block einblenden"),
+            ("hilfe_menu", "bool", "Menue-Gruppe 'Hilfe' im djangoBase-Nav-Block einblenden"),
             # --- Versionen-Seite ---
-            ("version_commits_per_page", "int",
-             "Versionen-Seite: Commits pro Repo aus GitHub holen"),
-            ("commit_text_transform", "text",
-             "Versionen-Seite: optionaler Body-Transform (dotted Path, z. B. "
-             "search.utils.umlauts.restore_umlauts) — wird auf Commit-Subject/Body angewendet"),
+            ("version_commits_per_page", "int", "Versionen-Seite: Commits pro Repo aus GitHub holen"),
+            (
+                "commit_text_transform",
+                "text",
+                "Versionen-Seite: optionaler Body-Transform (dotted Path, z. B. "
+                "search.utils.umlauts.restore_umlauts) — wird auf Commit-Subject/Body angewendet",
+            ),
             # --- Logs-Seite ---
-            ("log_noisy_sources", "csv",
-             "Logs-Seite: Quell-Keys, die in 'Alle Quellen' übersprungen werden "
-             "(Komma-getrennt, z. B. mail_import, pst_worker)"),
+            (
+                "log_noisy_sources",
+                "csv",
+                "Logs-Seite: Quell-Keys, die in 'Alle Quellen' übersprungen werden "
+                "(Komma-getrennt, z. B. mail_import, pst_worker)",
+            ),
         ],
     },
     "freigabe": {
@@ -99,7 +121,7 @@ GRUPPEN = {
         "icon": "bi-person-check",
         "titel": "Konten-Freigabe",
         "beschreibung": "Müssen neue Konten erst vom Admin freigegeben werden, "
-                        "bevor sie sich anmelden können? (Seite „Nutzer-Freigabe“.)",
+        "bevor sie sich anmelden können? (Seite „Nutzer-Freigabe“.)",
         "felder": [
             ("freigabe_nutzer_noetig", "bool", "Nutzer erst freigeben"),
             ("freigabe_provider_noetig", "bool", "Provider erst freigeben"),
@@ -110,7 +132,7 @@ GRUPPEN = {
         "icon": "bi-translate",
         "titel": "Einstellungen · Übersetzung",
         "beschreibung": "Zielsprachen der automatischen Übersetzung der User-Seite "
-                        "(eigene Seite: views/uebersetzung.py, kein Generik-Formular).",
+        "(eigene Seite: views/uebersetzung.py, kein Generik-Formular).",
         "felder": [
             ("uebersetzung_sprachen", "csv", "Aktive Zielsprachen (Sprachcodes)"),
         ],
@@ -120,7 +142,7 @@ GRUPPEN = {
         "icon": "bi-envelope",
         "titel": "Einstellungen · E-Mail",
         "beschreibung": "SMTP-Versand für Bestätigungs- und System-Mails. "
-                        "Wird vom djangoBase-E-Mail-Backend zur Laufzeit verwendet.",
+        "Wird vom djangoBase-E-Mail-Backend zur Laufzeit verwendet.",
         "felder": [
             ("email_host", "text", "SMTP-Server (Host)"),
             ("email_port", "int", "Port (587 = STARTTLS, 465 = SSL)"),
@@ -162,12 +184,6 @@ def _pfad():
 # Altes flaches Format ({<key>: <wert>}) wird beim Lesen transparent in ein
 # Standard-Profil migriert -> bestehende Projekte bleiben unveraendert.
 # ---------------------------------------------------------------------------
-import logging
-import os
-import re
-import tempfile
-
-from .pause import Pause
 
 logger = logging.getLogger(__name__)
 
@@ -181,8 +197,11 @@ STANDARD_LABEL = "djangoBase Standard"
 
 
 def _leer_struktur():
-    return {"format": 2, "aktiv": STANDARD_SLUG,
-            "profile": {STANDARD_SLUG: {"label": STANDARD_LABEL, "werte": {}}}}
+    return {
+        "format": 2,
+        "aktiv": STANDARD_SLUG,
+        "profile": {STANDARD_SLUG: {"label": STANDARD_LABEL, "werte": {}}},
+    }
 
 
 def _normalisieren(daten):
@@ -259,7 +278,7 @@ class _Sperre:
         _rlock.acquire()
         _tiefe["n"] += 1
         self._datei = None
-        if _tiefe["n"] > 1:            # verschachtelter Aufruf: Datei haelt schon
+        if _tiefe["n"] > 1:  # verschachtelter Aufruf: Datei haelt schon
             return self
         pfad = _pfad().with_suffix(_pfad().suffix + ".lock")
         for _ in range(self.VERSUCHE):
@@ -271,9 +290,8 @@ class _Sperre:
             except FileExistsError:
                 PAUSE.warten(self.PAUSE_S)
             except OSError:
-                return self            # kein Sperrdatei-Ort -> ohne weitermachen
-        logger.warning("djangobase.store: Sperrdatei %s blieb belegt — es wird "
-                       "trotzdem gespeichert", pfad)
+                return self  # kein Sperrdatei-Ort -> ohne weitermachen
+        logger.warning("djangobase.store: Sperrdatei %s blieb belegt — es wird trotzdem gespeichert", pfad)
         return self
 
     def __exit__(self, *_):
@@ -281,8 +299,7 @@ class _Sperre:
             try:
                 self._datei.unlink()
             except OSError:
-                logger.warning("djangobase.store: Sperrdatei nicht entfernbar: %s",
-                               self._datei)
+                logger.warning("djangobase.store: Sperrdatei nicht entfernbar: %s", self._datei)
         _tiefe["n"] -= 1
         _rlock.release()
         return False
@@ -295,7 +312,7 @@ def _atomar_schreiben(obj):
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(text)
-        os.replace(tmp, str(pfad))   # atomarer Rename
+        os.replace(tmp, str(pfad))  # atomarer Rename
     except Exception:
         try:
             os.unlink(tmp)
@@ -340,11 +357,11 @@ def speichern(daten):
 
 # ----- Profil-Verwaltung (Einstellungen-Seite) -----------------------------
 
+
 def profile_liste():
     """[(slug, label, ist_aktiv), ...] in Einfuege-Reihenfolge."""
     s = _roh_laden()
-    return [(slug, prof["label"], slug == s["aktiv"])
-            for slug, prof in s["profile"].items()]
+    return [(slug, prof["label"], slug == s["aktiv"]) for slug, prof in s["profile"].items()]
 
 
 def aktiv_slug():
@@ -403,7 +420,7 @@ def speichern_gruppe(slug, werte):
     """Aktualisiert nur die Felder der Gruppe `slug` und behaelt den Rest
     (Merge). Keys der Gruppe, die nicht in `werte` stehen, werden entfernt
     (-> Settings-Default greift wieder)."""
-    with _Sperre():        # Lesen UND Schreiben unter derselben Sperre
+    with _Sperre():  # Lesen UND Schreiben unter derselben Sperre
         keys = _gruppe_keys(slug)
         bestehend = {k: v for k, v in laden().items() if k not in keys}
         bestehend.update({k: v for k, v in werte.items() if k in keys})

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""KI-Modelle: Katalog und Messungen - fuer jedes djangoBase-Projekt.
+"""KI-Modelle: Katalog und Messungen - fuer jedes djangoBase-Projekt.
 
 WOHER DAS KOMMT (Ansage Edgar, 18.08.2026)
 ==========================================
@@ -25,10 +25,10 @@ Beide brauchen NICHTS ausser der Standardbibliothek (geprueft beim Umzug): kein
 Django, kein numpy, keine Projektpfade. Der einzige veraenderliche Teil ist das
 Cache-Verzeichnis, das der Aufrufer uebergibt.
 """
+
 from .messungen import BEFUNDE, Bestenliste
 from .modelle import ModellKatalog
 from .modellname import GB_JE_MRD, Modellname
 from .ollama import OllamaModelle
 
-__all__ = ["ModellKatalog", "OllamaModelle", "Modellname", "GB_JE_MRD",
-           "Bestenliste", "BEFUNDE"]
+__all__ = ["ModellKatalog", "OllamaModelle", "Modellname", "GB_JE_MRD", "Bestenliste", "BEFUNDE"]

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Teststrom - einen Testlauf fahren und LIVE berichten.
+"""Teststrom - einen Testlauf fahren und LIVE berichten.
 
     „live fortschritt in djangoBase einbauen" (Edgar, 17.08.2026)
 
@@ -49,6 +49,7 @@ EIN LAUF ZUR ZEIT
 kein Cache: Sonst hätte bei mehreren Server-Arbeitern jeder seinen eigenen
 „einen Lauf", und die zweite Testdatenbank läuft der ersten in die Quere.
 """
+
 import atexit
 import json
 import logging
@@ -87,7 +88,7 @@ class Teststrom:
         self.sperre = sperre or Laufsperre()
 
     def fahren(self, cmd, name="", frist=None, ziele=(), alles=False):
-        u"""Ereignis-Generator. ``cmd`` ist die geprüfte Kommandoliste.
+        """Ereignis-Generator. ``cmd`` ist die geprüfte Kommandoliste.
 
         ``ziele`` sind die AUFGELÖSTEN Testlabels. Sie gehen ins ``start``-
         Ereignis, weil die Seite sie nicht kennen kann: Bei „Alles ausführen"
@@ -103,19 +104,31 @@ class Teststrom:
             return
         # `alles`: Der Lauf hat KEIN Label (ganzes Projekt) - die Seite hakt
         # dann jedes Kaestchen an, weil jeder Fall dabei ist.
-        yield self._satz({"type": "start", "cmd": " ".join(cmd), "name": name,
-                          "ziele": [str(z) for z in (ziele or [])],
-                          "alles": bool(alles)})
+        yield self._satz(
+            {
+                "type": "start",
+                "cmd": " ".join(cmd),
+                "name": name,
+                "ziele": [str(z) for z in (ziele or [])],
+                "alles": bool(alles),
+            }
+        )
         try:
             prozess = subprocess.Popen(
-                cmd, cwd=str(settings.BASE_DIR),
-                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                text=True, bufsize=1, encoding="utf-8", errors="replace",
+                cmd,
+                cwd=str(settings.BASE_DIR),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1,
+                encoding="utf-8",
+                errors="replace",
                 creationflags=_NO_WINDOW,
                 # POSIX: eigene Prozessgruppe, damit `os.killpg` die Kinder
                 # trifft und NICHT den Server. Auf Windows tut der Parameter
                 # nichts - dort erledigt `taskkill /T` dasselbe.
-                start_new_session=not sys.platform.startswith("win"))
+                start_new_session=not sys.platform.startswith("win"),
+            )
         except OSError as fehler:
             log.exception("Testlauf nicht startbar: %s", cmd)
             self.sperre.freigeben()
@@ -130,11 +143,10 @@ class Teststrom:
         ende = start + int(frist or self.FRIST)
         # Die drei Netze (siehe Modulkopf): Waechter gegen blockierende Ausgabe,
         # `atexit` gegen einen Server-Neustart, `finally` gegen den Abbruch.
-        waechter = threading.Timer(max(1, ende - time.time()),
-                                   self._notbremse, args=(prozess, name))
+        waechter = threading.Timer(max(1, ende - time.time()), self._notbremse, args=(prozess, name))
         waechter.daemon = True
         waechter.start()
-        beim_ende = lambda: Toeter.prozess(prozess)          # noqa: E731
+        beim_ende = lambda: Toeter.prozess(prozess)  # noqa: E731
         atexit.register(beim_ende)
         try:
             while True:
@@ -143,9 +155,9 @@ class Teststrom:
                     if prozess.poll() is not None:
                         break
                     if time.time() > ende:
-                        yield self._satz({"type": "error",
-                                          "detail": "Frist überschritten — "
-                                                    "Lauf abgebrochen."})
+                        yield self._satz(
+                            {"type": "error", "detail": "Frist überschritten — Lauf abgebrochen."}
+                        )
                         break
                     continue
                 zeile = zeile.rstrip()
@@ -157,13 +169,11 @@ class Teststrom:
                         yield self._satz({"type": "plan", "tests": plan})
                 ereignis = leser.lesen(zeile)
                 if ereignis:
-                    zaehler[ereignis["status"]] = zaehler.get(
-                        ereignis["status"], 0) + 1
+                    zaehler[ereignis["status"]] = zaehler.get(ereignis["status"], 0) + 1
                     yield self._satz({"type": "progress", **ereignis})
                 else:
                     yield self._satz({"type": "log", "line": zeile})
-            yield self._satz(self._abschluss(prozess, zaehler, gesammelt,
-                                             time.time() - start, name))
+            yield self._satz(self._abschluss(prozess, zaehler, gesammelt, time.time() - start, name))
         finally:
             # Siehe Modulkopf: Der Prozess darf NIE zurückbleiben.
             waechter.cancel()
@@ -172,8 +182,9 @@ class Teststrom:
             except Exception:  # noqa: BLE001
                 pass
             if prozess.poll() is None:
-                log.warning("Testlauf '%s' wird beendet (Verbindung beendet "
-                            "oder Frist abgelaufen)", name or "?")
+                log.warning(
+                    "Testlauf '%s' wird beendet (Verbindung beendet oder Frist abgelaufen)", name or "?"
+                )
                 Toeter.prozess(prozess)
             self.sperre.freigeben()
 
@@ -189,31 +200,39 @@ class Teststrom:
             laeufe = {}
         gefahren = sum(zaehler.values())
         # Dictionary gewollt: geht als JSON-Zeile an die Seite.
-        return {"type": "summary", "name": name,
-                "total": gefahren, "passed": zaehler.get("pass", 0),
-                "failed": zaehler.get("fail", 0),
-                "errors": zaehler.get("error", 0),
-                "skipped": zaehler.get("skip", 0),
-                "rc": prozess.returncode,
-                "ok": prozess.returncode == 0,
-                # EIN UEBERSPRUNGENER TEST IST NIE GRUEN (23.08.2026)
-                # =================================================
-                #     „ein übersprungener Test soll nie grün melden!!!
-                #      immer gelb"
-                #
-                # `returncode == 0` gilt auch dann, wenn kein einziger Test
-                # gelaufen ist. An dem Abend meldeten 18 Vollbild-Pruefungen
-                # „OK", von denen 11 uebersprungen waren — der Fehler, den
-                # sie haetten finden sollen, war da.
-                "zustand": ("rot" if prozess.returncode != 0
-                            else "gelb" if (zaehler.get("skip", 0)
-                                            or not gefahren)
-                            else "gruen"),
-                "dauer": round(dauer, 3), "laeufe": laeufe}
+        return {
+            "type": "summary",
+            "name": name,
+            "total": gefahren,
+            "passed": zaehler.get("pass", 0),
+            "failed": zaehler.get("fail", 0),
+            "errors": zaehler.get("error", 0),
+            "skipped": zaehler.get("skip", 0),
+            "rc": prozess.returncode,
+            "ok": prozess.returncode == 0,
+            # EIN UEBERSPRUNGENER TEST IST NIE GRUEN (23.08.2026)
+            # =================================================
+            #     „ein übersprungener Test soll nie grün melden!!!
+            #      immer gelb"
+            #
+            # `returncode == 0` gilt auch dann, wenn kein einziger Test
+            # gelaufen ist. An dem Abend meldeten 18 Vollbild-Pruefungen
+            # „OK", von denen 11 uebersprungen waren — der Fehler, den
+            # sie haetten finden sollen, war da.
+            "zustand": (
+                "rot"
+                if prozess.returncode != 0
+                else "gelb"
+                if (zaehler.get("skip", 0) or not gefahren)
+                else "gruen"
+            ),
+            "dauer": round(dauer, 3),
+            "laeufe": laeufe,
+        }
 
     @staticmethod
     def _notbremse(prozess, name):
-        u"""Nach Ablauf der Frist beenden - ohne auf Ausgabe zu warten.
+        """Nach Ablauf der Frist beenden - ohne auf Ausgabe zu warten.
 
         Das ist der Fall, den das ``finally`` NICHT abdeckt: Haengt ein Test und
         schreibt nichts mehr, kommt der Generator nie zum naechsten ``yield`` und
@@ -221,11 +240,12 @@ class Teststrom:
         """
         if prozess.poll() is not None:
             return
-        log.warning("Testlauf '%s' ueberschreitet die Frist - Prozessbaum %s "
-                    "wird beendet", name or "?", prozess.pid)
+        log.warning(
+            "Testlauf '%s' ueberschreitet die Frist - Prozessbaum %s wird beendet", name or "?", prozess.pid
+        )
         Toeter.prozess(prozess)
 
     @staticmethod
     def _satz(daten):
-        u"""Eine JSON-Zeile. ``ensure_ascii=False``: Umlaute bleiben Umlaute."""
+        """Eine JSON-Zeile. ``ensure_ascii=False``: Umlaute bleiben Umlaute."""
         return json.dumps(daten, ensure_ascii=False) + "\n"

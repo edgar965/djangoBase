@@ -11,6 +11,7 @@ Struktur (wie in den anderen Projekten):
     component/   – einzelne Views/Seiten rendern korrekt (Test-Client)
     integration/ – mehrere Bausteine zusammen (Login-Audit, Signup-Gating …)
 """
+
 import tempfile
 from pathlib import Path
 
@@ -42,6 +43,7 @@ class StoreIsolationMixin:
 
     def store_isolieren(self):
         from djangobase import store
+
         tmp = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
         tmp.close()
         self._store_tmp = Path(tmp.name)
@@ -51,6 +53,7 @@ class StoreIsolationMixin:
 
     def _store_wiederherstellen(self):
         from djangobase import store
+
         store._pfad = self._store_orig
         try:
             self._store_tmp.unlink()

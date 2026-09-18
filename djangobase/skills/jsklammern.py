@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Klammerzaehler - Klammertiefe in JavaScript zeilenweise mitzaehlen.
+"""Klammerzaehler - Klammertiefe in JavaScript zeilenweise mitzaehlen.
 
 Hilfsklasse, kein Werkzeug: Zwei Prüfungen brauchen sie (`jsfaenger`: wo endet
 ein try-Block? `jsbefunde`: wo endet ein mehrzeiliger `fetch(`-Aufruf?).
@@ -34,7 +34,7 @@ class Klammerzaehler:
 
     def __init__(self, tiefe=0):
         self.tiefe = tiefe
-        self.anfuehrung = None      # offenes ' " ` ueber Zeilengrenzen hinweg
+        self.anfuehrung = None  # offenes ' " ` ueber Zeilengrenzen hinweg
         #: Niedrigste Tiefe INNERHALB der letzten Zeile (siehe Modulkopf).
         self.tiefstand = tiefe
 
@@ -55,7 +55,7 @@ class Klammerzaehler:
                 i += 1
                 continue
             if text.startswith("//", i):
-                break                       # Rest der Zeile ist Kommentar
+                break  # Rest der Zeile ist Kommentar
             if zeichen in "'\"`":
                 self.anfuehrung = zeichen
             elif zeichen in "([{":

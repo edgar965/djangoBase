@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Die Aufzeichnung in JEDE Seite einhängen — auch ohne djangoBase-Vorlagen.
+"""Die Aufzeichnung in JEDE Seite einhängen — auch ohne djangoBase-Vorlagen.
 
 DER BEFUND (21.08.2026, gemeldet aus CamTrack)
 =============================================
@@ -40,6 +40,7 @@ AUSNAHMEN
 Das Admin ist standardmäßig NICHT ausgenommen: Wer dort einen Weg aufzeichnen
 will, soll es können.
 """
+
 import re
 
 from django.conf import settings
@@ -53,7 +54,7 @@ _BODY_ENDE = re.compile(rb"</body\s*>", re.IGNORECASE)
 
 
 class AufzeichnungMiddleware(ZweiwegMiddleware):
-    u"""Hängt CSS und Module der Testaufzeichnung in jede HTML-Antwort.
+    """Hängt CSS und Module der Testaufzeichnung in jede HTML-Antwort.
 
     BEIDSEITIG SEIT DEM 11.09.2026 — siehe ``middleware_basis.py``. Ohne die
     Zusage ``async_capable`` wickelt Django unter ASGI den Rest der Kette in
@@ -100,17 +101,17 @@ class AufzeichnungMiddleware(ZweiwegMiddleware):
 
     # ------------------------------------------------------------- Einhängen
     def schnipsel(self):
-        u"""Das einzuhängende HTML — einmal gebaut, dann gemerkt.
+        """Das einzuhängende HTML — einmal gebaut, dann gemerkt.
 
         Die Versionskennung hängt an ``Statik.kennung()``; im Entwicklungsbetrieb
         rechnet die sich bei jedem Aufruf neu (damit geänderte Module ankommen),
         deshalb wird hier NICHT dauerhaft gemerkt, sondern nur, wenn DEBUG aus
         ist."""
         from .statik import Statik
+
         v = Statik.kennung()
         teile = [
-            '<link rel="stylesheet" href="%s?v=%s">'
-            % (static("djangobase/css/aufzeichner.css"), v),
+            '<link rel="stylesheet" href="%s?v=%s">' % (static("djangobase/css/aufzeichner.css"), v),
         ]
         # ``tabellen_auto.js`` bindet Sortierung und ziehbare Spaltenbreiten
         # an ALLE passenden Tabellen der Seite (Befund 21.08.2026: 91 von 91
@@ -118,19 +119,24 @@ class AufzeichnungMiddleware(ZweiwegMiddleware):
         # es einzeln hätte tun müssen). Es gehört streng genommen nicht zur
         # Aufzeichnung - aber in denselben Kanal: Beides sind Bausteine, die
         # überall liegen müssen und die keine Vorlage einbinden soll.
-        for modul in ("aufzeichner.js", "aufzeichner_leiste.js",
-                      "aufzeichner_abspieler.js", "tabellen_auto.js"):
-            teile.append('<script type="module" src="%s?v=%s"></script>'
-                         % (static("djangobase/js/%s" % modul), v))
+        for modul in (
+            "aufzeichner.js",
+            "aufzeichner_leiste.js",
+            "aufzeichner_abspieler.js",
+            "tabellen_auto.js",
+        ):
+            teile.append(
+                '<script type="module" src="%s?v=%s"></script>' % (static("djangobase/js/%s" % modul), v)
+            )
         return ("\n" + "\n".join(teile) + "\n").encode("utf-8")
 
     def _einhaengen(self, antwort):
         inhalt = antwort.content
         treffer = list(_BODY_ENDE.finditer(inhalt))
         if not treffer:
-            return                        # Fragment ohne </body> - nichts tun
+            return  # Fragment ohne </body> - nichts tun
         if b"aufzeichner_leiste.js" in inhalt:
-            return                        # eine Vorlage bringt es schon mit
+            return  # eine Vorlage bringt es schon mit
         stelle = treffer[-1].start()
         antwort.content = inhalt[:stelle] + self.schnipsel() + inhalt[stelle:]
         if antwort.has_header("Content-Length"):

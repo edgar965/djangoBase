@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Das Klassenmodell als SVG — Kaesten, Linien, Vielfachheiten.
+"""Das Klassenmodell als SVG — Kaesten, Linien, Vielfachheiten.
 
 WARUM SELBST GEZEICHNET (24.08.2026)
 ====================================
@@ -30,6 +30,7 @@ Mitte seines Blocks abgesetzt. Kein Kraeftemodell und keine
 Kantenglaettung: Beides braucht Iterationen und macht das Ergebnis von
 Zufall abhaengig.
 """
+
 from html import escape
 
 #: Masse eines Kastens.
@@ -53,9 +54,9 @@ MAX_METHODEN = 4
 
 
 class Kasten:
-    u"""Eine Klasse mit ihrem Platz im Bild."""
+    """Eine Klasse mit ihrem Platz im Bild."""
 
-    __slots__ = ('klasse', 'x', 'y', 'felder', 'methoden')
+    __slots__ = ("klasse", "x", "y", "felder", "methoden")
 
     def __init__(self, klasse, x, y):
         self.klasse = klasse
@@ -75,7 +76,7 @@ class Kasten:
 
 
 class Klassenbild:
-    u"""Ordnet Kästen in Ebenen an und schreibt das SVG."""
+    """Ordnet Kästen in Ebenen an und schreibt das SVG."""
 
     def __init__(self, kaesten, linien, wurzel=None, steckbriefe=None):
         self.klassen = {k.name: k for k in kaesten}
@@ -88,7 +89,7 @@ class Klassenbild:
 
     # ── Anordnung: ein echter Baum ──────────────────────────────
     def _baum(self):
-        u"""Wer haengt unter wem — jede Klasse bekommt GENAU einen Platz.
+        """Wer haengt unter wem — jede Klasse bekommt GENAU einen Platz.
 
         Eine Klasse kann von mehreren gehalten werden (`Lock` haengt an
         drei Stellen). Im Bild darf sie trotzdem nur einmal stehen, sonst
@@ -121,7 +122,7 @@ class Klassenbild:
 
     @staticmethod
     def _spalten(masse):
-        u"""Wie viele Kinder nebeneinander, bevor umgebrochen wird?
+        """Wie viele Kinder nebeneinander, bevor umgebrochen wird?
 
         DIE ANSAGE (Edgar, 24.08.2026)
         ==============================
@@ -151,12 +152,9 @@ class Klassenbild:
             return anzahl or 1
         beste, abstand = anzahl, None
         for spalten in range(2, anzahl + 1):
-            reihen = [masse[i:i + spalten]
-                      for i in range(0, anzahl, spalten)]
-            breite = max(sum(b for b, _h in r) + ABSTAND_X * (len(r) - 1)
-                         for r in reihen)
-            hoehe = (sum(max(h for _b, h in r) for r in reihen)
-                     + ABSTAND_Y * (len(reihen) - 1))
+            reihen = [masse[i : i + spalten] for i in range(0, anzahl, spalten)]
+            breite = max(sum(b for b, _h in r) + ABSTAND_X * (len(r) - 1) for r in reihen)
+            hoehe = sum(max(h for _b, h in r) for r in reihen) + ABSTAND_Y * (len(reihen) - 1)
             if hoehe <= 0:
                 continue
             weit = abs(breite / hoehe - ZIEL_VERHAELTNIS)
@@ -165,7 +163,7 @@ class Klassenbild:
         return beste
 
     def _masse_ast(self, name, kinder, gesehen=None):
-        u"""``(Breite, Hoehe)`` des ganzen Astes unter `name`."""
+        """``(Breite, Hoehe)`` des ganzen Astes unter `name`."""
         gesehen = gesehen if gesehen is not None else set()
         if name in gesehen:
             return (BREITE, 0)
@@ -175,26 +173,23 @@ class Klassenbild:
         if not meine:
             return (BREITE, eigen_h)
         reihen = self._reihen(meine, kinder, gesehen)
-        block_b = max(sum(b for b, _h in r) + ABSTAND_X * (len(r) - 1)
-                      for r in reihen)
-        block_h = (sum(max(h for _b, h in r) for r in reihen)
-                   + ABSTAND_Y * (len(reihen) - 1))
+        block_b = max(sum(b for b, _h in r) + ABSTAND_X * (len(r) - 1) for r in reihen)
+        block_h = sum(max(h for _b, h in r) for r in reihen) + ABSTAND_Y * (len(reihen) - 1)
         return (max(BREITE, block_b), eigen_h + ABSTAND_Y + block_h)
 
     def _reihen(self, meine, kinder, gesehen):
-        u"""Die Kinder in Reihen aufteilen, je mit ihren Astmassen."""
+        """Die Kinder in Reihen aufteilen, je mit ihren Astmassen."""
         masse = [self._masse_ast(k, kinder, gesehen) for k in meine]
         spalten = self._spalten(masse)
-        return [masse[i:i + spalten] for i in range(0, len(masse), spalten)]
+        return [masse[i : i + spalten] for i in range(0, len(masse), spalten)]
 
     def _setzen(self, name, x, y, kinder, gesehen):
-        u"""Den Ast ab `name` an die Stelle (x, y) legen."""
+        """Den Ast ab `name` an die Stelle (x, y) legen."""
         if name in gesehen:
             return
         gesehen.add(name)
         breite, _hoehe = self._masse_ast(name, kinder, set())
-        kasten = Kasten(self.klassen[name],
-                        x=x + (breite - BREITE) / 2, y=y)
+        kasten = Kasten(self.klassen[name], x=x + (breite - BREITE) / 2, y=y)
         self.plaetze[name] = kasten
         meine = [k for k in (kinder.get(name) or []) if k not in gesehen]
         if not meine:
@@ -203,11 +198,11 @@ class Klassenbild:
         spalten = self._spalten(alle_masse)
         oben = y + kasten.hoehe + ABSTAND_Y
         for anfang in range(0, len(meine), spalten):
-            reihe = meine[anfang:anfang + spalten]
+            reihe = meine[anfang : anfang + spalten]
             masse = [self._masse_ast(k, kinder, set()) for k in reihe]
             reihe_b = sum(b for b, _h in masse) + ABSTAND_X * (len(reihe) - 1)
             links = x + (breite - reihe_b) / 2
-            for kind, (kb, _kh) in zip(reihe, masse):
+            for kind, (kb, _kh) in zip(reihe, masse, strict=False):
                 self._setzen(kind, links, oben, kinder, gesehen)
                 links += kb + ABSTAND_X
             oben += max(h for _b, h in masse) + ABSTAND_Y
@@ -216,8 +211,7 @@ class Klassenbild:
         if not self.klassen:
             return self
         kinder = self._baum()
-        start = (self.wurzel if self.wurzel in self.klassen
-                 else sorted(self.klassen)[0])
+        start = self.wurzel if self.wurzel in self.klassen else sorted(self.klassen)[0]
         self._setzen(start, RAHMEN, RAHMEN, kinder, set())
         # Was der Baum nicht erreicht hat (Ringe): rechts daneben.
         offen = [n for n in sorted(self.klassen) if n not in self.plaetze]
@@ -252,25 +246,26 @@ class Klassenbild:
             teile.append(self._linie(linie))
         for kasten in self.plaetze.values():
             teile.append(self._kasten(kasten))
-        teile.append('</svg>')
-        return '\n'.join(t for t in teile if t)
+        teile.append("</svg>")
+        return "\n".join(t for t in teile if t)
 
     @staticmethod
     def _muster():
-        u"""Der Vererbungspfeil: ein hohles Dreieck, wie in UML ueblich."""
+        """Der Vererbungspfeil: ein hohles Dreieck, wie in UML ueblich."""
         return (
             '<defs><marker id="km-erbt" viewBox="0 0 12 12" refX="11" '
             'refY="6" markerWidth="11" markerHeight="11" orient="auto">'
             '<path d="M0,0 L12,6 L0,12 z" fill="var(--km-grund,#12161c)" '
             'stroke="var(--km-strich,#7aa2c8)" stroke-width="1.2"/>'
-            '</marker>'
+            "</marker>"
             '<marker id="km-hält" viewBox="0 0 10 10" refX="9" refY="5" '
             'markerWidth="8" markerHeight="8" orient="auto">'
             '<path d="M0,0 L10,5 L0,10 z" fill="var(--km-strich,#7aa2c8)"/>'
-            '</marker></defs>')
+            "</marker></defs>"
+        )
 
     def _hovertext(self, klasse):
-        u"""Was beim Zeigen erscheint — beide Richtungen der Beziehung.
+        """Was beim Zeigen erscheint — beide Richtungen der Beziehung.
 
         DIE ANSAGE (Edgar, 24.08.2026)
         ==============================
@@ -283,38 +278,39 @@ class Klassenbild:
         sehen, weil der Halter ausserhalb der gezeigten Nachbarschaft liegt.
         """
         s = self.steckbriefe.get(klasse.name)
-        zeilen = ['%s   (%s:%d)' % (klasse.name, klasse.datei, klasse.zeile)]
+        zeilen = ["%s   (%s:%d)" % (klasse.name, klasse.datei, klasse.zeile)]
         if not s:
             return escape(chr(10).join(zeilen))
-        if s['genutzt_von']:
-            zeilen.append('genutzt von: ' + ', '.join(
-                '%s.%s' % (g['von'], g['feld']) for g in s['genutzt_von'][:6]))
+        if s["genutzt_von"]:
+            zeilen.append(
+                "genutzt von: " + ", ".join("%s.%s" % (g["von"], g["feld"]) for g in s["genutzt_von"][:6])
+            )
         else:
-            zeilen.append('genutzt von: niemandem')
-        if s['haelt']:
-            zeilen.append('hält: ' + ', '.join(
-                '%s = %s (%s)' % (h['feld'], h['klasse'], h['viel'])
-                for h in s['haelt'][:6]))
-        if s['beerbt_von']:
-            zeilen.append('beerbt von: ' + ', '.join(s['beerbt_von'][:6]))
-        if s['basen']:
-            zeilen.append('erbt von: ' + ', '.join(s['basen']))
-        zeilen.append('%d Felder, %d Methoden'
-                      % (len(s['felder']), s['methodenzahl']))
+            zeilen.append("genutzt von: niemandem")
+        if s["haelt"]:
+            zeilen.append(
+                "hält: "
+                + ", ".join("%s = %s (%s)" % (h["feld"], h["klasse"], h["viel"]) for h in s["haelt"][:6])
+            )
+        if s["beerbt_von"]:
+            zeilen.append("beerbt von: " + ", ".join(s["beerbt_von"][:6]))
+        if s["basen"]:
+            zeilen.append("erbt von: " + ", ".join(s["basen"]))
+        zeilen.append("%d Felder, %d Methoden" % (len(s["felder"]), s["methodenzahl"]))
         return escape(chr(10).join(zeilen))
 
     def _kasten(self, k):
         h = k.hoehe
         n = escape(k.klasse.name)
-        raus = ['<g class="km-kasten" data-km-klasse="%s">' % n,
-                '<rect x="%d" y="%d" width="%d" height="%d" rx="3" '
-                'fill="var(--km-fuell,#1b2129)" '
-                'stroke="var(--km-strich,#7aa2c8)" stroke-width="1.2"/>'
-                % (k.x, k.y, BREITE, h),
-                '<text x="%d" y="%d" text-anchor="middle" class="km-name" '
-                'fill="var(--km-text,#e6edf3)" font-size="13" '
-                'font-weight="600">%s</text>'
-                % (k.mitte_x, k.y + 18, n)]
+        raus = [
+            '<g class="km-kasten" data-km-klasse="%s">' % n,
+            '<rect x="%d" y="%d" width="%d" height="%d" rx="3" '
+            'fill="var(--km-fuell,#1b2129)" '
+            'stroke="var(--km-strich,#7aa2c8)" stroke-width="1.2"/>' % (k.x, k.y, BREITE, h),
+            '<text x="%d" y="%d" text-anchor="middle" class="km-name" '
+            'fill="var(--km-text,#e6edf3)" font-size="13" '
+            'font-weight="600">%s</text>' % (k.mitte_x, k.y + 18, n),
+        ]
         y = k.y + KOPF
         raus.append(self._trenner(k, y))
         for feld in k.felder:
@@ -324,55 +320,62 @@ class Klassenbild:
             y += ZEILE
         rest = len(k.klasse.felder) - len(k.felder)
         if rest > 0:
-            raus.append(self._zeile(k, y, '… %d weitere' % rest, matt=True))
+            raus.append(self._zeile(k, y, "… %d weitere" % rest, matt=True))
         y += RAND
         raus.append(self._trenner(k, y))
         for name in k.methoden:
             y += ZEILE
-            raus.append(self._zeile(k, y, '+ %s()' % escape(name)))
-        raus.append('<title>%s</title>' % self._hovertext(k.klasse))
-        raus.append('</g>')
-        return '\n'.join(raus)
+            raus.append(self._zeile(k, y, "+ %s()" % escape(name)))
+        raus.append("<title>%s</title>" % self._hovertext(k.klasse))
+        raus.append("</g>")
+        return "\n".join(raus)
 
     @staticmethod
     def _trenner(k, y):
-        return ('<line x1="%d" y1="%d" x2="%d" y2="%d" '
-                'stroke="var(--km-strich,#7aa2c8)" stroke-width="0.8"/>'
-                % (k.x, y, k.x + BREITE, y))
+        return (
+            '<line x1="%d" y1="%d" x2="%d" y2="%d" '
+            'stroke="var(--km-strich,#7aa2c8)" stroke-width="0.8"/>' % (k.x, y, k.x + BREITE, y)
+        )
 
     @staticmethod
     def _zeile(k, y, text, matt=False):
-        farbe = 'var(--km-matt,#8b98a5)' if matt else 'var(--km-text,#e6edf3)'
-        return ('<text x="%d" y="%d" font-size="11" fill="%s">%s</text>'
-                % (k.x + RAND, y, farbe, escape(text)[:30]))
+        farbe = "var(--km-matt,#8b98a5)" if matt else "var(--km-text,#e6edf3)"
+        return '<text x="%d" y="%d" font-size="11" fill="%s">%s</text>' % (
+            k.x + RAND,
+            y,
+            farbe,
+            escape(text)[:30],
+        )
 
     def _linie(self, linie):
         a = self.plaetze.get(linie.von)
         b = self.plaetze.get(linie.nach)
         if not a or not b:
-            return ''
+            return ""
         x1, y1 = a.mitte_x, a.y + a.hoehe
         x2, y2 = b.mitte_x, b.y
-        if b.y < a.y:                     # Ziel liegt hoeher: oben heraus
+        if b.y < a.y:  # Ziel liegt hoeher: oben heraus
             y1, y2 = a.y, b.y + b.hoehe
-        erbt = linie.art == 'erbt'
-        raus = ['<path d="M%.0f,%.0f L%.0f,%.0f" fill="none" '
-                'stroke="var(--km-strich,#7aa2c8)" stroke-width="1.1" %s '
-                'marker-end="url(#%s)"/>'
-                % (x1, y1, x2, y2,
-                   'stroke-dasharray="4 3"' if erbt else '',
-                   'km-erbt' if erbt else 'km-haelt')]
+        erbt = linie.art == "erbt"
+        raus = [
+            '<path d="M%.0f,%.0f L%.0f,%.0f" fill="none" '
+            'stroke="var(--km-strich,#7aa2c8)" stroke-width="1.1" %s '
+            'marker-end="url(#%s)"/>'
+            % (x1, y1, x2, y2, 'stroke-dasharray="4 3"' if erbt else "", "km-erbt" if erbt else "km-haelt")
+        ]
         if not erbt:
             mx, my = (x1 + x2) / 2, (y1 + y2) / 2
             if linie.name:
-                raus.append('<text x="%.0f" y="%.0f" font-size="10" '
-                            'fill="var(--km-matt,#8b98a5)" '
-                            'text-anchor="middle">%s</text>'
-                            % (mx, my - 4, escape(linie.name)[:18]))
-            raus.append('<text x="%.0f" y="%.0f" font-size="10" '
-                        'fill="var(--km-matt,#8b98a5)">%s</text>'
-                        % (x2 + 6, y2 - 5, escape(linie.vielfachheit)))
-        return '\n'.join(raus)
+                raus.append(
+                    '<text x="%.0f" y="%.0f" font-size="10" '
+                    'fill="var(--km-matt,#8b98a5)" '
+                    'text-anchor="middle">%s</text>' % (mx, my - 4, escape(linie.name)[:18])
+                )
+            raus.append(
+                '<text x="%.0f" y="%.0f" font-size="10" '
+                'fill="var(--km-matt,#8b98a5)">%s</text>' % (x2 + 6, y2 - 5, escape(linie.vielfachheit))
+            )
+        return "\n".join(raus)
 
 
-__all__ = ['Klassenbild', 'Kasten']
+__all__ = ["Klassenbild", "Kasten"]

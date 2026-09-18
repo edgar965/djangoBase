@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""JsVererbung - eine Basisklasse, die ihre eigene Ableitung beim Namen nennt.
+"""JsVererbung - eine Basisklasse, die ihre eigene Ableitung beim Namen nennt.
 
 DER FALL (shortlongx, 17.08.2026)
 =================================
@@ -31,6 +31,7 @@ Fall. Deshalb laeuft die Suche ueber :class:`NurCode` - Kommentare und
 Zeichenketten werden vorher durch Leerzeichen ersetzt, Zeilennummern bleiben
 erhalten.
 """
+
 import re
 
 from .anlassfall import Anlassfall
@@ -43,7 +44,9 @@ class NurCode:
     #: Blockkommentar, Zeilenkommentar, die drei Zeichenketten-Formen.
     MUSTER = re.compile(
         r"/\*.*?\*/|//[^\n]*|'(?:\\.|[^'\\\n])*'|\"(?:\\.|[^\"\\\n])*\""
-        r"|`(?:\\.|[^`\\])*`", re.S)
+        r"|`(?:\\.|[^`\\])*`",
+        re.S,
+    )
 
     def __init__(self, text):
         self.text = self.MUSTER.sub(self._leeren, text)
@@ -82,28 +85,40 @@ class Vererbungspaar:
         return bool(self.treffer)
 
     def als_zeilen(self, folge):
-        return [{"basisdatei": self.basisdatei, "zeile": nr,
-                 "nennt": self.kind, "erbt": "%s extends %s" % (self.kind,
-                                                                self.basis),
-                 "code": text[:110], "folge": folge}
-                for nr, text in self.treffer]
+        return [
+            {
+                "basisdatei": self.basisdatei,
+                "zeile": nr,
+                "nennt": self.kind,
+                "erbt": "%s extends %s" % (self.kind, self.basis),
+                "code": text[:110],
+                "folge": folge,
+            }
+            for nr, text in self.treffer
+        ]
 
 
 class JsVererbung(Werkzeug):
     slug = "js-vererbung"
     titel = "Basisklasse nennt ihre eigene Ableitung"
-    zweck = ("Findet in ``class X extends XBasis``-Paaren jede Stelle, an der "
-             "die Basisdatei den Namen ``X`` benutzt — im Code, nicht im "
-             "Kommentar.")
-    befund = ("In shortlongx stand ``new TradeSystemConfig(…)`` in der "
-              "Basisklasse ``TradeSystemConfigBasis``. Der Name existiert dort "
-              "nicht; ein Import zurück wäre ein Zirkel. Beim ersten Aufruf "
-              "von ``clone()`` hätte es einen ReferenceError gegeben — nichts "
-              "davon fällt beim Laden der Seite auf.")
-    abhilfe = ("``new this.constructor(…)`` statt des Klassennamens, und "
-               "``this.constructor.KONSTANTE`` statt ``Klasse.KONSTANTE``. Das "
-               "ist zur Laufzeit die tatsächliche Klasse und überlebt auch "
-               "eine zweite Ableitung.")
+    zweck = (
+        "Findet in ``class X extends XBasis``-Paaren jede Stelle, an der "
+        "die Basisdatei den Namen ``X`` benutzt — im Code, nicht im "
+        "Kommentar."
+    )
+    befund = (
+        "In shortlongx stand ``new TradeSystemConfig(…)`` in der "
+        "Basisklasse ``TradeSystemConfigBasis``. Der Name existiert dort "
+        "nicht; ein Import zurück wäre ein Zirkel. Beim ersten Aufruf "
+        "von ``clone()`` hätte es einen ReferenceError gegeben — nichts "
+        "davon fällt beim Laden der Seite auf."
+    )
+    abhilfe = (
+        "``new this.constructor(…)`` statt des Klassennamens, und "
+        "``this.constructor.KONSTANTE`` statt ``Klasse.KONSTANTE``. Das "
+        "ist zur Laufzeit die tatsächliche Klasse und überlebt auch "
+        "eine zweite Ableitung."
+    )
     kriterium = 3
     dauer = "unter 1 s"
 
@@ -116,13 +131,14 @@ class JsVererbung(Werkzeug):
     #:   * derselbe Name in einer Zeichenkette   -> darf NICHT zaehlen
     #: Erwartet wird deshalb GENAU EIN Befund, nicht „mindestens einer".
     anlassfall = Anlassfall(
-        {"kind.js": """import { KindBasis } from './kind_basis.js';
+        {
+            "kind.js": """import { KindBasis } from './kind_basis.js';
 
 export class Kind extends KindBasis {
   static ANZAHL = 3;
 }
 """,
-         "kind_basis.js": """/* KindBasis - die untere Haelfte von kind.js.
+            "kind_basis.js": """/* KindBasis - die untere Haelfte von kind.js.
    Der Name Kind steht hier absichtlich im Kommentar. */
 
 export class KindBasis {
@@ -131,15 +147,16 @@ export class KindBasis {
 
   melden() { console.warn('Kind: %d Zellen ohne Rolle', this.n); }
 }
-"""},
+""",
+        },
         mindestens=1,
         erwartet_in="kopie",
         warum="``clone()`` rief ``new TradeSystemConfig(…)`` in der "
-              "Basisklasse — ReferenceError beim ersten Aufruf (17.08.2026)")
+        "Basisklasse — ReferenceError beim ersten Aufruf (17.08.2026)",
+    )
 
     def laufen(self):
-        dateien = {p.name: p.read_text(encoding="utf-8", errors="replace")
-                   for p in self.dateien(".js")}
+        dateien = {p.name: p.read_text(encoding="utf-8", errors="replace") for p in self.dateien(".js")}
         paare = self._paare(dateien)
         wo = self._klassenorte(dateien)
         global_gesetzt = self._globale(dateien)
@@ -148,7 +165,7 @@ export class KindBasis {
         for paar in paare:
             paar.basisdatei = wo.get(paar.basis, "")
             if not paar.basisdatei or paar.basisdatei == paar.kinddatei:
-                continue                      # Basis extern oder selbe Datei
+                continue  # Basis extern oder selbe Datei
             geprueft += 1
             quelle = dateien[paar.basisdatei]
             paar.treffer = NurCode(quelle).stellen(paar.kind)
@@ -156,29 +173,30 @@ export class KindBasis {
                 continue
             if paar.kind in global_gesetzt:
                 ueber_fenster += len(paar.treffer)
-            zeilen += paar.als_zeilen(self._folge(quelle, paar.kind,
-                                                  global_gesetzt))
+            zeilen += paar.als_zeilen(self._folge(quelle, paar.kind, global_gesetzt))
 
         return Ergebnis(
-            list(self.SPALTEN), zeilen, self._fazit(zeilen, geprueft,
-                                                    ueber_fenster),
+            list(self.SPALTEN),
+            zeilen,
+            self._fazit(zeilen, geprueft, ueber_fenster),
             "Kommentare und Zeichenketten sind ausgenommen — eine reine "
             "Textsuche meldete hier dreimal so viel, davon zwei Kopfzeilen "
-            "und einen ``console.warn``-Text.")
+            "und einen ``console.warn``-Text.",
+        )
 
     @staticmethod
     def _fazit(zeilen, geprueft, ueber_fenster):
         if not zeilen:
-            return ("Keine Basisklasse nennt ihre Ableitung (%d Vererbungspaare "
-                    "geprüft)." % geprueft)
+            return "Keine Basisklasse nennt ihre Ableitung (%d Vererbungspaare geprüft)." % geprueft
         hart = len(zeilen) - ueber_fenster
         teile = ["%d Stelle(n) in %d Vererbungspaaren" % (len(zeilen), geprueft)]
         if hart:
             teile.append("%d davon brechen beim Aufruf" % hart)
         if ueber_fenster:
-            teile.append("%d laufen über ``window`` (funktionieren, hängen "
-                         "aber an einer Zuweisung in einer anderen Datei)"
-                         % ueber_fenster)
+            teile.append(
+                "%d laufen über ``window`` (funktionieren, hängen "
+                "aber an einer Zuweisung in einer anderen Datei)" % ueber_fenster
+            )
         return ", ".join(teile) + "."
 
     @classmethod
@@ -187,8 +205,7 @@ export class KindBasis {
         if cls._importiert(quelle, name):
             return "Zirkel: die Basis importiert ihre eigene Ableitung"
         if name in global_gesetzt:
-            return ("läuft über ``window`` — funktioniert, solange die andere "
-                    "Datei geladen ist")
+            return "läuft über ``window`` — funktioniert, solange die andere Datei geladen ist"
         return "ReferenceError beim Aufruf — der Name existiert hier nicht"
 
     #: ``window.X = X`` und ``Object.assign(window, {…, X, …})`` - beides macht
@@ -196,8 +213,7 @@ export class KindBasis {
     #: als Absturz, obwohl ``signale_tab.js`` ihn ausdrücklich ans Fenster
     #: hängt und der Kopfkommentar die Absicht erklärt.
     FENSTER = re.compile(r"window\.(\w+)\s*=")
-    ZUWEISUNG = re.compile(r"Object\.assign\s*\(\s*window\s*,\s*\{([^}]*)\}",
-                           re.S)
+    ZUWEISUNG = re.compile(r"Object\.assign\s*\(\s*window\s*,\s*\{([^}]*)\}", re.S)
 
     @classmethod
     def _globale(cls, dateien):
@@ -206,8 +222,7 @@ export class KindBasis {
             rein = NurCode(text).text
             aus.update(cls.FENSTER.findall(rein))
             for block in cls.ZUWEISUNG.findall(rein):
-                aus.update(re.findall(r"(?:^|[,{\s])(\w+)\s*(?=[,}:]|$)",
-                                      block))
+                aus.update(re.findall(r"(?:^|[,{\s])(\w+)\s*(?=[,}:]|$)", block))
         return aus
 
     @classmethod
@@ -229,5 +244,4 @@ export class KindBasis {
 
     @staticmethod
     def _importiert(quelle, name):
-        return bool(re.search(r"^\s*import\s[^;]*\b%s\b" % re.escape(name),
-                              quelle, re.M))
+        return bool(re.search(r"^\s*import\s[^;]*\b%s\b" % re.escape(name), quelle, re.M))

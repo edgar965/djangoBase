@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Die Ausschlussliste des Projekts — gesetzt in djangoBase, gespeichert im Projekt.
+"""Die Ausschlussliste des Projekts — gesetzt in djangoBase, gespeichert im Projekt.
 
 DIE ANSAGE (Edgar, 02.09.2026)
 ==============================
@@ -45,6 +45,7 @@ Zwei Leser mit verschiedenem Bedarf greifen darauf zu:
 Django-frei; kein Verbraucher muss die Datei kennen (fehlt sie, ist die Liste
 leer und alles bleibt, wie es war).
 """
+
 import hashlib
 from pathlib import Path
 
@@ -53,7 +54,7 @@ __all__ = ["Ausschlussliste"]
 #: Zeichen, an denen ein Glob-Muster erkennbar ist.
 GLOB = "*?["
 
-KOPF = u"""# Ausschlussliste dieses Projekts — was KEIN Prüfwerkzeug ansehen soll.
+KOPF = """# Ausschlussliste dieses Projekts — was KEIN Prüfwerkzeug ansehen soll.
 #
 # Ein Muster je Zeile, '#' ist ein Kommentar. Gepflegt wird die Datei über
 # Hilfe → Werkzeug Language Server; sie gehört ins Repository.
@@ -68,7 +69,7 @@ KOPF = u"""# Ausschlussliste dieses Projekts — was KEIN Prüfwerkzeug ansehen 
 
 
 class Ausschlussliste:
-    u"""Die Datei ``pruefausschluss.txt`` in der Projektwurzel — lesen, prüfen, schreiben."""
+    """Die Datei ``pruefausschluss.txt`` in der Projektwurzel — lesen, prüfen, schreiben."""
 
     DATEI = "pruefausschluss.txt"
     #: Deckel gegen ein versehentlich eingefügtes Protokoll im Textfeld.
@@ -91,7 +92,7 @@ class Ausschlussliste:
 
     # ── lesen ────────────────────────────────────────────────────────────
     def text(self):
-        u"""Der rohe Inhalt — für das Textfeld. Fehlt die Datei: die Vorlage."""
+        """Der rohe Inhalt — für das Textfeld. Fehlt die Datei: die Vorlage."""
         roh = self._roh()
         return roh if roh is not None else KOPF
 
@@ -112,7 +113,7 @@ class Ausschlussliste:
         return inhalt
 
     def eintraege(self):
-        u"""``[(nummer, roh, muster, grund)]`` — Kommentare und Leerzeilen fehlen.
+        """``[(nummer, roh, muster, grund)]`` — Kommentare und Leerzeilen fehlen.
 
         ``muster`` ist ``None``, wenn die Zeile verworfen wurde; ``grund`` sagt
         dann, warum. Verworfen wird nichts stillschweigend: Die Zeile bleibt in
@@ -127,7 +128,7 @@ class Ausschlussliste:
         return raus
 
     def muster(self):
-        u"""Glob-Muster für pyright und tsc — nackte Namen als ``**/<name>``."""
+        """Glob-Muster für pyright und tsc — nackte Namen als ``**/<name>``."""
         raus = []
         for _nr, _roh, muster, _grund in self.eintraege():
             if muster and muster not in raus:
@@ -135,7 +136,7 @@ class Ausschlussliste:
         return raus
 
     def namen(self):
-        u"""Nur die nackten Verzeichnis-/Dateinamen — für die Skills-Werkzeuge."""
+        """Nur die nackten Verzeichnis-/Dateinamen — für die Skills-Werkzeuge."""
         raus = []
         for _nr, roh, muster, _grund in self.eintraege():
             if muster and "/" not in roh and not any(z in roh for z in GLOB):
@@ -143,30 +144,28 @@ class Ausschlussliste:
         return raus
 
     def fehler(self):
-        return [(nr, roh, grund) for nr, roh, muster, grund in self.eintraege()
-                if muster is None]
+        return [(nr, roh, grund) for nr, roh, muster, grund in self.eintraege() if muster is None]
 
     def abdruck(self):
-        u"""Über den Ablage-Schlüssel: andere Liste, anderes Ergebnis."""
-        roh = u"\n".join(self.muster())
+        """Über den Ablage-Schlüssel: andere Liste, anderes Ergebnis."""
+        roh = "\n".join(self.muster())
         return hashlib.md5(roh.encode("utf-8")).hexdigest()[:10]
 
     # ── schreiben ────────────────────────────────────────────────────────
     def speichern(self, text):
-        u"""Schreibt den Text unverändert (nur Zeilenenden vereinheitlicht).
+        """Schreibt den Text unverändert (nur Zeilenenden vereinheitlicht).
 
         Zurück kommt ``(anzahl_muster, fehler)``. Bewusst wird nichts
         weggeputzt: Wer eine Zeile schreibt, die nicht trägt, soll sie
         wiederfinden und den Grund daneben lesen — eine Liste, die beim
         Speichern heimlich schrumpft, ist schlimmer als eine mit einem Hinweis."""
-        zeilen = [z.rstrip() for z in (text or "").replace("\r\n", "\n")
-                  .replace("\r", "\n").split("\n")]
+        zeilen = [z.rstrip() for z in (text or "").replace("\r\n", "\n").replace("\r", "\n").split("\n")]
         if len(zeilen) > self.HOECHSTENS:
-            zeilen = zeilen[:self.HOECHSTENS]
+            zeilen = zeilen[: self.HOECHSTENS]
         while zeilen and not zeilen[-1]:
             zeilen.pop()
         pfad = self.pfad()
-        inhalt = u"\n".join(zeilen) + (u"\n" if zeilen else u"")
+        inhalt = "\n".join(zeilen) + ("\n" if zeilen else "")
         # newline="" : LF auch unter Windows, damit die Datei im Repo auf
         # jedem Rechner gleich aussieht.
         with open(str(pfad), "w", encoding="utf-8", newline="") as datei:
@@ -177,17 +176,17 @@ class Ausschlussliste:
     # ── deuten ───────────────────────────────────────────────────────────
     @staticmethod
     def _deuten(roh):
-        u"""``(muster, grund)`` — eine Zeile als Glob-Muster, oder der Grund dagegen."""
+        """``(muster, grund)`` — eine Zeile als Glob-Muster, oder der Grund dagegen."""
         wert = roh.replace("\\", "/").strip()
         while wert.startswith("./"):
             wert = wert[2:]
         wert = wert.rstrip("/")
         if not wert:
-            return None, u"leer"
+            return None, "leer"
         if wert.startswith("/") or (len(wert) > 1 and wert[1] == ":"):
-            return None, u"absoluter Pfad — Muster gelten ab der Projektwurzel"
+            return None, "absoluter Pfad — Muster gelten ab der Projektwurzel"
         if ".." in wert.split("/"):
-            return None, u"„..“ führt aus dem Projekt heraus"
+            return None, "„..“ führt aus dem Projekt heraus"
         if "/" not in wert and not any(z in wert for z in GLOB):
             return "**/" + wert, ""
         return wert, ""

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Gehoert eine Datei zum Projekt? Git weiß es besser als eine Namensliste.
+"""Gehoert eine Datei zum Projekt? Git weiß es besser als eine Namensliste.
 
 DER ANLASS (Edgar, 18.08.2026)
 ==============================
@@ -50,6 +50,7 @@ viel meldet: Der Warnhinweis im Kopf von ``frontendquellen.py`` gilt auch hier -
 „Ein Massstab, der zu viel ausschliesst, macht aus einem sauberen Projekt ein
 kaputtes."
 """
+
 import subprocess
 from pathlib import Path
 
@@ -82,11 +83,19 @@ class GitFilter:
             try:
                 ergebnis = subprocess.run(
                     ["git", "ls-files", "--cached", "--others", "--exclude-standard"],
-                    cwd=str(wurzel), capture_output=True, text=True,
-                    encoding="utf-8", errors="replace", timeout=cls.ZEITGRENZE_S)
+                    cwd=str(wurzel),
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    timeout=cls.ZEITGRENZE_S,
+                )
                 if ergebnis.returncode == 0:
-                    aus = {str((wurzel / zeile).resolve())
-                           for zeile in (ergebnis.stdout or "").splitlines() if zeile}
+                    aus = {
+                        str((wurzel / zeile).resolve())
+                        for zeile in (ergebnis.stdout or "").splitlines()
+                        if zeile
+                    }
             except (OSError, ValueError, subprocess.SubprocessError):
                 aus = None
         cls._gemerkt[schluessel] = aus
@@ -98,7 +107,7 @@ class GitFilter:
         return self.erlaubte is not None
 
     def erlaubt(self, pfad):
-        u"""Gehoert ``pfad`` zum Projekt?
+        """Gehoert ``pfad`` zum Projekt?
 
         Ohne git-Antwort IMMER ``True`` - siehe Modulkopf. Eine Datei außerhalb
         der Wurzel wird ebenfalls durchgelassen: Sie kann git gar nicht kennen,
@@ -115,7 +124,7 @@ class GitFilter:
         try:
             voll.relative_to(self.wurzel)
         except ValueError:
-            return True                      # ausserhalb des Repos
+            return True  # ausserhalb des Repos
         return False
 
     def bericht(self):

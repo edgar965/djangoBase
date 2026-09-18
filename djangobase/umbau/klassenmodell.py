@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Das Klassenmodell eines Projekts — wer haelt wen, wer erbt von wem.
+"""Das Klassenmodell eines Projekts — wer haelt wen, wer erbt von wem.
 
 WOZU (Edgar, 24.08.2026)
 ========================
@@ -36,6 +36,7 @@ wird deshalb eine NACHBARSCHAFT: eine Wurzel und alles, was von ihr aus in
 `tiefe` Schritten erreichbar ist. Ohne Angabe waehlt das Werkzeug die
 Klasse, die am meisten haelt — dort ist am meisten zu sehen.
 """
+
 import ast
 from pathlib import Path
 
@@ -61,15 +62,30 @@ from pathlib import Path
 #: NICHT uebernommen wird ``models`` aus der Wurzel-Liste: Dort ist der
 #: Ordner mit ML-Gewichten gemeint, hier traefe es ``mail/models/`` —
 #: also genau die Klassen, um die es geht.
-AUS = ('migrations', '__pycache__', 'node_modules', '.git', 'venv',
-       'staticfiles', 'site-packages',
-       'sicherung', 'sicherungen', 'backup', 'backups', '.bak',
-       'vendor', 'unsloth_compiled_cache', 'tmp', 'temp', 'diktator',
-       'htmlcov')
+AUS = (
+    "migrations",
+    "__pycache__",
+    "node_modules",
+    ".git",
+    "venv",
+    "staticfiles",
+    "site-packages",
+    "sicherung",
+    "sicherungen",
+    "backup",
+    "backups",
+    ".bak",
+    "vendor",
+    "unsloth_compiled_cache",
+    "tmp",
+    "temp",
+    "diktator",
+    "htmlcov",
+)
 
 
 def _umgebungen():
-    u"""Die virtuellen Umgebungen des Projekts — am ``pyvenv.cfg`` erkannt.
+    """Die virtuellen Umgebungen des Projekts — am ``pyvenv.cfg`` erkannt.
 
     EINE NAMENSLISTE RAET (02.09.2026)
     ==================================
@@ -87,10 +103,15 @@ def _umgebungen():
     """
     try:
         from django.conf import settings
-        wurzel = Path(getattr(settings, 'BASE_DIR', '.'))
-        return tuple(sorted(
-            eintrag.name for eintrag in wurzel.iterdir()
-            if eintrag.is_dir() and (eintrag / 'pyvenv.cfg').exists()))
+
+        wurzel = Path(getattr(settings, "BASE_DIR", "."))
+        return tuple(
+            sorted(
+                eintrag.name
+                for eintrag in wurzel.iterdir()
+                if eintrag.is_dir() and (eintrag / "pyvenv.cfg").exists()
+            )
+        )
     except Exception:
         # NICHT NUR OSError (02.09.2026): Ohne eingerichtetes Django wirft
         # `settings.BASE_DIR` ein ImproperlyConfigured, und das riss den
@@ -107,7 +128,7 @@ _AUSSER = None
 
 
 def ausser(zusatz=()):
-    u"""``AUS`` samt der virtuellen Umgebungen dieses Projekts.
+    """``AUS`` samt der virtuellen Umgebungen dieses Projekts.
 
     Wer Pfade filtert, nimmt diese Menge — nicht ``AUS`` allein. Das
     Ergebnis EINMAL vor der Schleife holen, nicht je Datei.
@@ -117,45 +138,60 @@ def ausser(zusatz=()):
         _AUSSER = frozenset(AUS) | set(_umgebungen())
     return (_AUSSER | set(zusatz)) if zusatz else _AUSSER
 
+
 #: Sammlungen: Ein Feld dieser Bauart haelt VIELE.
-SAMMLUNGEN = {'list', 'dict', 'set', 'tuple', 'defaultdict', 'OrderedDict',
-              'deque', 'frozenset'}
+SAMMLUNGEN = {"list", "dict", "set", "tuple", "defaultdict", "OrderedDict", "deque", "frozenset"}
 
 #: Was Python selbst mitbringt — keine eigene Klasse des Projekts.
 FREMD = {
-    'Exception', 'ValueError', 'TypeError', 'KeyError', 'OSError',
-    'RuntimeError', 'Path', 'Decimal', 'Enum', 'Thread', 'Lock', 'RLock',
-    'Event', 'Queue', 'Popen', 'Counter', 'True', 'False', 'None',
+    "Exception",
+    "ValueError",
+    "TypeError",
+    "KeyError",
+    "OSError",
+    "RuntimeError",
+    "Path",
+    "Decimal",
+    "Enum",
+    "Thread",
+    "Lock",
+    "RLock",
+    "Event",
+    "Queue",
+    "Popen",
+    "Counter",
+    "True",
+    "False",
+    "None",
 }
 
 
 class Feld:
-    u"""Ein Eintrag im Kasten: ``- name : art``."""
+    """Ein Eintrag im Kasten: ``- name : art``."""
 
-    __slots__ = ('name', 'art', 'oeffentlich')
+    __slots__ = ("name", "art", "oeffentlich")
 
-    def __init__(self, name, art='', oeffentlich=False):
+    def __init__(self, name, art="", oeffentlich=False):
         self.name = name
         self.art = art
         self.oeffentlich = oeffentlich
 
     @property
     def zeile(self):
-        zeichen = '+' if self.oeffentlich else '-'
-        return '%s %s%s' % (zeichen, self.name,
-                            ' : %s' % self.art if self.art else '')
+        zeichen = "+" if self.oeffentlich else "-"
+        return "%s %s%s" % (zeichen, self.name, " : %s" % self.art if self.art else "")
 
 
 class Beziehung:
-    u"""Eine Linie zwischen zwei Kästen."""
+    """Eine Linie zwischen zwei Kästen."""
 
     #: Vererbung wird als Dreieckspfeil gezeichnet, Besitz als Linie.
-    ERBT = 'erbt'
-    HAELT = 'haelt'
+    ERBT = "erbt"
+    HAELT = "haelt"
 
-    __slots__ = ('von', 'nach', 'art', 'name', 'vielfachheit')
+    __slots__ = ("von", "nach", "art", "name", "vielfachheit")
 
-    def __init__(self, von, nach, art, name='', vielfachheit='1'):
+    def __init__(self, von, nach, art, name="", vielfachheit="1"):
         self.von = von
         self.nach = nach
         self.art = art
@@ -164,15 +200,25 @@ class Beziehung:
 
 
 class Klasse:
-    u"""Ein Kasten: Name, Felder, Methoden — und woher er stammt."""
+    """Ein Kasten: Name, Felder, Methoden — und woher er stammt."""
 
-    __slots__ = ('name', 'datei', 'zeile', 'basen', 'felder', 'methoden',
-                 'haelt', 'dekorateure', 'nur_statisch', 'methodenzahl')
+    __slots__ = (
+        "name",
+        "datei",
+        "zeile",
+        "basen",
+        "felder",
+        "methoden",
+        "haelt",
+        "dekorateure",
+        "nur_statisch",
+        "methodenzahl",
+    )
 
     #: Woran eine Testklasse zu erkennen ist — am Ort, nicht am Namen.
     #: `VideoCodecProbe` in `views/` ist keiner, `_MitChrome` in
     #: `tests/longrunner/` schon.
-    TEST_ORTE = ('tests/', '/tests/', 'test_')
+    TEST_ORTE = ("tests/", "/tests/", "test_")
 
     def __init__(self, name, datei, zeile):
         self.name = name
@@ -192,7 +238,7 @@ class Klasse:
 
     @property
     def ist_test(self):
-        u"""Gehoert diese Klasse zur Prüfung statt zum Programm?
+        """Gehoert diese Klasse zur Prüfung statt zum Programm?
 
         DER FALL (Edgar, 24.08.2026)
         ============================
@@ -213,13 +259,12 @@ class Klasse:
         Ein Test RUFT das Programm, er ist nicht Teil seines Modells. Als
         Einstieg in ein Klassenbild ist er wertlos.
         """
-        pfad = self.datei.replace('\\', '/').lower()
-        return (pfad.startswith('tests/') or '/tests/' in pfad
-                or '/test_' in '/' + pfad)
+        pfad = self.datei.replace("\\", "/").lower()
+        return pfad.startswith("tests/") or "/tests/" in pfad or "/test_" in "/" + pfad
 
 
 class Klassenmodell:
-    u"""Liest ein Projekt und liefert Kästen und Linien."""
+    """Liest ein Projekt und liefert Kästen und Linien."""
 
     def __init__(self, wurzel):
         self.wurzel = Path(wurzel)
@@ -230,15 +275,14 @@ class Klassenmodell:
         # EINMAL vor der Schleife, nicht je Datei: `ausser()` sucht die
         # virtuellen Umgebungen des Projekts (siehe dort).
         raus = ausser()
-        for pfad in sorted(self.wurzel.rglob('*.py')):
+        for pfad in sorted(self.wurzel.rglob("*.py")):
             if any(teil in pfad.parts for teil in raus):
                 continue
             try:
-                baum = ast.parse(pfad.read_text(encoding='utf-8',
-                                                errors='replace'))
+                baum = ast.parse(pfad.read_text(encoding="utf-8", errors="replace"))
             except (SyntaxError, OSError, ValueError):
                 continue
-            kurz = str(pfad.relative_to(self.wurzel)).replace('\\', '/')
+            kurz = str(pfad.relative_to(self.wurzel)).replace("\\", "/")
             for knoten in ast.walk(baum):
                 if isinstance(knoten, ast.ClassDef):
                     self._klasse(knoten, kurz)
@@ -254,11 +298,11 @@ class Klassenmodell:
         eigene, statisch = 0, 0
         for teil in knoten.body:
             if isinstance(teil, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                if not teil.name.startswith('_') or teil.name == '__init__':
+                if not teil.name.startswith("_") or teil.name == "__init__":
                     k.methoden.append(teil.name)
                 eigene += 1
                 marken = {self._name(d) for d in teil.decorator_list}
-                if marken & {'staticmethod', 'classmethod'}:
+                if marken & {"staticmethod", "classmethod"}:
                     statisch += 1
         k.methodenzahl = eigene
         k.nur_statisch = bool(eigene) and statisch == eigene
@@ -268,16 +312,18 @@ class Klassenmodell:
         self.klassen.setdefault(k.name, k)
 
     def _felder(self, knoten, k):
-        u"""``self.x = …`` einsammeln — Attribut oder Beziehung."""
+        """``self.x = …`` einsammeln — Attribut oder Beziehung."""
         gesehen = set()
         for teil in ast.walk(knoten):
             if not isinstance(teil, (ast.Assign, ast.AnnAssign)):
                 continue
             ziele = teil.targets if isinstance(teil, ast.Assign) else [teil.target]
             for ziel in ziele:
-                if not (isinstance(ziel, ast.Attribute)
-                        and isinstance(ziel.value, ast.Name)
-                        and ziel.value.id == 'self'):
+                if not (
+                    isinstance(ziel, ast.Attribute)
+                    and isinstance(ziel.value, ast.Name)
+                    and ziel.value.id == "self"
+                ):
                     continue
                 name = ziel.attr
                 if name in gesehen:
@@ -285,27 +331,26 @@ class Klassenmodell:
                 gesehen.add(name)
                 art, gehalten, viele = self._art(teil.value)
                 if gehalten:
-                    k.haelt.append((name, gehalten, '0..*' if viele else '1'))
+                    k.haelt.append((name, gehalten, "0..*" if viele else "1"))
                 else:
-                    k.felder.append(Feld(name, art,
-                                         not name.startswith('_')))
+                    k.felder.append(Feld(name, art, not name.startswith("_")))
 
     def _art(self, wert):
-        u"""``(Art fuers Etikett, gehaltene Klasse oder None, viele?)``."""
+        """``(Art fuers Etikett, gehaltene Klasse oder None, viele?)``."""
         if isinstance(wert, ast.Call):
             name = self._name(wert.func)
             if name in SAMMLUNGEN:
                 return (name, self._in_sammlung(wert), True)
             if name and name[:1].isupper() and name not in FREMD:
                 return (name, name, False)
-            return (name or '', None, False)
+            return (name or "", None, False)
         if isinstance(wert, (ast.List, ast.Set, ast.Tuple)):
-            return ('list', self._erste_klasse(wert.elts), True)
+            return ("list", self._erste_klasse(wert.elts), True)
         if isinstance(wert, ast.Dict):
-            return ('dict', self._erste_klasse(wert.values), True)
+            return ("dict", self._erste_klasse(wert.values), True)
         if isinstance(wert, ast.Constant):
             return (type(wert.value).__name__, None, False)
-        return ('', None, False)
+        return ("", None, False)
 
     def _in_sammlung(self, ruf):
         return self._erste_klasse(list(ruf.args))
@@ -324,7 +369,7 @@ class Klassenmodell:
             return knoten.id
         if isinstance(knoten, ast.Attribute):
             return knoten.attr
-        return ''
+        return ""
 
     # ── Auswerten ───────────────────────────────────────────────
     def beziehungen(self):
@@ -335,12 +380,11 @@ class Klassenmodell:
                     raus.append(Beziehung(k.name, basis, Beziehung.ERBT))
             for feld, ziel, viel in k.haelt:
                 if ziel in self.klassen:
-                    raus.append(Beziehung(k.name, ziel, Beziehung.HAELT,
-                                          feld, viel))
+                    raus.append(Beziehung(k.name, ziel, Beziehung.HAELT, feld, viel))
         return raus
 
     def dickster_ast(self):
-        u"""Die Klasse, die am meisten hält — dort ist am meisten zu sehen."""
+        """Die Klasse, die am meisten hält — dort ist am meisten zu sehen."""
         beste, zahl = None, -1
         for k in self.klassen.values():
             if k.ist_test:
@@ -351,7 +395,7 @@ class Klassenmodell:
         return beste
 
     def nachbarschaft(self, start=None, tiefe=2):
-        u"""Die Wurzel und alles, was in `tiefe` Schritten erreichbar ist.
+        """Die Wurzel und alles, was in `tiefe` Schritten erreichbar ist.
 
         Ein Bild mit 548 Kästen liest niemand. Diese Grenze ist der
         Unterschied zwischen einer Uebersicht und einer Tapete.
@@ -379,44 +423,40 @@ class Klassenmodell:
             drin |= neu
             rand = neu
         kaesten = [self.klassen[n] for n in sorted(drin)]
-        linien = [b for b in self.beziehungen()
-                  if b.von in drin and b.nach in drin]
+        linien = [b for b in self.beziehungen() if b.von in drin and b.nach in drin]
         return kaesten, linien
 
     #: Die Kategorien in der Reihenfolge, in der sie geprueft werden.
     #: Die erste passende gewinnt — sonst zaehlte eine Model-Klasse mit
     #: statischen Methoden zweimal.
     KATEGORIEN = (
-        ('model', 'Django-Model', 'Vom ORM erzeugt, nicht vom Quelltext'),
-        ('ansicht', 'Django-Ansicht', 'Der URL-Router ruft sie'),
-        ('formular', 'Django-Formular', 'Django erzeugt und bindet sie'),
-        ('test', 'Test', 'Prüft anderen Code, gehört nicht ins Modell'),
-        ('ausnahme', 'Ausnahme', 'Wird geworfen, nicht gehalten'),
-        ('aufzaehlung', 'Aufzaehlung', 'Feste Werte statt Verhalten'),
-        ('daten', 'Datenklasse', 'Nur Felder — ein Wert mit Namen'),
-        ('werkzeug', 'Werkzeugklasse', 'Nur statische Methoden, kein Zustand'),
-        ('im_baum', 'Baustein im Baum', 'Haengt als self.x an einer anderen'),
-        ('oberklasse', 'Oberklasse', 'Wird beerbt, aber nicht gehalten'),
-        ('frei', 'Freistehend', 'Hängt an nichts — der eigentliche Befund'),
+        ("model", "Django-Model", "Vom ORM erzeugt, nicht vom Quelltext"),
+        ("ansicht", "Django-Ansicht", "Der URL-Router ruft sie"),
+        ("formular", "Django-Formular", "Django erzeugt und bindet sie"),
+        ("test", "Test", "Prüft anderen Code, gehört nicht ins Modell"),
+        ("ausnahme", "Ausnahme", "Wird geworfen, nicht gehalten"),
+        ("aufzaehlung", "Aufzaehlung", "Feste Werte statt Verhalten"),
+        ("daten", "Datenklasse", "Nur Felder — ein Wert mit Namen"),
+        ("werkzeug", "Werkzeugklasse", "Nur statische Methoden, kein Zustand"),
+        ("im_baum", "Baustein im Baum", "Haengt als self.x an einer anderen"),
+        ("oberklasse", "Oberklasse", "Wird beerbt, aber nicht gehalten"),
+        ("frei", "Freistehend", "Hängt an nichts — der eigentliche Befund"),
     )
 
     #: Woran eine Django-Klasse zu erkennen ist. Ueber die Oberklasse, nicht
     #: ueber den Namen: `PersonListPage` ist keine Ansicht, `SkillsView(View)`
     #: schon.
     DJANGO_BASEN = {
-        'model': ('Model',),
-        'ansicht': ('View', 'TemplateView', 'ListView', 'DetailView',
-                    'APIView', 'ViewSet'),
-        'formular': ('Form', 'ModelForm', 'FormSet'),
-        'test': ('TestCase', 'TransactionTestCase', 'SimpleTestCase',
-                 'BasisTest', 'LiveServerTestCase'),
-        'ausnahme': ('Exception', 'Error', 'BaseException'),
-        'aufzaehlung': ('Enum', 'IntEnum', 'StrEnum', 'TextChoices',
-                        'IntegerChoices'),
+        "model": ("Model",),
+        "ansicht": ("View", "TemplateView", "ListView", "DetailView", "APIView", "ViewSet"),
+        "formular": ("Form", "ModelForm", "FormSet"),
+        "test": ("TestCase", "TransactionTestCase", "SimpleTestCase", "BasisTest", "LiveServerTestCase"),
+        "ausnahme": ("Exception", "Error", "BaseException"),
+        "aufzaehlung": ("Enum", "IntEnum", "StrEnum", "TextChoices", "IntegerChoices"),
     }
 
     def kategorien(self):
-        u"""Jede Klasse in genau einen Topf.
+        """Jede Klasse in genau einen Topf.
 
         DIE FRAGE (Edgar, 24.08.2026)
         =============================
@@ -440,41 +480,46 @@ class Klassenmodell:
         SYSTEMBEDINGT frei steht, von dem, was frei steht, weil niemand es
         eingehaengt hat.
         """
-        gehalten = {z for k in self.klassen.values()
-                    for _f, z, _v in k.haelt if z in self.klassen}
-        basen = {b for k in self.klassen.values() for b in k.basen
-                 if b in self.klassen}
+        gehalten = {z for k in self.klassen.values() for _f, z, _v in k.haelt if z in self.klassen}
+        basen = {b for k in self.klassen.values() for b in k.basen if b in self.klassen}
         toepfe = {schluessel: [] for schluessel, _l, _e in self.KATEGORIEN}
         for name in sorted(self.klassen):
             toepfe[self._topf(self.klassen[name], gehalten, basen)].append(name)
-        return [{'key': schluessel, 'label': etikett, 'erklaerung': erklaerung,
-                 'namen': toepfe[schluessel], 'zahl': len(toepfe[schluessel])}
-                for schluessel, etikett, erklaerung in self.KATEGORIEN]
+        return [
+            {
+                "key": schluessel,
+                "label": etikett,
+                "erklaerung": erklaerung,
+                "namen": toepfe[schluessel],
+                "zahl": len(toepfe[schluessel]),
+            }
+            for schluessel, etikett, erklaerung in self.KATEGORIEN
+        ]
 
     def _topf(self, k, gehalten, basen):
         for schluessel, endungen in self.DJANGO_BASEN.items():
             if any(b.endswith(endungen) for b in k.basen):
                 return schluessel
-        if 'test' in k.datei.lower() or '/tests/' in '/' + k.datei:
-            return 'test'
-        if k.name.endswith(('Error', 'Exception')):
-            return 'ausnahme'
-        if any(d in ('dataclass',) for d in k.dekorateure):
-            return 'daten'
+        if "test" in k.datei.lower() or "/tests/" in "/" + k.datei:
+            return "test"
+        if k.name.endswith(("Error", "Exception")):
+            return "ausnahme"
+        if any(d in ("dataclass",) for d in k.dekorateure):
+            return "daten"
         # Eine Klasse ohne jede Methode ist ein Wert mit Namen. Mit genau
         # einer (`__init__`) auch — sie tut nichts, sie haelt nur.
         if k.methodenzahl <= 1 and not k.haelt:
-            return 'daten'
+            return "daten"
         if k.nur_statisch:
-            return 'werkzeug'
+            return "werkzeug"
         if k.name in gehalten:
-            return 'im_baum'
+            return "im_baum"
         if k.name in basen:
-            return 'oberklasse'
-        return 'frei'
+            return "oberklasse"
+        return "frei"
 
     def nach_bereich(self):
-        u"""Alle Klassen, nach Verzeichnis gebuendelt — damit jede erreichbar ist.
+        """Alle Klassen, nach Verzeichnis gebuendelt — damit jede erreichbar ist.
 
         DIE BESCHWERDE (Edgar, 24.08.2026)
         ==================================
@@ -493,20 +538,21 @@ class Klassenmodell:
         bereiche = {}
         for name in sorted(self.klassen):
             k = self.klassen[name]
-            teile = k.datei.split('/')
+            teile = k.datei.split("/")
             # Liegt die Datei direkt im eingelesenen Ordner, ist ihr
             # eigener Name die Gruppe — `models.py`, `admin.py`. Vorher
             # hiess das „(Wurzel)": ein Sammelbegriff, der nichts sagt
             # (24.08.2026: „Entferne den Eintrag Wurzel bei den
             # Kategorien, den verstehe ich nicht").
-            schluessel = ('/'.join(teile[:2]) if len(teile) > 2 else teile[0])
+            schluessel = "/".join(teile[:2]) if len(teile) > 2 else teile[0]
             bereiche.setdefault(schluessel, []).append(name)
-        return [{'name': n, 'namen': v, 'zahl': len(v)}
-                for n, v in sorted(bereiche.items(),
-                                   key=lambda p: (-len(p[1]), p[0]))]
+        return [
+            {"name": n, "namen": v, "zahl": len(v)}
+            for n, v in sorted(bereiche.items(), key=lambda p: (-len(p[1]), p[0]))
+        ]
 
     def nach_rolle(self):
-        u"""Zwei Ebenen: Rolle im Projekt, darunter das Verzeichnis.
+        """Zwei Ebenen: Rolle im Projekt, darunter das Verzeichnis.
 
         Die Einteilung selbst liegt in `umbau/gliederung.py` — die
         Funktionen brauchen dieselbe (24.08.2026: „mache alle Klassen in
@@ -516,11 +562,11 @@ class Klassenmodell:
         „Ansichten" und in der anderen unter „Uebrige".
         """
         from .gliederung import nach_rolle as gliedern
-        return gliedern((name, self.klassen[name].datei)
-                        for name in sorted(self.klassen))
+
+        return gliedern((name, self.klassen[name].datei) for name in sorted(self.klassen))
 
     def steckbrief(self, name):
-        u"""Alles zu EINER Klasse — für Hover und Popup.
+        """Alles zu EINER Klasse — für Hover und Popup.
 
         DIE ANSAGE (Edgar, 24.08.2026)
         ==============================
@@ -542,31 +588,30 @@ class Klassenmodell:
             a = self.klassen[anderer]
             for feld, ziel, viel in a.haelt:
                 if ziel == name:
-                    genutzt.append({'von': anderer, 'feld': feld,
-                                    'viel': viel})
+                    genutzt.append({"von": anderer, "feld": feld, "viel": viel})
             if name in a.basen:
                 beerbt.append(anderer)
         return {
-            'name': name,
-            'datei': k.datei,
-            'zeile': k.zeile,
-            'basen': [b for b in k.basen if b in self.klassen],
-            'fremde_basen': [b for b in k.basen if b not in self.klassen],
-            'felder': [f.zeile for f in k.felder],
-            'methoden': k.methoden,
-            'methodenzahl': k.methodenzahl,
+            "name": name,
+            "datei": k.datei,
+            "zeile": k.zeile,
+            "basen": [b for b in k.basen if b in self.klassen],
+            "fremde_basen": [b for b in k.basen if b not in self.klassen],
+            "felder": [f.zeile for f in k.felder],
+            "methoden": k.methoden,
+            "methodenzahl": k.methodenzahl,
             # Was sie als Instanz haelt — die „Unterklassen als Member".
-            'haelt': [{'feld': f, 'klasse': z, 'viel': v}
-                      for f, z, v in k.haelt if z in self.klassen],
-            'haelt_fremd': [{'feld': f, 'klasse': z, 'viel': v}
-                            for f, z, v in k.haelt if z not in self.klassen],
-            'genutzt_von': genutzt,
-            'beerbt_von': beerbt,
-            'ist_test': k.ist_test,
+            "haelt": [{"feld": f, "klasse": z, "viel": v} for f, z, v in k.haelt if z in self.klassen],
+            "haelt_fremd": [
+                {"feld": f, "klasse": z, "viel": v} for f, z, v in k.haelt if z not in self.klassen
+            ],
+            "genutzt_von": genutzt,
+            "beerbt_von": beerbt,
+            "ist_test": k.ist_test,
         }
 
     def steckbriefe(self, namen):
-        u"""Steckbriefe für die gezeigten Klassen — als Woerterbuch."""
+        """Steckbriefe für die gezeigten Klassen — als Woerterbuch."""
         raus = {}
         for name in namen:
             eintrag = self.steckbrief(name)
@@ -576,16 +621,14 @@ class Klassenmodell:
 
     def kennzahlen(self):
         alle = len(self.klassen)
-        gehalten = {z for k in self.klassen.values()
-                    for _f, z, _v in k.haelt if z in self.klassen}
-        erben = {b for k in self.klassen.values() for b in k.basen
-                 if b in self.klassen}
+        gehalten = {z for k in self.klassen.values() for _f, z, _v in k.haelt if z in self.klassen}
+        erben = {b for k in self.klassen.values() for b in k.basen if b in self.klassen}
         return {
-            'klassen': alle,
-            'im_baum': len(gehalten),
-            'oberklassen': len(erben),
-            'beziehungen': len(self.beziehungen()),
+            "klassen": alle,
+            "im_baum": len(gehalten),
+            "oberklassen": len(erben),
+            "beziehungen": len(self.beziehungen()),
         }
 
 
-__all__ = ['Klassenmodell', 'Klasse', 'Feld', 'Beziehung']
+__all__ = ["Klassenmodell", "Klasse", "Feld", "Beziehung"]

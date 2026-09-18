@@ -14,13 +14,14 @@ class DjangoBaseConfig(AppConfig):
 
     def ready(self):
         from . import signals  # noqa: F401  (Signale verbinden)
+
         self._aufzeichnung_einhaengen()
         self._cache_header_einhaengen()
         self._joblaeufe_mitschreiben()
 
     @staticmethod
     def _joblaeufe_mitschreiben():
-        u"""Jeden Management-Command-Lauf in den Jobverlauf schreiben.
+        """Jeden Management-Command-Lauf in den Jobverlauf schreiben.
 
         Aus demselben Grund von selbst wie die Middleware darueber: Muesste
         es jedes Projekt eintragen, haette die Jobs-Seite dort so lange
@@ -36,7 +37,7 @@ class DjangoBaseConfig(AppConfig):
 
     @staticmethod
     def _aufzeichnung_einhaengen():
-        u"""Die Aufzeichnungs-Middleware selbst nachtragen.
+        """Die Aufzeichnungs-Middleware selbst nachtragen.
 
         WARUM VON SELBST (Befund 21.08.2026, gemeldet aus CamTrack): Die
         Bedienung lag in ``_sidebar.html`` und die Skripte in ``_shell.html`` -
@@ -53,12 +54,13 @@ class DjangoBaseConfig(AppConfig):
         (``BaseHandler.load_middleware``).
         """
         from django.conf import settings
+
         if not getattr(settings, "DJANGOBASE_AUFZEICHNUNG", True):
             return
         try:
             kette = list(settings.MIDDLEWARE)
-        except Exception:                                   # noqa: BLE001
-            return                                          # kein MIDDLEWARE gesetzt
+        except Exception:  # noqa: BLE001
+            return  # kein MIDDLEWARE gesetzt
         if AUFZEICHNUNG_MIDDLEWARE in kette:
             return
         # ANS ENDE: Sie liest die fertige Antwort und schreibt in ihren Inhalt.
@@ -69,7 +71,7 @@ class DjangoBaseConfig(AppConfig):
 
     @staticmethod
     def _cache_header_einhaengen():
-        u"""Die Cache-Header-Middleware nachtragen.
+        """Die Cache-Header-Middleware nachtragen.
 
         ANSAGE (Edgar, 21.08.2026): „lege einen testcase an um das caching zu
         überprüfen - damit ich nicht gecachte versionen von seiten sehe!"
@@ -79,11 +81,12 @@ class DjangoBaseConfig(AppConfig):
         lange. ``DJANGOBASE_CACHE_HEADER = False`` verhindert das.
         """
         from django.conf import settings
+
         if not getattr(settings, "DJANGOBASE_CACHE_HEADER", True):
             return
         try:
             kette = list(settings.MIDDLEWARE)
-        except Exception:                                   # noqa: BLE001
+        except Exception:  # noqa: BLE001
             return
         if CACHE_MIDDLEWARE in kette:
             return

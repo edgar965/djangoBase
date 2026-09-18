@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Pruefdatei — ist diese Datei eine Pruefung?
+"""Pruefdatei — ist diese Datei eine Pruefung?
 
 WOZU (31.08.2026)
 =================
@@ -23,6 +23,7 @@ WORAN ERKANNT
 Am Dateinamen (``test_…``) oder am Ordner (``tests``/``test`` im Pfad).
 Zwei Fassungen derselben Frage laufen auseinander; deshalb steht sie hier.
 """
+
 from pathlib import Path
 
 from .pfadteile import Pfadteile
@@ -31,7 +32,7 @@ __all__ = ["Pruefdatei"]
 
 
 class Pruefdatei:
-    u"""Beantwortet fuer einen Pfad: Pruefung oder Anwendungscode?"""
+    """Beantwortet fuer einen Pfad: Pruefung oder Anwendungscode?"""
 
     #: Ordnernamen, unter denen Pruefungen liegen.
     ORDNER = ("tests", "test")
@@ -41,7 +42,7 @@ class Pruefdatei:
 
     @classmethod
     def ist_es(cls, pfad, wurzel=None):
-        u"""Liegt die Datei in einer Pruefung?
+        """Liegt die Datei in einer Pruefung?
 
         @param pfad   Pfad oder Zeichenkette
         @param wurzel Projektwurzel dieses Laufs; ohne sie gilt der ganze Pfad

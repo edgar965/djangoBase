@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Pause — Warten als injizierbare Abhängigkeit, damit Wartezeit testbar und abbrechbar ist.
+"""Pause — Warten als injizierbare Abhängigkeit, damit Wartezeit testbar und abbrechbar ist.
 
 DER ANLASS (gunSlinger, 18.09.2026)
 ===================================
@@ -47,12 +47,13 @@ BENUTZUNG
 Ein ``Pause``-Objekt darf von mehreren Stellen geteilt werden — dann bricht
 EIN ``abbrechen()`` alle ab. Für einen neuen Lauf ``zuruecksetzen()``.
 """
+
 import threading
 import time
 
 
 class Pause:
-    u"""Wartet höchstens ``sekunden``; ``abbrechen()`` beendet jedes Warten sofort.
+    """Wartet höchstens ``sekunden``; ``abbrechen()`` beendet jedes Warten sofort.
 
     :param schlaefer: was wirklich wartet — ``None`` = Event-Warten (abbrechbar).
         Ein eigener Schläfer (etwa ``lambda s: None``) macht das Warten
@@ -67,11 +68,11 @@ class Pause:
 
     @classmethod
     def sofort(cls):
-        u"""Eine Pause, die nie wartet — für Tests. ``gewartet`` zählt trotzdem mit."""
+        """Eine Pause, die nie wartet — für Tests. ``gewartet`` zählt trotzdem mit."""
         return cls(schlaefer=lambda _sekunden: None)
 
     def warten(self, sekunden):
-        u"""``True`` = Zeit ist durchgelaufen, ``False`` = abgebrochen (auch vorher schon).
+        """``True`` = Zeit ist durchgelaufen, ``False`` = abgebrochen (auch vorher schon).
 
         Negative oder Null-Sekunden warten nicht, prüfen aber den Abbruch.
         """
@@ -85,7 +86,7 @@ class Pause:
         return not self._ereignis.wait(sekunden)
 
     def abbrechen(self):
-        u"""Beendet das laufende Warten und lässt jedes weitere sofort zurückkehren."""
+        """Beendet das laufende Warten und lässt jedes weitere sofort zurückkehren."""
         self._ereignis.set()
 
     @property
@@ -93,16 +94,16 @@ class Pause:
         return self._ereignis.is_set()
 
     def zuruecksetzen(self):
-        u"""Für den nächsten Lauf: Abbruch aufheben, Aufzeichnung leeren."""
+        """Für den nächsten Lauf: Abbruch aufheben, Aufzeichnung leeren."""
         self._ereignis.clear()
         self.gewartet = []
 
     @property
     def gesamt(self):
-        u"""Summe aller angeforderten Wartezeiten — was der Lauf ohne ``sofort()`` gedauert hätte."""
+        """Summe aller angeforderten Wartezeiten — was der Lauf ohne ``sofort()`` gedauert hätte."""
         return sum(self.gewartet)
 
     @staticmethod
     def jetzt():
-        u"""Monotone Uhr für Messungen rund um das Warten — nicht ``time.time()``, das springt."""
+        """Monotone Uhr für Messungen rund um das Warten — nicht ``time.time()``, das springt."""
         return time.monotonic()

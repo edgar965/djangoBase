@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Fixer - Werkzeuge, die einen Befund nicht nur finden, sondern BEHEBEN.
+"""Fixer - Werkzeuge, die einen Befund nicht nur finden, sondern BEHEBEN.
 
 DER UNTERSCHIED ZU EINEM PRUEFWERKZEUG (16.08.2026)
 ===================================================
@@ -28,6 +28,7 @@ ein Anzeigeformat? ist das Argument ein Feld oder ein Zwischenergebnis? - stellt
 das zugehoerige Pruefwerkzeug, und beantworten muss sie ein Mensch. Der Fixer
 führt aus, was schon entschieden ist.
 """
+
 import shutil
 import time
 from pathlib import Path
@@ -67,9 +68,12 @@ class Aenderung:
             return self.pfad.name
 
     def als_dict(self):
-        return {"datei": self.name, "was": self.was,
-                "machbar": "ja" if self.machbar else "nein",
-                "grund": "; ".join(self.warnungen) if self.warnungen else ""}
+        return {
+            "datei": self.name,
+            "was": self.was,
+            "machbar": "ja" if self.machbar else "nein",
+            "grund": "; ".join(self.warnungen) if self.warnungen else "",
+        }
 
 
 class Vorschau:
@@ -93,7 +97,7 @@ class Vorschau:
             "zeilen": [a.als_dict() for a in self.aenderungen],
             "anzahl": len(self.aenderungen),
             "zusammenfassung": "%d Dateien betroffen, %d davon jetzt machbar"
-                               % (len(self.aenderungen), len(self.machbar)),
+            % (len(self.aenderungen), len(self.machbar)),
             "hinweis": self.hinweis,
         }
 
@@ -127,21 +131,21 @@ class Fixer:
     #: Deshalb steht die Grenze JETZT HIER, in der Basis, und wird aus
     #: derselben Liste gespeist wie die der Pruefwerkzeuge. Ein Fixer mit
     #: eigener Liste ist eine zweite Quelle, und die laeuft auseinander.
-    ZUSATZ_RAUS = frozenset({"vendor", ".venv", "site-packages", "dist-info",
-                             "diktator", "third_parts", "build"})
+    ZUSATZ_RAUS = frozenset(
+        {"vendor", ".venv", "site-packages", "dist-info", "diktator", "third_parts", "build"}
+    )
 
     @classmethod
     def raus(cls):
         """Ordnernamen, die kein Fixer anfassen darf."""
         from .werkzeug import AUSGESCHLOSSEN
+
         # Beide Schluessel, siehe Werkzeug.ausgeschlossen(): `skills2` ist der
         # alte Paketname und steht noch in den Einstellungen der Projekte. Ein
         # Fixer, der ihn nicht liest, SCHREIBT in Fremdcode.
         cfg = getattr(settings, "DJANGOBASE", {}) or {}
-        eigen = (list(cfg.get("skills_ignorieren") or [])
-                 + list(cfg.get("skills2_ignorieren") or []))
-        return (set(AUSGESCHLOSSEN) | set(cls.ZUSATZ_RAUS)
-                | {str(x) for x in eigen})
+        eigen = list(cfg.get("skills_ignorieren") or []) + list(cfg.get("skills2_ignorieren") or [])
+        return set(AUSGESCHLOSSEN) | set(cls.ZUSATZ_RAUS) | {str(x) for x in eigen}
 
     @classmethod
     def erlaubt(cls, pfad, wurzel=None):
@@ -175,12 +179,13 @@ class Fixer:
     def gitfilter(self):
         """Was in der ``.gitignore`` steht, ist nicht der Code des Projekts."""
         from .gitfilter import GitFilter
+
         if not hasattr(self, "_gitfilter"):
             self._gitfilter = GitFilter(self.wurzel())
         return self._gitfilter
 
     def pfade(self, muster="*.py"):
-        u"""Die Dateien, die dieser Fixer ANSEHEN darf - wie ``Werkzeug.pfade``.
+        """Die Dateien, die dieser Fixer ANSEHEN darf - wie ``Werkzeug.pfade``.
 
         NUR ZUM SUCHEN, NICHT ALS SCHREIBSCHUTZ (18.08.2026): ``erlaubt()``
         bleibt unverändert. Der Filter kennt nur Dateien, die es beim ersten
@@ -195,8 +200,11 @@ class Fixer:
         # Gegen die Teile UNTERHALB der Wurzel — siehe `pfadteile.py`.
         # Gegen den absoluten Pfad geprueft, faellt jede Datei heraus,
         # deren WEG zur Wurzel zufaellig einen dieser Namen traegt.
-        return [p for p in sorted(wurzel.rglob(muster))
-                if not Pfadteile.trifft(p, wurzel, raus) and git.erlaubt(p)]
+        return [
+            p
+            for p in sorted(wurzel.rglob(muster))
+            if not Pfadteile.trifft(p, wurzel, raus) and git.erlaubt(p)
+        ]
 
     @property
     def sicherung(self):
@@ -239,12 +247,11 @@ class Fixer:
             # den jemand ohne Ausschlussliste baut.
             if not self.erlaubt(a.pfad, self.wurzel()):
                 aus["uebersprungen"].append(
-                    {"datei": a.name,
-                     "grund": "fremder Code — kein Fixer schreibt dorthin"})
+                    {"datei": a.name, "grund": "fremder Code — kein Fixer schreibt dorthin"}
+                )
                 continue
             if not a.machbar:
-                aus["uebersprungen"].append({"datei": a.name,
-                                             "grund": "; ".join(a.warnungen)})
+                aus["uebersprungen"].append({"datei": a.name, "grund": "; ".join(a.warnungen)})
                 continue
             ziel.mkdir(parents=True, exist_ok=True)
             kopie = ziel / a.pfad.name
@@ -260,20 +267,18 @@ class Fixer:
                 shutil.copy2(kopie, a.pfad)
                 if a.begleiter:
                     Path(a.begleiter[0]).unlink(missing_ok=True)
-                aus["zurueckgespielt"].append({"datei": a.name,
-                                               "grund": "; ".join(fehler)})
+                aus["zurueckgespielt"].append({"datei": a.name, "grund": "; ".join(fehler)})
             else:
-                aus["geschrieben"].append({"datei": a.name + zusatz,
-                                           "sicherung": str(kopie)})
+                aus["geschrieben"].append({"datei": a.name + zusatz, "sicherung": str(kopie)})
         # Dictionary gewollt: geht unveraendert als JSON an die Seite.
         return aus
 
     #: Kennung des Werkzeugs, dessen Befund dieser Fixer behebt.
     #: Leer = keines (dann steht auf der Karte nichts).
-    behebt = ''
+    behebt = ""
 
     def nummer(self):
-        u"""Die NUMMER der zugehoerigen Prüfung in der Tabelle.
+        """Die NUMMER der zugehoerigen Prüfung in der Tabelle.
 
             „passe noch an die Fix Werkzeuge, die erwaehnen kriterien die es
              nicht gibt. sie sollen sich auf die Nummer der testcases
@@ -290,8 +295,9 @@ class Fixer:
         """
         if not self.behebt:
             return None
-        from .rangliste import rangliste
         from . import werkzeuge
+        from .rangliste import rangliste
+
         for abschnitt in rangliste().abschnitte(list(werkzeuge())):
             for rang, w in abschnitt["eintraege"]:
                 if w.slug == self.behebt:
@@ -299,7 +305,14 @@ class Fixer:
         return None
 
     def als_dict(self):
-        return {"slug": self.slug, "titel": self.titel, "tut": self.tut,
-                "warum": self.warum, "grenzen": self.grenzen,
-                "kriterium": self.kriterium, "dauer": self.dauer,
-                "behebt": self.behebt, "pruefung": self.nummer()}
+        return {
+            "slug": self.slug,
+            "titel": self.titel,
+            "tut": self.tut,
+            "warum": self.warum,
+            "grenzen": self.grenzen,
+            "kriterium": self.kriterium,
+            "dauer": self.dauer,
+            "behebt": self.behebt,
+            "pruefung": self.nummer(),
+        }

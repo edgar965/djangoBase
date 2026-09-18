@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""TotesModul - Dateien, die niemand importiert und niemand erwaehnt.
+"""TotesModul - Dateien, die niemand importiert und niemand erwaehnt.
 
 DIE GEFAEHRLICHSTE PRUEFUNG IM KASTEN
 =====================================
@@ -30,6 +30,7 @@ aus. Hier ist das Ergebnisverzeichnis deshalb ausdruecklich ausgenommen.
 
 Reine stdlib.
 """
+
 import ast
 from pathlib import Path
 
@@ -39,28 +40,49 @@ from .modulindex import ModulIndex
 
 
 class TotesModul(BefundWerkzeug):
-
-    slug = 'totes-modul'
+    slug = "totes-modul"
     kriterium = 5
-    titel = 'Module, die niemand erwähnt'
-    zweck = ('Findet Python-Dateien, die nirgends importiert werden, deren Name '
-             'nirgends vorkommt und von denen kein öffentlicher Name benutzt '
-             'wird — in drei Stufen, damit kein lebendes Modul zum '
-             'Löschvorschlag wird.')
-    abhilfe = ('Nach einem Umbau, der Module zusammenlegt. Jeden Treffer '
-               'EINZELN nachsehen: Die Prüfung kann dynamische Aufrufe nicht '
-               'sehen, und ein falscher Löschvorschlag ist die teuerste Sorte '
-               'Fehlalarm.')
-    befund = ('In shortlongx meldete eine frühere Fassung 62 Module, davon 59 '
-              'Testmodule und per Dekorator angemeldete Funktionen. Übrig '
-              'blieben zwei echte — darunter eine tote Funktion ausgerechnet in '
-              'dem Werkzeug, das tote Importe entfernt.')
-    dauer = 'Sekunden'
+    titel = "Module, die niemand erwähnt"
+    zweck = (
+        "Findet Python-Dateien, die nirgends importiert werden, deren Name "
+        "nirgends vorkommt und von denen kein öffentlicher Name benutzt "
+        "wird — in drei Stufen, damit kein lebendes Modul zum "
+        "Löschvorschlag wird."
+    )
+    abhilfe = (
+        "Nach einem Umbau, der Module zusammenlegt. Jeden Treffer "
+        "EINZELN nachsehen: Die Prüfung kann dynamische Aufrufe nicht "
+        "sehen, und ein falscher Löschvorschlag ist die teuerste Sorte "
+        "Fehlalarm."
+    )
+    befund = (
+        "In shortlongx meldete eine frühere Fassung 62 Module, davon 59 "
+        "Testmodule und per Dekorator angemeldete Funktionen. Übrig "
+        "blieben zwei echte — darunter eine tote Funktion ausgerechnet in "
+        "dem Werkzeug, das tote Importe entfernt."
+    )
+    dauer = "Sekunden"
 
     #: Dateinamen, die ein Framework selbst findet.
-    RAHMEN = frozenset(("__init__", "settings", "urls", "wsgi", "asgi", "manage",
-                        "apps", "admin", "models", "conftest", "middleware",
-                        "signals", "forms", "serializers", "tasks"))
+    RAHMEN = frozenset(
+        (
+            "__init__",
+            "settings",
+            "urls",
+            "wsgi",
+            "asgi",
+            "manage",
+            "apps",
+            "admin",
+            "models",
+            "conftest",
+            "middleware",
+            "signals",
+            "forms",
+            "serializers",
+            "tasks",
+        )
+    )
     #: Verzeichnisse, in denen Dateien per Konvention gefunden werden.
     GEFUNDEN_IN = ("/management/commands/", "/migrations/", "/templatetags/")
     #: Wo Namen ausserhalb des Python-Codes stehen koennen.
@@ -76,15 +98,19 @@ class TotesModul(BefundWerkzeug):
     #: stehen duerfen - ``hoechstens=1`` faengt ab, wenn eine Ausnahme
     #: verlorengeht.
     anlassfall = Anlassfall(
-        {"lebt.py": "WERT = 1\n",
-         "nutzer.py": "from lebt import WERT\n\n\ndef zeigen():\n    return WERT\n",
-         "start.py": 'from nutzer import zeigen\n\n'
-                     'if __name__ == "__main__":\n    print(zeigen())\n',
-         "tot.py": "def niemand_ruft_das():\n    return 2\n",
-         "test_etwas.py": "def test_lauf():\n    assert True\n"},
-        mindestens=1, hoechstens=1, erwartet_in="tot.py",
+        {
+            "lebt.py": "WERT = 1\n",
+            "nutzer.py": "from lebt import WERT\n\n\ndef zeigen():\n    return WERT\n",
+            "start.py": 'from nutzer import zeigen\n\nif __name__ == "__main__":\n    print(zeigen())\n',
+            "tot.py": "def niemand_ruft_das():\n    return 2\n",
+            "test_etwas.py": "def test_lauf():\n    assert True\n",
+        },
+        mindestens=1,
+        hoechstens=1,
+        erwartet_in="tot.py",
         warum="Ein Loeschvorschlag fuer lebenden Code ist die teuerste Sorte "
-              "Fehlalarm - drei davon standen in einer frueheren Fassung")
+        "Fehlalarm - drei davon standen in einer frueheren Fassung",
+    )
 
     def pruefen(self, **_argumente):
         dateien = self.dateien(".py")
@@ -100,13 +126,12 @@ class TotesModul(BefundWerkzeug):
             if self._lebt(d, index, importiert, text):
                 continue
             befunde.append(self._befund(d))
-        kopf = ["%d Dateien" % len(dateien),
-                "%d per Konvention gefunden (nicht gelistet)" % ausgenommen]
+        kopf = ["%d Dateien" % len(dateien), "%d per Konvention gefunden (nicht gelistet)" % ausgenommen]
         return Befundsatz(self.titel, kopf, befunde)
 
     # ------------------------------------------------------------- Ausnahmen
     def _ausgenommen(self, datei):
-        u"""Warum diese Datei nirgends stehen MUSS - oder ``''``."""
+        """Warum diese Datei nirgends stehen MUSS - oder ``''``."""
         name = Path(datei.name).name
         if Path(datei.name).stem in self.RAHMEN:
             return "Rahmenname"
@@ -121,12 +146,11 @@ class TotesModul(BefundWerkzeug):
         return ""
 
     #: Aufrufe, die auf Modulebene nur in einem Einstiegspunkt stehen.
-    STARTRUF = frozenset(("print", "setup", "main", "haupt", "exit", "_exit",
-                          "run", "flush", "basicConfig"))
+    STARTRUF = frozenset(("print", "setup", "main", "haupt", "exit", "_exit", "run", "flush", "basicConfig"))
 
     @classmethod
     def _ist_skript(cls, datei):
-        u"""Wird die Datei ausgefuehrt statt importiert?
+        """Wird die Datei ausgefuehrt statt importiert?
 
         Am Code erkannt, nicht am Ordner: Eine Ordnerliste raet, was der Autor
         gemeint hat, und liegt beim naechsten neuen Verzeichnis daneben.
@@ -149,7 +173,7 @@ class TotesModul(BefundWerkzeug):
         Die Abwaegung ist bewusst schief: Ein uebersehener Befund kostet nichts,
         ein falscher Loeschvorschlag kostet lebenden Code."""
         if datei.baum is None:
-            return True                       # nicht lesbar: nichts behaupten
+            return True  # nicht lesbar: nichts behaupten
         if "__main__" in datei.text:
             return True
         for k in datei.baum.body:
@@ -158,25 +182,24 @@ class TotesModul(BefundWerkzeug):
             if not isinstance(k, ast.Expr) or not isinstance(k.value, ast.Call):
                 continue
             f = k.value.func
-            if (getattr(f, "id", None) or getattr(f, "attr", None) or "") \
-                    in cls.STARTRUF:
+            if (getattr(f, "id", None) or getattr(f, "attr", None) or "") in cls.STARTRUF:
                 return True
         return False
 
     # ----------------------------------------------------------- drei Stufen
     def _lebt(self, datei, index, importiert, text):
-        u"""Drei Fragen. EINE reicht, damit das Modul lebt."""
+        """Drei Fragen. EINE reicht, damit das Modul lebt."""
         punktnamen = {p for p, d in index.je_name.items() if d is datei}
         if punktnamen & importiert:
-            return True                       # 1. jemand importiert es
+            return True  # 1. jemand importiert es
         stamm = Path(datei.name).stem
         if text.count(stamm) > datei.text.count(stamm):
-            return True                       # 2. der Name steht anderswo
+            return True  # 2. der Name steht anderswo
         return self._name_benutzt(datei, text)  # 3. ein Inhalt wird benutzt
 
     @staticmethod
     def _importierte_module(dateien, index):
-        u"""Alle Punktnamen, die irgendwo importiert werden - inklusive Paket.
+        """Alle Punktnamen, die irgendwo importiert werden - inklusive Paket.
 
         ``from a.b.c import x`` haelt auch ``a.b`` am Leben: Ein Paket, dessen
         Inhalt gebraucht wird, ist nicht tot."""
@@ -203,18 +226,25 @@ class TotesModul(BefundWerkzeug):
         return aus
 
     def _name_benutzt(self, datei, text):
-        u"""Wird ein oeffentlicher Name des Moduls anderswo benutzt?
+        """Wird ein oeffentlicher Name des Moduls anderswo benutzt?
 
         Die dritte Stufe, und die wichtigste: Bei ``from .x import *`` steht der
         MODULNAME nur in der Datei selbst - der Inhalt aber ueberall."""
         if datei.baum is None:
-            return True                       # nicht lesbar: nichts behaupten
-        namen = [k.name for k in datei.baum.body
-                 if isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef,
-                                   ast.ClassDef)) and not k.name.startswith("_")]
-        namen += [z.id for k in datei.baum.body if isinstance(k, ast.Assign)
-                  for z in k.targets
-                  if isinstance(z, ast.Name) and not z.id.startswith("_")]
+            return True  # nicht lesbar: nichts behaupten
+        namen = [
+            k.name
+            for k in datei.baum.body
+            if isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+            and not k.name.startswith("_")
+        ]
+        namen += [
+            z.id
+            for k in datei.baum.body
+            if isinstance(k, ast.Assign)
+            for z in k.targets
+            if isinstance(z, ast.Name) and not z.id.startswith("_")
+        ]
         for name in namen:
             if len(name) > 2 and text.count(name) > datei.text.count(name):
                 return True
@@ -224,13 +254,12 @@ class TotesModul(BefundWerkzeug):
 
     # --------------------------------------------------------------- Textbasis
     def _gesamttext(self, dateien):
-        u"""Aller Projekttext in EINER Zeichenkette - Python plus Vorlagen.
+        """Aller Projekttext in EINER Zeichenkette - Python plus Vorlagen.
 
         Das eigene Ergebnisverzeichnis bleibt draussen: Ein Bericht, der jeden
         gemeldeten Namen nennt, macht beim naechsten Lauf jedes Modul lebendig
         (siehe Modulkopf)."""
-        teile = [d.text for d in dateien
-                 if not self._ist_eigene_ablage(d.name)]
+        teile = [d.text for d in dateien if not self._ist_eigene_ablage(d.name)]
         for muster in self.TEXTMUSTER:
             for p in self.pfade(muster):
                 if self._ist_eigene_ablage(Path(p).as_posix()):
@@ -253,4 +282,5 @@ class TotesModul(BefundWerkzeug):
             "Weder der Modulname noch einer seiner öffentlichen Namen kommt "
             "außerhalb dieser Datei vor. EINZELN nachsehen: ein dynamischer "
             "Aufruf ist von außen nicht zu sehen.",
-            Befund.WARNUNG)
+            Befund.WARNUNG,
+        )

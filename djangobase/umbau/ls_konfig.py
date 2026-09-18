@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Die Einstellungen des Language-Server-Laufs — gespeichert, prüfbar, abdruckbar.
+"""Die Einstellungen des Language-Server-Laufs — gespeichert, prüfbar, abdruckbar.
 
 ANLASS (Edgar, 02.09.2026)
 ==========================
@@ -20,6 +20,7 @@ Einstellungen ist ein anderes Ergebnis (dieselbe Lehre wie
 Django-frei. Gespeichert wird als JSON unter dem Ablage-Ordner, nicht im
 System-Temp.
 """
+
 import hashlib
 import json
 import os
@@ -30,22 +31,21 @@ from pathlib import Path
 #: Django-Rauschen aus — ``objects`` am Model und ``import *`` kennt der
 #: Server nicht, und jeder Treffer davon wäre ein Fehlalarm.
 REGELN = (
-    ("reportUndefinedVariable", "error", u"Name, den es nirgends gibt"),
-    ("reportCallIssue", "error", u"Aufruf passt nicht zur Signatur"),
-    ("reportArgumentType", "error", u"Argument vom falschen Typ"),
+    ("reportUndefinedVariable", "error", "Name, den es nirgends gibt"),
+    ("reportCallIssue", "error", "Aufruf passt nicht zur Signatur"),
+    ("reportArgumentType", "error", "Argument vom falschen Typ"),
     # NICHT ``reportPossiblyUnbound`` wie in der Doku - beide Werkzeuge melden
     # das als „unrecognized setting" (02.09.2026 gemessen); der Schluessel
     # heisst ``reportPossiblyUnboundVariable``.
-    ("reportPossiblyUnboundVariable", "error", u"Variable nur auf einem Zweig gesetzt"),
-    ("reportMissingImports", "error", u"Import, den es nicht gibt"),
-    ("reportUnusedImport", "warning", u"Import ohne Verwendung"),
-    ("reportUnusedVariable", "warning", u"Variable ohne Verwendung"),
-    ("reportOptionalMemberAccess", "warning", u"Zugriff auf etwas, das None sein kann"),
-    ("reportIndexIssue", "warning", u"Index oder Schlüssel passt nicht"),
-    ("reportRedeclaration", "warning", u"Name in derselben Datei zweimal definiert"),
-    ("reportAttributeAccessIssue", "none",
-     u"Attribut, das der Server nicht kennt (Django-Manager, import *)"),
-    ("reportSelfClsParameterName", "none", u"self/cls-Namensregel"),
+    ("reportPossiblyUnboundVariable", "error", "Variable nur auf einem Zweig gesetzt"),
+    ("reportMissingImports", "error", "Import, den es nicht gibt"),
+    ("reportUnusedImport", "warning", "Import ohne Verwendung"),
+    ("reportUnusedVariable", "warning", "Variable ohne Verwendung"),
+    ("reportOptionalMemberAccess", "warning", "Zugriff auf etwas, das None sein kann"),
+    ("reportIndexIssue", "warning", "Index oder Schlüssel passt nicht"),
+    ("reportRedeclaration", "warning", "Name in derselben Datei zweimal definiert"),
+    ("reportAttributeAccessIssue", "none", "Attribut, das der Server nicht kennt (Django-Manager, import *)"),
+    ("reportSelfClsParameterName", "none", "self/cls-Namensregel"),
 )
 
 STUFEN = ("error", "warning", "information", "none")
@@ -66,43 +66,51 @@ STUFEN = ("error", "warning", "information", "none")
 #: mit zwei Argumenten an eine Funktion, die eins nimmt (``TS2554``), ist auch
 #: ohne Typen ein Befund.
 JS_REGELN = (
-    ("TS2339", True, u"Eigenschaft gibt es an diesem Typ nicht (.value an HTMLElement)"),
-    ("TS2551", True, u"Eigenschaft fast so geschrieben wie eine vorhandene"),
-    ("TS2304", False, u"Name nirgends gefunden"),
-    ("TS2307", False, u"Modul nicht gefunden"),
-    ("TS2554", False, u"Aufruf mit falscher Argumentzahl"),
-    ("TS2345", False, u"Argument vom falschen Typ"),
+    ("TS2339", True, "Eigenschaft gibt es an diesem Typ nicht (.value an HTMLElement)"),
+    ("TS2551", True, "Eigenschaft fast so geschrieben wie eine vorhandene"),
+    ("TS2304", False, "Name nirgends gefunden"),
+    ("TS2307", False, "Modul nicht gefunden"),
+    ("TS2554", False, "Aufruf mit falscher Argumentzahl"),
+    ("TS2345", False, "Argument vom falschen Typ"),
 )
 
 #: (Schlüssel, Muster, Vorgabe, Beschriftung). Muster im pyright-Stil,
 #: ``**/`` findet sie in jeder Tiefe.
 AUSSCHLUESSE = (
-    ("venv", ("**/pythonVENV", "**/venv", "**/.venv", "**/env"), True,
-     u"virtuelle Umgebungen"),
-    ("migrations", ("**/migrations",), True, u"Django-Migrationen"),
-    ("cache", ("**/.cache", "**/__pycache__", "**/node_modules"), True,
-     u"Zwischenspeicher und node_modules"),
-    ("sicherung", ("**/sicherung", "**/backup_*"), True,
-     u"Sicherungskopien alter Fassungen"),
-    ("tests", ("**/tests", "**/tests_app"), False, u"Tests"),
+    ("venv", ("**/pythonVENV", "**/venv", "**/.venv", "**/env"), True, "virtuelle Umgebungen"),
+    ("migrations", ("**/migrations",), True, "Django-Migrationen"),
+    ("cache", ("**/.cache", "**/__pycache__", "**/node_modules"), True, "Zwischenspeicher und node_modules"),
+    ("sicherung", ("**/sicherung", "**/backup_*"), True, "Sicherungskopien alter Fassungen"),
+    ("tests", ("**/tests", "**/tests_app"), False, "Tests"),
 )
 
 
 class LsKonfig:
-    u"""Die Einstellungen eines Laufs — Vorgaben, Formular, Datei, Abdruck."""
+    """Die Einstellungen eines Laufs — Vorgaben, Formular, Datei, Abdruck."""
 
     WERKZEUGE = ("auto", "basedpyright", "pyright")
     MODI = ("off", "basic", "standard", "strict")
-    FELDER = ("werkzeug", "modus", "pfade", "ausschluss", "python", "regeln",
-              "stufe", "deckel", "stubs", "zeitlimit", "javascript", "js_stumm",
-              "rahmen_stumm")
+    FELDER = (
+        "werkzeug",
+        "modus",
+        "pfade",
+        "ausschluss",
+        "python",
+        "regeln",
+        "stufe",
+        "deckel",
+        "stubs",
+        "zeitlimit",
+        "javascript",
+        "js_stumm",
+        "rahmen_stumm",
+    )
 
     #: Nur diese Felder bestimmen, WAS gerechnet wird. ``stufe``, ``deckel``,
     #: ``js_stumm`` und ``rahmen_stumm`` bestimmen nur, was von einem fertigen
     #: Ergebnis zu sehen ist — stünden sie im Abdruck, kostete jedes Umschalten
     #: eines Filters einen neuen Lauf (70 s auf shortlongx).
-    LAUFFELDER = ("werkzeug", "modus", "pfade", "ausschluss", "python", "regeln",
-                  "stubs", "javascript")
+    LAUFFELDER = ("werkzeug", "modus", "pfade", "ausschluss", "python", "regeln", "stubs", "javascript")
 
     def __init__(self, werte=None):
         vorgaben = self.vorgaben()
@@ -161,11 +169,10 @@ class LsKonfig:
     def speichern(self, pfad):
         pfad = Path(pfad)
         pfad.parent.mkdir(parents=True, exist_ok=True)
-        pfad.write_text(json.dumps(self.als_dict(), ensure_ascii=False, indent=2),
-                        encoding="utf-8")
+        pfad.write_text(json.dumps(self.als_dict(), ensure_ascii=False, indent=2), encoding="utf-8")
 
     def als_dict(self):
-        u"""Was in die ``konfig.json`` gehört — OHNE ``zusatz``.
+        """Was in die ``konfig.json`` gehört — OHNE ``zusatz``.
 
         ``zusatz`` steht mit Absicht nicht darin: Die Ausschlussliste
         gehört ins Projekt (``pruefausschluss.txt``), nicht in den
@@ -178,7 +185,7 @@ class LsKonfig:
         return {feld: getattr(self, feld) for feld in self.FELDER}
 
     def alle_werte(self):
-        u"""Der vollständige Zustand — ``LsKonfig(k.alle_werte())`` ist ``k``.
+        """Der vollständige Zustand — ``LsKonfig(k.alle_werte())`` ist ``k``.
 
         DIE FALLE, DIE DAS HIER SCHLIESST (02.09.2026)
         ==============================================
@@ -202,14 +209,20 @@ class LsKonfig:
     # ── Formular ─────────────────────────────────────────────────────────
     @classmethod
     def aus_formular(cls, daten, alt=None):
-        u"""Werte aus einem POST — Listen über ``getlist``, Häkchen als Name.
+        """Werte aus einem POST — Listen über ``getlist``, Häkchen als Name.
 
         ``alt`` ist die bisherige Konfiguration; sie gilt für alles, was das
         Formular nicht mitschickt (Python-Pfad, Zeitlimit)."""
         alt = alt or cls()
-        holen = daten.getlist if hasattr(daten, "getlist") else (
-            lambda k: daten.get(k) if isinstance(daten.get(k), list) else
-            ([daten[k]] if k in daten else []))
+        holen = (
+            daten.getlist
+            if hasattr(daten, "getlist")
+            else (
+                lambda k: (
+                    daten.get(k) if isinstance(daten.get(k), list) else ([daten[k]] if k in daten else [])
+                )
+            )
+        )
         # `alle_werte()` statt `als_dict()` + Zeile fuer `zusatz`: Es gab
         # hier zwei Stellen mit demselben Wissen, und nur EINE war richtig.
         # Kommt ein weiteres Feld dazu, das nicht in die Datei gehoert,
@@ -219,10 +232,8 @@ class LsKonfig:
         werte["modus"] = _wahl(daten.get("modus"), cls.MODI, alt.modus)
         werte["stufe"] = _wahl(daten.get("stufe"), STUFEN[:3], alt.stufe)
         werte["pfade"] = [p for p in holen("pfade") if p]
-        werte["ausschluss"] = {k: (k in holen("ausschluss"))
-                               for k, _m, _v, _l in AUSSCHLUESSE}
-        werte["regeln"] = {r: _wahl(daten.get("regel_" + r), STUFEN, s)
-                           for r, s, _t in REGELN}
+        werte["ausschluss"] = {k: (k in holen("ausschluss")) for k, _m, _v, _l in AUSSCHLUESSE}
+        werte["regeln"] = {r: _wahl(daten.get("regel_" + r), STUFEN, s) for r, s, _t in REGELN}
         werte["stubs"] = bool(holen("stubs"))
         werte["javascript"] = bool(holen("javascript"))
         werte["js_stumm"] = [r for r, _s, _t in JS_REGELN if r in holen("js_stumm")]
@@ -236,14 +247,14 @@ class LsKonfig:
     # ── Abdruck ──────────────────────────────────────────────────────────
     def abdruck(self):
         werte = {feld: getattr(self, feld) for feld in self.LAUFFELDER}
-        if self.zusatz:            # leere Liste = wie bisher, altes Ergebnis bleibt auffindbar
+        if self.zusatz:  # leere Liste = wie bisher, altes Ergebnis bleibt auffindbar
             werte["zusatz"] = list(self.zusatz)
         roh = json.dumps(werte, sort_keys=True, ensure_ascii=False)
         return hashlib.md5(roh.encode("utf-8")).hexdigest()[:10]
 
     # ── für den Lauf ─────────────────────────────────────────────────────
     def venv(self):
-        u"""``(venvPath, venv)`` aus dem Interpreter — oder ``(None, None)``.
+        """``(venvPath, venv)`` aus dem Interpreter — oder ``(None, None)``.
 
         Windows: ``…/pythonVENV/Scripts/python.exe``; sonst ``…/venv/bin/python``.
         Ohne diese Angabe löst der Server die installierten Pakete nicht auf und
@@ -255,7 +266,7 @@ class LsKonfig:
         return None, None
 
     def ausschluss_muster(self):
-        u"""Die Haken dieser Seite plus die Liste des Projekts — ohne Dubletten."""
+        """Die Haken dieser Seite plus die Liste des Projekts — ohne Dubletten."""
         raus = []
         for schluessel, muster, _v, _l in AUSSCHLUESSE:
             if self.ausschluss.get(schluessel):
@@ -266,7 +277,7 @@ class LsKonfig:
         return raus
 
     def als_pyrightconfig(self, wurzel, extra=(), ablage=None):
-        u"""Die ``pyrightconfig.json`` für ``-p``.
+        """Die ``pyrightconfig.json`` für ``-p``.
 
         ``include``-Pfade müssen RELATIV zum Verzeichnis der Datei stehen —
         pyright verwirft absolute („Ignoring path … because it is not
@@ -293,8 +304,7 @@ class LsKonfig:
             # Nachbarn flach (``import zahl``). Python legt das Skriptverzeichnis
             # in ``sys.path``, pyright nicht — das allein waren 370 Meldungen
             # „Import, den es nicht gibt" über Module, die alle vorhanden sind.
-            "extraPaths": ([str(wurzel)] + [str(wurzel / p) for p in self.pfade]
-                           + [str(p) for p in extra]),
+            "extraPaths": ([str(wurzel)] + [str(wurzel / p) for p in self.pfade] + [str(p) for p in extra]),
             "useLibraryCodeForTypes": True,
         }
         venv_pfad, venv = self.venv()
@@ -304,7 +314,7 @@ class LsKonfig:
         return cfg
 
     def als_lsp_einstellungen(self, wurzel, extra=()):
-        u"""Antwort auf ``workspace/configuration`` — je Abschnitt ein dict."""
+        """Antwort auf ``workspace/configuration`` — je Abschnitt ein dict."""
         cfg = self.als_pyrightconfig(wurzel, extra)
         analyse = {
             "typeCheckingMode": self.modus,
@@ -318,10 +328,12 @@ class LsKonfig:
         if cfg.get("venv"):
             python["venvPath"], python["venv"] = cfg["venvPath"], cfg["venv"]
         python["pythonPath"] = self.python
-        return {"python": python, "python.analysis": analyse,
-                "pyright": {"disableOrganizeImports": True},
-                "basedpyright": {"disableOrganizeImports": True}}
-
+        return {
+            "python": python,
+            "python.analysis": analyse,
+            "pyright": {"disableOrganizeImports": True},
+            "basedpyright": {"disableOrganizeImports": True},
+        }
 
     @staticmethod
     def _relativ(pfad, ablage):
@@ -331,7 +343,7 @@ class LsKonfig:
             # Schrägstriche: pyright liest include als Muster, und ein
             # Backslash ist darin ein Fluchtzeichen, kein Trenner.
             return os.path.relpath(str(pfad), str(ablage)).replace("\\", "/")
-        except ValueError:                                 # anderes Laufwerk
+        except ValueError:  # anderes Laufwerk
             return str(pfad).replace("\\", "/")
 
 

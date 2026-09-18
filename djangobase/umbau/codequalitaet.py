@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Code-Qualität mit drei etablierten Werkzeugen messen.
+"""Code-Qualität mit drei etablierten Werkzeugen messen.
 
 DIE ANSAGE (Edgar, 24.08.2026)
 ==============================
@@ -35,12 +35,13 @@ JavaScript. Dafür wäre ESLint zuständig, das eine Node-Installation und
 eine Konfigurationsdatei je Projekt braucht. Solange das nicht steht, sagt
 die Seite lieber nichts, als etwas Halbes zu behaupten.
 """
+
 import ast
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from .klassenmodell import AUS, ausser as projektausser
 from .codezahlen import DATEN, GROESSTE_QUELLDATEI
+from .klassenmodell import ausser as projektausser
 
 #: So viele Treffer je Verfahren werden gezeigt. Wer mehr will, ruft das
 #: Werkzeug auf der Kommandozeile.
@@ -61,14 +62,14 @@ ZEIGEN = 15
 #: Der Befund bleibt sichtbar — als Zahl mit dem Namen des Werkzeugs, das
 #: ihn fuehrt. Weglassen waere schlimmer als doppelt melden.
 ANDERSWO = {
-    'UnusedImport': 'tote-importe',
-    'ImportStarUsed': 'tote-importe',
-    'FStringMissingPlaceholders': 'fix-fzeichenkette',
+    "UnusedImport": "tote-importe",
+    "ImportStarUsed": "tote-importe",
+    "FStringMissingPlaceholders": "fix-fzeichenkette",
 }
 
 #: Ab diesem Rang gilt eine Funktion als zu verwickelt. radon vergibt
 #: A (1-5) bis F (>40); B ist noch gutmütig, ab C wird es Arbeit.
-KOMPLEX_AB = 'C'
+KOMPLEX_AB = "C"
 
 #: Unter diesem Wartbarkeitsindex (0-100) wird eine Datei zum Problem.
 #: radon selbst nennt <10 rot, <20 gelb.
@@ -76,7 +77,7 @@ WARTBAR_UNTER = 20.0
 
 
 def _ist_gewollt(zeilen, nummer):
-    u"""Trägt die gemeldete Zeile ein ``# noqa``?
+    """Trägt die gemeldete Zeile ein ``# noqa``?
 
     ROHES PYFLAKES ACHTET NICHT DARAUF (24.08.2026)
     ===============================================
@@ -94,11 +95,11 @@ def _ist_gewollt(zeilen, nummer):
     """
     if not 1 <= nummer <= len(zeilen):
         return False
-    return 'noqa' in zeilen[nummer - 1].lower()
+    return "noqa" in zeilen[nummer - 1].lower()
 
 
 def _annotationsketten(baum):
-    u"""Namen, die nur in einer Annotations-Zeichenkette stehen.
+    """Namen, die nur in einer Annotations-Zeichenkette stehen.
 
     PYFLAKES LIEST JEDE ZEICHENKETTE IN EINER ANNOTATION ALS TYP
     ============================================================
@@ -141,7 +142,7 @@ def _annotationsketten(baum):
 
     def namen_in(kette, zeile):
         try:
-            innen = ast.parse(kette, mode='eval')
+            innen = ast.parse(kette, mode="eval")
         except SyntaxError:
             heraus.add((zeile, kette))
             return
@@ -165,9 +166,9 @@ def _annotationsketten(baum):
 
 
 class Treffer:
-    u"""Eine Fundstelle — dieselbe Form für alle vier Verfahren."""
+    """Eine Fundstelle — dieselbe Form für alle vier Verfahren."""
 
-    __slots__ = ('datei', 'zeile', 'name', 'wert', 'text')
+    __slots__ = ("datei", "zeile", "name", "wert", "text")
 
     def __init__(self, datei, zeile, name, wert, text):
         self.datei = datei
@@ -182,7 +183,7 @@ class Treffer:
 
 
 class Verfahren:
-    u"""Ein Messverfahren mit seinem Ergebnis."""
+    """Ein Messverfahren mit seinem Ergebnis."""
 
     def __init__(self, name, werkzeug, misst, nachkomma=0):
         self.name = name
@@ -198,22 +199,25 @@ class Verfahren:
         self.zahlen = {}
         #: Gesetzt, wenn das Werkzeug fehlt — dann keine leere Liste zeigen,
         #: die wie „nichts gefunden" aussieht.
-        self.fehlt = ''
-        self.satz = ''
+        self.fehlt = ""
+        self.satz = ""
 
     def als_dict(self):
         return {
-            'name': self.name, 'werkzeug': self.werkzeug,
-            'misst': self.misst, 'fehlt': self.fehlt, 'satz': self.satz,
-            'nachkomma': self.nachkomma,
-            'zahlen': self.zahlen,
-            'treffer': [t.als_dict() for t in self.treffer[:ZEIGEN]],
-            'mehr': max(0, len(self.treffer) - ZEIGEN),
+            "name": self.name,
+            "werkzeug": self.werkzeug,
+            "misst": self.misst,
+            "fehlt": self.fehlt,
+            "satz": self.satz,
+            "nachkomma": self.nachkomma,
+            "zahlen": self.zahlen,
+            "treffer": [t.als_dict() for t in self.treffer[:ZEIGEN]],
+            "mehr": max(0, len(self.treffer) - ZEIGEN),
         }
 
 
 class Codequalitaet:
-    u"""Misst ein Projektverzeichnis mit allen vorhandenen Verfahren."""
+    """Misst ein Projektverzeichnis mit allen vorhandenen Verfahren."""
 
     def __init__(self, wurzel, gitfilter=None, ausser=None):
         self.wurzel = Path(wurzel)
@@ -262,15 +266,19 @@ class Codequalitaet:
         self.pannen = []
 
     def _panne(self, datei, verfahren, grund):
-        self.pannen.append((datei, verfahren,
-                            '%s: %s' % (type(grund).__name__, grund)
-                            if isinstance(grund, BaseException) else grund))
+        self.pannen.append(
+            (
+                datei,
+                verfahren,
+                "%s: %s" % (type(grund).__name__, grund) if isinstance(grund, BaseException) else grund,
+            )
+        )
 
     # ── einlesen ────────────────────────────────────────────────
     def _quellen(self):
-        u"""Jede ``.py``, die Quelltext ist — ohne Laufzeitdaten."""
+        """Jede ``.py``, die Quelltext ist — ohne Laufzeitdaten."""
         raus = []
-        for pfad in sorted(self.wurzel.rglob('*.py')):
+        for pfad in sorted(self.wurzel.rglob("*.py")):
             # Nur der Teil INNERHALB des Projekts — siehe `Codezahlen._innen`.
             # Mit dem absoluten Pfad verschwand ein Projekt unter
             # `…\Temp\…` restlos, weil `temp` in `DATEN` steht.
@@ -290,12 +298,11 @@ class Codequalitaet:
             try:
                 if pfad.stat().st_size > GROESSTE_QUELLDATEI:
                     continue
-                text = pfad.read_text(encoding='utf-8', errors='replace')
+                text = pfad.read_text(encoding="utf-8", errors="replace")
             except OSError as exc:
-                self._panne(str(pfad), 'Lesen', exc)
+                self._panne(str(pfad), "Lesen", exc)
                 continue
-            raus.append((str(pfad.relative_to(self.wurzel)).replace('\\', '/'),
-                         pfad, text))
+            raus.append((str(pfad.relative_to(self.wurzel)).replace("\\", "/"), pfad, text))
         return raus
 
     def messen(self):
@@ -310,13 +317,15 @@ class Codequalitaet:
 
     # ── 1. Komplexität ──────────────────────────────────────────
     def _komplexitaet(self):
-        v = Verfahren(u'Zyklomatische Komplexität', 'radon',
-                      u'Wie viele Verzweigungen hat eine Funktion? '
-                      u'Jedes if, jede Schleife, jedes except zählt eins.')
+        v = Verfahren(
+            "Zyklomatische Komplexität",
+            "radon",
+            "Wie viele Verzweigungen hat eine Funktion? Jedes if, jede Schleife, jedes except zählt eins.",
+        )
         try:
             from radon.complexity import cc_rank, cc_visit
         except ImportError:
-            v.fehlt = 'radon'
+            v.fehlt = "radon"
             return v
         raenge = Counter()
         for kurz, _pfad, text in self.dateien:
@@ -329,28 +338,41 @@ class Codequalitaet:
                 rang = cc_rank(b.complexity)
                 raenge[rang] += 1
                 if rang >= KOMPLEX_AB:
-                    v.treffer.append(Treffer(
-                        kurz, b.lineno, b.name, b.complexity,
-                        u'Rang %s — %d Verzweigungen' % (rang, b.complexity)))
+                    v.treffer.append(
+                        Treffer(
+                            kurz,
+                            b.lineno,
+                            b.name,
+                            b.complexity,
+                            "Rang %s — %d Verzweigungen" % (rang, b.complexity),
+                        )
+                    )
         v.treffer.sort(key=lambda t: -t.wert)
         gesamt = sum(raenge.values())
-        v.zahlen = {'gemessen': gesamt,
-                    'raenge': [(r, raenge.get(r, 0)) for r in 'ABCDEF'],
-                    'auffaellig': len(v.treffer)}
-        v.satz = (u'%d von %d Funktionen liegen bei Rang %s oder schlechter'
-                  % (len(v.treffer), gesamt, KOMPLEX_AB))
+        v.zahlen = {
+            "gemessen": gesamt,
+            "raenge": [(r, raenge.get(r, 0)) for r in "ABCDEF"],
+            "auffaellig": len(v.treffer),
+        }
+        v.satz = "%d von %d Funktionen liegen bei Rang %s oder schlechter" % (
+            len(v.treffer),
+            gesamt,
+            KOMPLEX_AB,
+        )
         return v
 
     # ── 2. Wartbarkeit ──────────────────────────────────────────
     def _wartbarkeit(self):
-        v = Verfahren(u'Wartbarkeitsindex', 'radon',
-                      u'Umfang, Verzweigung und Kommentaranteil einer Datei '
-                      u'zu einer Zahl von 0 bis 100 verrechnet.',
-                      nachkomma=1)
+        v = Verfahren(
+            "Wartbarkeitsindex",
+            "radon",
+            "Umfang, Verzweigung und Kommentaranteil einer Datei zu einer Zahl von 0 bis 100 verrechnet.",
+            nachkomma=1,
+        )
         try:
             from radon.metrics import mi_visit
         except ImportError:
-            v.fehlt = 'radon'
+            v.fehlt = "radon"
             return v
         werte = []
         for kurz, _pfad, text in self.dateien:
@@ -361,29 +383,34 @@ class Codequalitaet:
                 continue
             werte.append(mi)
             if mi < WARTBAR_UNTER:
-                v.treffer.append(Treffer(
-                    kurz, 0, kurz.split('/')[-1], round(mi, 1),
-                    u'Index %.1f von 100' % mi))
+                v.treffer.append(
+                    Treffer(kurz, 0, kurz.split("/")[-1], round(mi, 1), "Index %.1f von 100" % mi)
+                )
         v.treffer.sort(key=lambda t: t.wert)
         v.zahlen = {
-            'gemessen': len(werte),
-            'mittel': round(sum(werte) / max(1, len(werte)), 1),
-            'auffaellig': len(v.treffer),
+            "gemessen": len(werte),
+            "mittel": round(sum(werte) / max(1, len(werte)), 1),
+            "auffaellig": len(v.treffer),
         }
-        v.satz = (u'%d von %d Dateien unter %.0f; Mittel %.1f'
-                  % (len(v.treffer), len(werte), WARTBAR_UNTER,
-                     v.zahlen['mittel']))
+        v.satz = "%d von %d Dateien unter %.0f; Mittel %.1f" % (
+            len(v.treffer),
+            len(werte),
+            WARTBAR_UNTER,
+            v.zahlen["mittel"],
+        )
         return v
 
     # ── 3. Echte Fehler ─────────────────────────────────────────
     def _fehler(self):
-        v = Verfahren(u'Echte Fehler', 'pyflakes',
-                      u'Namen, die es nicht gibt. Importe, die niemand '
-                      u'benutzt. Zweimal dasselbe definiert.')
+        v = Verfahren(
+            "Echte Fehler",
+            "pyflakes",
+            "Namen, die es nicht gibt. Importe, die niemand benutzt. Zweimal dasselbe definiert.",
+        )
         try:
             from pyflakes.checker import Checker
         except ImportError:
-            v.fehlt = 'pyflakes'
+            v.fehlt = "pyflakes"
             return v
         arten = Counter()
         gewollt = 0
@@ -393,7 +420,7 @@ class Codequalitaet:
             try:
                 baum = ast.parse(text, filename=kurz)
             except (SyntaxError, ValueError) as exc:
-                self._panne(kurz, u'Syntax', exc)
+                self._panne(kurz, "Syntax", exc)
                 continue
             try:
                 meldungen = Checker(baum, filename=kurz).messages
@@ -409,9 +436,11 @@ class Codequalitaet:
                     gewollt += 1
                     continue
                 art = type(m).__name__
-                if (art in ('UndefinedName', 'ForwardAnnotationSyntaxError')
-                        and m.message_args
-                        and (m.lineno, m.message_args[0]) in beschriftung):
+                if (
+                    art in ("UndefinedName", "ForwardAnnotationSyntaxError")
+                    and m.message_args
+                    and (m.lineno, m.message_args[0]) in beschriftung
+                ):
                     # Eine Beschriftung, kein Name — siehe
                     # `_annotationsketten`. Gezaehlt, nicht verschwiegen.
                     kettennamen += 1
@@ -420,32 +449,31 @@ class Codequalitaet:
                     fremd[ANDERSWO[art]] += 1
                     continue
                 arten[art] += 1
-                v.treffer.append(Treffer(
-                    kurz, m.lineno, art, 1,
-                    m.message % m.message_args))
+                v.treffer.append(Treffer(kurz, m.lineno, art, 1, m.message % m.message_args))
         # Nach Häufigkeit der ART, damit gleiche Fälle beieinanderstehen.
         v.treffer.sort(key=lambda t: (-arten[t.name], t.datei, t.zeile))
-        v.zahlen = {'gesamt': sum(arten.values()),
-                    'arten': arten.most_common(8), 'gewollt': gewollt,
-                    'kettennamen': kettennamen,
-                    'anderswo': fremd.most_common()}
-        v.satz = (u'%d Meldungen in %d Arten' % (sum(arten.values()),
-                                                 len(arten)))
+        v.zahlen = {
+            "gesamt": sum(arten.values()),
+            "arten": arten.most_common(8),
+            "gewollt": gewollt,
+            "kettennamen": kettennamen,
+            "anderswo": fremd.most_common(),
+        }
+        v.satz = "%d Meldungen in %d Arten" % (sum(arten.values()), len(arten))
         if gewollt:
-            v.satz += u' — dazu %d ausdrücklich erlaubt (# noqa)' % gewollt
+            v.satz += " — dazu %d ausdrücklich erlaubt (# noqa)" % gewollt
         if kettennamen:
-            v.satz += (u'; %d Beschriftungen in Annotationen (keine Namen)'
-                       % kettennamen)
+            v.satz += "; %d Beschriftungen in Annotationen (keine Namen)" % kettennamen
         for werkzeug, zahl in fremd.most_common():
-            v.satz += u'; %d führt `%s`' % (zahl, werkzeug)
+            v.satz += "; %d führt `%s`" % (zahl, werkzeug)
         return v
 
     #: Dateien, in denen ein Projekt seinen Stil festlegt — in der
     #: Reihenfolge, in der pycodestyle selbst sie liest.
-    STILDATEIEN = ('setup.cfg', 'tox.ini', '.pycodestyle')
+    STILDATEIEN = ("setup.cfg", "tox.ini", ".pycodestyle")
 
     def _stilkonfig(self):
-        u"""Pfad zur Stil-Konfiguration des Projekts, oder ``None``."""
+        """Pfad zur Stil-Konfiguration des Projekts, oder ``None``."""
         for name in self.STILDATEIEN:
             pfad = self.wurzel / name
             if pfad.is_file():
@@ -454,32 +482,33 @@ class Codequalitaet:
 
     # ── 4. Stil ─────────────────────────────────────────────────
     def _stil(self):
-        v = Verfahren(u'Stil (PEP 8)', 'pycodestyle',
-                      u'Formsachen: Zeilenlänge, Leerzeichen, Einrückung. '
-                      u'Kein Fehler — aber die Grammatik der Sprache.')
+        v = Verfahren(
+            "Stil (PEP 8)",
+            "pycodestyle",
+            "Formsachen: Zeilenlänge, Leerzeichen, Einrückung. Kein Fehler — aber die Grammatik der Sprache.",
+        )
         try:
             import pycodestyle
         except ImportError:
-            v.fehlt = 'pycodestyle'
+            v.fehlt = "pycodestyle"
             return v
 
         gezaehlt = Counter()
         stellen = {}
         je_datei = defaultdict(Counter)
-        wurzel = str(self.wurzel).replace('\\', '/').rstrip('/') + '/'
+        wurzel = str(self.wurzel).replace("\\", "/").rstrip("/") + "/"
 
         class _Sammler(pycodestyle.BaseReport):
-            u"""Sammelt statt zu drucken — je Regel Anzahl und ein Beispiel."""
+            """Sammelt statt zu drucken — je Regel Anzahl und ein Beispiel."""
 
             def error(self, zeilennummer, versatz, text, pruefung):
-                schluessel = super(_Sammler, self).error(
-                    zeilennummer, versatz, text, pruefung)
+                schluessel = super(_Sammler, self).error(zeilennummer, versatz, text, pruefung)
                 if schluessel:
                     code = text[:4]
                     gezaehlt[code] += 1
-                    kurz = str(self.filename).replace('\\', '/')
+                    kurz = str(self.filename).replace("\\", "/")
                     if kurz.startswith(wurzel):
-                        kurz = kurz[len(wurzel):]
+                        kurz = kurz[len(wurzel) :]
                     if code not in stellen:
                         stellen[code] = (kurz, zeilennummer, text)
                     # Je Regel zaehlen, IN WIE VIELEN Dateien sie steht.
@@ -509,15 +538,14 @@ class Codequalitaet:
         #
         # `setup.cfg` / `tox.ini` im Projekt entscheiden jetzt. Ohne solche
         # Datei bleibt es bei pycodestyles Vorgabe.
-        wache = pycodestyle.StyleGuide(quiet=True,
-                                       config_file=self._stilkonfig())
+        wache = pycodestyle.StyleGuide(quiet=True, config_file=self._stilkonfig())
         wache.init_report(_Sammler)
         gescheitert = 0
         try:
             wache.check_files([str(p) for _k, p, _t in self.dateien])
-        except Exception as exc:                     # pragma: no cover
+        except Exception as exc:  # pragma: no cover
             gescheitert = len(self.dateien)
-            v.fehlt = u'pycodestyle brach ab: %s' % exc
+            v.fehlt = "pycodestyle brach ab: %s" % exc
             return v
 
         # WIE VIELE DATEIEN, NICHT NUR WIE OFT (25.08.2026)
@@ -535,19 +563,22 @@ class Codequalitaet:
             schlimmste, dort = wo.most_common(1)[0] if wo else stellen[code][:1] + (0,)
             zeile = stellen[code][1] if schlimmste == stellen[code][0] else 0
             text = stellen[code][2]
-            v.treffer.append(Treffer(
-                schlimmste, zeile, code, zahl,
-                u'%dx in %d Datei(en) — %s (hier %dx)'
-                % (zahl, len(wo), text[5:], dort)))
+            v.treffer.append(
+                Treffer(
+                    schlimmste,
+                    zeile,
+                    code,
+                    zahl,
+                    "%dx in %d Datei(en) — %s (hier %dx)" % (zahl, len(wo), text[5:], dort),
+                )
+            )
         # NICHT `arten` nennen (24.08.2026): Bei „Echte Fehler" ist das eine
         # LISTE von Paaren, hier waere es eine Zahl. Die Vorlage lief mit
         # `{% for art, zahl in v.zahlen.arten %}` in ein
         # `TypeError: 'int' object is not iterable`. Gleicher Name, andere
         # Bauart — der Fehler wartet auf den, der es nicht nachliest.
-        v.zahlen = {'gesamt': sum(gezaehlt.values()),
-                    'regeln': len(gezaehlt), 'gescheitert': gescheitert}
-        v.satz = (u'%d Abweichungen in %d Regeln'
-                  % (sum(gezaehlt.values()), len(gezaehlt)))
+        v.zahlen = {"gesamt": sum(gezaehlt.values()), "regeln": len(gezaehlt), "gescheitert": gescheitert}
+        v.satz = "%d Abweichungen in %d Regeln" % (sum(gezaehlt.values()), len(gezaehlt))
         return v
 
     # ── Auskunft ────────────────────────────────────────────────
@@ -555,13 +586,13 @@ class Codequalitaet:
         return [v.als_dict() for v in self.verfahren]
 
     def kennzahlen(self):
-        u"""Die Kopfzahlen — je Verfahren eine."""
+        """Die Kopfzahlen — je Verfahren eine."""
         nach_name = dict((v.werkzeug + v.name, v) for v in self.verfahren)
-        raus = {'dateien': len(self.dateien)}
+        raus = {"dateien": len(self.dateien)}
         for v in self.verfahren:
-            raus[v.name] = v.satz or (u'%s fehlt' % v.fehlt)
-        raus['_'] = nach_name
+            raus[v.name] = v.satz or ("%s fehlt" % v.fehlt)
+        raus["_"] = nach_name
         return raus
 
 
-__all__ = ['Codequalitaet', 'Verfahren', 'Treffer', 'ZEIGEN']
+__all__ = ["Codequalitaet", "Verfahren", "Treffer", "ZEIGEN"]

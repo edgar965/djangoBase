@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Laufsperre - EIN Testlauf zur Zeit, prozessuebergreifend.
+"""Laufsperre - EIN Testlauf zur Zeit, prozessuebergreifend.
 
 Zwei Testlaeufe gleichzeitig bauen dieselbe Testdatenbank zweimal auf. Der
 zweite scheitert beim Anlegen („database … is being accessed by other users")
@@ -24,6 +24,7 @@ SERVERS darin: Lebt der Prozess nicht mehr, ist die Sperre wertlos und wird
 uebernommen. Zusaetzlich gilt sie hoechstens ``FRIST`` Sekunden — ein Lauf, der
 laenger braucht, ist ohnehin abgebrochen.
 """
+
 import json
 import logging
 import os
@@ -58,7 +59,7 @@ class Laufsperre:
     # ------------------------------------------------------------------ Lesen
 
     def zustand(self):
-        u"""Der Eintrag der laufenden Sperre - oder ``None``."""
+        """Der Eintrag der laufenden Sperre - oder ``None``."""
         try:
             daten = json.loads(self.pfad.read_text(encoding="utf-8"))
         except (OSError, ValueError):
@@ -76,7 +77,7 @@ class Laufsperre:
 
     @staticmethod
     def lebt(pid):
-        u"""Laeuft dieser Prozess noch?
+        """Laeuft dieser Prozess noch?
 
         Windows kennt ``os.kill(pid, 0)`` nicht in dieser Bedeutung, deshalb
         ueber ``OpenProcess``. Kein ``psutil``: djangoBase soll ohne zusaetzliche
@@ -86,6 +87,7 @@ class Laufsperre:
             return False
         if sys.platform.startswith("win"):
             import ctypes
+
             # NICHT nur OpenProcess: Das gelingt auch fuer einen BEENDETEN
             # Prozess, solange irgendwo noch ein Handle darauf offen ist (bei
             # einem `Popen` haelt Python es). Gemessen 18.08.2026: Nach
@@ -93,7 +95,7 @@ class Laufsperre:
             # und eine vergessene Sperre haette bis zur Frist gehalten.
             # Maßgeblich ist der Exitcode: 259 (STILL_ACTIVE) heisst „laeuft".
             STILL_ACTIVE = 259
-            RECHTE = 0x0400 | 0x00100000        # QUERY_INFORMATION | SYNCHRONIZE
+            RECHTE = 0x0400 | 0x00100000  # QUERY_INFORMATION | SYNCHRONIZE
             kernel = ctypes.windll.kernel32
             handle = kernel.OpenProcess(RECHTE, False, int(pid))
             if not handle:
@@ -101,7 +103,7 @@ class Laufsperre:
             try:
                 code = ctypes.c_ulong()
                 if not kernel.GetExitCodeProcess(handle, ctypes.byref(code)):
-                    return True             # nicht abfragbar -> lieber „lebt"
+                    return True  # nicht abfragbar -> lieber „lebt"
                 return code.value == STILL_ACTIVE
             finally:
                 kernel.CloseHandle(handle)
@@ -114,7 +116,7 @@ class Laufsperre:
     # -------------------------------------------------------------- Schreiben
 
     def belegen(self, name="", pid=None):
-        u"""``(True, "")`` bei Erfolg, sonst ``(False, Grund)``.
+        """``(True, "")`` bei Erfolg, sonst ``(False, Grund)``.
 
         Angelegt wird mit ``O_EXCL``: Zwei Anfragen im selben Augenblick koennen
         nicht beide gewinnen. Existiert die Datei, entscheidet :meth:`zustand`,
@@ -128,12 +130,10 @@ class Laufsperre:
             self.pfad.unlink()
         except OSError:
             pass
-        eintrag = {"name": name, "seit": time.time(), "lauf_pid": pid,
-                   "server_pid": os.getpid()}
+        eintrag = {"name": name, "seit": time.time(), "lauf_pid": pid, "server_pid": os.getpid()}
         try:
             self.pfad.parent.mkdir(parents=True, exist_ok=True)
-            kennung = os.open(str(self.pfad),
-                              os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            kennung = os.open(str(self.pfad), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
             with os.fdopen(kennung, "w", encoding="utf-8") as datei:
                 json.dump(eintrag, datei, ensure_ascii=False)
         except FileExistsError:
@@ -147,14 +147,13 @@ class Laufsperre:
         return True, ""
 
     def pid_merken(self, pid):
-        u"""Die PID des Testprozesses nachtragen (für den Abbruch von aussen)."""
+        """Die PID des Testprozesses nachtragen (für den Abbruch von aussen)."""
         if not self.gehalten:
             return
         try:
             daten = json.loads(self.pfad.read_text(encoding="utf-8"))
             daten["lauf_pid"] = pid
-            self.pfad.write_text(json.dumps(daten, ensure_ascii=False),
-                                 encoding="utf-8")
+            self.pfad.write_text(json.dumps(daten, ensure_ascii=False), encoding="utf-8")
         except (OSError, ValueError):
             log.warning("Laufsperre %s: PID %s nicht nachgetragen", self.pfad, pid)
 
@@ -174,14 +173,15 @@ class Laufsperre:
         wie_lange = ""
         if seit:
             wie_lange = " (seit %d s)" % int(time.time() - float(seit))
-        return ("Es läuft schon ein Testlauf%s: %s. Zwei Läufe bauen dieselbe "
-                "Testdatenbank zweimal auf." % (wie_lange,
-                                                eintrag.get("name") or "unbenannt"))
+        return "Es läuft schon ein Testlauf%s: %s. Zwei Läufe bauen dieselbe Testdatenbank zweimal auf." % (
+            wie_lange,
+            eintrag.get("name") or "unbenannt",
+        )
 
     # ---------------------------------------------------------------- Abbruch
 
     def abbrechen(self):
-        u"""Den laufenden Test beenden und die Sperre loesen.
+        """Den laufenden Test beenden und die Sperre loesen.
 
         Fuer den Knopf „Abbrechen": Ohne ihn haelt ein haengender Lauf die Sperre
         bis zur Frist, und niemand kann etwas tun.
@@ -191,6 +191,7 @@ class Laufsperre:
             return False, "Es läuft kein Testlauf."
         pid = eintrag.get("lauf_pid")
         from .testtoeter import Toeter
+
         if pid:
             Toeter.baum(int(pid))
         try:
@@ -198,6 +199,5 @@ class Laufsperre:
         except OSError:
             pass
         self.gehalten = False
-        log.warning("Testlauf %s auf Wunsch abgebrochen (PID %s)",
-                    eintrag.get("name") or "?", pid)
+        log.warning("Testlauf %s auf Wunsch abgebrochen (PID %s)", eintrag.get("name") or "?", pid)
         return True, "Testlauf abgebrochen."

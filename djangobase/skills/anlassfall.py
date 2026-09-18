@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Anlassfall - der Code, an dem ein Werkzeug beweisen muss, dass es sieht.
+"""Anlassfall - der Code, an dem ein Werkzeug beweisen muss, dass es sieht.
 
 DIE FRAGE, DIE ZWEIMAL ETWAS GEFUNDEN HAT (17.08.2026)
 ======================================================
@@ -50,8 +50,7 @@ class Anlassfall:
     ausgenommene, faengt ``hoechstens=1`` genau das ab.
     """
 
-    def __init__(self, dateien, mindestens=1, hoechstens=None, erwartet_in="",
-                 warum="", ohne_arten=()):
+    def __init__(self, dateien, mindestens=1, hoechstens=None, erwartet_in="", warum="", ohne_arten=()):
         self.dateien = dict(dateien)
         self.mindestens = mindestens
         self.hoechstens = hoechstens
@@ -81,7 +80,8 @@ class Anlassfall:
     def umfang(self):
         return "%d Datei(en), %d Zeilen" % (
             len(self.dateien),
-            sum(t.count("\n") + 1 for t in self.dateien.values()))
+            sum(t.count("\n") + 1 for t in self.dateien.values()),
+        )
 
     def schreiben(self, ziel):
         """Legt die Dateien unter ``ziel`` an (Pathlib-Verzeichnis)."""
@@ -95,14 +95,14 @@ class Anlassfall:
     def urteil(self, zeilen):
         """``""`` wenn alles stimmt, sonst der Grund."""
         if len(zeilen) < self.mindestens:
-            return ("blind: %d Befund(e) statt mindestens %d"
-                    % (len(zeilen), self.mindestens))
+            return "blind: %d Befund(e) statt mindestens %d" % (len(zeilen), self.mindestens)
         if self.hoechstens is not None and len(zeilen) > self.hoechstens:
-            return ("zu grob: %d Befund(e) statt höchstens %d — die Ausnahme "
-                    "greift nicht mehr" % (len(zeilen), self.hoechstens))
+            return "zu grob: %d Befund(e) statt höchstens %d — die Ausnahme greift nicht mehr" % (
+                len(zeilen),
+                self.hoechstens,
+            )
         if self.erwartet_in:
             text = " ".join(str(v) for z in zeilen for v in z.values())
             if self.erwartet_in not in text:
-                return ("meldet etwas anderes: %r kommt in keiner Zeile vor"
-                        % self.erwartet_in)
+                return "meldet etwas anderes: %r kommt in keiner Zeile vor" % self.erwartet_in
         return ""

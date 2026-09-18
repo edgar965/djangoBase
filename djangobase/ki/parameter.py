@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Die Stellschrauben einer KI-Anfrage - je Modell einstellbar.
+"""Die Stellschrauben einer KI-Anfrage - je Modell einstellbar.
 
 DER AUFTRAG (25.08.2026, Edgar)
 ===============================
@@ -54,15 +54,15 @@ __all__ = ["KiParameter"]
 
 
 class KiParameter:
-    u"""Was eine Anfrage steuert - und was davon überhaupt mitgeschickt wird."""
+    """Was eine Anfrage steuert - und was davon überhaupt mitgeschickt wird."""
 
     #: Die Felder, die als Ollama-``options`` durchgereicht werden, mit dem
     #: Namen, den die Schnittstelle dafür erwartet. Reihenfolge = Anzeige.
     FELDER = (
-        ("temperature", "temperature", u"Zufälligkeit: 0 = immer dasselbe"),
-        ("top_p", "top_p", u"Kernauswahl nach Wahrscheinlichkeitsmasse"),
-        ("top_k", "top_k", u"nur die k wahrscheinlichsten Wörter"),
-        ("min_p", "min_p", u"Untergrenze relativ zum besten Wort"),
+        ("temperature", "temperature", "Zufälligkeit: 0 = immer dasselbe"),
+        ("top_p", "top_p", "Kernauswahl nach Wahrscheinlichkeitsmasse"),
+        ("top_k", "top_k", "nur die k wahrscheinlichsten Wörter"),
+        ("min_p", "min_p", "Untergrenze relativ zum besten Wort"),
         # VORSICHT BEI DENKENDEN MODELLEN. ``num_predict`` deckelt ALLE Token,
         # auch die des internen Denkens - und die kommen ZUERST. Gemessen am
         # 25.08.2026 an ``gpt-oss:20b`` (``think: False`` war gesetzt):
@@ -75,15 +75,24 @@ class KiParameter:
         # knappen Deckel setzt, bekommt bei solchen Modellen also nichts
         # zurueck und sieht nicht warum. Unter 150 nicht gehen, oder vorher
         # gegen das konkrete Modell pruefen.
-        ("max_tokens", "num_predict", u"Länge der Antwort (Playground: Max tokens)"),
-        ("kontext", "num_ctx", u"Fenster für Frage + Antwort"),
-        ("seed", "seed", u"fester Startwert - macht Läufe wiederholbar"),
-        ("wiederholstrafe", "repeat_penalty", u"dämpft Wortwiederholungen"),
+        ("max_tokens", "num_predict", "Länge der Antwort (Playground: Max tokens)"),
+        ("kontext", "num_ctx", "Fenster für Frage + Antwort"),
+        ("seed", "seed", "fester Startwert - macht Läufe wiederholbar"),
+        ("wiederholstrafe", "repeat_penalty", "dämpft Wortwiederholungen"),
     )
 
-    def __init__(self, system=None, temperature=None, top_p=None, top_k=None,
-                 min_p=None, max_tokens=None, kontext=None, seed=None,
-                 wiederholstrafe=None):
+    def __init__(
+        self,
+        system=None,
+        temperature=None,
+        top_p=None,
+        top_k=None,
+        min_p=None,
+        max_tokens=None,
+        kontext=None,
+        seed=None,
+        wiederholstrafe=None,
+    ):
         #: Systemanweisung. Gehört NICHT in ``options`` - sie ist eine Nachricht
         #: mit ``role: system`` und wird von :meth:`vor_verlauf` geliefert.
         self.system = system
@@ -99,7 +108,7 @@ class KiParameter:
     # ------------------------------------------------------------- Vorlagen
     @classmethod
     def modellstandard(cls, kontext=None):
-        u"""Nichts überschreiben - das Modell entscheidet.
+        """Nichts überschreiben - das Modell entscheidet.
 
         Der richtige Ausgangspunkt für Gespräche und Review: Die Werte in der
         Modelldatei stammen vom Hersteller und sind auf dieses eine Modell
@@ -110,7 +119,7 @@ class KiParameter:
 
     @classmethod
     def wiederholbar(cls, seed=42, kontext=None, max_tokens=None):
-        u"""Zweimal dieselbe Frage, zweimal dieselbe Antwort.
+        """Zweimal dieselbe Frage, zweimal dieselbe Antwort.
 
         Gemessen am 25.08.2026 gegen ``gpt-oss:20b``: ``seed=42``,
         ``temperature=0``, ``top_k=1`` liefern über zwei Läufe zeichengleiche
@@ -121,12 +130,11 @@ class KiParameter:
         greedy zu fahren macht es reproduzierbar, nicht besser - wer damit
         Antwortqualität bewertet, misst ein anderes Verhalten als im Betrieb.
         """
-        return cls(seed=seed, temperature=0, top_k=1, kontext=kontext,
-                   max_tokens=max_tokens)
+        return cls(seed=seed, temperature=0, top_k=1, kontext=kontext, max_tokens=max_tokens)
 
     # -------------------------------------------------------------- Ausgabe
     def als_optionen(self):
-        u"""Das ``options``-Wörterbuch für ``/api/chat`` - ohne die leeren Felder.
+        """Das ``options``-Wörterbuch für ``/api/chat`` - ohne die leeren Felder.
 
         Wörterbuch gewollt: Das ist das Übergabeformat der Ollama-Schnittstelle.
         """
@@ -138,7 +146,7 @@ class KiParameter:
         return aus
 
     def als_openai(self):
-        u"""Dieselben Werte für OpenAI-kompatible Dienste (OpenRouter, vLLM).
+        """Dieselben Werte für OpenAI-kompatible Dienste (OpenRouter, vLLM).
 
         Nicht jeder Name wandert mit: ``top_k``, ``min_p`` und
         ``repeat_penalty`` gehören nicht zum OpenAI-Schema und werden von
@@ -185,7 +193,7 @@ class KiParameter:
         return aus
 
     def vor_verlauf(self, verlauf):
-        u"""Den Verlauf mit der Systemanweisung davor - falls eine gesetzt ist.
+        """Den Verlauf mit der Systemanweisung davor - falls eine gesetzt ist.
 
         Ohne ``system`` kommt der Verlauf UNVERÄNDERT zurück, damit Aufrufer
         ohne Systemanweisung nichts anders machen als bisher. Führt der Verlauf
@@ -200,7 +208,7 @@ class KiParameter:
 
     # --------------------------------------------------------- Zusammenbau
     def mit(self, **werte):
-        u"""Eine Kopie mit geänderten Feldern - das Original bleibt unberührt.
+        """Eine Kopie mit geänderten Feldern - das Original bleibt unberührt.
 
         Nötig, weil ein Parametersatz aus der Konfiguration mehrfach benutzt
         wird: Wer ihn an einer Stelle verändert, änderte ihn sonst überall mit.
@@ -217,7 +225,7 @@ class KiParameter:
 
     @classmethod
     def aus_dict(cls, quelle):
-        u"""Aus gespeicherter Konfiguration - unbekannte Schlüssel fliegen raus.
+        """Aus gespeicherter Konfiguration - unbekannte Schlüssel fliegen raus.
 
         Ein Tippfehler im Namen darf nicht als stiller Wunsch durchgehen: Was
         hier nicht bekannt ist, wird verworfen, statt an Ollama zu gehen, wo es
@@ -230,7 +238,7 @@ class KiParameter:
 
     @classmethod
     def fuer_modell(cls, modell, tabelle=None, grund=None):
-        u"""Der Satz für EIN Modell: Grundeinstellung, überschrieben je Modell.
+        """Der Satz für EIN Modell: Grundeinstellung, überschrieben je Modell.
 
         ``tabelle`` ist ``{modellname: {feld: wert}}`` aus der Konfiguration.
         Gesucht wird erst der volle Name (``qwen3.8:27b-q8_0``), dann der Name
@@ -244,12 +252,14 @@ class KiParameter:
         for name in (voll, voll.rsplit("-", 1)[0], voll.split(":")[0]):
             eintrag = (tabelle or {}).get(name)
             if eintrag:
-                return satz.mit(**{k: v for k, v in dict(eintrag).items()
-                                   if k in bekannt})
+                return satz.mit(**{k: v for k, v in dict(eintrag).items() if k in bekannt})
         return satz
 
     def __repr__(self):
-        gesetzt = ", ".join("%s=%r" % (n, getattr(self, n))
-                            for n, _f, _z in self.FELDER
-                            if getattr(self, n) is not None) or "Modellstandard"
+        gesetzt = (
+            ", ".join(
+                "%s=%r" % (n, getattr(self, n)) for n, _f, _z in self.FELDER if getattr(self, n) is not None
+            )
+            or "Modellstandard"
+        )
         return "<KiParameter %s>" % gesetzt

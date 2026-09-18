@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Findet djangoBase seinen eigenen Einbindungs-Praefix?
+"""Findet djangoBase seinen eigenen Einbindungs-Praefix?
 
 DER BEFUND (27.08.2026, gemessen in 3DTools)
 ============================================
@@ -19,6 +19,7 @@ eigentliche Waechter — dass in den ausgelieferten JS-Dateien KEINE Adresse mit
 festem Praefix mehr steht. Ein Kommentar darf ``/hilfe/`` nennen, eine
 Zuweisung nicht.
 """
+
 import re
 from pathlib import Path
 
@@ -35,7 +36,7 @@ FESTER_PFAD = re.compile(r"""['"]/hilfe/""")
 
 
 class WurzelRechnungTest(SimpleTestCase):
-    u"""`weg()` liefert den Praefix, unter dem die Routen wirklich haengen."""
+    """`weg()` liefert den Praefix, unter dem die Routen wirklich haengen."""
 
     def test_wurzel_endet_auf_schraegstrich(self):
         wurzel = Basiswurzel.weg()
@@ -44,11 +45,11 @@ class WurzelRechnungTest(SimpleTestCase):
 
     def test_wurzel_passt_zur_echten_route(self):
         from django.urls import reverse
-        self.assertEqual(reverse("djangobase:tests_aufzeichnung"),
-                         Basiswurzel.weg() + "tests/aufzeichnung/")
+
+        self.assertEqual(reverse("djangobase:tests_aufzeichnung"), Basiswurzel.weg() + "tests/aufzeichnung/")
 
     def test_unbekannter_anker_faellt_auf_hilfe_zurueck(self):
-        u"""Lieber der historische Wert als ein falsch abgeschnittener Pfad."""
+        """Lieber der historische Wert als ein falsch abgeschnittener Pfad."""
         anker = Basiswurzel.ANKER
         Basiswurzel.ANKER = "djangobase:gibtesnicht"
         try:
@@ -57,7 +58,7 @@ class WurzelRechnungTest(SimpleTestCase):
             Basiswurzel.ANKER = anker
 
     def test_verschobener_anker_faellt_zurueck(self):
-        u"""Haengt die Ankerroute woanders, ist der Rueckschluss ungueltig."""
+        """Haengt die Ankerroute woanders, ist der Rueckschluss ungueltig."""
         weg = Basiswurzel.ANKERWEG
         Basiswurzel.ANKERWEG = "ganzwoanders/"
         try:
@@ -67,7 +68,7 @@ class WurzelRechnungTest(SimpleTestCase):
 
 
 class KeineFestenAdressenTest(SimpleTestCase):
-    u"""DER WAECHTER: kein ausgeliefertes Modul verdrahtet mehr ``/hilfe/``."""
+    """DER WAECHTER: kein ausgeliefertes Modul verdrahtet mehr ``/hilfe/``."""
 
     def test_kein_js_modul_verdrahtet_den_praefix(self):
         treffer = []
@@ -76,19 +77,22 @@ class KeineFestenAdressenTest(SimpleTestCase):
             # die eine Stelle, an der er stehen darf.
             if datei.name == "basiswurzel.js":
                 continue
-            for nr, zeile in enumerate(
-                    datei.read_text(encoding="utf-8").splitlines(), 1):
+            for nr, zeile in enumerate(datei.read_text(encoding="utf-8").splitlines(), 1):
                 if FESTER_PFAD.search(zeile):
-                    treffer.append("%s:%d  %s" % (datei.name, nr,
-                                                  zeile.strip()[:80]))
-        self.assertEqual(treffer, [], "\n".join(
-            ["Feste djangoBase-Adressen — in einem Projekt mit anderem "
-             "Praefix sind das stille 404er. `Basiswurzel.weg(...)` benutzen:"]
-            + treffer))
+                    treffer.append("%s:%d  %s" % (datei.name, nr, zeile.strip()[:80]))
+        self.assertEqual(
+            treffer,
+            [],
+            "\n".join(
+                [
+                    "Feste djangoBase-Adressen — in einem Projekt mit anderem "
+                    "Praefix sind das stille 404er. `Basiswurzel.weg(...)` benutzen:"
+                ]
+                + treffer
+            ),
+        )
 
     def test_die_gegenprobe_wuerde_anschlagen(self):
-        u"""Sabotage: Der Waechter muss den alten Zustand erkennen."""
-        self.assertTrue(FESTER_PFAD.search(
-            "const PFAD = '/hilfe/tests/aufzeichnung/';"))
-        self.assertIsNone(FESTER_PFAD.search(
-            "// frueher stand hier /hilfe/tests/aufzeichnung/"))
+        """Sabotage: Der Waechter muss den alten Zustand erkennen."""
+        self.assertTrue(FESTER_PFAD.search("const PFAD = '/hilfe/tests/aufzeichnung/';"))
+        self.assertIsNone(FESTER_PFAD.search("// frueher stand hier /hilfe/tests/aufzeichnung/"))

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Eine offene Sitzung mit dem Language Server — JSON-RPC über stdin/stdout.
+"""Eine offene Sitzung mit dem Language Server — JSON-RPC über stdin/stdout.
 
 WOFÜR (Stufe 2 des Plans, Edgar 02.09.2026: „Dateien können umgeschrieben werden")
 ==================================================================================
@@ -18,6 +18,7 @@ sonst wartet er. Die Einstellungen kommen aus ``LsKonfig.als_lsp_einstellungen``
 Ein Prozess je (Werkzeug, Wurzel), gehalten in ``SITZUNGEN``; Anfragen laufen
 unter einem Schloss nacheinander. Django-frei.
 """
+
 import json
 import logging
 import subprocess
@@ -41,7 +42,7 @@ def pfad_aus_uri(text):
 
 
 class LsSitzung:
-    u"""Ein laufender ``*-langserver --stdio`` und die Anfragen an ihn."""
+    """Ein laufender ``*-langserver --stdio`` und die Anfragen an ihn."""
 
     def __init__(self, server, wurzel, einstellungen, zeitlimit=30):
         self.server = server
@@ -59,16 +60,25 @@ class LsSitzung:
     # ── Lebenslauf ───────────────────────────────────────────────────────
     def starten(self):
         self._prozess = subprocess.Popen(
-            [self.server, "--stdio"], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL, cwd=str(self.wurzel))
+            [self.server, "--stdio"],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            cwd=str(self.wurzel),
+        )
         threading.Thread(target=self._lesen, name="ls-sitzung", daemon=True).start()
-        self.anfragen("initialize", {
-            "processId": None, "rootUri": uri(self.wurzel),
-            "workspaceFolders": [{"uri": uri(self.wurzel), "name": self.wurzel.name}],
-            "capabilities": {"workspace": {"configuration": True,
-                                           "workspaceFolders": True},
-                             "textDocument": {"rename": {"prepareSupport": False}}},
-        })
+        self.anfragen(
+            "initialize",
+            {
+                "processId": None,
+                "rootUri": uri(self.wurzel),
+                "workspaceFolders": [{"uri": uri(self.wurzel), "name": self.wurzel.name}],
+                "capabilities": {
+                    "workspace": {"configuration": True, "workspaceFolders": True},
+                    "textDocument": {"rename": {"prepareSupport": False}},
+                },
+            },
+        )
         self._melden("initialized", {})
         return self
 
@@ -82,7 +92,7 @@ class LsSitzung:
             self.anfragen("shutdown", None, zeitlimit=5)
             self._melden("exit", None)
             self._prozess.wait(timeout=5)
-        except Exception:                                 # noqa: BLE001
+        except Exception:  # noqa: BLE001
             self._prozess.kill()
 
     # ── Anfragen ─────────────────────────────────────────────────────────
@@ -90,36 +100,56 @@ class LsSitzung:
         pfad = Path(pfad)
         if pfad in self._offen:
             return
-        self._melden("textDocument/didOpen", {"textDocument": {
-            "uri": uri(pfad), "languageId": "python", "version": 1,
-            "text": pfad.read_text(encoding="utf-8", errors="replace")}})
+        self._melden(
+            "textDocument/didOpen",
+            {
+                "textDocument": {
+                    "uri": uri(pfad),
+                    "languageId": "python",
+                    "version": 1,
+                    "text": pfad.read_text(encoding="utf-8", errors="replace"),
+                }
+            },
+        )
         self._offen.add(pfad)
 
     def referenzen(self, pfad, zeile, spalte):
-        u"""Alle Stellen, die das Symbol an (zeile, spalte) benutzen — 1-basiert."""
+        """Alle Stellen, die das Symbol an (zeile, spalte) benutzen — 1-basiert."""
         self.oeffnen(pfad)
-        raus = self.anfragen("textDocument/references", {
-            "textDocument": {"uri": uri(pfad)},
-            "position": {"line": zeile - 1, "character": spalte - 1},
-            "context": {"includeDeclaration": True}})
+        raus = self.anfragen(
+            "textDocument/references",
+            {
+                "textDocument": {"uri": uri(pfad)},
+                "position": {"line": zeile - 1, "character": spalte - 1},
+                "context": {"includeDeclaration": True},
+            },
+        )
         return [self._stelle(s) for s in (raus or [])]
 
     def definition(self, pfad, zeile, spalte):
         self.oeffnen(pfad)
-        raus = self.anfragen("textDocument/definition", {
-            "textDocument": {"uri": uri(pfad)},
-            "position": {"line": zeile - 1, "character": spalte - 1}})
+        raus = self.anfragen(
+            "textDocument/definition",
+            {"textDocument": {"uri": uri(pfad)}, "position": {"line": zeile - 1, "character": spalte - 1}},
+        )
         if isinstance(raus, dict):
             raus = [raus]
         return [self._stelle(s) for s in (raus or [])]
 
     def umbenennen(self, pfad, zeile, spalte, neuer_name):
-        u"""Der ``WorkspaceEdit`` — noch NICHT angewandt (siehe ``ls_umbenennen``)."""
+        """Der ``WorkspaceEdit`` — noch NICHT angewandt (siehe ``ls_umbenennen``)."""
         self.oeffnen(pfad)
-        return self.anfragen("textDocument/rename", {
-            "textDocument": {"uri": uri(pfad)},
-            "position": {"line": zeile - 1, "character": spalte - 1},
-            "newName": neuer_name}) or {}
+        return (
+            self.anfragen(
+                "textDocument/rename",
+                {
+                    "textDocument": {"uri": uri(pfad)},
+                    "position": {"line": zeile - 1, "character": spalte - 1},
+                    "newName": neuer_name,
+                },
+            )
+            or {}
+        )
 
     def _stelle(self, s):
         ziel = s.get("uri") or s.get("targetUri")
@@ -130,24 +160,26 @@ class LsSitzung:
             rel = str(pfad.relative_to(self.wurzel.resolve()))
         except ValueError:
             rel = str(pfad)
-        return {"datei": rel.replace("\\", "/"), "zeile": int(start.get("line", 0)) + 1,
-                "spalte": int(start.get("character", 0)) + 1}
+        return {
+            "datei": rel.replace("\\", "/"),
+            "zeile": int(start.get("line", 0)) + 1,
+            "spalte": int(start.get("character", 0)) + 1,
+        }
 
     # ── JSON-RPC ─────────────────────────────────────────────────────────
     def anfragen(self, methode, params, zeitlimit=None):
         with self._schloss:
             self._id += 1
             nummer = self._id
-            self._senden({"jsonrpc": "2.0", "id": nummer, "method": methode,
-                          "params": params})
+            self._senden({"jsonrpc": "2.0", "id": nummer, "method": methode, "params": params})
             with self._wecker:
-                if not self._wecker.wait_for(lambda: nummer in self._antworten,
-                                             timeout=zeitlimit or self.zeitlimit):
-                    raise TimeoutError(u"%s: keine Antwort in %d s"
-                                       % (methode, zeitlimit or self.zeitlimit))
+                if not self._wecker.wait_for(
+                    lambda: nummer in self._antworten, timeout=zeitlimit or self.zeitlimit
+                ):
+                    raise TimeoutError("%s: keine Antwort in %d s" % (methode, zeitlimit or self.zeitlimit))
                 antwort = self._antworten.pop(nummer)
         if "error" in antwort:
-            raise RuntimeError(u"%s: %s" % (methode, antwort["error"].get("message")))
+            raise RuntimeError("%s: %s" % (methode, antwort["error"].get("message")))
         return antwort.get("result")
 
     def _melden(self, methode, params):
@@ -173,14 +205,15 @@ class LsSitzung:
                         laenge = int(zeile.split(b":")[1].strip())
                 nachricht = json.loads(aus.read(laenge).decode("utf-8"))
                 self._eingang(nachricht)
-        except Exception:                                 # noqa: BLE001
+        except Exception:  # noqa: BLE001
             logger.debug("LsSitzung: Leser beendet", exc_info=True)
 
     def _eingang(self, n):
-        if "id" in n and "method" in n:                   # Anfrage des Servers
-            self._senden({"jsonrpc": "2.0", "id": n["id"],
-                          "result": self._antwort_fuer(n["method"], n.get("params"))})
-        elif "id" in n:                                   # Antwort auf unsere Anfrage
+        if "id" in n and "method" in n:  # Anfrage des Servers
+            self._senden(
+                {"jsonrpc": "2.0", "id": n["id"], "result": self._antwort_fuer(n["method"], n.get("params"))}
+            )
+        elif "id" in n:  # Antwort auf unsere Anfrage
             with self._wecker:
                 self._antworten[n["id"]] = n
                 self._wecker.notify_all()
@@ -189,8 +222,10 @@ class LsSitzung:
 
     def _antwort_fuer(self, methode, params):
         if methode == "workspace/configuration":
-            return [self.einstellungen.get((e or {}).get("section") or "", {})
-                    for e in (params or {}).get("items") or []]
+            return [
+                self.einstellungen.get((e or {}).get("section") or "", {})
+                for e in (params or {}).get("items") or []
+            ]
         if methode == "workspace/workspaceFolders":
             return [{"uri": uri(self.wurzel), "name": self.wurzel.name}]
         return None

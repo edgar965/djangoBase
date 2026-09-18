@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Grundtests - die Mindestabsicherung, die in JEDES Projekt gehoert.
+"""Grundtests - die Mindestabsicherung, die in JEDES Projekt gehoert.
 
     Test-Art „automated": sichert die Grundfunktion, laeuft in Sekunden, braucht
     kein Netz, keine GPU, kein IMAP. Alles, was laenger dauert, ist ein
@@ -44,6 +44,7 @@ richtig so. Ein 500er dagegen ist immer ein Fehler. Die Zusicherung lautet
 deshalb „kein Serverfehler", nicht „200": Sonst wird der Test bei der ersten
 Anmeldepflicht abgeschaltet, und dann prueft er gar nichts mehr.
 """
+
 import importlib
 import pkgutil
 from pathlib import Path
@@ -59,14 +60,13 @@ from django.test import SimpleTestCase, TestCase
 # haette - der vorhandene Fixer war sogar gruendlicher.
 from .werkzeugkatalog import GrundtestWerkzeugkatalog  # noqa: F401
 
-
 #: Verzeichnisnamen, die nie Projektcode sind. NUR die Notbremse — die
 #: eigentliche Antwort gibt :func:`_projektdateien` über git.
 FREMDE_ORDNER = ("node_modules", "venv", "pythonVENV", ".venv", "site-packages")
 
 
 def _projektdateien(muster):
-    u"""Dateien unter ``BASE_DIR``, die zum Projekt gehören.
+    """Dateien unter ``BASE_DIR``, die zum Projekt gehören.
 
     WARUM NICHT NUR DIE NAMENSLISTE (31.08.2026)
     ============================================
@@ -98,11 +98,20 @@ def _projektdateien(muster):
             continue
         yield pfad
 
-__all__ = ["GrundtestWerkzeugkatalog",
-           "GrundtestSeiten", "GrundtestUrls", "GrundtestModule",
-           "GrundtestMigrationen", "GrundtestVorlagen", "GrundtestSystemcheck",
-           "GrundtestLogging", "GrundtestMenue", "GrundtestEsModule",
-           "einstellung"]
+
+__all__ = [
+    "GrundtestWerkzeugkatalog",
+    "GrundtestSeiten",
+    "GrundtestUrls",
+    "GrundtestModule",
+    "GrundtestMigrationen",
+    "GrundtestVorlagen",
+    "GrundtestSystemcheck",
+    "GrundtestLogging",
+    "GrundtestMenue",
+    "GrundtestEsModule",
+    "einstellung",
+]
 
 
 def einstellung(name, vorgabe=None):
@@ -114,6 +123,7 @@ def einstellung(name, vorgabe=None):
 def _routen():
     """[(Muster, Callable, Name)] aller Routen des Projekts."""
     from django.urls import get_resolver
+
     aus = []
 
     def gehen(muster, praefix=""):
@@ -121,8 +131,8 @@ def _routen():
             if hasattr(p, "url_patterns"):
                 gehen(p.url_patterns, praefix + str(p.pattern))
             else:
-                aus.append((praefix + str(p.pattern), p.callback,
-                            getattr(p, "name", "") or ""))
+                aus.append((praefix + str(p.pattern), p.callback, getattr(p, "name", "") or ""))
+
     gehen(get_resolver().url_patterns)
     return aus
 
@@ -133,8 +143,11 @@ def _eigene_apps():
     if fest:
         return list(fest)
     basis = Path(str(settings.BASE_DIR))
-    return [a for a in settings.INSTALLED_APPS
-            if not a.startswith("django.") and (basis / a.split(".")[0]).is_dir()]
+    return [
+        a
+        for a in settings.INSTALLED_APPS
+        if not a.startswith("django.") and (basis / a.split(".")[0]).is_dir()
+    ]
 
 
 class GrundtestUrls(SimpleTestCase):
@@ -169,7 +182,7 @@ class GrundtestSeiten(TestCase):
                 continue
             try:
                 antwort = self.client.get(pfad)
-            except Exception as e:                            # noqa: BLE001
+            except Exception as e:  # noqa: BLE001
                 kaputt.append("%s -> %s: %s" % (pfad, type(e).__name__, e))
                 continue
             if antwort.status_code >= 500:
@@ -185,16 +198,15 @@ class GrundtestModule(SimpleTestCase):
         for app in _eigene_apps():
             try:
                 paket = importlib.import_module(app)
-            except Exception as e:                            # noqa: BLE001
+            except Exception as e:  # noqa: BLE001
                 fehler.append("%s: %s" % (app, e))
                 continue
-            for _f, name, _p in pkgutil.walk_packages(
-                    getattr(paket, "__path__", []), app + "."):
+            for _f, name, _p in pkgutil.walk_packages(getattr(paket, "__path__", []), app + "."):
                 if ".migrations" in name or ".tests" in name:
                     continue
                 try:
                     importlib.import_module(name)
-                except Exception as e:                        # noqa: BLE001
+                except Exception as e:  # noqa: BLE001
                     fehler.append("%s: %s: %s" % (name, type(e).__name__, e))
         self.assertEqual(fehler, [], "Nicht importierbar: %s" % fehler)
 
@@ -210,10 +222,10 @@ class GrundtestMigrationen(TestCase):
         from io import StringIO
 
         from django.core.management import call_command
+
         puffer = StringIO()
         try:
-            call_command("makemigrations", "--check", "--dry-run",
-                         stdout=puffer, stderr=puffer, verbosity=1)
+            call_command("makemigrations", "--check", "--dry-run", stdout=puffer, stderr=puffer, verbosity=1)
         except SystemExit as e:
             self.fail("Ausstehende Migrationen (%s): %s" % (e, puffer.getvalue()))
 
@@ -224,16 +236,17 @@ class GrundtestVorlagen(SimpleTestCase):
     def test_alle_vorlagen_kompilieren(self):
         from django.template import TemplateSyntaxError
         from django.template.loader import get_template
+
         fehler = []
         for pfad in _projektdateien("templates/**/*.html"):
             teile = pfad.parts
-            name = "/".join(teile[teile.index("templates") + 1:])
+            name = "/".join(teile[teile.index("templates") + 1 :])
             try:
                 get_template(name)
             except TemplateSyntaxError as e:
                 fehler.append("%s: %s" % (name, e))
-            except Exception:                                 # noqa: BLE001
-                pass          # nicht auffindbar/doppelt: kein Syntaxproblem
+            except Exception:  # noqa: BLE001
+                pass  # nicht auffindbar/doppelt: kein Syntaxproblem
         self.assertEqual(fehler, [], "Vorlagen mit Syntaxfehler: %s" % fehler)
 
 
@@ -242,6 +255,7 @@ class GrundtestSystemcheck(SimpleTestCase):
 
     def test_systemcheck_ohne_fehler(self):
         from django.core.checks import Error, run_checks
+
         schwer = [str(m) for m in run_checks() if isinstance(m, Error)]
         self.assertEqual(schwer, [], "Systemcheck: %s" % schwer)
 
@@ -255,15 +269,14 @@ class GrundtestLogging(SimpleTestCase):
         handler = list((cfg.get("handlers") or {}).values())
         self.assertTrue(
             any("Rotating" in str(h.get("class", "")) for h in handler),
-            "Kein rotierender Handler — die Logdatei wächst unbegrenzt")
+            "Kein rotierender Handler — die Logdatei wächst unbegrenzt",
+        )
 
     def test_zeitstempel_im_format(self):
         cfg = getattr(settings, "LOGGING", None) or {}
-        formate = " ".join(str(f.get("format", ""))
-                           for f in (cfg.get("formatters") or {}).values())
+        formate = " ".join(str(f.get("format", "")) for f in (cfg.get("formatters") or {}).values())
         if formate:
-            self.assertIn("asctime", formate,
-                          "Ohne {asctime} ist keine Aktion zeitlich einzuordnen")
+            self.assertIn("asctime", formate, "Ohne {asctime} ist keine Aktion zeitlich einzuordnen")
 
     def test_logverzeichnis_beschreibbar(self):
         cfg = getattr(settings, "LOGGING", None) or {}
@@ -272,8 +285,7 @@ class GrundtestLogging(SimpleTestCase):
             if not datei:
                 continue
             ordner = Path(str(datei)).parent
-            self.assertTrue(ordner.is_dir(),
-                            "Logverzeichnis fehlt: %s" % ordner)
+            self.assertTrue(ordner.is_dir(), "Logverzeichnis fehlt: %s" % ordner)
 
 
 class GrundtestMenue(SimpleTestCase):
@@ -281,7 +293,8 @@ class GrundtestMenue(SimpleTestCase):
 
     def test_menue_zeigt_nicht_ins_leere(self):
         from django.urls import resolve
-        cfg = (getattr(settings, "DJANGOBASE", {}) or {})
+
+        cfg = getattr(settings, "DJANGOBASE", {}) or {}
         ziele = []
 
         def sammeln(eintraege):
@@ -293,12 +306,13 @@ class GrundtestMenue(SimpleTestCase):
                     ziele.append(str(ziel))
                 for s in ("kinder", "children", "unter", "items", "eintraege"):
                     sammeln(e.get(s))
+
         sammeln(cfg.get("menu"))
         tot = []
         for ziel in ziele:
             try:
                 resolve(ziel.split("?")[0].split("#")[0])
-            except Exception:                                 # noqa: BLE001
+            except Exception:  # noqa: BLE001
                 tot.append(ziel)
         self.assertEqual(tot, [], "Menuepunkte ohne Route: %s" % tot)
 
@@ -312,6 +326,7 @@ class GrundtestEsModule(SimpleTestCase):
 
     def test_relative_importe_zeigen_auf_dateien(self):
         import re
+
         muster = re.compile(r"""import\s+[^;'"]*?from\s*['"](\.[^'"]+)['"]""")
         fehlt = []
         for pfad in _projektdateien("static/**/*.js"):

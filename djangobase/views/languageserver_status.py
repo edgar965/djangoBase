@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-u"""``languageserver/status/`` — was der Hintergrund-Lauf gerade tut.
+"""``languageserver/status/`` — was der Hintergrund-Lauf gerade tut.
 
 Die Seite fragt alle zwei Sekunden; sobald ``status`` nicht mehr ``laeuft``
 ist, lädt sie sich neu und zeigt das Ergebnis aus der Ablage. Kein Rechnen
 hier, nur Nachsehen.
 """
+
 from django.http import JsonResponse
 from django.views import View
 
@@ -16,7 +17,6 @@ __all__ = ["LanguageServerStatusView"]
 
 
 class LanguageServerStatusView(ZugriffMixin, View):
-
     def get(self, request):
         zustand = LAUF.zustand()
         ergebnis, alter = LsSpeicher.nachsehen(schluessel(konfig_laden()))

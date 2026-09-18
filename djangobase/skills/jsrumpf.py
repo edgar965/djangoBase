@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Rumpf - der Inhalt eines JavaScript-Blocks und die Frage, ob darin etwas passiert.
+"""Rumpf - der Inhalt eines JavaScript-Blocks und die Frage, ob darin etwas passiert.
 
 Hilfsklasse, kein Werkzeug. ``jsstumm`` braucht sie viermal: fuer den Rumpf eines
 ``catch``, eines ``.catch(() => { … })``, eines Waechter-Blocks und einer
@@ -19,6 +19,7 @@ ist am Code ablesbar, statt zu raten, ob ein Rueckfallwert „gut genug\" ist.
 Gemessen im Projekt assistant war das der Unterschied zwischen 15 belegten und
 gut 90 vermuteten Fundstellen (17.08.2026).
 """
+
 import re
 
 from .jsklammern import Klammerzaehler
@@ -49,7 +50,7 @@ class Rumpf:
 
     @classmethod
     def ab(cls, zeilen, nummer, spalte):
-        u"""Rumpf des Blocks, dessen ``{`` in ``zeilen[nummer]`` vor ``spalte`` steht.
+        """Rumpf des Blocks, dessen ``{`` in ``zeilen[nummer]`` vor ``spalte`` steht.
 
         ``spalte`` zeigt HINTER die geschweifte Klammer (``treffer.end()`` eines
         Musters, das mit ``{`` endet). Ohne Fund: ein Rumpf, der ``False`` ist.
@@ -58,7 +59,7 @@ class Rumpf:
         zaehler = Klammerzaehler(1)
         if zaehler.zeile(rest) <= 0:
             # Einzeiler: `catch (e) { }` — alles vor der schliessenden Klammer.
-            return cls(rest[:rest.rindex("}")] if "}" in rest else rest, nummer)
+            return cls(rest[: rest.rindex("}")] if "}" in rest else rest, nummer)
         stuecke = [rest]
         bis = min(len(zeilen), nummer + 1 + cls.GRENZE)
         for i in range(nummer + 1, bis):
@@ -77,7 +78,7 @@ class Rumpf:
         return self.KOMMENTAR_ZEILE.sub("", text)
 
     def nichts_passiert(self):
-        u"""Keine Anweisung mit Wirkung - der Fehler ist damit weg.
+        """Keine Anweisung mit Wirkung - der Fehler ist damit weg.
 
         ``self.text is None`` heisst „kein Block gefunden"; ein LEERER Text ist
         dagegen der Kern des Befunds. Die erste Fassung schrieb ``if not
@@ -87,8 +88,7 @@ class Rumpf:
         """
         if self.text is None:
             return False
-        return all(self.OHNE_WIRKUNG.match(z.strip())
-                   for z in self.ohne_kommentare().split("\n"))
+        return all(self.OHNE_WIRKUNG.match(z.strip()) for z in self.ohne_kommentare().split("\n"))
 
     def enthaelt(self, muster):
         """Passt ``muster`` (kompiliertes Regex) auf den Code des Rumpfs?"""
@@ -97,12 +97,11 @@ class Rumpf:
     def kommentare(self):
         """Nur die Kommentare - dort steht ein Vermerk, falls es einen gibt."""
         text = self.text or ""
-        return " ".join(self.KOMMENTAR_BLOCK.findall(text)
-                        + self.KOMMENTAR_ZEILE.findall(text))
+        return " ".join(self.KOMMENTAR_BLOCK.findall(text) + self.KOMMENTAR_ZEILE.findall(text))
 
     @staticmethod
     def kommentarblock_ueber(zeilen, nummer):
-        u"""Der zusammenhaengende Kommentarblock direkt UEBER ``zeilen[nummer]``.
+        """Der zusammenhaengende Kommentarblock direkt UEBER ``zeilen[nummer]``.
 
         Nur der unmittelbar angrenzende: So kann ein Vermerk nicht auf einen
         fremden Block abfaerben. Dieselbe Bauform wie in ``protokoll._ausnahme``,

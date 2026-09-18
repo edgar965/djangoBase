@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""CodeQualitaet — vier etablierte Messwerkzeuge unter einem Knopf.
+"""CodeQualitaet — vier etablierte Messwerkzeuge unter einem Knopf.
 
 DIE ANSAGE (Edgar, 24.08.2026)
 ==============================
@@ -28,6 +28,7 @@ Deshalb rechnet dieses Werkzeug ``# noqa`` heraus und nennt die Zahl
 trotzdem. Ein Bericht, in dem 211 gewollte Zeilen 19 echte zudecken, wird
 weggeklickt — und dann findet er nichts mehr.
 """
+
 from .anlassfall import Anlassfall
 from .befund import Befund, Befundsatz, BefundWerkzeug
 
@@ -44,40 +45,49 @@ from .befund import Befund, Befundsatz, BefundWerkzeug
 
 
 class CodeQualitaet(BefundWerkzeug):
-
-    slug = 'code-qualitaet'
+    slug = "code-qualitaet"
     kriterium = 0
-    titel = 'Code-Qualität (radon, pyflakes, pycodestyle)'
-    zweck = ('Fährt vier etablierte Messwerkzeuge über den Quelltext: '
-             'zyklomatische Komplexität und Wartbarkeitsindex (radon), '
-             'echte Fehler (pyflakes) und PEP 8 (pycodestyle).')
-    abhilfe = ('Vor jedem groesseren Umbau und nach jedem Merge. Die vier '
-               'widersprechen einander regelmaessig, und das ist der Nutzen: '
-               'Eine Datei kann fehlerfrei nach pyflakes sein und trotzdem '
-               'einen Wartbarkeitsindex im Keller haben — dann ist nichts '
-               'kaputt, aber niemand traut sich hinein.')
-    befund = ('Erster Lauf an CamTrack: 216 von 6817 Funktionen ab Rang C, '
-              'vier auf F (schlimmste mit 86 Verzweigungen), und unter den '
-              'pyflakes-Meldungen eine Testmethode, die zweimal denselben '
-              'Namen trug und deshalb nie lief.')
-    dauer = 'etwa 20 Sekunden bei 700 Dateien'
+    titel = "Code-Qualität (radon, pyflakes, pycodestyle)"
+    zweck = (
+        "Fährt vier etablierte Messwerkzeuge über den Quelltext: "
+        "zyklomatische Komplexität und Wartbarkeitsindex (radon), "
+        "echte Fehler (pyflakes) und PEP 8 (pycodestyle)."
+    )
+    abhilfe = (
+        "Vor jedem groesseren Umbau und nach jedem Merge. Die vier "
+        "widersprechen einander regelmaessig, und das ist der Nutzen: "
+        "Eine Datei kann fehlerfrei nach pyflakes sein und trotzdem "
+        "einen Wartbarkeitsindex im Keller haben — dann ist nichts "
+        "kaputt, aber niemand traut sich hinein."
+    )
+    befund = (
+        "Erster Lauf an CamTrack: 216 von 6817 Funktionen ab Rang C, "
+        "vier auf F (schlimmste mit 86 Verzweigungen), und unter den "
+        "pyflakes-Meldungen eine Testmethode, die zweimal denselben "
+        "Namen trug und deshalb nie lief."
+    )
+    dauer = "etwa 20 Sekunden bei 700 Dateien"
 
     anlassfall = Anlassfall(
-        {'verwickelt.py': (
-            'import os\n'
-            'import sys\n'
-            '\n'
-            '\n'
-            'def viel(a):\n'
-            + ''.join('    if a == %d:\n        return %d\n' % (i, i)
-                      for i in range(14))
-            + '\n\n'
-            'def lang():\n'
-            '    return "%s"\n' % ('y' * 120))},
-        mindestens=2, erwartet_in='verwickelt.py',
-        warum='Eine Funktion mit vierzehn Verzweigungen, zwei tote Einfuhren '
-              'und eine Zeile über 79 Zeichen — drei verschiedene Fragen, '
-              'die drei verschiedene Werkzeuge beantworten')
+        {
+            "verwickelt.py": (
+                "import os\n"
+                "import sys\n"
+                "\n"
+                "\n"
+                "def viel(a):\n"
+                + "".join("    if a == %d:\n        return %d\n" % (i, i) for i in range(14))
+                + "\n\n"
+                "def lang():\n"
+                '    return "%s"\n' % ("y" * 120)
+            )
+        },
+        mindestens=2,
+        erwartet_in="verwickelt.py",
+        warum="Eine Funktion mit vierzehn Verzweigungen, zwei tote Einfuhren "
+        "und eine Zeile über 79 Zeichen — drei verschiedene Fragen, "
+        "die drei verschiedene Werkzeuge beantworten",
+    )
 
     def pruefen(self, **_argumente):
         from ..umbau.codequalitaet import Codequalitaet
@@ -90,10 +100,10 @@ class CodeQualitaet(BefundWerkzeug):
         # „Echte Fehler" aus `_anlassfall/`, dem Wegwerf-Verzeichnis des
         # Anlassfall-Checks — absichtlich kaputter Code, den jedes andere
         # Werkzeug uebergeht.
-        messung = Codequalitaet(self.wurzel(),
-                                gitfilter=self.gitfilter(),
-                                ausser=self.ausgeschlossen()).messen()
-        befunde, kopf = [], ['%d Python-Dateien' % len(messung.dateien)]
+        messung = Codequalitaet(
+            self.wurzel(), gitfilter=self.gitfilter(), ausser=self.ausgeschlossen()
+        ).messen()
+        befunde, kopf = [], ["%d Python-Dateien" % len(messung.dateien)]
         fehlend = []
 
         # DIE MESSFEHLER ZUERST, und zwar als schwerste Befunde. Eine Datei
@@ -105,29 +115,30 @@ class CodeQualitaet(BefundWerkzeug):
         # alle vier scheitern und haette sonst vier gleichlautende Zeilen
         # erzeugt. Welche Verfahren es traf, steht im Befund.
         for datei, verfahren, grund in self._je_datei(messung.pannen):
-            befunde.append(Befund(
-                datei, 'Messung gescheitert — %s' % verfahren, grund,
-                Befund.FEHLER))
+            befunde.append(Befund(datei, "Messung gescheitert — %s" % verfahren, grund, Befund.FEHLER))
 
         for verfahren in messung.verfahren:
             if verfahren.fehlt:
                 fehlend.append(verfahren.fehlt)
                 continue
-            kopf.append('%s: %s' % (verfahren.name, verfahren.satz))
+            kopf.append("%s: %s" % (verfahren.name, verfahren.satz))
             for treffer in verfahren.treffer:
                 ort = treffer.datei
                 if treffer.zeile:
-                    ort = '%s:%d' % (ort, treffer.zeile)
-                befunde.append(Befund(
-                    ort,
-                    '%s — %s' % (verfahren.name, treffer.name),
-                    treffer.text,
-                    self._gewicht(verfahren, treffer)))
+                    ort = "%s:%d" % (ort, treffer.zeile)
+                befunde.append(
+                    Befund(
+                        ort,
+                        "%s — %s" % (verfahren.name, treffer.name),
+                        treffer.text,
+                        self._gewicht(verfahren, treffer),
+                    )
+                )
 
         if messung.pannen:
-            kopf.insert(1, '%d Messungen gescheitert' % len(messung.pannen))
+            kopf.insert(1, "%d Messungen gescheitert" % len(messung.pannen))
         if fehlend:
-            kopf.append('nicht gelaufen: %s' % ', '.join(sorted(set(fehlend))))
+            kopf.append("nicht gelaufen: %s" % ", ".join(sorted(set(fehlend))))
         # Schwerstes zuerst — bei ueber zweihundert Befunden entscheidet die
         # Reihenfolge darueber, ob jemand das Wichtige sieht.
         rang = {Befund.FEHLER: 0, Befund.WARNUNG: 1, Befund.HINWEIS: 2}
@@ -136,7 +147,7 @@ class CodeQualitaet(BefundWerkzeug):
 
     @staticmethod
     def _je_datei(pannen):
-        u"""``[(datei, verfahren, grund)]`` auf eine Zeile je Datei.
+        """``[(datei, verfahren, grund)]`` auf eine Zeile je Datei.
 
         Eine Datei ohne gueltige Syntax lässt ALLE Verfahren scheitern.
         Vier gleichlautende Zeilen sagen nicht mehr als eine, die die
@@ -148,24 +159,22 @@ class CodeQualitaet(BefundWerkzeug):
             eintrag[0].append(verfahren)
         raus = []
         for datei, (verfahren, grund) in sorted(gesammelt.items()):
-            raus.append((datei, ', '.join(sorted(set(verfahren))), grund))
+            raus.append((datei, ", ".join(sorted(set(verfahren))), grund))
         return raus
 
     @staticmethod
     def _gewicht(verfahren, treffer):
-        u"""Nicht alles ist gleich dringend.
+        """Nicht alles ist gleich dringend.
 
         Ein undefinierter Name ist ein Fehler, eine zu lange Zeile eine
         Formsache. Beides gleich zu gewichten ist der Grund, warum solche
         Berichte weggeklickt werden.
         """
-        if verfahren.werkzeug == 'pycodestyle':
+        if verfahren.werkzeug == "pycodestyle":
             return Befund.HINWEIS
-        if verfahren.werkzeug == 'pyflakes':
-            schwer = ('Undefined', 'Redefined', 'Import*')
-            return (Befund.FEHLER
-                    if any(treffer.name.startswith(w) for w in schwer)
-                    else Befund.WARNUNG)
+        if verfahren.werkzeug == "pyflakes":
+            schwer = ("Undefined", "Redefined", "Import*")
+            return Befund.FEHLER if any(treffer.name.startswith(w) for w in schwer) else Befund.WARNUNG
         # radon: Rang C ist nicht dasselbe wie Rang F.
         #
         # DIE VERTEILUNG ENTSCHEIDET (25.08.2026)
@@ -184,11 +193,11 @@ class CodeQualitaet(BefundWerkzeug):
         #     C (11-20)   hinweis   „leicht verwickelt"
         #     D (21-30)   warnung   wird Arbeit
         #     E/F (>30)   fehler    niemand fasst das mehr an
-        if 'Komplex' in verfahren.name:
+        if "Komplex" in verfahren.name:
             if treffer.wert > 30:
                 return Befund.FEHLER
-            return (Befund.WARNUNG if treffer.wert > 20 else Befund.HINWEIS)
+            return Befund.WARNUNG if treffer.wert > 20 else Befund.HINWEIS
         return Befund.WARNUNG if treffer.wert < 10 else Befund.HINWEIS
 
 
-__all__ = ['CodeQualitaet']
+__all__ = ["CodeQualitaet"]

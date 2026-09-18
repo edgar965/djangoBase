@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Mitschrift - Laufzeiten aus einem FREMDEN Testlauf in dieselbe Historie.
+"""Mitschrift - Laufzeiten aus einem FREMDEN Testlauf in dieselbe Historie.
 
 :class:`~.testlauf.Testlauf` faehrt ein Kommando, wartet und schreibt die
 Laufzeiten. Projekte haben aber eigene Runner: der assistant streamt seine
@@ -18,6 +18,7 @@ Warum nicht je Testcase ein POST an ``/hilfe/tests/dauer/``: Bei 250 Faellen
 waeren das 250 Anfragen fuer einen Lauf. Der Server hat die Ausgabe ohnehin in
 der Hand — er liest sie einmal.
 """
+
 import time
 
 from .testdauern import Dauern
@@ -34,11 +35,11 @@ class Mitschrift:
 
     @staticmethod
     def option_setzen(cmd):
-        u"""``--durations 0`` ergänzen, wo der Interpreter es kann."""
+        """``--durations 0`` ergänzen, wo der Interpreter es kann."""
         return Dauern.option_setzen(cmd)
 
     def aufnehmen(self, ausgabe, suite=None, zeit=None):
-        u"""Laufzeiten eintragen und die betroffenen Reihen zurueckgeben.
+        """Laufzeiten eintragen und die betroffenen Reihen zurueckgeben.
 
         Leere Rueckgabe heisst: Der Lauf hatte keinen ``--durations``-Block
         (alter Interpreter, Abbruch vor dem Ende). Das ist kein Fehler und wird
@@ -47,6 +48,5 @@ class Mitschrift:
         dauern = Dauern.lesen(ausgabe or "")
         if not dauern and not suite:
             return {}
-        self.historie.merken(zeit or time.strftime("%d.%m.%Y %H:%M:%S"),
-                             dauern, suite)
+        self.historie.merken(zeit or time.strftime("%d.%m.%Y %H:%M:%S"), dauern, suite)
         return {tid: self.historie.laeufe(tid) for tid in dauern}

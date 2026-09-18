@@ -25,7 +25,7 @@ include("allauth.account.urls"))` in den Projekt-URLs sowie SITE-Eintrag.
 ALLAUTH_APPS = ["django.contrib.sites", "allauth", "allauth.account"]
 ALLAUTH_MIDDLEWARE = "allauth.account.middleware.AccountMiddleware"
 ALLAUTH_BACKENDS = [
-    "django.contrib.auth.backends.ModelBackend",            # Admin/Username-Login
+    "django.contrib.auth.backends.ModelBackend",  # Admin/Username-Login
     "allauth.account.auth_backends.AuthenticationBackend",  # allauth (E-Mail-Login)
 ]
 

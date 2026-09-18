@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Ergebnisse eines Durchgangs behalten — im Arbeitsspeicher UND auf Platte.
+"""Ergebnisse eines Durchgangs behalten — im Arbeitsspeicher UND auf Platte.
 
 DIE ANSAGE (Edgar, 24.08.2026)
 ==============================
@@ -35,6 +35,7 @@ NICHT für Daten, die stimmen müssen. Das hier ist eine Bequemlichkeit:
 Was drinsteht, ist der Stand von vorhin, und die Seite sagt dazu, wie alt
 er ist.
 """
+
 import hashlib
 import logging
 import pickle
@@ -43,7 +44,7 @@ from pathlib import Path
 
 from django.conf import settings
 
-logger = logging.getLogger('djangobase.ablage')
+logger = logging.getLogger("djangobase.ablage")
 
 #: Steht im Dateinamen. Hochzählen, sobald sich die gespeicherten Klassen
 #: so ändern, dass eine alte Ablage falsch gelesen würde.
@@ -56,24 +57,24 @@ HALTBAR_SEK = 14 * 24 * 3600
 
 
 def ordner():
-    u"""Wohin die Ablage schreibt.
+    """Wohin die Ablage schreibt.
 
     Unter ``BASE_DIR``, nicht ins Temp-Verzeichnis: Das ist eine harte
     Regel des Wirtsprojekts (100-GB-Vorfall), und eine Ablage, die beim
     nächsten Aufräumen des Systems verschwindet, ist keine.
     """
-    ziel = Path(getattr(settings, 'BASE_DIR', '.')) / '.cache' / 'umbau'
+    ziel = Path(getattr(settings, "BASE_DIR", ".")) / ".cache" / "umbau"
     ziel.mkdir(parents=True, exist_ok=True)
     return ziel
 
 
 def _pfad(bereich, schluessel):
-    kurz = hashlib.md5(str(schluessel).encode('utf-8')).hexdigest()[:16]
-    return ordner() / ('%s-v%d-%s.pickle' % (bereich, FASSUNG, kurz))
+    kurz = hashlib.md5(str(schluessel).encode("utf-8")).hexdigest()[:16]
+    return ordner() / ("%s-v%d-%s.pickle" % (bereich, FASSUNG, kurz))
 
 
 def lesen(bereich, schluessel):
-    u"""``(wert, alter_in_sekunden)`` — oder ``(None, None)``."""
+    """``(wert, alter_in_sekunden)`` — oder ``(None, None)``."""
     pfad = _pfad(bereich, schluessel)
     try:
         roh = pfad.read_bytes()
@@ -84,8 +85,7 @@ def lesen(bereich, schluessel):
     except Exception:
         # Eine Ablage aus einer aelteren Fassung. Kein Fehler — nur nichts
         # zu holen. Weg damit, sonst scheitert jeder weitere Versuch.
-        logger.info('Ablage %s/%s nicht lesbar — verworfen', bereich,
-                    schluessel)
+        logger.info("Ablage %s/%s nicht lesbar — verworfen", bereich, schluessel)
         try:
             pfad.unlink()
         except OSError:
@@ -98,21 +98,19 @@ def lesen(bereich, schluessel):
 
 
 def schreiben(bereich, schluessel, wert):
-    u"""Legt ab. Ein Fehlschlag kostet nur die Bequemlichkeit.
+    """Legt ab. Ein Fehlschlag kostet nur die Bequemlichkeit.
 
     Geschrieben wird über eine Zwischendatei und ``replace``: Wer beim
     Schreiben unterbrochen wird, hinterlässt sonst eine halbe Datei, und
     die liest sich beim nächsten Mal als „kaputte Fassung".
     """
     pfad = _pfad(bereich, schluessel)
-    tmp = pfad.with_suffix('.tmp')
+    tmp = pfad.with_suffix(".tmp")
     try:
-        tmp.write_bytes(pickle.dumps((time.time(), wert),
-                                     pickle.HIGHEST_PROTOCOL))
+        tmp.write_bytes(pickle.dumps((time.time(), wert), pickle.HIGHEST_PROTOCOL))
         tmp.replace(pfad)
     except Exception:
-        logger.warning('Ablage %s/%s nicht schreibbar', bereich, schluessel,
-                       exc_info=True)
+        logger.warning("Ablage %s/%s nicht schreibbar", bereich, schluessel, exc_info=True)
         try:
             tmp.unlink()
         except OSError:
@@ -120,8 +118,8 @@ def schreiben(bereich, schluessel, wert):
 
 
 def leeren(bereich):
-    u"""Alles dieses Bereichs von der Platte nehmen."""
-    for pfad in ordner().glob('%s-v%d-*.pickle' % (bereich, FASSUNG)):
+    """Alles dieses Bereichs von der Platte nehmen."""
+    for pfad in ordner().glob("%s-v%d-*.pickle" % (bereich, FASSUNG)):
         try:
             pfad.unlink()
         except OSError:
@@ -129,7 +127,7 @@ def leeren(bereich):
 
 
 class Speicher:
-    u"""Ein Ergebnis je Quelle — gemerkt und abgelegt.
+    """Ein Ergebnis je Quelle — gemerkt und abgelegt.
 
     Fünf fast gleiche Klassen standen dafür im Ansichts-Modul. Eine
     Grundform mit ``bereich`` und ``bauen`` tut dasselbe, und ein Zusatz
@@ -143,21 +141,21 @@ class Speicher:
     """
 
     #: Name im Dateinamen der Ablage. MUSS je Unterklasse verschieden sein.
-    bereich = ''
+    bereich = ""
 
     @staticmethod
-    def bauen(wurzel):                              # pragma: no cover
+    def bauen(wurzel):  # pragma: no cover
         raise NotImplementedError
 
     @classmethod
     def _gemerkt(cls):
-        u"""Das dict DIESER Unterklasse.
+        """Das dict DIESER Unterklasse.
 
         Ohne ``cls.__dict__`` teilten sich alle Unterklassen eines der
         Grundklasse — und das Klassenmodell läge unter demselben
         Schlüssel wie die Qualitätsmessung.
         """
-        if '_werte' not in cls.__dict__:
+        if "_werte" not in cls.__dict__:
             cls._werte = {}
         return cls._werte
 
@@ -185,33 +183,32 @@ class Speicher:
 
     @classmethod
     def abdruck(cls):
-        u"""Ein kurzes Kennzeichen der Quellmodule — leer, wenn keine.
+        """Ein kurzes Kennzeichen der Quellmodule — leer, wenn keine.
 
         Gemessen wird Groesse und Aenderungszeit, nicht der Inhalt: Beides
         aendert sich bei jeder Bearbeitung, und eine Datei zu lesen kostet
         mehr als sie zu befragen.
         """
         if not cls.quellen:
-            return ''
+            return ""
         teile = []
         for quelle in cls.quellen:
-            pfad = Path(getattr(quelle, '__file__', quelle))
+            pfad = Path(getattr(quelle, "__file__", quelle))
             try:
                 stand = pfad.stat()
-                teile.append('%s:%d:%d' % (pfad.name, stand.st_size,
-                                           int(stand.st_mtime)))
+                teile.append("%s:%d:%d" % (pfad.name, stand.st_size, int(stand.st_mtime)))
             except OSError:
-                teile.append('%s:fehlt' % pfad.name)
-        return hashlib.md5('|'.join(teile).encode('utf-8')).hexdigest()[:8]
+                teile.append("%s:fehlt" % pfad.name)
+        return hashlib.md5("|".join(teile).encode("utf-8")).hexdigest()[:8]
 
     @classmethod
     def holen(cls, wurzel, neu=False):
-        u"""``(Wert, Alter in Sekunden oder None)``.
+        """``(Wert, Alter in Sekunden oder None)``.
 
         ``None`` als Alter heißt: gerade eben gerechnet.
         """
         abdruck = cls.abdruck()
-        schluessel = '%s#%s' % (wurzel, abdruck) if abdruck else str(wurzel)
+        schluessel = "%s#%s" % (wurzel, abdruck) if abdruck else str(wurzel)
         gemerkt = cls._gemerkt()
         if not neu:
             if schluessel in gemerkt:
@@ -228,7 +225,7 @@ class Speicher:
 
     @classmethod
     def nachsehen(cls, wurzel):
-        u"""``(Wert, Alter)`` NUR aus Speicher und Ablage — rechnet nie.
+        """``(Wert, Alter)`` NUR aus Speicher und Ablage — rechnet nie.
 
         WARUM DAS NOETIG WURDE (Edgar, 02.09.2026)
         ==========================================
@@ -249,7 +246,7 @@ class Speicher:
         """
         gemerkt = cls._gemerkt()
         abdruck = cls.abdruck()
-        schluessel = '%s#%s' % (wurzel, abdruck) if abdruck else str(wurzel)
+        schluessel = "%s#%s" % (wurzel, abdruck) if abdruck else str(wurzel)
         if schluessel in gemerkt:
             wert, wann = gemerkt[schluessel]
             return wert, time.time() - wann
@@ -264,4 +261,4 @@ class Speicher:
         leeren(cls.bereich)
 
 
-__all__ = ['Speicher', 'lesen', 'schreiben', 'leeren', 'ordner', 'FASSUNG']
+__all__ = ["Speicher", "lesen", "schreiben", "leeren", "ordner", "FASSUNG"]

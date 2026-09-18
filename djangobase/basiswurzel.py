@@ -49,4 +49,4 @@ class Basiswurzel:
             # auf die Wurzel nicht mehr gueltig — lieber der alte Wert als ein
             # falsch abgeschnittener Pfad.
             return Basiswurzel.ERSATZ
-        return adresse[:-len(Basiswurzel.ANKERWEG)]
+        return adresse[: -len(Basiswurzel.ANKERWEG)]

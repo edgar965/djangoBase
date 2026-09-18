@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""ModulIndex - welcher Punktname gehoert zu welcher Datei, und was steht drin.
+"""ModulIndex - welcher Punktname gehoert zu welcher Datei, und was steht drin.
 
 Hilfsklasse, kein Werkzeug: :class:`ImportZiele` braucht sie, um ``from x.y
 import z`` zu beurteilen, ohne ``x.y`` zu importieren.
@@ -24,13 +24,14 @@ Projekten vor, deshalb kennt der Index beide.
 
 Reine stdlib.
 """
+
 import ast
 
 __all__ = ["ModulIndex"]
 
 
 class ModulIndex:
-    u"""Punktname -> Quelldatei, und die Namen, die eine Datei auf Modulebene setzt."""
+    """Punktname -> Quelldatei, und die Namen, die eine Datei auf Modulebene setzt."""
 
     def __init__(self, dateien, wurzel=None):
         #: ``Quelldatei``-Objekte (``.name`` relativ mit ``/``, ``.baum``).
@@ -43,7 +44,7 @@ class ModulIndex:
     # ------------------------------------------------------------------ Karte
     @property
     def startpunkte(self):
-        u"""Verzeichnisse, unter denen ein Punktname beginnen kann.
+        """Verzeichnisse, unter denen ein Punktname beginnen kann.
 
         ``""`` ist die Projektwurzel; dazu jedes Verzeichnis mit ``manage.py``
         (``shortlongxWeb``, ``djangoCode``, ``NoiseSpy``, …)."""
@@ -56,7 +57,7 @@ class ModulIndex:
 
     @property
     def je_name(self):
-        u"""``{"brain.dax_filter": Quelldatei}`` - ein Paket unter seinem Namen."""
+        """``{"brain.dax_filter": Quelldatei}`` - ein Paket unter seinem Namen."""
         if self._je_name is not None:
             return self._je_name
         starts = self.startpunkte
@@ -77,7 +78,7 @@ class ModulIndex:
                 if not teile:
                     continue
                 if teile[-1] == "__init__.py":
-                    teile = teile[:-1]          # das Paket selbst
+                    teile = teile[:-1]  # das Paket selbst
                 else:
                     teile[-1] = teile[-1][:-3]  # ".py" ab
                 if teile:
@@ -86,11 +87,11 @@ class ModulIndex:
         return karte
 
     def datei(self, punktname):
-        u"""Die Quelldatei zu einem Punktnamen - oder ``None`` (fremdes Paket)."""
+        """Die Quelldatei zu einem Punktnamen - oder ``None`` (fremdes Paket)."""
         return self.je_name.get(punktname)
 
     def ist_paketteil(self, punktname, name):
-        u"""Ist ``name`` ein Untermodul von ``punktname``?
+        """Ist ``name`` ein Untermodul von ``punktname``?
 
         ``from depot.IB import konto`` holt kein Attribut, sondern eine Datei.
         Ohne diese Frage meldet die Pruefung jedes Submodul als fehlend."""
@@ -98,7 +99,7 @@ class ModulIndex:
 
     # ------------------------------------------------- Namen einer Modul-Datei
     def namen(self, datei):
-        u"""Alle Namen, die diese Datei auf Modulebene setzt.
+        """Alle Namen, die diese Datei auf Modulebene setzt.
 
         Gesucht wird im Modul-Namensraum, nicht nur in ``body``: Ein Name kann
         in ``try/except ImportError`` oder unter ``if TYPE_CHECKING`` entstehen
@@ -114,7 +115,7 @@ class ModulIndex:
 
     @staticmethod
     def _modulebene(baum):
-        u"""Knoten im Modul-Namensraum - durch ``if``/``try``/``with`` hindurch,
+        """Knoten im Modul-Namensraum - durch ``if``/``try``/``with`` hindurch,
         aber NICHT in Funktionen und Klassen (deren Namen bleiben drinnen)."""
         eigener_raum = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
         offen, aus = list(baum.body), []
@@ -147,7 +148,7 @@ class ModulIndex:
         return set()
 
     def _ziele(self, knoten):
-        u"""Die Namen, die ein Zuweisungsziel bindet.
+        """Die Namen, die ein Zuweisungsziel bindet.
 
         ``LONG, SHORT = 1, -1`` bindet ZWEI Namen - das Ziel ist ein ``Tuple``,
         kein ``Name``. Die erste Fassung sah nur ``Name`` und meldete deshalb
@@ -161,11 +162,11 @@ class ModulIndex:
             return aus
         if isinstance(knoten, ast.Starred):
             return self._ziele(knoten.value)
-        return set()                       # x.y = … / x[0] = … binden nichts
+        return set()  # x.y = … / x[0] = … binden nichts
 
     # --------------------------------------------------------- die drei Luecken
     def undurchsichtig(self, datei):
-        u"""Warum diese Datei statisch NICHT beurteilbar ist - oder ``None``.
+        """Warum diese Datei statisch NICHT beurteilbar ist - oder ``None``.
 
         Wer hier auf ``None`` prueft, meldet nur, was er wirklich weiss:
 
@@ -181,33 +182,30 @@ class ModulIndex:
     @staticmethod
     def _luecke(datei):
         if datei.baum is None:
-            return u"nicht lesbar"
+            return "nicht lesbar"
         for k in ast.walk(datei.baum):
-            if isinstance(k, ast.ImportFrom) and any(a.name == "*"
-                                                     for a in k.names):
-                return u"benutzt from … import *"
-            if (isinstance(k, ast.FunctionDef) and k.name == "__getattr__"
-                    and k in datei.baum.body):
-                return u"hat ein Modul-__getattr__"
-            if (isinstance(k, ast.Call) and isinstance(k.func, ast.Name)
-                    and k.func.id == "globals"):
-                return u"schreibt über globals()"
+            if isinstance(k, ast.ImportFrom) and any(a.name == "*" for a in k.names):
+                return "benutzt from … import *"
+            if isinstance(k, ast.FunctionDef) and k.name == "__getattr__" and k in datei.baum.body:
+                return "hat ein Modul-__getattr__"
+            if isinstance(k, ast.Call) and isinstance(k.func, ast.Name) and k.func.id == "globals":
+                return "schreibt über globals()"
         return None
 
     # --------------------------------------------------------------- Aufloesung
     def ziel(self, datei, knoten):
-        u"""Der Punktname, den ``from … import`` dieses Knotens meint.
+        """Der Punktname, den ``from … import`` dieses Knotens meint.
 
         Loest relative Importe (``from .befund import Befund``) ueber den Pfad
         der importierenden Datei auf. ``None``, wenn er nicht aufloesbar ist."""
         if not knoten.level:
             return knoten.module
-        teile = datei.name.split("/")[:-1]      # das Verzeichnis der Datei
+        teile = datei.name.split("/")[:-1]  # das Verzeichnis der Datei
         if knoten.level > 1:
             hoch = knoten.level - 1
             if hoch > len(teile):
                 return None
-            teile = teile[:len(teile) - hoch]
+            teile = teile[: len(teile) - hoch]
         starts = self.startpunkte[1:]
         if teile and teile[0] in starts:
             teile = teile[1:]

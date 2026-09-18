@@ -1,4 +1,5 @@
 """Unit-Tests: Einstellungs-Store + conf()-Overrides (isolierte JSON-Datei)."""
+
 from djangobase import store
 from djangobase.conf import conf
 
@@ -7,7 +8,7 @@ from ..base import BasisTest, StoreIsolationMixin
 
 class StoreConfTest(StoreIsolationMixin, BasisTest):
     def setUp(self):
-        self.store_isolieren()   # echte .djangobase.json bleibt unberührt
+        self.store_isolieren()  # echte .djangobase.json bleibt unberührt
 
     def test_gruppe_speichern_wirkt_in_conf(self):
         store.speichern_gruppe("freigabe", {"freigabe_nutzer_noetig": True})

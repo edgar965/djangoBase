@@ -1,4 +1,5 @@
 """Component-Tests: die djangoBase-Hilfe-/Verwaltungsseiten rendern (Staff)."""
+
 from django.test import override_settings
 from django.urls import reverse
 
@@ -31,7 +32,7 @@ class HilfeViewsTest(BasisTest):
 
     def test_benutzer_liste(self):
         r = self._ok("djangobase:benutzer")
-        self.assertContains(r, "Eingeloggt")   # Spaltenkopf (Session-Status)
+        self.assertContains(r, "Eingeloggt")  # Spaltenkopf (Session-Status)
 
     @override_settings(DJANGOBASE={"zugriff": "staff"})
     def test_nicht_staff_kein_zugriff(self):
@@ -43,7 +44,8 @@ class HilfeViewsTest(BasisTest):
         kaputt war. Ein Test, dessen Ergebnis von den Settings des Gastgebers
         abhaengt, prüft nicht djangoBase, sondern den Gastgeber."""
         from django.test import Client
+
         c = Client()
         c.force_login(self.nutzer(username="kein_staff", is_staff=False))
         r = c.get(reverse("djangobase:benutzer"))
-        self.assertIn(r.status_code, (302, 403))   # umgeleitet oder verboten
+        self.assertIn(r.status_code, (302, 403))  # umgeleitet oder verboten

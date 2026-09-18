@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""FixJsErbe - eine zu grosse JS-KLASSE ueber Vererbung teilen.
+"""FixJsErbe - eine zu grosse JS-KLASSE ueber Vererbung teilen.
 
 WARUM NICHT MIT EINER ZEILENNUMMER (16.08.2026)
 ===============================================
@@ -36,6 +36,7 @@ DIE VIER FALLEN, DIE ES TROTZDEM GIBT
 Faellt eine davon, waehlt der Fixer eine andere Methodenmenge - und meldet,
 wenn keine bleibt.
 """
+
 import re
 
 from .anlassfall import Anlassfall
@@ -45,8 +46,10 @@ from .fixer import Aenderung, Fixer, Vorschau
 class Methode:
     """Eine Methode einer JS-Klasse: ihre Zeilen und was sie von aussen braucht."""
 
-    KOPF = re.compile(r"^(\s+)(static\s+)?(async\s+)?(get\s+|set\s+)?"
-                      r"([A-Za-z_$][\w$]*)\s*\(")
+    KOPF = re.compile(
+        r"^(\s+)(static\s+)?(async\s+)?(get\s+|set\s+)?"
+        r"([A-Za-z_$][\w$]*)\s*\("
+    )
 
     def __init__(self, name, zeilen, statisch=False, vorspann=()):
         self.name = name
@@ -72,8 +75,7 @@ class Methode:
         return self.name == "constructor"
 
     def benutzt(self, namen):
-        return {n for n in namen
-                if re.search(r"(?<![.\w])%s\b" % re.escape(n), self.text)}
+        return {n for n in namen if re.search(r"(?<![.\w])%s\b" % re.escape(n), self.text)}
 
 
 class Klassendatei:
@@ -81,8 +83,9 @@ class Klassendatei:
 
     def __init__(self, pfad, zeilen=None):
         self.pfad = pfad
-        self.zeilen = zeilen if zeilen is not None else \
-            pfad.read_text(encoding="utf-8", errors="replace").split("\n")
+        self.zeilen = (
+            zeilen if zeilen is not None else pfad.read_text(encoding="utf-8", errors="replace").split("\n")
+        )
         self.klasse = ""
         self.erbt = ""
         self.kopf, self.methoden, self.fuss = [], [], []
@@ -95,15 +98,18 @@ class Klassendatei:
     def _zerlegen(self):
         anfang = None
         for i, z in enumerate(self.zeilen):
-            m = re.match(r"^(?:export\s+)?(?:default\s+)?class\s+(\w+)"
-                         r"(?:\s+extends\s+([\w.]+))?", z)
+            m = re.match(
+                r"^(?:export\s+)?(?:default\s+)?class\s+(\w+)"
+                r"(?:\s+extends\s+([\w.]+))?",
+                z,
+            )
             if m:
                 self.klasse, self.erbt, anfang = m.group(1), m.group(2) or "", i
                 break
         if anfang is None:
             return
         ende = self._klassenende(anfang)
-        self.kopf = self.zeilen[:anfang + 1]
+        self.kopf = self.zeilen[: anfang + 1]
         # WO IM KOPF DIE KLASSENZEILE STEHT, muss gemerkt werden (16.08.2026):
         # ``_methoden_lesen`` haengt statische Felder und Zwischenkommentare
         # hinten an ``kopf`` an, danach ist die Klassenzeile NICHT mehr die
@@ -115,7 +121,7 @@ class Klassendatei:
         # muss sie mitnehmen (``ende - 1``), sonst fehlt sie im Ergebnis - der
         # Rest der Datei landet dann IM Klassenrumpf und ``window.Xyz = Xyz``
         # wirft „Unexpected token '.'" (16.08.2026, vom node-Netz gefangen).
-        self.fuss = self.zeilen[ende - 1:]
+        self.fuss = self.zeilen[ende - 1 :]
         self._methoden_lesen(anfang + 1, ende - 1)
 
     def _klassenende(self, anfang):
@@ -132,8 +138,7 @@ class Klassendatei:
             z = self.zeilen[i]
             m = Methode.KOPF.match(z)
             if re.match(r"^\s+static\s+[A-Za-z_$][\w$]*\s*=", z):
-                self.statische_felder.append(
-                    re.match(r"^\s+static\s+([A-Za-z_$][\w$]*)", z).group(1))
+                self.statische_felder.append(re.match(r"^\s+static\s+([A-Za-z_$][\w$]*)", z).group(1))
                 offen.append(z)
                 i += 1
                 continue
@@ -143,11 +148,9 @@ class Klassendatei:
                 continue
             ende = self._rumpfende(i, bis)
             vorspann = []
-            while offen and (offen[-1].strip().startswith(("//", "*", "/*"))
-                             or not offen[-1].strip()):
+            while offen and (offen[-1].strip().startswith(("//", "*", "/*")) or not offen[-1].strip()):
                 vorspann.insert(0, offen.pop())
-            self.methoden.append(Methode(m.group(5), self.zeilen[i:ende],
-                                         bool(m.group(2)), vorspann))
+            self.methoden.append(Methode(m.group(5), self.zeilen[i:ende], bool(m.group(2)), vorspann))
             self.kopf += offen
             offen = []
             i = ende
@@ -168,9 +171,9 @@ class Klassendatei:
         """Freie Funktionen und Konstanten der Datei - die kann die Basis NICHT."""
         text = "\n".join(self.kopf + self.fuss)
         ohne_import = re.sub(r"^import[^;]*;", "", text, flags=re.M | re.S)
-        return set(re.findall(
-            r"^(?:export\s+)?(?:async\s+)?(?:function|const|let|var)\s+(\w+)",
-            ohne_import, re.M))
+        return set(
+            re.findall(r"^(?:export\s+)?(?:async\s+)?(?:function|const|let|var)\s+(\w+)", ohne_import, re.M)
+        )
 
     @property
     def importzeilen(self):
@@ -209,8 +212,7 @@ class Klassendatei:
                 continue
             if re.match(r"^\s*import\b", z) and not z.lstrip().startswith("//"):
                 block = [z]
-                while (";" not in block[-1] and i + 1 < len(self.kopf)
-                       and len(block) < 8):
+                while ";" not in block[-1] and i + 1 < len(self.kopf) and len(block) < 8:
                     i += 1
                     block.append(self.kopf[i])
                 aus += block
@@ -252,10 +254,8 @@ class Erbteilung:
 
     @property
     def groesseres_teil(self):
-        rest = self._zeilen(self.rest_methoden) + len(self.datei.kopf) + \
-            len(self.datei.fuss)
-        basis = self._zeilen(self.basis_methoden) + \
-            len(self.datei.importzeilen) + 8
+        rest = self._zeilen(self.rest_methoden) + len(self.datei.kopf) + len(self.datei.fuss)
+        basis = self._zeilen(self.basis_methoden) + len(self.datei.importzeilen) + 8
         return max(rest, basis)
 
     @property
@@ -307,24 +307,21 @@ class Erbteilung:
         if not self.datei.klasse:
             return ["keine Klasse gefunden"]
         if self.datei.erbt:
-            aus.append("erbt bereits von %s — Kette von Hand prüfen"
-                       % self.datei.erbt)
-        if len(re.findall(r"^(?:export\s+)?class\s+\w+",
-                          "\n".join(self.datei.zeilen), re.M)) > 1:
+            aus.append("erbt bereits von %s — Kette von Hand prüfen" % self.datei.erbt)
+        if len(re.findall(r"^(?:export\s+)?class\s+\w+", "\n".join(self.datei.zeilen), re.M)) > 1:
             aus.append("mehrere Klassen in der Datei — erst trennen")
         if not self.basis_namen:
             aus.append(self._warum_keine())
             return aus
-        rest = self._zeilen(self.rest_methoden) + len(self.datei.kopf) + \
-            len(self.datei.fuss)
+        rest = self._zeilen(self.rest_methoden) + len(self.datei.kopf) + len(self.datei.fuss)
         basis = self._zeilen(self.basis_methoden) + len(self.datei.importzeilen) + 8
         if rest > self.GRENZE and basis > self.GRENZE:
-            aus.append("lohnt nicht: beide Teile blieben über %d Zeilen "
-                       "(%d / %d)" % (self.GRENZE, rest, basis))
+            aus.append(
+                "lohnt nicht: beide Teile blieben über %d Zeilen (%d / %d)" % (self.GRENZE, rest, basis)
+            )
         for m in self.basis_methoden:
             if re.search(r"(?<![.\w])super\s*[.(]", m.text):
-                aus.append("%s benutzt super — die Basis hat keine Oberklasse"
-                           % m.name)
+                aus.append("%s benutzt super — die Basis hat keine Oberklasse" % m.name)
                 break
         # ZIRKEL: Zeigt einer der mitwandernden Importe auf die Ursprungsdatei
         # zurueck, ist die Basis beim ``extends`` noch nicht ausgewertet -
@@ -334,8 +331,7 @@ class Erbteilung:
         eigener = self.datei.pfad.name
         for z in self.datei.importzeilen:
             if eigener in z:
-                aus.append("Zirkel: ein Import der Basis zeigt auf %s zurück"
-                           % eigener)
+                aus.append("Zirkel: ein Import der Basis zeigt auf %s zurück" % eigener)
                 break
         # ``Xyz.foo`` in einer wandernden Methode wird ``this.constructor.foo``.
         # Das trifft NUR bei statischen Mitgliedern zu; ist ``foo`` eine
@@ -343,12 +339,17 @@ class Erbteilung:
         # macht daraus einen stillen Laufzeitfehler statt eines sichtbaren.
         statisch = self.statische_namen
         for m in self.basis_methoden:
-            fremd = [z for z in re.findall(
-                r"(?<![.\w])%s\.([A-Za-z_$][\w$]*)" % re.escape(self.datei.klasse),
-                m.text) if z not in statisch]
+            fremd = [
+                z
+                for z in re.findall(
+                    r"(?<![.\w])%s\.([A-Za-z_$][\w$]*)" % re.escape(self.datei.klasse), m.text
+                )
+                if z not in statisch
+            ]
             if fremd:
-                aus.append("%s greift auf %s.%s zu, das nicht statisch ist"
-                           % (m.name, self.datei.klasse, fremd[0]))
+                aus.append(
+                    "%s greift auf %s.%s zu, das nicht statisch ist" % (m.name, self.datei.klasse, fremd[0])
+                )
                 break
         return aus
 
@@ -373,16 +374,16 @@ class Erbteilung:
         zaehler = {}
         for g in gruende:
             zaehler[g] = zaehler.get(g, 0) + 1
-        teile = ["%s (%dx)" % (g, n) if n > 1 else g
-                 for g, n in sorted(zaehler.items(), key=lambda x: -x[1])[:3]]
+        teile = [
+            "%s (%dx)" % (g, n) if n > 1 else g for g, n in sorted(zaehler.items(), key=lambda x: -x[1])[:3]
+        ]
         schwanz = " — z. B. %s" % ", ".join(namen[:2]) if namen else ""
         return "keine Methode darf wandern: %s%s" % ("; ".join(teile), schwanz)
 
     # ---- der Text -----------------------------------------------------------
     @property
     def statische_namen(self):
-        return {m.name for m in self.datei.methoden if m.statisch} | \
-            set(self.datei.statische_felder)
+        return {m.name for m in self.datei.methoden if m.statisch} | set(self.datei.statische_felder)
 
     def _im_string(self, zeile, pos):
         """Steht ``pos`` innerhalb eines Anführungszeichen-Paars dieser Zeile?
@@ -400,35 +401,36 @@ class Erbteilung:
         muster = re.compile(r"(?<![.\w])%s\." % re.escape(self.datei.klasse))
         aus, zuletzt = [], 0
         for m in muster.finditer(zeile):
-            aus.append(zeile[zuletzt:m.start()])
-            aus.append(m.group(0) if self._im_string(zeile, m.start())
-                       else "this.constructor.")
+            aus.append(zeile[zuletzt : m.start()])
+            aus.append(m.group(0) if self._im_string(zeile, m.start()) else "this.constructor.")
             zuletzt = m.end()
         return "".join(aus) + zeile[zuletzt:]
 
     def basistext(self):
-        kopf = ["/* %s — die untere Hälfte von %s."
-                % (self.basisklasse, self.datei.pfad.name),
-                "   " + "=" * 70,
-                "   <WOFÜR steht diese Hälfte? Ein Satz — HANDARBEIT.>",
-                "",
-                "   Über Vererbung herausgelöst: `this` bleibt die vollständige",
-                "   Instanz, deshalb rufen sich beide Hälften weiter gegenseitig.",
-                "   " + "=" * 70 + " */"]
+        kopf = [
+            "/* %s — die untere Hälfte von %s." % (self.basisklasse, self.datei.pfad.name),
+            "   " + "=" * 70,
+            "   <WOFÜR steht diese Hälfte? Ein Satz — HANDARBEIT.>",
+            "",
+            "   Über Vererbung herausgelöst: `this` bleibt die vollständige",
+            "   Instanz, deshalb rufen sich beide Hälften weiter gegenseitig.",
+            "   " + "=" * 70 + " */",
+        ]
         rumpf = []
         for m in self.basis_methoden:
             rumpf += [self._entselbstbezug(z) for z in m.volle_zeilen]
-        return "\n".join(kopf + self.datei.importzeilen +
-                         ["", "export class %s {" % self.basisklasse] +
-                         rumpf + ["}", ""])
+        return "\n".join(
+            kopf + self.datei.importzeilen + ["", "export class %s {" % self.basisklasse] + rumpf + ["}", ""]
+        )
 
     def resttext(self):
         kopf = list(self.datei.kopf)
         bei = self.datei.klassenzeile
-        kopf[bei] = re.sub(r"class\s+%s\b" % re.escape(self.datei.klasse),
-                           "class %s extends %s" % (self.datei.klasse,
-                                                    self.basisklasse),
-                           kopf[bei])
+        kopf[bei] = re.sub(
+            r"class\s+%s\b" % re.escape(self.datei.klasse),
+            "class %s extends %s" % (self.datei.klasse, self.basisklasse),
+            kopf[bei],
+        )
         # Der Import gehoert VOR die Klassenzeile, nicht hinter die letzte
         # Import-Zeile: dazwischen koennen Konstanten und Kommentare stehen.
         #
@@ -437,8 +439,7 @@ class Erbteilung:
         # dann dauerhaft aus dem Browser-Cache, egal wie oft die Hauptdatei
         # gebumpt wird. Genau daran hing eine weisse Seite (WalkHop/navi.js,
         # 15.06.2026). Beim naechsten Edit an der Basis diese Zahl erhoehen.
-        kopf.insert(bei, "import {%s} from './%s?v=1';" % (self.basisklasse,
-                                                           self.basisdatei))
+        kopf.insert(bei, "import {%s} from './%s?v=1';" % (self.basisklasse, self.basisdatei))
         rumpf = []
         for m in self.rest_methoden:
             rumpf += self._mit_super(m) if m.ist_konstruktor else m.volle_zeilen
@@ -466,17 +467,16 @@ class Erbteilung:
         rumpf = list(methode.zeilen)
         if any(re.search(r"(?<![.\w])super\s*\(", z) for z in rumpf):
             return methode.volle_zeilen
-        bei = next((i for i, z in enumerate(rumpf) if z.rstrip().endswith("{")),
-                   None)
+        bei = next((i for i, z in enumerate(rumpf) if z.rstrip().endswith("{")), None)
         if bei is None:
             bei = next((i for i, z in enumerate(rumpf) if "{" in z), None)
         if bei is None:
             return methode.volle_zeilen
         folge = rumpf[bei + 1] if bei + 1 < len(rumpf) else ""
-        einzug = " " * ((len(folge) - len(folge.lstrip())) or
-                        (len(rumpf[bei]) - len(rumpf[bei].lstrip()) + 2))
-        return methode.vorspann + rumpf[:bei + 1] + [einzug + "super();"] + \
-            rumpf[bei + 1:]
+        einzug = " " * (
+            (len(folge) - len(folge.lstrip())) or (len(rumpf[bei]) - len(rumpf[bei].lstrip()) + 2)
+        )
+        return methode.vorspann + rumpf[: bei + 1] + [einzug + "super();"] + rumpf[bei + 1 :]
 
 
 class FixJsErbe(Fixer):
@@ -485,16 +485,22 @@ class FixJsErbe(Fixer):
     #: Werkzeugs, das ihn meldet. Die Oberflaeche zeigt daraus die
     #: NUMMER der Pruefung in der Tabelle statt einer
     #: Kriteriums-Nummer, die dort nirgends steht.
-    behebt = 'js-vererbung'
+    behebt = "js-vererbung"
     titel = "Große JS-Klasse über Vererbung teilen"
-    tut = ("Löst die hintere Hälfte der Methoden als Basisklasse in eine eigene "
-           "Datei — die Klasse selbst behält Namen, Konstruktor und Aufrufer.")
-    warum = ("20 von 35 zu großen JS-Dateien sind je EINE Klasse; ein Schnitt an "
-             "einer Zeilennummer findet dort nichts. Vererbung ist der einzige "
-             "Schnitt, bei dem kein Aufrufer mitwandert.")
-    grenzen = ("Konstruktor, statische Methoden und alles, was eine freie Funktion "
-               "der Datei braucht, bleiben zurück. Die Überschrift der neuen "
-               "Datei ist ein Platzhalter.")
+    tut = (
+        "Löst die hintere Hälfte der Methoden als Basisklasse in eine eigene "
+        "Datei — die Klasse selbst behält Namen, Konstruktor und Aufrufer."
+    )
+    warum = (
+        "20 von 35 zu großen JS-Dateien sind je EINE Klasse; ein Schnitt an "
+        "einer Zeilennummer findet dort nichts. Vererbung ist der einzige "
+        "Schnitt, bei dem kein Aufrufer mitwandert."
+    )
+    grenzen = (
+        "Konstruktor, statische Methoden und alles, was eine freie Funktion "
+        "der Datei braucht, bleiben zurück. Die Überschrift der neuen "
+        "Datei ist ein Platzhalter."
+    )
     kriterium = 3
     dauer = "5–15 s"
 
@@ -502,20 +508,33 @@ class FixJsErbe(Fixer):
         # Über GRENZE (200) Zeilen UND mindestens zwei Methoden in EINER
         # Klasse — beides muss zutreffen, sonst ist es ein Fall für
         # `fix-jsschnitt` und nicht für die Vererbung.
-        {"kachel.js": "export class Kachel {\n"
-         + "".join(
-             "    schritt%02d() {\n"
-             "        const wert = %d;\n"
-             "        return wert * 2;\n"
-             "    }\n\n" % (i, i) for i in range(50))
-         + "}\n"},
-        mindestens=1, hoechstens=1, erwartet_in="kachel.js",
+        {
+            "kachel.js": "export class Kachel {\n"
+            + "".join(
+                "    schritt%02d() {\n        const wert = %d;\n        return wert * 2;\n    }\n\n" % (i, i)
+                for i in range(50)
+            )
+            + "}\n"
+        },
+        mindestens=1,
+        hoechstens=1,
+        erwartet_in="kachel.js",
         warum="Eine Klasse mit fünfzig Methoden auf 250 Zeilen — die hintere "
-              "Hälfte gehört in eine Basisklasse")
+        "Hälfte gehört in eine Basisklasse",
+    )
 
     GRENZE = 200
-    RAUS = ("__pycache__", "node_modules", "venv", "pythonVENV", ".git",
-            "sicherung", "backup", "archiv", "_web")
+    RAUS = (
+        "__pycache__",
+        "node_modules",
+        "venv",
+        "pythonVENV",
+        ".git",
+        "sicherung",
+        "backup",
+        "archiv",
+        "_web",
+    )
 
     def _kandidaten(self):
         for pfad in self.pfade("*.js"):
@@ -539,21 +558,29 @@ class FixJsErbe(Fixer):
         for datei in self._kandidaten():
             teilung = Erbteilung.beste(datei)
             warnungen = teilung.warnungen()
-            was = ("%s (%d Methoden) → %s mit %d Methoden"
-                   % (datei.klasse, len(datei.methoden), teilung.basisklasse,
-                      len(teilung.basis_methoden)))
+            was = "%s (%d Methoden) → %s mit %d Methoden" % (
+                datei.klasse,
+                len(datei.methoden),
+                teilung.basisklasse,
+                len(teilung.basis_methoden),
+            )
             if warnungen:
                 aenderungen.append(Aenderung(datei.pfad, was, None, warnungen))
                 continue
-            aend = Aenderung(datei.pfad, was, teilung.resttext(),
-                             begleiter=(datei.pfad.parent / teilung.basisdatei,
-                                        teilung.basistext()))
+            aend = Aenderung(
+                datei.pfad,
+                was,
+                teilung.resttext(),
+                begleiter=(datei.pfad.parent / teilung.basisdatei, teilung.basistext()),
+            )
             aend.methodennamen = [m.name for m in datei.methoden]
             aenderungen.append(aend)
-        return Vorschau(aenderungen,
-                        "Beide Hälften rufen sich weiter gegenseitig — `this` ist "
-                        "die vollständige Instanz. Die Überschrift der neuen "
-                        "Datei bitte nach dem Anwenden füllen.")
+        return Vorschau(
+            aenderungen,
+            "Beide Hälften rufen sich weiter gegenseitig — `this` ist "
+            "die vollständige Instanz. Die Überschrift der neuen "
+            "Datei bitte nach dem Anwenden füllen.",
+        )
 
     def pruefen(self, aenderung):
         """Beide Dateien müssen als ES-Modul parsen, und nichts darf fehlen.
@@ -575,14 +602,18 @@ class FixJsErbe(Fixer):
             basis = aenderung.begleiter[0]
             for z in basis.read_text(encoding="utf-8").split("\n"):
                 if re.match(r"^\s*import\b", z) and aenderung.pfad.name in z:
-                    return ["Zirkel: %s importiert %s zurück"
-                            % (basis.name, aenderung.pfad.name)]
+                    return ["Zirkel: %s importiert %s zurück" % (basis.name, aenderung.pfad.name)]
         vorher = getattr(aenderung, "methodennamen", None)
         if vorher:
             text = "\n".join(p.read_text(encoding="utf-8") for p in teile)
-            nachher = set(re.findall(
-                r"^\s+(?:static\s+|async\s+|get\s+|set\s+)*"
-                r"([A-Za-z_$][\w$]*)\s*\(", text, re.M))
+            nachher = set(
+                re.findall(
+                    r"^\s+(?:static\s+|async\s+|get\s+|set\s+)*"
+                    r"([A-Za-z_$][\w$]*)\s*\(",
+                    text,
+                    re.M,
+                )
+            )
             fehlt = sorted(set(vorher) - nachher)
             if fehlt:
                 return ["Methoden verloren: %s" % ", ".join(fehlt)]
@@ -596,16 +627,22 @@ class FixJsErbe(Fixer):
         am 16.08.2026 für eine nachweislich kaputte Modul-Datei 0 zurück; der
         Browser meldete denselben SyntaxError sofort."""
         import subprocess
+
         try:
             text = pfad.read_text(encoding="utf-8")
         except OSError as e:
             return ["%s nicht lesbar: %s" % (pfad.name, e)]
         try:
-            lauf = subprocess.run(["node", "--input-type=module", "--check"],
-                                  input=text, capture_output=True, text=True,
-                                  timeout=25, encoding="utf-8")
+            lauf = subprocess.run(
+                ["node", "--input-type=module", "--check"],
+                input=text,
+                capture_output=True,
+                text=True,
+                timeout=25,
+                encoding="utf-8",
+            )
         except (OSError, subprocess.SubprocessError):
-            return []                      # ohne node kein Urteil, kein Fehlalarm
+            return []  # ohne node kein Urteil, kein Fehlalarm
         if lauf.returncode != 0:
             kurz = (lauf.stderr or "").strip().split("\n")
             return ["%s parst nicht: %s" % (pfad.name, kurz[-1] if kurz else "?")]

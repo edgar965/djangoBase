@@ -9,6 +9,7 @@ Drei Tabs nach Klassen-Zugehörigkeit:
 Da die Modelle djangoBase gehören, steht die Seite in jedem Projekt bereit,
 das `migrate djangobase` ausgeführt hat.
 """
+
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404, redirect, render
@@ -22,8 +23,24 @@ from ..models import LoginSitzung, Provider, Teilnehmer
 User = get_user_model()
 
 # Auswählbare Avatar-Emojis (wie bei Cleanorga – einfach anklicken).
-AVATAR_EMOJIS = ["🧑", "👩", "👨", "🧑‍💼", "👩‍💼", "👨‍💼", "🧑‍🔧", "👷",
-                 "🧑‍🍳", "🧑‍🏫", "🧑‍💻", "🦸", "🧑‍🎨", "🏠", "🌟", "🚲"]
+AVATAR_EMOJIS = [
+    "🧑",
+    "👩",
+    "👨",
+    "🧑‍💼",
+    "👩‍💼",
+    "👨‍💼",
+    "🧑‍🔧",
+    "👷",
+    "🧑‍🍳",
+    "🧑‍🏫",
+    "🧑‍💻",
+    "🦸",
+    "🧑‍🎨",
+    "🏠",
+    "🌟",
+    "🚲",
+]
 
 
 def _email_adressen():
@@ -47,6 +64,7 @@ def _eingeloggte_user_ids():
     try:
         from django.contrib.sessions.models import Session
         from django.utils import timezone
+
         ids = set()
         for s in Session.objects.filter(expire_date__gte=timezone.now()):
             uid = s.get_decoded().get("_auth_user_id")
@@ -64,6 +82,7 @@ def _online_ids(user_ids):
     Letzteres zählt aber auch „Eingeloggt bleiben"-Sessions mit."""
     try:
         from ..online import online_ids as _aktiv, tracking_aktiv
+
         if tracking_aktiv():
             return _aktiv(user_ids)
     except Exception:  # noqa: BLE001
@@ -76,7 +95,9 @@ def _details_map(user_ids):
     (DJANGOBASE['benutzer_details_provider']). Gebündelt für alle Nutzer.
     {user_id: [{"titel","zeilen":[(label,wert)]}]}. Fail-silent."""
     from django.utils.module_loading import import_string
+
     from ..conf import conf
+
     pfad = conf().get("benutzer_details_provider")
     if not pfad:
         return {}
@@ -102,12 +123,18 @@ def _sitzungen_map(grenze=40):
 # Reihenfolge der Prüfung ist bewusst: Admin > kein-E-Mail (anonym/technisch) >
 # gesperrt (is_active=False) > bestätigt > angefragt (E-Mail offen).
 _STATUS_KLASSE = {
-    "admin": "bg-primary", "anonym": "bg-secondary", "gesperrt": "bg-danger",
-    "bestaetigt": "bg-success", "angefragt": "bg-warning text-dark",
+    "admin": "bg-primary",
+    "anonym": "bg-secondary",
+    "gesperrt": "bg-danger",
+    "bestaetigt": "bg-success",
+    "angefragt": "bg-warning text-dark",
 }
 _STATUS_LABEL = {
-    "admin": "Admin", "anonym": "Anonym", "gesperrt": "Gesperrt",
-    "bestaetigt": "Bestätigt", "angefragt": "Angefragt",
+    "admin": "Admin",
+    "anonym": "Anonym",
+    "gesperrt": "Gesperrt",
+    "bestaetigt": "Bestätigt",
+    "angefragt": "Angefragt",
 }
 
 
@@ -125,8 +152,7 @@ def _status_kennung(user, email_ok):
     return {"slug": slug, "label": _STATUS_LABEL[slug], "klasse": _STATUS_KLASSE[slug]}
 
 
-def _zeile(user, profil, ist_provider, email_map=None, online_ids=None, sitzung_map=None,
-           details_map=None):
+def _zeile(user, profil, ist_provider, email_map=None, online_ids=None, sitzung_map=None, details_map=None):
     return {
         "user": user,
         "profil": profil,
@@ -140,17 +166,14 @@ def _zeile(user, profil, ist_provider, email_map=None, online_ids=None, sitzung_
         "sprache": profil.get_sprache_display() if profil else "",
         "adresse": profil.adresse_kurz if profil else "",
         # „Eingeloggt" = aktive Session (nicht das veraltbare Profil-Flag)
-        "online": user.id in online_ids if online_ids is not None
-                  else bool(profil and profil.eingeloggt),
+        "online": user.id in online_ids if online_ids is not None else bool(profil and profil.eingeloggt),
         "anwesend": bool(profil and profil.anwesend),
         "ui": profil.ui if profil else 1,
         "email_bestaetigt": bool(email_map and email_map.get(user.id)),
         # Audit-Zeitstempel (registriert_am Fallback: User.date_joined)
-        "registriert_am": (profil.registriert_am if profil and profil.registriert_am
-                           else user.date_joined),
+        "registriert_am": (profil.registriert_am if profil and profil.registriert_am else user.date_joined),
         # „Zuletzt aktiv" (letzte Anfrage) – Fallback auf last_login (Anmeldung)
-        "zuletzt_aktiv": (profil.zuletzt_aktiv if profil and profil.zuletzt_aktiv
-                          else user.last_login),
+        "zuletzt_aktiv": (profil.zuletzt_aktiv if profil and profil.zuletzt_aktiv else user.last_login),
         "email_bestaetigt_am": profil.email_bestaetigt_am if profil else None,
         "freigegeben_am": profil.freigegeben_am if profil else None,
         "sitzungen": (sitzung_map or {}).get(user.id, []),
@@ -200,9 +223,11 @@ def _zurueck(request):
     sonst die Standard-Benutzerseite. Nur same-host-Pfade (Open-Redirect-
     Schutz via Djangos url_has_allowed_host_and_scheme)."""
     from django.utils.http import url_has_allowed_host_and_scheme
+
     ziel = (request.POST.get("zurueck") or "").strip()
     if ziel and url_has_allowed_host_and_scheme(
-            ziel, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
+        ziel, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
         return redirect(ziel)
     return redirect(reverse("djangobase:benutzer"))
 
@@ -219,8 +244,7 @@ class BenutzerErstellenView(ZugriffMixin, View):
             user = form.speichern()
             messages.success(request, f"Benutzer {user.get_full_name() or user.username} angelegt.")
             return _zurueck(request)
-        return render(request, "djangobase/hilfe/benutzer.html",
-                      _context(form=form, modal_offen=True))
+        return render(request, "djangobase/hilfe/benutzer.html", _context(form=form, modal_offen=True))
 
 
 class BenutzerBearbeitenView(ZugriffMixin, View):
@@ -230,7 +254,9 @@ class BenutzerBearbeitenView(ZugriffMixin, View):
         t = Teilnehmer.objects.filter(user=user).first()
         prov = Provider.objects.filter(pk=t.pk).first() if t else None
         return {
-            "vorname": user.first_name, "name": user.last_name, "email": user.email,
+            "vorname": user.first_name,
+            "name": user.last_name,
+            "email": user.email,
             "aktiv": user.is_active,
             "rolle": "anbieter" if prov else "teilnehmer",
             "sprache": getattr(t, "sprache", "de"),
@@ -254,8 +280,7 @@ class BenutzerBearbeitenView(ZugriffMixin, View):
     def get(self, request, pk):
         user = get_object_or_404(User, pk=pk)
         form = BenutzerForm(instance=user, initial=self._initial(user))
-        return render(request, self.template_name,
-                      {"form": form, "ziel": user, **self._avatar_ctx(user)})
+        return render(request, self.template_name, {"form": form, "ziel": user, **self._avatar_ctx(user)})
 
     def post(self, request, pk):
         user = get_object_or_404(User, pk=pk)
@@ -264,8 +289,7 @@ class BenutzerBearbeitenView(ZugriffMixin, View):
             form.speichern()
             messages.success(request, "Benutzer aktualisiert.")
             return redirect(reverse("djangobase:benutzer"))
-        return render(request, self.template_name,
-                      {"form": form, "ziel": user, **self._avatar_ctx(user)})
+        return render(request, self.template_name, {"form": form, "ziel": user, **self._avatar_ctx(user)})
 
 
 class BenutzerStatusView(ZugriffMixin, View):
@@ -276,10 +300,12 @@ class BenutzerStatusView(ZugriffMixin, View):
             return _zurueck(request)
         user.is_active = not user.is_active
         user.save(update_fields=["is_active"])
-        if user.is_active:   # erste Freigabe mit Zeitstempel festhalten (Audit)
+        if user.is_active:  # erste Freigabe mit Zeitstempel festhalten (Audit)
             from django.utils import timezone
+
             Teilnehmer.objects.filter(user=user, freigegeben_am__isnull=True).update(
-                freigegeben_am=timezone.now())
+                freigegeben_am=timezone.now()
+            )
         zustand = "freigeschaltet" if user.is_active else "gesperrt"
         messages.success(request, f"{user.get_full_name() or user.username} ist jetzt {zustand}.")
         return _zurueck(request)
@@ -287,6 +313,7 @@ class BenutzerStatusView(ZugriffMixin, View):
 
 class BenutzerInlineView(ZugriffMixin, View):
     """Inline-Schnellbearbeitung aus der Tabelle: Passwort/Sprache/UI/Anwesend."""
+
     def post(self, request, pk):
         user = get_object_or_404(User, pk=pk)
         feld = request.POST.get("feld")
@@ -330,12 +357,14 @@ class BenutzerInlineView(ZugriffMixin, View):
             if not user.email:
                 messages.error(request, f"{user.get_username()} hat keine E-Mail-Adresse.")
                 return _zurueck(request)
-            ea = (EmailAddress.objects.filter(user=user, email__iexact=user.email).first()
-                  or EmailAddress.objects.create(user=user, email=user.email, primary=True))
+            ea = EmailAddress.objects.filter(
+                user=user, email__iexact=user.email
+            ).first() or EmailAddress.objects.create(user=user, email=user.email, primary=True)
             ea.verified = not ea.verified
             ea.primary = True
             ea.save()
             from django.utils import timezone
+
             t.email_bestaetigt_am = timezone.now() if ea.verified else None
             t.save(update_fields=["email_bestaetigt_am"])
             zustand = "bestätigt" if ea.verified else "unbestätigt"

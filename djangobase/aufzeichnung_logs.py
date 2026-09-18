@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Die Server-Log-Zeilen aus dem Zeitraum einer Aufzeichnung.
+"""Die Server-Log-Zeilen aus dem Zeitraum einer Aufzeichnung.
 
 WOZU SIE ZUM TESTFALL GEHOEREN
 ==============================
@@ -18,6 +18,7 @@ Gelesen wird vom ENDE her und nur so weit zurueck, wie der Zeitraum reicht: Eine
 10-MB-Datei ganz einzulesen, um dreissig Sekunden herauszuschneiden, waere teuer
 und bei jedem Beenden erneut.
 """
+
 import logging
 import re
 from datetime import datetime
@@ -31,7 +32,7 @@ __all__ = ["LogFenster"]
 
 
 class LogFenster:
-    u"""Log-Zeilen zwischen zwei Zeitpunkten."""
+    """Log-Zeilen zwischen zwei Zeitpunkten."""
 
     #: Zeilenanfang der djangoBase-Formatierung: „2026-08-20 16:30:45 [INFO] name: text"
     KOPF = re.compile(r"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\s+\[(\w+)\]\s+([^:]+):\s?(.*)$")
@@ -57,15 +58,14 @@ class LogFenster:
         basis = Path(getattr(settings, "BASE_DIR", "."))
         # Wie dblog.config es anlegt: <Projekt>/logs/django.log. Der Ordner liegt
         # bei manchen Projekten eine Ebene ueber BASE_DIR (Repo-Wurzel).
-        for kandidat in (basis / "logs" / "django.log",
-                         basis.parent / "logs" / "django.log"):
+        for kandidat in (basis / "logs" / "django.log", basis.parent / "logs" / "django.log"):
             if kandidat.exists():
                 return kandidat
         return basis / "logs" / "django.log"
 
     # ------------------------------------------------------------------ Lesen
     def zeilen(self, von_iso, bis_iso=""):
-        u"""Log-Zeilen im Zeitraum als Liste von Dictionaries.
+        """Log-Zeilen im Zeitraum als Liste von Dictionaries.
 
         Ohne lesbare Datei oder Zeitangabe eine leere Liste - eine Aufzeichnung
         ohne Logs ist brauchbar, ein Absturz beim Beenden nicht."""
@@ -92,17 +92,16 @@ class LogFenster:
                 continue
             if name.strip() in self.STILL:
                 continue
-            aus.append({"zeit": stempel, "stufe": stufe, "logger": name.strip(),
-                        "text": text[:400]})
-        return aus[-self.MAX_ZEILEN:]
+            aus.append({"zeit": stempel, "stufe": stufe, "logger": name.strip(), "text": text[:400]})
+        return aus[-self.MAX_ZEILEN :]
 
     def _schwanz(self):
-        u"""Die letzten ``RUECKBLICK_B`` Bytes als Zeilen."""
+        """Die letzten ``RUECKBLICK_B`` Bytes als Zeilen."""
         groesse = self.pfad.stat().st_size
         with open(self.pfad, "rb") as f:
             if groesse > self.RUECKBLICK_B:
                 f.seek(groesse - self.RUECKBLICK_B)
-                f.readline()                     # angebrochene Zeile verwerfen
+                f.readline()  # angebrochene Zeile verwerfen
             roh = f.read()
         return roh.decode("utf-8", "replace").splitlines()
 

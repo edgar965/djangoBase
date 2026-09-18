@@ -25,10 +25,12 @@ Multi-Process/Multi-Thread-Sicherheit:
     als Notnagel stehen, falls das Paket in einer Umgebung fehlt - dann ist
     das Verhalten wie vorher.
 """
+
 import os
 
 try:
     import concurrent_log_handler  # noqa: F401
+
     _HANDLER_CLASS = "concurrent_log_handler.ConcurrentRotatingFileHandler"
 except ImportError:
     _HANDLER_CLASS = "logging.handlers.RotatingFileHandler"
@@ -46,8 +48,7 @@ def handler_filters_fuer(job_context):
     return [JOB_FILTER] if job_context else []
 
 
-def datei_handler(log_dir, name, *, level=None, max_bytes=3 * 1024 * 1024,
-                  backup_count=5, filters=None):
+def datei_handler(log_dir, name, *, level=None, max_bytes=3 * 1024 * 1024, backup_count=5, filters=None):
     """Ein rotierender Datei-Handler, gebaut wie djangoBases eigene.
 
     OEFFENTLICH SEIT DEM 28.08.2026: Projekte mit eigenen Logdateien geben sie
@@ -76,14 +77,18 @@ def datei_handler(log_dir, name, *, level=None, max_bytes=3 * 1024 * 1024,
     return handler
 
 
-def config(log_dir, level="INFO", *,
-           job_context=False,
-           extra_filters=None,
-           extra_formatters=None,
-           extra_handlers=None,
-           extra_loggers=None,
-           file_max_bytes=3 * 1024 * 1024,
-           file_backup_count=5):
+def config(
+    log_dir,
+    level="INFO",
+    *,
+    job_context=False,
+    extra_filters=None,
+    extra_formatters=None,
+    extra_handlers=None,
+    extra_loggers=None,
+    file_max_bytes=3 * 1024 * 1024,
+    file_backup_count=5,
+):
     """Liefert ein Django-LOGGING-Dict mit rotierenden Datei-Handlern.
 
     Projekte koennen mit den extra_*-Parametern eigene Filter, Formatter,
@@ -119,16 +124,23 @@ def config(log_dir, level="INFO", *,
     os.makedirs(log_dir, exist_ok=True)
 
     def datei(name, level_override=None):
-        return datei_handler(log_dir, name, level=level_override,
-                             max_bytes=file_max_bytes,
-                             backup_count=file_backup_count,
-                             filters=handler_filters_fuer(job_context))
+        return datei_handler(
+            log_dir,
+            name,
+            level=level_override,
+            max_bytes=file_max_bytes,
+            backup_count=file_backup_count,
+            filters=handler_filters_fuer(job_context),
+        )
 
     # Wenn job_context aktiv: format-String enthaelt einen {job_str}-Slot,
     # der vom JobContextFilter befuellt wird. Filter wird automatisch auf
     # alle Handler gesetzt.
-    fmt = ("{asctime} [{levelname}] {name}: {job_str}{message}"
-           if job_context else "{asctime} [{levelname}] {name}: {message}")
+    fmt = (
+        "{asctime} [{levelname}] {name}: {job_str}{message}"
+        if job_context
+        else "{asctime} [{levelname}] {name}: {message}"
+    )
     base_filters = {}
     handler_filters = handler_filters_fuer(job_context)
     if job_context:
@@ -155,10 +167,16 @@ def config(log_dir, level="INFO", *,
         },
         "root": {"handlers": ["console", "django_file", "error_file"], "level": level},
         "loggers": {
-            "django": {"handlers": ["console", "django_file", "error_file"],
-                       "level": level, "propagate": False},
-            "django.request": {"handlers": ["django_file", "error_file"],
-                               "level": "WARNING", "propagate": False},
+            "django": {
+                "handlers": ["console", "django_file", "error_file"],
+                "level": level,
+                "propagate": False,
+            },
+            "django.request": {
+                "handlers": ["django_file", "error_file"],
+                "level": "WARNING",
+                "propagate": False,
+            },
         },
     }
     if extra_filters:

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Die Ablage der CodeRabbit-CLI lesen — welcher Lauf gehörte zu welchem Repo?
+"""Die Ablage der CodeRabbit-CLI lesen — welcher Lauf gehörte zu welchem Repo?
 
 DAS PROBLEM MIT DEM ORDNERNAMEN
 -------------------------------
@@ -29,6 +29,7 @@ ausdrücklich „nichts da", wenn nichts da ist. Das Starten bleibt beim
 Knopf — im kostenlosen Plan sind es drei Läufe je Stunde, und eine Seite, die
 beim Öffnen eines davon verbraucht, wäre nach dem dritten Blick wertlos.
 """
+
 import hashlib
 import json
 import logging
@@ -43,7 +44,7 @@ __all__ = ["BefundLager"]
 
 
 class BefundLager:
-    u"""Die Läufe eines Repositorys aus der CLI-Ablage."""
+    """Die Läufe eines Repositorys aus der CLI-Ablage."""
 
     #: Name der Datei, die einen Lauf ausweist. Sie ist der Beleg für die
     #: Zuordnung — ohne sie gilt ein Ordner nicht als Lauf.
@@ -69,7 +70,7 @@ class BefundLager:
 
     @staticmethod
     def _ablage_finden():
-        u"""Wo die CLI ihre Läufe hinlegt.
+        """Wo die CLI ihre Läufe hinlegt.
 
         Unter Windows ist es ``%LOCALAPPDATA%\\coderabbit`` — belegt durch den
         eigenen ``doctor``-Bericht („Storage C:\\Users\\e\\AppData\\Local\\
@@ -88,9 +89,11 @@ class BefundLager:
         if lokal:
             kandidaten.append(Path(lokal) / "coderabbit")
         heim = Path.home()
-        kandidaten += [heim / ".local" / "share" / "coderabbit",
-                       heim / "Library" / "Application Support" / "coderabbit",
-                       heim / ".coderabbit"]
+        kandidaten += [
+            heim / ".local" / "share" / "coderabbit",
+            heim / "Library" / "Application Support" / "coderabbit",
+            heim / ".coderabbit",
+        ]
         for k in kandidaten:
             if (k / "reviews").is_dir():
                 return k / "reviews"
@@ -102,7 +105,7 @@ class BefundLager:
     # ------------------------------------------------------------- Zuordnung
 
     def _md5_ordner(self):
-        u"""Der Ordner, den die MD5-Abkürzung nennt — falls es ihn gibt."""
+        """Der Ordner, den die MD5-Abkürzung nennt — falls es ihn gibt."""
         try:
             name = hashlib.md5(str(self.wurzel).encode("utf-8")).hexdigest()[:8]
         except (TypeError, ValueError):
@@ -111,7 +114,7 @@ class BefundLager:
         return pfad if pfad.is_dir() else None
 
     def repo_ordner(self):
-        u"""Der Oberordner dieses Repositorys — und ob er BELEGT ist.
+        """Der Oberordner dieses Repositorys — und ob er BELEGT ist.
 
         GEMESSEN AM 31.08.2026, und es ändert den Bau: Von sechs Lauf-Ordnern
         trugen nur die beiden JÜNGSTEN eine ``git.json``. Die CLI räumt sie in
@@ -140,12 +143,12 @@ class BefundLager:
         try:
             return [p for p in self.ablage.iterdir() if p.is_dir()]
         except OSError as e:
-            logger.warning(u"CodeRabbit-Ablage '%s' nicht lesbar: %s", self.ablage, e)
+            logger.warning("CodeRabbit-Ablage '%s' nicht lesbar: %s", self.ablage, e)
             return []
 
     @staticmethod
     def _laeufe_unter(oben):
-        u"""Die Lauf-Ordner unterhalb eines Repo-Ordners.
+        """Die Lauf-Ordner unterhalb eines Repo-Ordners.
 
         Die Ebene dazwischen ist der Zweig; ihr Name ist ebenfalls ein Hash und
         wird deshalb nicht gedeutet, sondern durchlaufen."""
@@ -155,7 +158,7 @@ class BefundLager:
             return []
 
     def _passt(self, ordner):
-        u"""Gehört dieser Lauf zu unserem Repository?
+        """Gehört dieser Lauf zu unserem Repository?
 
         Verglichen werden aufgelöste Pfade: ``A:\\shortlongx`` und
         ``A:/shortlongx/`` sind dasselbe Verzeichnis und dürfen nicht an einer
@@ -170,7 +173,7 @@ class BefundLager:
             return str(verzeichnis).rstrip("\\/") == str(self.wurzel).rstrip("\\/")
 
     def _git(self, ordner):
-        u"""``git.json`` — aber nur, wenn es ein Objekt ist.
+        """``git.json`` — aber nur, wenn es ein Objekt ist.
 
         BEFUND CODERABBIT (31.08.2026): ``_json()`` gibt zurück, was in der
         Datei steht, und das kann eine Liste oder eine Zahl sein — im selben
@@ -185,7 +188,7 @@ class BefundLager:
 
     @staticmethod
     def _json(pfad):
-        u"""Eine JSON-Datei — oder ``None``.
+        """Eine JSON-Datei — oder ``None``.
 
         Eine halb geschriebene Datei (der Lauf schreibt gerade) ist kein
         Grund für einen Serverfehler; sie ist beim nächsten Blick vollständig."""
@@ -198,7 +201,7 @@ class BefundLager:
     # --------------------------------------------------------------- Läufe
 
     def laeufe(self):
-        u"""Alle Läufe, neuester zuerst — mit ihren Befunden.
+        """Alle Läufe, neuester zuerst — mit ihren Befunden.
 
         Sortiert wird nach dem Ordnernamen (Millisekunden seit 1970), nicht
         nach der Änderungszeit der Dateien: Die ändert sich, wenn jemand den
@@ -213,12 +216,12 @@ class BefundLager:
         if ordner is None:
             return []
         raus = [self._lauf_lesen(o, belegt) for o in self._laeufe_unter(ordner)]
-        raus = [l for l in raus if l["anzahl"] or l["uebersprungen"] or l["commit"]]
-        raus.sort(key=lambda l: l["ms"], reverse=True)
-        return raus[:self.MAX_LAEUFE]
+        raus = [lauf for lauf in raus if lauf["anzahl"] or lauf["uebersprungen"] or lauf["commit"]]
+        raus.sort(key=lambda lauf: lauf["ms"], reverse=True)
+        return raus[: self.MAX_LAEUFE]
 
     def letzter(self):
-        u"""Der jüngste Lauf — oder ``None``."""
+        """Der jüngste Lauf — oder ``None``."""
         alle = self.laeufe()
         return alle[0] if alle else None
 
@@ -256,7 +259,7 @@ class BefundLager:
                 continue
             roh = self._json(datei)
             if isinstance(roh, list):
-                continue                      # der Diff des Laufs, kein Befund
+                continue  # der Diff des Laufs, kein Befund
             befund = Befund(roh, quelle=datei.name)
             if befund.gueltig():
                 befunde.append(befund)
@@ -273,8 +276,9 @@ class BefundLager:
             return 0
 
     def _zeitpunkt(self, kopf, name):
-        u"""Wann der Lauf war — aus ``git.json`` (Sekunden) oder dem Ordner (ms)."""
+        """Wann der Lauf war — aus ``git.json`` (Sekunden) oder dem Ordner (ms)."""
         import datetime
+
         sekunden = kopf.get("timestamp")
         try:
             if sekunden:

@@ -1,5 +1,6 @@
 """Einstellungen → Übersetzung: Sprachen wählen, Status sehen, Lauf starten.
 Dazu die öffentliche SpracheSetzenView (Cookie) für das Flaggen-Menü."""
+
 from django.contrib import messages
 from django.shortcuts import redirect, render
 from django.views import View
@@ -20,8 +21,7 @@ class SpracheSetzenView(View):
         if not ziel.startswith("/") or ziel.startswith("//"):
             ziel = "/"
         antwort = redirect(ziel)
-        antwort.set_cookie(uebersetzung.COOKIE, s,
-                           max_age=365 * 24 * 3600, samesite="Lax")
+        antwort.set_cookie(uebersetzung.COOKIE, s, max_age=365 * 24 * 3600, samesite="Lax")
         return antwort
 
 
@@ -32,15 +32,21 @@ class UebersetzungView(ZugriffMixin, View):
         anzahl_quellen, zeilen = uebersetzung.sprach_status()
         aktive = uebersetzung.aktive_sprachen()
         status = uebersetzung.lauf_status()
-        return render(request, "djangobase/hilfe/uebersetzung.html", {
-            "aktiv": "einstellungen_uebersetzung",
-            "sprachen": [{"code": c, "name": n, "flagge": f, "an": c in aktive}
-                         for c, n, f in uebersetzung.SPRACHEN],
-            "anzahl_quellen": anzahl_quellen,
-            "zeilen": zeilen,
-            "lauf": status,
-            "lauf_laeuft": bool(status.get("laeuft")),
-        })
+        return render(
+            request,
+            "djangobase/hilfe/uebersetzung.html",
+            {
+                "aktiv": "einstellungen_uebersetzung",
+                "sprachen": [
+                    {"code": c, "name": n, "flagge": f, "an": c in aktive}
+                    for c, n, f in uebersetzung.SPRACHEN
+                ],
+                "anzahl_quellen": anzahl_quellen,
+                "zeilen": zeilen,
+                "lauf": status,
+                "lauf_laeuft": bool(status.get("laeuft")),
+            },
+        )
 
     def post(self, request):
         aktion = request.POST.get("aktion")
@@ -59,8 +65,9 @@ class UebersetzungView(ZugriffMixin, View):
             if not uebersetzung.aktive_sprachen():
                 messages.error(request, "Bitte zuerst mindestens eine Zielsprache wählen.")
             elif uebersetzung.lauf_starten(modus):
-                messages.success(request, "Übersetzungslauf gestartet – die Seite "
-                                          "aktualisiert sich automatisch.")
+                messages.success(
+                    request, "Übersetzungslauf gestartet – die Seite aktualisiert sich automatisch."
+                )
             else:
                 messages.info(request, "Es läuft bereits ein Übersetzungslauf.")
 

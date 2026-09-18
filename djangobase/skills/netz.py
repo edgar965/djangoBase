@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Umbaunetz - der Beweis, dass ein Umbau nichts verloren hat.
+"""Umbaunetz - der Beweis, dass ein Umbau nichts verloren hat.
 
 WOZU
 ====
@@ -34,6 +34,7 @@ Die Abnahme liegt in ``BASE_DIR/.djangobase-netz.json`` - Dateiname wie beim
 Einstellungs-Speicher, damit kein neuer Ordner entsteht, den die Pruefwerkzeuge
 danach selbst als Altlast melden.
 """
+
 import ast
 import json
 import time
@@ -43,9 +44,25 @@ from django.conf import settings
 
 __all__ = ["Abnahme", "Umbaunetz"]
 
-RAUS = ("__pycache__", "migrations", "node_modules", "venv", "pythonVENV",
-        ".venv", "site-packages", "staticfiles", ".git", "sicherung", "backup",
-        "archiv", "dist", "build", "vendor", "models", "unsloth_compiled_cache")
+RAUS = (
+    "__pycache__",
+    "migrations",
+    "node_modules",
+    "venv",
+    "pythonVENV",
+    ".venv",
+    "site-packages",
+    "staticfiles",
+    ".git",
+    "sicherung",
+    "backup",
+    "archiv",
+    "dist",
+    "build",
+    "vendor",
+    "models",
+    "unsloth_compiled_cache",
+)
 
 
 class Abnahme:
@@ -65,6 +82,7 @@ class Abnahme:
     @classmethod
     def aufnehmen(cls, wurzel):
         from .gitfilter import GitFilter
+
         # Ignorierter Code gehoert nicht zur Abnahme: Sonst gilt eine
         # Sicherungskopie als „verschwunden", sobald jemand sie aufraeumt.
         git = GitFilter(wurzel)
@@ -78,14 +96,12 @@ class Abnahme:
                 continue
             modul = pfad.relative_to(wurzel).as_posix()
             for k in baum.body:
-                if not isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef,
-                                      ast.ClassDef)):
+                if not isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
                     continue
                 namen.setdefault(k.name, []).append(modul)
                 if k.name not in signaturen and not isinstance(k, ast.ClassDef):
                     signaturen[k.name] = cls._signatur(k)
-        return cls(namen, signaturen, cls._urls(),
-                   time.strftime("%d.%m.%Y %H:%M:%S"))
+        return cls(namen, signaturen, cls._urls(), time.strftime("%d.%m.%Y %H:%M:%S"))
 
     @staticmethod
     def _signatur(knoten):
@@ -104,8 +120,9 @@ class Abnahme:
         jedes View-Modul, ein kaputtes fällt also hier auf."""
         try:
             from django.urls import get_resolver
+
             wurzel = get_resolver()
-        except Exception:                                       # noqa: BLE001
+        except Exception:  # noqa: BLE001
             return {}
         aus = {}
 
@@ -114,14 +131,15 @@ class Abnahme:
                 if hasattr(p, "url_patterns"):
                     try:
                         gehen(p.url_patterns, praefix + str(p.pattern))
-                    except Exception:                           # noqa: BLE001
+                    except Exception:  # noqa: BLE001
                         aus[praefix + str(p.pattern)] = "!! nicht aufloesbar"
                     continue
                 ziel = getattr(p.callback, "__name__", None) or "?"
                 aus[praefix + str(p.pattern)] = ziel
+
         try:
             gehen(wurzel.url_patterns)
-        except Exception:                                       # noqa: BLE001
+        except Exception:  # noqa: BLE001
             pass
         return aus
 
@@ -132,10 +150,14 @@ class Abnahme:
         return Path(str(settings.BASE_DIR)) / ".djangobase-netz.json"
 
     def speichern(self):
-        self.datei().write_text(json.dumps(
-            {"stand": self.stand, "namen": self.namen,
-             "signaturen": self.signaturen, "urls": self.urls},
-            ensure_ascii=False, indent=1), encoding="utf-8")
+        self.datei().write_text(
+            json.dumps(
+                {"stand": self.stand, "namen": self.namen, "signaturen": self.signaturen, "urls": self.urls},
+                ensure_ascii=False,
+                indent=1,
+            ),
+            encoding="utf-8",
+        )
         return self.datei()
 
     @classmethod
@@ -144,8 +166,7 @@ class Abnahme:
             d = json.loads(cls.datei().read_text(encoding="utf-8"))
         except (OSError, ValueError):
             return None
-        return cls(d.get("namen"), d.get("signaturen"), d.get("urls"),
-                   d.get("stand", ""))
+        return cls(d.get("namen"), d.get("signaturen"), d.get("urls"), d.get("stand", ""))
 
 
 class Umbaunetz:
@@ -153,20 +174,28 @@ class Umbaunetz:
 
     slug = "umbaunetz"
     titel = "Umbau-Netz (vorher/nachher)"
-    tut = ("Nimmt vor einem Umbau alle Namen, Signaturen und URL-Ziele auf und "
-           "weist danach nach, dass nichts verschwunden oder umgehängt ist.")
-    warum = ("Beim Aufteilen großer Dateien geht Code zwischen zwei "
-             "ausgeschnittenen Blöcken verloren, ohne dass ein Test es sieht. "
-             "Verschieben ist erlaubt — verschwinden nicht.")
-    grenzen = ("Sieht nur Namen auf Modulebene und URL-Ziele. Ob die Funktion "
-               "noch das Richtige TUT, sagen die Tests, nicht dieses Netz.")
+    tut = (
+        "Nimmt vor einem Umbau alle Namen, Signaturen und URL-Ziele auf und "
+        "weist danach nach, dass nichts verschwunden oder umgehängt ist."
+    )
+    warum = (
+        "Beim Aufteilen großer Dateien geht Code zwischen zwei "
+        "ausgeschnittenen Blöcken verloren, ohne dass ein Test es sieht. "
+        "Verschieben ist erlaubt — verschwinden nicht."
+    )
+    grenzen = (
+        "Sieht nur Namen auf Modulebene und URL-Ziele. Ob die Funktion "
+        "noch das Richtige TUT, sagen die Tests, nicht dieses Netz."
+    )
 
     def abnehmen(self, wurzel):
         a = Abnahme.aufnehmen(wurzel)
         a.speichern()
-        return ("ABNAHME (%s)\n%d Namen, %d URL-Ziele aufgenommen.\nAblage: %s\n"
-                "Jetzt umbauen — danach 'Vergleich' druecken."
-                % (a.stand, len(a.namen), len(a.urls), Abnahme.datei()))
+        return (
+            "ABNAHME (%s)\n%d Namen, %d URL-Ziele aufgenommen.\nAblage: %s\n"
+            "Jetzt umbauen — danach 'Vergleich' druecken."
+            % (a.stand, len(a.namen), len(a.urls), Abnahme.datei())
+        )
 
     def vergleichen(self, wurzel):
         vorher = Abnahme.laden()
@@ -174,17 +203,26 @@ class Umbaunetz:
             return "Keine Abnahme vorhanden — zuerst 'Abnahme (vorher)' druecken.", {}
         nachher = Abnahme.aufnehmen(wurzel)
         b = self._befunde(vorher, nachher)
-        zeilen = ["VERGLEICH gegen Abnahme vom %s" % vorher.stand,
-                  "%d verschwunden · %d URL umgehaengt · %d URL weg · "
-                  "%d Signatur geändert · %d verschoben (gewollt)"
-                  % (len(b["verschwunden"]), len(b["umgehaengt"]),
-                     len(b["urls_weg"]), len(b["signatur"]), len(b["verschoben"])),
-                  ""]
+        zeilen = [
+            "VERGLEICH gegen Abnahme vom %s" % vorher.stand,
+            "%d verschwunden · %d URL umgehaengt · %d URL weg · "
+            "%d Signatur geändert · %d verschoben (gewollt)"
+            % (
+                len(b["verschwunden"]),
+                len(b["umgehaengt"]),
+                len(b["urls_weg"]),
+                len(b["signatur"]),
+                len(b["verschoben"]),
+            ),
+            "",
+        ]
         schwer = b["verschwunden"] + b["umgehaengt"] + b["urls_weg"]
-        zeilen.append("BESTANDEN — nichts verloren, keine URL umgehaengt."
-                      if not schwer else "NICHT BESTANDEN — siehe unten.")
-        for art in ("verschwunden", "umgehaengt", "urls_weg", "signatur",
-                    "verschoben"):
+        zeilen.append(
+            "BESTANDEN — nichts verloren, keine URL umgehaengt."
+            if not schwer
+            else "NICHT BESTANDEN — siehe unten."
+        )
+        for art in ("verschwunden", "umgehaengt", "urls_weg", "signatur", "verschoben"):
             if not b[art]:
                 continue
             zeilen += ["", "%s (%d):" % (art.upper(), len(b[art]))]
@@ -195,16 +233,14 @@ class Umbaunetz:
 
     @staticmethod
     def _befunde(vorher, nachher):
-        b = {"verschwunden": [], "verschoben": [], "umgehaengt": [],
-             "urls_weg": [], "signatur": []}
+        b = {"verschwunden": [], "verschoben": [], "umgehaengt": [], "urls_weg": [], "signatur": []}
         for name, module in sorted(vorher.namen.items()):
             neu = nachher.namen.get(name)
             if not neu:
                 b["verschwunden"].append("%s (war in %s)" % (name, ", ".join(module[:2])))
                 continue
             if set(neu) != set(module):
-                b["verschoben"].append("%s: %s -> %s"
-                                       % (name, ", ".join(module[:2]), ", ".join(neu[:2])))
+                b["verschoben"].append("%s: %s -> %s" % (name, ", ".join(module[:2]), ", ".join(neu[:2])))
             alt_sig = vorher.signaturen.get(name)
             neu_sig = nachher.signaturen.get(name)
             if alt_sig is not None and neu_sig is not None and alt_sig != neu_sig:

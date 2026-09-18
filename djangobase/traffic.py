@@ -16,6 +16,7 @@ DB-IP "IP to Country Lite" (CC BY 4.0, https://db-ip.com) + Paket `maxminddb`.
 Pfad über DJANGOBASE["traffic_geo_db"], Default BASE_DIR/daten/
 dbip-country-lite.mmdb. Fehlt Datei oder Paket, bleibt das Land einfach leer.
 """
+
 import hashlib
 import re
 from datetime import date
@@ -36,7 +37,8 @@ BOT_RE = re.compile(
     r"ccbot|anthropic|perplexity|amazonbot|applebot|dataforseo|dotbot|"
     r"serpstat|barkrowler|seznam|sogou|censys|masscan|zgrab|nuclei|nikto|"
     r"sqlmap|wpscan|nmap|zmap|expanse",
-    re.IGNORECASE)
+    re.IGNORECASE,
+)
 _TABLET_RE = re.compile(r"ipad|tablet|kindle|silk", re.IGNORECASE)
 _MOBIL_RE = re.compile(r"mobi|iphone|ipod|windows phone", re.IGNORECASE)
 
@@ -44,8 +46,7 @@ _MOBIL_RE = re.compile(r"mobi|iphone|ipod|windows phone", re.IGNORECASE)
 # Origin IMMER Fetch-Metadata-Header. Fehlen sie bei einem Chrome-UA, ist
 # der UA fast sicher gefälscht (Scraper, der nur den UA-String setzt).
 _CHROME_VER_RE = re.compile(r"chrome/(\d+)", re.IGNORECASE)
-_SEC_FETCH_HEADER = ("HTTP_SEC_FETCH_SITE", "HTTP_SEC_FETCH_MODE",
-                     "HTTP_SEC_FETCH_DEST", "HTTP_SEC_CH_UA")
+_SEC_FETCH_HEADER = ("HTTP_SEC_FETCH_SITE", "HTTP_SEC_FETCH_MODE", "HTTP_SEC_FETCH_DEST", "HTTP_SEC_CH_UA")
 
 _geo_reader = None
 _geo_versucht = False
@@ -69,8 +70,8 @@ def land_von_ip(ip):
         _geo_versucht = True
         try:
             import maxminddb
-            pfad = conf().get("traffic_geo_db") or (
-                str(settings.BASE_DIR) + "/daten/dbip-country-lite.mmdb")
+
+            pfad = conf().get("traffic_geo_db") or (str(settings.BASE_DIR) + "/daten/dbip-country-lite.mmdb")
             _geo_reader = maxminddb.open_database(str(pfad))
         except Exception:  # noqa: BLE001 – ohne Geo-DB läuft alles weiter
             _geo_reader = None
@@ -187,13 +188,13 @@ class TrafficMiddleware(ZweiwegMiddleware):
         except AttributeError:  # StreamingHttpResponse
             groesse = int(response.get("Content-Length") or 0)
         from .models import Seitenaufruf
+
         Seitenaufruf.objects.create(
             pfad=pfad[:300],
             typ=typ,
             land=land_von_ip(ip),
             besucher=besucher_hash(ip, ua),
-            user=request.user if getattr(request, "user", None)
-                 and request.user.is_authenticated else None,
+            user=request.user if getattr(request, "user", None) and request.user.is_authenticated else None,
             geraet=geraet_von_ua(ua),
             referrer=referrer_domain(request) if typ == "html" else "",
             bot=ist_bot(request, ua, pfad),
@@ -208,10 +209,12 @@ def verbrauch_buchen(typ, anzahl=1, bytes=0, detail=""):
         return
     try:
         from .models import Verbrauch
+
         Verbrauch.objects.create(
             typ=typ,
             anzahl=max(0, min(int(anzahl), 100000)),
             bytes=max(0, min(int(bytes), 10**12)),
-            detail=str(detail)[:40])
+            detail=str(detail)[:40],
+        )
     except Exception:  # noqa: BLE001
         pass

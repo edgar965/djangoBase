@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""JsSchnitt - wo lässt sich eine zu große JS-Datei ohne Zirkel teilen?
+"""JsSchnitt - wo lässt sich eine zu große JS-Datei ohne Zirkel teilen?
 
 DIE FRAGE, DIE VOR DEM UMBAU KOMMT (16.08.2026)
 ===============================================
@@ -23,6 +23,7 @@ Ob der Schnitt inhaltlich Sinn ergibt. „Beide Haelften unter 200" ist eine
 Buchhaltung; ob die neue Datei eine eigene FRAGE beantwortet, sieht nur ein
 Mensch. Das Werkzeug nennt die Stelle, nicht den Grund.
 """
+
 import re
 
 from .anlassfall import Anlassfall
@@ -34,14 +35,20 @@ from .werkzeug import Ergebnis, Werkzeug
 class JsSchnitt(Werkzeug):
     slug = "jsschnitt"
     titel = "Wo lässt sich eine JS-Datei teilen?"
-    zweck = ("Für jede JS-Datei über der Grenze: die beste Trennlinie, bei der "
-             "beide Hälften darunter bleiben und kein Zirkelbezug entsteht.")
-    befund = ("Von 44 zu großen Dateien waren 13 zirkelfrei schneidbar. Die "
-              "übrigen 31 haben keinen solchen Punkt — dort hilft nur Vererbung "
-              "oder gar nichts.")
-    abhilfe = ("An der genannten Zeile schneiden. Die herausgelöste Hälfte "
-               "beantwortet eine eigene Frage — sonst ist der Schnitt nur "
-               "Buchhaltung.")
+    zweck = (
+        "Für jede JS-Datei über der Grenze: die beste Trennlinie, bei der "
+        "beide Hälften darunter bleiben und kein Zirkelbezug entsteht."
+    )
+    befund = (
+        "Von 44 zu großen Dateien waren 13 zirkelfrei schneidbar. Die "
+        "übrigen 31 haben keinen solchen Punkt — dort hilft nur Vererbung "
+        "oder gar nichts."
+    )
+    abhilfe = (
+        "An der genannten Zeile schneiden. Die herausgelöste Hälfte "
+        "beantwortet eine eigene Frage — sonst ist der Schnitt nur "
+        "Buchhaltung."
+    )
     dauer = "unter 1 s"
     kriterium = 3
 
@@ -74,17 +81,22 @@ class JsSchnitt(Werkzeug):
     #: lag unter der Grenze von 300, als sie am 28.08.2026 an `dateigroesse`
     #: angeglichen wurde. Beide Male meldete der Check „blind", obwohl das
     #: Werkzeug recht hatte. Jetzt rechnet die Vorlage mit.
-    HAELFTE = GRENZE          # zwei davon liegen sicher darueber
+    HAELFTE = GRENZE  # zwei davon liegen sicher darueber
 
     anlassfall = Anlassfall(
-        {"gross.js": "const A = 1;\n"
-                     + "".join("export function ersteHaelfte%d() { return A + %d; }\n"
-                               % (i, i) for i in range(HAELFTE))
-                     + "const B = 2;\n"
-                     + "".join("export function zweiteHaelfte%d() { return B + %d; }\n"
-                               % (i, i) for i in range(HAELFTE))},
+        {
+            "gross.js": "const A = 1;\n"
+            + "".join(
+                "export function ersteHaelfte%d() { return A + %d; }\n" % (i, i) for i in range(HAELFTE)
+            )
+            + "const B = 2;\n"
+            + "".join(
+                "export function zweiteHaelfte%d() { return B + %d; }\n" % (i, i) for i in range(HAELFTE)
+            )
+        },
         erwartet_in="gross.js",
-        warum="Kriterium 3: JS-Module unter der Dateigroessen-Grenze halten")
+        warum="Kriterium 3: JS-Module unter der Dateigroessen-Grenze halten",
+    )
 
     def laufen(self):
         zeilen = []
@@ -92,7 +104,7 @@ class JsSchnitt(Werkzeug):
         # Vite-Buendel in der Liste — `theatre-app.js`, 7.163 Zeilen, „kein
         # zirkelfreier Punkt". Erzeugten Code teilt niemand, und die Quelle
         # daneben wird sowieso schon geprueft (17.08.2026, 3DTools).
-        for pfad, kurz in self.frontendquellen().paare(".js"):
+        for pfad, _kurz in self.frontendquellen().paare(".js"):
             try:
                 text = pfad.read_text(encoding="utf-8", errors="replace")
             except OSError:
@@ -102,16 +114,16 @@ class JsSchnitt(Werkzeug):
                 continue
             karte = Zirkelkarte(quellzeilen)
             beste = self._beste(quellzeilen, karte)
-            zeilen.append({
-                "datei": pfad.name, "zeilen": len(quellzeilen),
-                "schnitt bei": beste + 1 if beste is not None else "—",
-                "hälften": ("%d / %d" % (beste, len(quellzeilen) - beste)
-                            if beste is not None else "—"),
-                "abhängigkeit": (karte.richtung(beste)
-                                 if beste is not None else "—"),
-                "bewertung": ("schneidbar" if beste is not None
-                              else "kein zirkelfreier Punkt"),
-            })
+            zeilen.append(
+                {
+                    "datei": pfad.name,
+                    "zeilen": len(quellzeilen),
+                    "schnitt bei": beste + 1 if beste is not None else "—",
+                    "hälften": ("%d / %d" % (beste, len(quellzeilen) - beste) if beste is not None else "—"),
+                    "abhängigkeit": (karte.richtung(beste) if beste is not None else "—"),
+                    "bewertung": ("schneidbar" if beste is not None else "kein zirkelfreier Punkt"),
+                }
+            )
         zeilen.sort(key=lambda z: (z["bewertung"] != "schneidbar", -z["zeilen"]))
         gut = [z for z in zeilen if z["bewertung"] == "schneidbar"]
         return Ergebnis(
@@ -121,7 +133,8 @@ class JsSchnitt(Werkzeug):
             % (len(zeilen), self.GRENZE, len(gut)),
             "Die Zeilenzahl ist nicht das Problem — der Zirkelbezug ist es. Wo "
             "keine Trennlinie steht, hilft Vererbung: die herausgelöste Hälfte "
-            "wird Basisklasse, dann wandert kein Aufrufer mit.")
+            "wird Basisklasse, dann wandert kein Aufrufer mit.",
+        )
 
     def _beste(self, quellzeilen, karte):
         """Die mittigste Trennlinie, an der beide Hälften passen — oder None.
@@ -133,9 +146,13 @@ class JsSchnitt(Werkzeug):
         in 425 echten Dateien."""
         anzahl = len(quellzeilen)
         mitte = anzahl / 2
-        gute = [b for b, z in enumerate(quellzeilen)
-                if self.RAND < b < anzahl - self.RAND
-                and b <= self.GRENZE and anzahl - b <= self.GRENZE
-                and re.match(r"^(?:export )?(?:async )?(?:function|class) \w+", z)
-                and not karte.zirkel(b)]
+        gute = [
+            b
+            for b, z in enumerate(quellzeilen)
+            if self.RAND < b < anzahl - self.RAND
+            and b <= self.GRENZE
+            and anzahl - b <= self.GRENZE
+            and re.match(r"^(?:export )?(?:async )?(?:function|class) \w+", z)
+            and not karte.zirkel(b)
+        ]
         return min(gute, key=lambda b: abs(b - mitte)) if gute else None

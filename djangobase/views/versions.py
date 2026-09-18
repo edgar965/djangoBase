@@ -15,6 +15,7 @@ Außerdem werden Git-Tags geholt + ein "local_in_remote"-Flag berechnet,
 das zeigt, ob HEAD bereits gepushed ist. Beides ist optional sichtbar
 im Template.
 """
+
 import html
 import importlib
 import json
@@ -106,8 +107,11 @@ class _TTLCache:
         if hit is not None:
             if self._laeuft.add_if_absent(key):
                 threading.Thread(
-                    target=self._erneuern, args=(key, producer, key_lock),
-                    name="ttlcache-%s" % str(key)[:40], daemon=True).start()
+                    target=self._erneuern,
+                    args=(key, producer, key_lock),
+                    name="ttlcache-%s" % str(key)[:40],
+                    daemon=True,
+                ).start()
             return hit[1]
 
         with key_lock:
@@ -127,9 +131,8 @@ class _TTLCache:
             with key_lock:
                 wert = producer()
                 self._data[key] = (time.time(), wert)
-        except Exception:                                        # noqa: BLE001
-            logger.warning("Versionen: Hintergrund-Erneuerung von %r fehlgeschlagen",
-                           key, exc_info=True)
+        except Exception:  # noqa: BLE001
+            logger.warning("Versionen: Hintergrund-Erneuerung von %r fehlgeschlagen", key, exc_info=True)
         finally:
             self._laeuft.discard(key)
 
@@ -223,9 +226,15 @@ def _resolve_transform(dotted: str | None):
 
 def _gh(args, timeout=10):
     try:
-        r = subprocess.run(["gh", "api", *args], capture_output=True, text=True,
-                           timeout=timeout, encoding="utf-8", errors="replace",
-                           creationflags=_NO_WINDOW)
+        r = subprocess.run(
+            ["gh", "api", *args],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            encoding="utf-8",
+            errors="replace",
+            creationflags=_NO_WINDOW,
+        )
         return r.returncode, r.stdout, r.stderr
     except (OSError, subprocess.TimeoutExpired) as exc:
         return 1, "", str(exc)
@@ -253,8 +262,11 @@ def _fetch_commits(repo, per_page, transform):
         author = commit.get("author", {}) or {}
         full = (commit.get("message") or "").strip()
         subject, body = (full.split("\n\n", 1) + [""])[:2] if "\n\n" in full else (full, "")
-        body = "\n".join(l for l in body.splitlines()
-                         if not l.startswith(("Co-Authored-By:", "Co-authored-by:", "Signed-off-by:"))).strip()
+        body = "\n".join(
+            zeile
+            for zeile in body.splitlines()
+            if not zeile.startswith(("Co-Authored-By:", "Co-authored-by:", "Signed-off-by:"))
+        ).strip()
         subj = subject.strip()
         label, title = None, subj
         # Erste Form: "v0.46: Foo" / "Version 0.46 — Foo"
@@ -275,16 +287,21 @@ def _fetch_commits(repo, per_page, transform):
         subj_t = tr(subj)
         title_t = tr(title)
         body_t = tr(body)
-        result.append({
-            "sha": sha_full[:7], "sha_full": sha_full,
-            "subject": subj_t[:240], "version_label": label,
-            "title": title_t[:240], "body": body_t,
-            "body_html": _render_body_html(body_t),
-            "author": author.get("name") or "?",
-            "date": (author.get("date") or "")[:10],
-            "url": c.get("html_url") or "",
-            "is_release": label is not None,
-        })
+        result.append(
+            {
+                "sha": sha_full[:7],
+                "sha_full": sha_full,
+                "subject": subj_t[:240],
+                "version_label": label,
+                "title": title_t[:240],
+                "body": body_t,
+                "body_html": _render_body_html(body_t),
+                "author": author.get("name") or "?",
+                "date": (author.get("date") or "")[:10],
+                "url": c.get("html_url") or "",
+                "is_release": label is not None,
+            }
+        )
     return result
 
 
@@ -301,15 +318,18 @@ def _fetch_tags(repo):
         data = json.loads(out or "[]")
     except json.JSONDecodeError:
         return []
-    result = [{
-        "name": t.get("name", ""),
-        "sha": (t.get("commit", {}).get("sha") or "")[:7],
-    } for t in data]
+    result = [
+        {
+            "name": t.get("name", ""),
+            "sha": (t.get("commit", {}).get("sha") or "")[:7],
+        }
+        for t in data
+    ]
     return result
 
 
 def _git(repo_path, *args, timeout=5):
-    u"""`git` im Repo aufrufen — über :class:`Gitabfrage`, also mit Cache.
+    """`git` im Repo aufrufen — über :class:`Gitabfrage`, also mit Cache.
 
     GEMESSEN (17.08.2026): Diese Funktion war der ganze Aufwand der Seite —
     650 von 690 ms warm, bei 0 SQL-Abfragen. Zwölf Aufrufe (vier Repos mal
@@ -340,8 +360,7 @@ def _git_log_local(repo_path, n=100, transform=None, gh_repo=""):
     """Fallback ohne gh: lokales git log als Changelog — inkl. Commit-BODY,
     damit ausfuehrliche Release-Beschreibungen (Bullet-Listen im Commit)
     genauso erscheinen wie über die GitHub-API."""
-    out = _git(repo_path, "log", f"-{n}",
-               "--pretty=format:%H\x1f%an\x1f%ad\x1f%B\x1e", "--date=short")
+    out = _git(repo_path, "log", f"-{n}", "--pretty=format:%H\x1f%an\x1f%ad\x1f%B\x1e", "--date=short")
     tr = transform or (lambda s: s)
     res = []
     for rec in out.split("\x1e"):
@@ -354,8 +373,11 @@ def _git_log_local(repo_path, n=100, transform=None, gh_repo=""):
         sha_full, an, ad, full = parts
         full = full.strip()
         subject, body = (full.split("\n\n", 1) + [""])[:2] if "\n\n" in full else (full, "")
-        body = "\n".join(l for l in body.splitlines()
-                         if not l.startswith(("Co-Authored-By:", "Co-authored-by:", "Signed-off-by:"))).strip()
+        body = "\n".join(
+            zeile
+            for zeile in body.splitlines()
+            if not zeile.startswith(("Co-Authored-By:", "Co-authored-by:", "Signed-off-by:"))
+        ).strip()
         subj = subject.strip().splitlines()[0] if subject.strip() else ""
         label, title = None, subj
         # gleiche Release-Erkennung wie im gh-Pfad
@@ -373,13 +395,21 @@ def _git_log_local(repo_path, n=100, transform=None, gh_repo=""):
         subj_t = tr(subj)
         title_t = tr(title)
         body_t = tr(body)
-        res.append({"sha": sha_full[:7], "sha_full": sha_full,
-                    "subject": subj_t[:240], "version_label": label,
-                    "title": title_t[:240], "body": body_t,
-                    "body_html": _render_body_html(body_t),
-                    "author": an, "date": ad,
-                    "url": f"https://github.com/{gh_repo}/commit/{sha_full}" if gh_repo else "",
-                    "is_release": label is not None})
+        res.append(
+            {
+                "sha": sha_full[:7],
+                "sha_full": sha_full,
+                "subject": subj_t[:240],
+                "version_label": label,
+                "title": title_t[:240],
+                "body": body_t,
+                "body_html": _render_body_html(body_t),
+                "author": an,
+                "date": ad,
+                "url": f"https://github.com/{gh_repo}/commit/{sha_full}" if gh_repo else "",
+                "is_release": label is not None,
+            }
+        )
     return res
 
 
@@ -415,17 +445,20 @@ def _annotate_chronological(commits: list, current_version: str) -> list[dict]:
         else:
             effective = latest_seen
             is_unreleased = False
-        out.append({
-            **c,
-            "effective_version": effective,
-            "is_unreleased": is_unreleased,
-            "is_current": bool(label and label.lstrip("v") == norm_current),
-        })
+        out.append(
+            {
+                **c,
+                "effective_version": effective,
+                "is_unreleased": is_unreleased,
+                "is_current": bool(label and label.lstrip("v") == norm_current),
+            }
+        )
     return out
 
 
 def _pakete(namen):
     from importlib.metadata import PackageNotFoundError, version
+
     out = [("Python", platform.python_version()), ("Django", django.get_version())]
     for n in namen:
         if n.lower() == "django":
@@ -459,21 +492,25 @@ def _manual_entries(raw_list, current_version):
         body_md = item.get("body_md") or ""
         if not body_html and body_md:
             body_html = _render_body_html(body_md)
-        out.append({
-            "sha": "manual", "sha_full": "",
-            "subject": item.get("title", ""),
-            "title": item.get("title", ""),
-            "version_label": label,
-            "effective_version": label,
-            "body": body_md, "body_html": body_html,
-            "author": item.get("author", ""),
-            "date": item.get("date", ""),
-            "url": item.get("url", ""),
-            "is_release": True,
-            "is_unreleased": False,
-            "is_current": norm == norm_current,
-            "is_manual": True,
-        })
+        out.append(
+            {
+                "sha": "manual",
+                "sha_full": "",
+                "subject": item.get("title", ""),
+                "title": item.get("title", ""),
+                "version_label": label,
+                "effective_version": label,
+                "body": body_md,
+                "body_html": body_html,
+                "author": item.get("author", ""),
+                "date": item.get("date", ""),
+                "url": item.get("url", ""),
+                "is_release": True,
+                "is_unreleased": False,
+                "is_current": norm == norm_current,
+                "is_manual": True,
+            }
+        )
     return out
 
 
@@ -495,26 +532,37 @@ class VersionsView(ZugriffMixin, View):
             if not gh_repo and local_path.exists():
                 gh_repo = _gh_repo_from_remote(local_path)
             head = _git(local_path, "rev-parse", "--short=7", "HEAD").strip() if local_path.exists() else ""
-            dirty = len([l for l in _git(local_path, "status", "--porcelain").splitlines() if l.strip()])
+            dirty = len(
+                [zeile for zeile in _git(local_path, "status", "--porcelain").splitlines() if zeile.strip()]
+            )
             commits = _gh_list_commits(gh_repo, per_page=per_page, transform=transform) if gh_repo else []
             if not commits and local_path.exists():
                 commits = _git_log_local(local_path, transform=transform, gh_repo=gh_repo)
             tags = _gh_list_tags(gh_repo) if gh_repo else []
             local_in_remote = bool(head and any(c_["sha"] == head for c_ in commits))
             annotated = _annotate_chronological(commits, current_version)
-            repos.append({
-                "name": display, "gh_repo": gh_repo,
-                "gh_url": f"https://github.com/{gh_repo}" if gh_repo else "",
-                "local_path": str(local_path),
-                "local_exists": local_path.exists(),
-                "head_sha": head, "uncommitted": dirty,
-                "local_in_remote": local_in_remote,
-                "commits": annotated, "tags": tags,
-            })
-        return render(request, "djangobase/hilfe/versions.html", {
-            "aktiv": "versions",
-            "current_version": current_version,
-            "repos": repos,
-            "manual_versions": manual,
-            "pakete": _pakete(c["version_pakete"]),
-        })
+            repos.append(
+                {
+                    "name": display,
+                    "gh_repo": gh_repo,
+                    "gh_url": f"https://github.com/{gh_repo}" if gh_repo else "",
+                    "local_path": str(local_path),
+                    "local_exists": local_path.exists(),
+                    "head_sha": head,
+                    "uncommitted": dirty,
+                    "local_in_remote": local_in_remote,
+                    "commits": annotated,
+                    "tags": tags,
+                }
+            )
+        return render(
+            request,
+            "djangobase/hilfe/versions.html",
+            {
+                "aktiv": "versions",
+                "current_version": current_version,
+                "repos": repos,
+                "manual_versions": manual,
+                "pakete": _pakete(c["version_pakete"]),
+            },
+        )

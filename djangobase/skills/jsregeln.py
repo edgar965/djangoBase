@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Die Regeln der Frontend-Befunderhebung - eine Klasse je Auffaelligkeit.
+"""Die Regeln der Frontend-Befunderhebung - eine Klasse je Auffaelligkeit.
 
 Jede Regel prueft EINE Sache und sagt, warum sie ein Befund ist. Regeln, die
 nicht sicher entscheidbar sind (etwa „diese Funktion ist zu komplex"), stehen
@@ -19,10 +19,10 @@ VIER FEHLALARME, die beim Bau aufgefallen sind und hier behoben sind
 4. ``.blob()``/``.arrayBuffer()`` sind keine JSON-Faelle - bei einer
    ``data:``-URL gibt es ohnehin keinen sinnvollen Statuscode.
 """
+
 import re
 
 from .frontendquellen import Frontendquellen
-
 from .jsklammern import Klammerzaehler
 
 __all__ = ["REGELN", "Regel", "Fund"]
@@ -42,8 +42,7 @@ class Fund:
 
     def als_zeile(self):
         # Dictionary gewollt: geht unveraendert als JSON an die Seite.
-        return {"art": self.art, "ort": "%s:%d" % (self.datei, self.zeile),
-                "text": self.text}
+        return {"art": self.art, "ort": "%s:%d" % (self.datei, self.zeile), "text": self.text}
 
 
 #: Wo ein Blockkommentar anfaengt und wo er aufhoert.
@@ -58,8 +57,7 @@ class Fund:
 #: unangenehmste Sorte Fehlalarm: Wer ihn beheben will, loescht die
 #: Begruendung. Die zeilenweise Ausnahme (`nicht`) trifft das nicht — sie
 #: sieht nur den Anfang einer Zeile, und hier steht der Kommentar mittendrin.
-BLOCKANFANG = (("/*", "*/"), ("{% comment %}", "{% endcomment %}"),
-               ("{#", "#}"), ("<!--", "-->"))
+BLOCKANFANG = (("/*", "*/"), ("{% comment %}", "{% endcomment %}"), ("{#", "#}"), ("<!--", "-->"))
 
 
 def kommentarzeilen(zeilen):
@@ -155,8 +153,8 @@ class Stilregel(Regel):
             # Zuweisung wie ein fester Wert aus — `farbfleck.style
             # .backgroundColor =` mit der Farbe aus den Daten darunter.
             text = fund.text
-            if text.rstrip().endswith('=') and fund.zeile < len(zeilen):
-                text += ' ' + zeilen[fund.zeile].strip()
+            if text.rstrip().endswith("=") and fund.zeile < len(zeilen):
+                text += " " + zeilen[fund.zeile].strip()
             if self._berechnet(text):
                 self.dynamisch += 1
                 continue
@@ -165,23 +163,29 @@ class Stilregel(Regel):
 
 
 class InlineStil(Stilregel):
-    nur_javascript = False   # style="" gilt auch im Markup
+    nur_javascript = False  # style="" gilt auch im Markup
     art = "Inline-Stil"
-    warum = ("Aussehen gehört ins CSS. Im JavaScript ist es weder über ein "
-             "Theme aenderbar noch im Browser auffindbar. Werte, die erst zur "
-             "Laufzeit entstehen (`${…}`, `{{ … }}`), sind ausgenommen — die "
-             "kann keine Klasse tragen.")
+    warum = (
+        "Aussehen gehört ins CSS. Im JavaScript ist es weder über ein "
+        "Theme aenderbar noch im Browser auffindbar. Werte, die erst zur "
+        "Laufzeit entstehen (`${…}`, `{{ … }}`), sind ausgenommen — die "
+        "kann keine Klasse tragen."
+    )
     muster = re.compile(r"""\.style\.cssText\s*=|style\s*=\s*['"][^'"]*:""")
     nicht = re.compile(r"^\s*(//|\*|/\*)")
 
 
 class StilZuweisung(Stilregel):
     art = "Einzelne Stilzuweisung im JavaScript"
-    warum = ("Ein Wert, der das Aussehen bestimmt (Farbe, Größe, Abstand), "
-             "gehört in eine CSS-Klasse; display/visibility zum Ein- und "
-             "Ausblenden sowie berechnete Werte sind ausgenommen.")
-    muster = re.compile(r"\.style\.(color|background\w*|width|height|fontSize"
-                        r"|margin\w*|padding\w*|border\w*|opacity)\s*=")
+    warum = (
+        "Ein Wert, der das Aussehen bestimmt (Farbe, Größe, Abstand), "
+        "gehört in eine CSS-Klasse; display/visibility zum Ein- und "
+        "Ausblenden sowie berechnete Werte sind ausgenommen."
+    )
+    muster = re.compile(
+        r"\.style\.(color|background\w*|width|height|fontSize"
+        r"|margin\w*|padding\w*|border\w*|opacity)\s*="
+    )
     nicht = re.compile(r"^\s*(//|\*|/\*)")
 
     #: Groessen, die den ZUSTAND anzeigen statt das Aussehen: die Breite
@@ -217,10 +221,12 @@ class StilZuweisung(Stilregel):
 
 class Dauerlaeufer(Regel):
     art = "setInterval ohne Abbruch in derselben Datei"
-    warum = ("Ein Intervall ohne `clearInterval` läuft, solange die Seite "
-             "offen ist. Absichtliche Dauerlaeufer (Zwischenspeichern gegen "
-             "Absturz) werden mit dem Kommentar \"dauerhaft gewollt\" im "
-             "Kommentarblock darueber ausgenommen.")
+    warum = (
+        "Ein Intervall ohne `clearInterval` läuft, solange die Seite "
+        "offen ist. Absichtliche Dauerlaeufer (Zwischenspeichern gegen "
+        'Absturz) werden mit dem Kommentar "dauerhaft gewollt" im '
+        "Kommentarblock darueber ausgenommen."
+    )
     muster = re.compile(r"\bsetInterval\s*\(")
     nicht = re.compile(r"^\s*(//|\*|/\*)")
 
@@ -228,8 +234,7 @@ class Dauerlaeufer(Regel):
         gefunden = super().pruefen(datei, zeilen)
         if not gefunden or any("clearInterval" in z for z in zeilen):
             return []
-        return [f for f in gefunden
-                if not Dauerlaeufer._gewollt(zeilen, f.zeile - 1)]
+        return [f for f in gefunden if not Dauerlaeufer._gewollt(zeilen, f.zeile - 1)]
 
     @staticmethod
     def _gewollt(zeilen, nummer):
@@ -248,14 +253,16 @@ class Dauerlaeufer(Regel):
 
 class LauteAusgabe(Regel):
     art = "console.log im Betrieb"
-    warum = ("Meldungen ohne Not füllen die Konsole und verdecken echte "
-             "Fehler. `console.warn`/`console.error` bleiben. Eine Klasse, die "
-             "das Protokollieren kapselt, ist ausgenommen.")
+    warum = (
+        "Meldungen ohne Not füllen die Konsole und verdecken echte "
+        "Fehler. `console.warn`/`console.error` bleiben. Eine Klasse, die "
+        "das Protokollieren kapselt, ist ausgenommen."
+    )
     muster = re.compile(r"\bconsole\.log\s*\(")
     nicht = re.compile(r"^\s*(//|\*|/\*)")
 
     def pruefen(self, datei, zeilen):
-        u"""Die Ausnahmen stehen in ``Frontendquellen.ausgabe_gewollt``.
+        """Die Ausnahmen stehen in ``Frontendquellen.ausgabe_gewollt``.
 
         Dort, weil ``protokoll`` dieselbe Frage stellt und sie ohne diese
         Ausnahmen beantwortete: 189 ``console.*``-Stellen gegen die hier
@@ -270,23 +277,27 @@ class LauteAusgabe(Regel):
 
 class AltesVar(Regel):
     art = "var statt let/const"
-    warum = ("`var` gilt für die ganze Funktion und lässt sich neu "
-             "deklarieren - eine Fehlerquelle, die let/const nicht haben.")
+    warum = (
+        "`var` gilt für die ganze Funktion und lässt sich neu "
+        "deklarieren - eine Fehlerquelle, die let/const nicht haben."
+    )
     muster = re.compile(r"^\s*var\s+\w")
     nicht = re.compile(r"^\s*(//|\*|/\*)")
 
 
 class LoseGleichheit(Regel):
     art = "Vergleich mit == statt ==="
-    warum = ("`==` wandelt Typen um: \"\" == 0 und \"0\" == 0 sind wahr. "
-             "AUSGENOMMEN `== null`: die uebliche Prüfung auf null ODER "
-             "undefined, mit `===` gerade falsch.")
+    warum = (
+        '`==` wandelt Typen um: "" == 0 und "0" == 0 sind wahr. '
+        "AUSGENOMMEN `== null`: die uebliche Prüfung auf null ODER "
+        "undefined, mit `===` gerade falsch."
+    )
     muster = re.compile(r"[^=!<>]==[^=]")
     nicht = re.compile(r"^\s*(//|\*|/\*)|===|!==|[=!]=\s*null")
 
 
 class FetchOhneOkPruefung(Regel):
-    u"""Antwort wird verwendet, ohne `response.ok` zu prüfen.
+    """Antwort wird verwendet, ohne `response.ok` zu prüfen.
 
     Objektiv prüfbar, anders als „hat einen try-Block": Der Aufrufer kann in
     einer anderen Datei fangen, das sieht diese Datei nicht. Ob aber `.ok`
@@ -296,8 +307,10 @@ class FetchOhneOkPruefung(Regel):
     """
 
     art = "Antwort ohne .ok-Prüfung verwendet"
-    warum = ("Ohne `antwort.ok` wird die Fehlerseite des Servers als JSON "
-             "gelesen - die Meldung sagt dann nichts über die Ursache.")
+    warum = (
+        "Ohne `antwort.ok` wird die Fehlerseite des Servers als JSON "
+        "gelesen - die Meldung sagt dann nichts über die Ursache."
+    )
     muster = re.compile(r"\bawait\s+fetch\s*\(")
     nicht = re.compile(r"^\s*(//|\*|/\*)")
 
@@ -312,7 +325,7 @@ class FetchOhneOkPruefung(Regel):
             if self.nicht.search(zeile) or not self.muster.search(zeile):
                 continue
             ende = Klammerzaehler.anweisungsende(zeilen, nummer - 1, "fetch(")
-            umfeld = "\n".join(zeilen[nummer - 1:self._fensterende(zeilen, ende, nummer)])
+            umfeld = "\n".join(zeilen[nummer - 1 : self._fensterende(zeilen, ende, nummer)])
             if ".ok" in umfeld or ".status" in umfeld:
                 continue
             if any(roh in umfeld for roh in FetchOhneOkPruefung.ROHDATEN):
@@ -321,7 +334,7 @@ class FetchOhneOkPruefung(Regel):
         return gefunden
 
     def _fensterende(self, zeilen, ende, nummer):
-        u"""Bis wohin nach dem ``fetch`` noch nach ``.ok`` gesucht wird.
+        """Bis wohin nach dem ``fetch`` noch nach ``.ok`` gesucht wird.
 
         FENSTER zählt CODE-Zeilen, nicht rohe. Grund (assistant, 22.08.2026):
         Fünf von zwölf Befunden waren Fehlalarme - die Prüfung stand da, nur
@@ -345,19 +358,23 @@ class FetchOhneOkPruefung(Regel):
 
 class MagischeZahl(Regel):
     art = "Zahl ohne Namen im Code"
-    warum = ("Eine Zahl mit Bedeutung (Grenze, Zeit, Faktor) gehört in eine "
-             "benannte Konstante - sonst weiß niemand, was sie bedeutet oder "
-             "ob sie an zwei Stellen dieselbe ist.")
+    warum = (
+        "Eine Zahl mit Bedeutung (Grenze, Zeit, Faktor) gehört in eine "
+        "benannte Konstante - sonst weiß niemand, was sie bedeutet oder "
+        "ob sie an zwei Stellen dieselbe ist."
+    )
     muster = re.compile(r"set(?:Timeout|Interval)\s*\([^,]+,\s*\d{2,}\s*\)")
     nicht = re.compile(r"^\s*(//|\*|/\*)")
 
 
 class LangeZeile(Regel):
-    nur_javascript = False   # gilt fuer Markup genauso
+    nur_javascript = False  # gilt fuer Markup genauso
     art = "Zeile über 120 Zeichen"
-    warum = ("Lange Zeilen verstecken mehrere Anweisungen hintereinander; im "
-             "Vergleich zweier Staende ist nicht zu sehen, was sich geändert "
-             "hat.")
+    warum = (
+        "Lange Zeilen verstecken mehrere Anweisungen hintereinander; im "
+        "Vergleich zweier Staende ist nicht zu sehen, was sich geändert "
+        "hat."
+    )
     muster = re.compile(r"^.{121,}$")
     nicht = re.compile(r"^\s*(//|\*|/\*)|https?://")
     #: Ein Beispielaufruf in einem `{% comment %}`-Block ist Erklaertext.
@@ -375,7 +392,7 @@ class LangeZeile(Regel):
     unteilbar = 0
 
     def pruefen(self, datei, zeilen):
-        u"""Wie die Basis — aber ohne die Zeilen, die an EINEM Tag haengen.
+        """Wie die Basis — aber ohne die Zeilen, die an EINEM Tag haengen.
 
         DJANGOS LEXER KENNT KEIN DOTALL: Ein `{% … %}` ueber zwei Zeilen
         wird STUMM zu Text. Die Seite antwortet weiter mit 200, das Element
@@ -391,8 +408,7 @@ class LangeZeile(Regel):
         raus = []
         for fund in super().pruefen(datei, zeilen):
             zeile = zeilen[fund.zeile - 1]
-            laengster = max((len(t) for t in self.TAG.findall(zeile)),
-                            default=0)
+            laengster = max((len(t) for t in self.TAG.findall(zeile)), default=0)
             if laengster and len(zeile) - laengster <= 120:
                 self.unteilbar += 1
                 continue
@@ -408,6 +424,15 @@ class TodoImCode(Regel):
 
 
 #: Reihenfolge = Anzeigereihenfolge. Vorne, was echte Fehler anzeigt.
-REGELN = [FetchOhneOkPruefung(), Dauerlaeufer(), LauteAusgabe(), AltesVar(),
-          LoseGleichheit(), MagischeZahl(), InlineStil(), StilZuweisung(),
-          LangeZeile(), TodoImCode()]
+REGELN = [
+    FetchOhneOkPruefung(),
+    Dauerlaeufer(),
+    LauteAusgabe(),
+    AltesVar(),
+    LoseGleichheit(),
+    MagischeZahl(),
+    InlineStil(),
+    StilZuweisung(),
+    LangeZeile(),
+    TodoImCode(),
+]

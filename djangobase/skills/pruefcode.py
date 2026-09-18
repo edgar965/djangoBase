@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Was ist Pruefcode? EINE Antwort, fuer alle Werkzeuge.
+"""Was ist Pruefcode? EINE Antwort, fuer alle Werkzeuge.
 
 DIE ANSAGE (Edgar, 27.08.2026)
 ==============================
@@ -50,6 +50,7 @@ Vererbungsregel schliesst sie also von selbst aus — sie braucht den
 Dateinamen-Behelf nicht und ist zugleich breiter. Ein Filter, der beides
 besser macht, ist selten; hier ist es einer.
 """
+
 from __future__ import annotations
 
 import ast
@@ -57,24 +58,29 @@ import ast
 #: Die Basen, bei denen die Aufloesung anfaengt. Alles Weitere findet sich
 #: von selbst, indem einer Klasse gefolgt wird, die von hier erbt.
 WURZELBASEN = {
-    'TestCase', 'SimpleTestCase', 'TransactionTestCase',
-    'LiveServerTestCase', 'StaticLiveServerTestCase',
-    'IsolatedAsyncioTestCase',
+    "TestCase",
+    "SimpleTestCase",
+    "TransactionTestCase",
+    "LiveServerTestCase",
+    "StaticLiveServerTestCase",
+    "IsolatedAsyncioTestCase",
     # djangoBase bringt eigene Basen mit. Sie stehen NICHT im Projekt,
     # deshalb findet die Aufloesung sie nicht von selbst — `EndpunkteTest`
     # (3DTools) galt darum als verwaist, obwohl `EndpunktProbe` von
     # `TestCase` erbt (Befund 27.08.2026).
-    'EndpunktProbe', 'GrundTests', 'LeistungsTests',
+    "EndpunktProbe",
+    "GrundTests",
+    "LeistungsTests",
 }
 
 #: Womit eine Pruefmethode anfaengt. Das IST ein festes Muster — aber
 #: eines, das der Testlaeufer selbst vorgibt: Was nicht so heisst, fuehrt
 #: `unittest` gar nicht aus.
-METHODENVORSATZ = 'test'
+METHODENVORSATZ = "test"
 
 
 class Pruefcode:
-    u"""Entscheidet fuer EIN Projekt, welche Klassen Pruefungen sind.
+    """Entscheidet fuer EIN Projekt, welche Klassen Pruefungen sind.
 
     Zweistufig, weil Vererbung sich nicht in einer Datei entscheidet:
     erst das ganze Projekt einlesen (``lesen``), dann fragen
@@ -90,41 +96,41 @@ class Pruefcode:
         self._basen = {}
         #: Klassennamen, die (transitiv) Pruefbasen sind
         self.pruefbasen = set(WURZELBASEN) | set(
-            zusatzbasen if zusatzbasen is not None
-            else Pruefcode.projektbasen())
+            zusatzbasen if zusatzbasen is not None else Pruefcode.projektbasen()
+        )
 
     @staticmethod
     def projektbasen():
-        u"""Was das Projekt als eigene Testbasis nennt (`test_basen`).
+        """Was das Projekt als eigene Testbasis nennt (`test_basen`).
 
         Ohne Django-Einstellungen (etwa in einem reinen Werkzeuglauf) leer —
         dann gilt nur `WURZELBASEN`.
         """
         try:
             from ..conf import conf
-            return set(conf().get('test_basen') or ())
+
+            return set(conf().get("test_basen") or ())
         # stumm gewollt: Ohne eingerichtetes Django gibt es keine
         # Projekteinstellungen. Das ist kein Fehler, sondern der Fall
         # „niemand hat welche genannt".
-        except Exception:                                    # noqa: BLE001
+        except Exception:  # noqa: BLE001
             return set()
 
     # ── Einlesen ────────────────────────────────────────────────
 
     def lesen(self, dateien):
-        u"""``dateien``: (pfad, baum)-Paare des ganzen Projekts."""
+        """``dateien``: (pfad, baum)-Paare des ganzen Projekts."""
         for _pfad, baum in dateien:
             if baum is None:
                 continue
             for knoten in ast.walk(baum):
                 if isinstance(knoten, ast.ClassDef):
-                    self._basen.setdefault(knoten.name, set()).update(
-                        self.basisnamen(knoten))
+                    self._basen.setdefault(knoten.name, set()).update(self.basisnamen(knoten))
         self._aufloesen()
         return self
 
     def _aufloesen(self):
-        u"""Bis zum Fixpunkt: Wer von einer Pruefbasis erbt, ist eine.
+        """Bis zum Fixpunkt: Wer von einer Pruefbasis erbt, ist eine.
 
         Eine einzelne Runde reichte nicht — ``JobsSeiteBasis`` erbt von
         ``BasisTest``, das von ``TestCase``. Wie viele Stufen es sind,
@@ -144,17 +150,19 @@ class Pruefcode:
     # ── Fragen ──────────────────────────────────────────────────
 
     def ist_pruefklasse(self, knoten):
-        u"""Erbt diese Klasse (transitiv) von einer Test-Basis?"""
+        """Erbt diese Klasse (transitiv) von einer Test-Basis?"""
         return bool(self.basisnamen(knoten) & self.pruefbasen)
 
     def pruefmethoden(self, knoten):
-        u"""Die Methoden dieser Klasse, die der Testlaeufer ausfuehrt."""
-        return [k for k in knoten.body
-                if isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef))
-                and k.name.startswith(METHODENVORSATZ)]
+        """Die Methoden dieser Klasse, die der Testlaeufer ausfuehrt."""
+        return [
+            k
+            for k in knoten.body
+            if isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef)) and k.name.startswith(METHODENVORSATZ)
+        ]
 
     def pruefklassen(self, baum):
-        u"""Alle Pruefklassen EINER Datei, mit ihren Methoden."""
+        """Alle Pruefklassen EINER Datei, mit ihren Methoden."""
         aus = []
         for knoten in ast.walk(baum):
             if isinstance(knoten, ast.ClassDef) and self.ist_pruefklasse(knoten):
@@ -167,14 +175,14 @@ class Pruefcode:
 
     @staticmethod
     def basisnamen(knoten):
-        u"""``class A(x.TestCase, Mixin)`` -> ``{'TestCase', 'Mixin'}``.
+        """``class A(x.TestCase, Mixin)`` -> ``{'TestCase', 'Mixin'}``.
 
         Der Punkt wird abgeschnitten: Ob jemand ``TestCase`` oder
         ``unittest.TestCase`` schreibt, ist Geschmack und darf nicht
         darueber entscheiden, ob die Pruefung geprueft wird.
         """
         aus = set()
-        for basis in getattr(knoten, 'bases', ()):
+        for basis in getattr(knoten, "bases", ()):
             if isinstance(basis, ast.Attribute):
                 aus.add(basis.attr)
             elif isinstance(basis, ast.Name):

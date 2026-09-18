@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Umbau - Werkzeuge, die Quelltext AENDERN (keine Web-Knoepfe).
+"""Umbau - Werkzeuge, die Quelltext AENDERN (keine Web-Knoepfe).
 
 Warum nicht in ``skills2``: Die Werkzeuge dort messen und melden. Diese hier
 schreiben Dateien. Ein Knopf auf einer Hilfe-Seite, der 30 Dateien umschreibt,
@@ -83,7 +83,7 @@ __all__ = sorted(KLASSEN)
 
 
 def __getattr__(name):
-    u"""Modul erst laden, wenn seine Klasse gebraucht wird (PEP 562).
+    """Modul erst laden, wenn seine Klasse gebraucht wird (PEP 562).
 
     WARUM NICHT OBEN IMPORTIEREN (17.08.2026): Wer ein Modul im ``__init__``
     importiert, laesst ``python -m djangobase.umbau.<modul>`` es ZWEIMAL laden —
@@ -98,6 +98,7 @@ def __getattr__(name):
     if modul is None:
         raise AttributeError("djangobase.umbau hat kein %r" % name)
     from importlib import import_module
+
     return getattr(import_module("." + modul, __name__), name)
 
 

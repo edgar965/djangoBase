@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Systemablage — Zwischendateien, die auf der Systemplatte landen.
+"""Systemablage — Zwischendateien, die auf der Systemplatte landen.
 
 DIE VORGESCHICHTE
 =================
@@ -54,6 +54,7 @@ WAS NICHT GEMELDET WIRD
   jeden anderen mit einem Fehler ab. Eine belegte Ausnahme, die
   trotzdem jedes Mal gemeldet wird, macht die Liste unbrauchbar.
 """
+
 import ast
 
 from .anlassfall import Anlassfall
@@ -65,46 +66,62 @@ __all__ = ["Systemablage"]
 
 
 class Systemablage(BefundWerkzeug):
-    u"""Zwischendateien ohne ``dir=`` — sie landen auf der Systemplatte."""
+    """Zwischendateien ohne ``dir=`` — sie landen auf der Systemplatte."""
 
     slug = "systemablage"
     titel = "Zwischendateien im System-Zwischenspeicher"
-    zweck = ("Findet `tempfile.mkstemp()` und Verwandte ohne `dir=`. Sie "
-             "schreiben unter Windows nach C:, nicht neben die Daten.")
-    befund = ("Aus dieser Gewohnheit sind in einem Projekt rund 100 GB "
-              "Datenmuell auf C: entstanden. Aufgeraeumt wird meist im "
-              "`finally` — das hilft nur, solange der Prozess lebt.")
-    abhilfe = ("`dir=` auf einen Ordner im Projekt setzen (etwa "
-               "`BASE_DIR/tmp`, in `.gitignore`).")
+    zweck = (
+        "Findet `tempfile.mkstemp()` und Verwandte ohne `dir=`. Sie "
+        "schreiben unter Windows nach C:, nicht neben die Daten."
+    )
+    befund = (
+        "Aus dieser Gewohnheit sind in einem Projekt rund 100 GB "
+        "Datenmuell auf C: entstanden. Aufgeraeumt wird meist im "
+        "`finally` — das hilft nur, solange der Prozess lebt."
+    )
+    abhilfe = "`dir=` auf einen Ordner im Projekt setzen (etwa `BASE_DIR/tmp`, in `.gitignore`)."
     dauer = "unter 1 s"
     kriterium = 0
 
     anlassfall = Anlassfall(
-        {"kopierer.py": (
-            "import tempfile\n"
-            "\n"
-            "\n"
-            "def kopieren(daten):\n"
-            "    griff, pfad = tempfile.mkstemp(suffix='.pdf')\n"
-            "    return pfad\n"),
-         "sauber.py": (
-            "import tempfile\n"
-            "from django.conf import settings\n"
-            "\n"
-            "\n"
-            "def kopieren(daten):\n"
-            "    griff, pfad = tempfile.mkstemp(suffix='.pdf',\n"
-            "                                   dir=settings.BASE_DIR)\n"
-            "    return pfad\n")},
-        mindestens=1, hoechstens=1, erwartet_in="kopierer.py",
+        {
+            "kopierer.py": (
+                "import tempfile\n"
+                "\n"
+                "\n"
+                "def kopieren(daten):\n"
+                "    griff, pfad = tempfile.mkstemp(suffix='.pdf')\n"
+                "    return pfad\n"
+            ),
+            "sauber.py": (
+                "import tempfile\n"
+                "from django.conf import settings\n"
+                "\n"
+                "\n"
+                "def kopieren(daten):\n"
+                "    griff, pfad = tempfile.mkstemp(suffix='.pdf',\n"
+                "                                   dir=settings.BASE_DIR)\n"
+                "    return pfad\n"
+            ),
+        },
+        mindestens=1,
+        hoechstens=1,
+        erwartet_in="kopierer.py",
         warum="Ohne `dir=` liegt die Kopie auf C:. `sauber.py` steht "
-              "daneben, damit die Ausnahme (dir= vorhanden) nicht "
-              "unbemerkt wegfaellt — sonst meldete das Werkzeug jede "
-              "Zwischendatei, auch die richtig abgelegten.")
+        "daneben, damit die Ausnahme (dir= vorhanden) nicht "
+        "unbemerkt wegfaellt — sonst meldete das Werkzeug jede "
+        "Zwischendatei, auch die richtig abgelegten.",
+    )
 
     #: Die Aufrufe, die einen Ort waehlen.
-    ANLEGER = ("mkstemp", "mkdtemp", "NamedTemporaryFile", "TemporaryFile",
-               "SpooledTemporaryFile", "TemporaryDirectory")
+    ANLEGER = (
+        "mkstemp",
+        "mkdtemp",
+        "NamedTemporaryFile",
+        "TemporaryFile",
+        "SpooledTemporaryFile",
+        "TemporaryDirectory",
+    )
 
     #: `gettempdir()` legt selbst nichts an — es NENNT den Ort, und was
     #: danach kommt (`os.path.join(gettempdir(), "out.mp4")`), landet
@@ -157,25 +174,21 @@ class Systemablage(BefundWerkzeug):
             except (SyntaxError, ValueError):
                 continue
             dateien += 1
-            gefunden = self._aus_baum(baum, self.kurz(pfad),
-                                      Vermerk(quelle))
+            gefunden = self._aus_baum(baum, self.kurz(pfad), Vermerk(quelle))
             if self._ist_test(pfad):
                 # In Pruefungen bleibt, was nie selbst aufraeumt — und die
                 # Ortsnennung, die ueberhaupt nichts anlegt und deshalb
                 # auch nichts aufraeumen KANN.
                 bleibt = self.OHNE_SELBSTAUFRAEUMEN + self.ORTSNENNER
-                gefunden = [b for b in gefunden
-                            if any(a in b.was for a in bleibt)]
+                gefunden = [b for b in gefunden if any(a in b.was for a in bleibt)]
             befunde += gefunden
-        kopf = ["%d Python-Dateien gelesen" % dateien,
-                "%d Zwischendateien ohne `dir=`" % len(befunde)]
+        kopf = ["%d Python-Dateien gelesen" % dateien, "%d Zwischendateien ohne `dir=`" % len(befunde)]
         if self.ausgenommen:
-            kopf.append("%d Stelle(n) durch Vermerk ausgenommen"
-                        % self.ausgenommen)
+            kopf.append("%d Stelle(n) durch Vermerk ausgenommen" % self.ausgenommen)
         return Befundsatz(self.titel, kopf, befunde)
 
     def _ist_test(self, pfad):
-        u"""Liegt die Datei in einer Pruefung?
+        """Liegt die Datei in einer Pruefung?
 
         Fuer `TemporaryDirectory`/`NamedTemporaryFile` heisst das:
         uebergehen — sie raeumen am Ende des `with`-Blocks. Fuer `mkdtemp`
@@ -208,13 +221,16 @@ class Systemablage(BefundWerkzeug):
                 if vermerk.gilt_nicht(knoten.lineno, self.LEHRE):
                     self.ausgenommen += 1
                     continue
-                raus.append(Befund(
-                    "%s:%d" % (name, knoten.lineno),
-                    "`%s()` nennt den System-Zwischenspeicher" % gerufen,
-                    "Was von hier aus zusammengesetzt wird, landet unter "
-                    "Windows auf C: — genauso wie ein `mkstemp()` ohne "
-                    "`dir=`.",
-                    Befund.WARNUNG))
+                raus.append(
+                    Befund(
+                        "%s:%d" % (name, knoten.lineno),
+                        "`%s()` nennt den System-Zwischenspeicher" % gerufen,
+                        "Was von hier aus zusammengesetzt wird, landet unter "
+                        "Windows auf C: — genauso wie ein `mkstemp()` ohne "
+                        "`dir=`.",
+                        Befund.WARNUNG,
+                    )
+                )
                 continue
             if gerufen not in self.ANLEGER:
                 continue
@@ -223,18 +239,21 @@ class Systemablage(BefundWerkzeug):
             if vermerk.gilt_nicht(knoten.lineno, self.LEHRE):
                 self.ausgenommen += 1
                 continue
-            raus.append(Befund(
-                "%s:%d" % (name, knoten.lineno),
-                "`%s(...)` ohne `dir=`" % gerufen,
-                "Die Datei landet im System-Zwischenspeicher, unter "
-                "Windows auf C:. Aufgeraeumt wird meist im `finally` — "
-                "das hilft nur, solange der Prozess lebt.",
-                Befund.WARNUNG))
+            raus.append(
+                Befund(
+                    "%s:%d" % (name, knoten.lineno),
+                    "`%s(...)` ohne `dir=`" % gerufen,
+                    "Die Datei landet im System-Zwischenspeicher, unter "
+                    "Windows auf C:. Aufgeraeumt wird meist im `finally` — "
+                    "das hilft nur, solange der Prozess lebt.",
+                    Befund.WARNUNG,
+                )
+            )
         return raus
 
     @staticmethod
     def _name(knoten):
-        u"""Der gerufene Name — ``mkstemp`` wie ``tempfile.mkstemp``."""
+        """Der gerufene Name — ``mkstemp`` wie ``tempfile.mkstemp``."""
         if isinstance(knoten, ast.Attribute):
             return knoten.attr
         if isinstance(knoten, ast.Name):

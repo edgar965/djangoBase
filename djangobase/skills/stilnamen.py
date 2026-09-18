@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Stilnamen - ein Klassenname, der zweierlei bedeutet.
+"""Stilnamen - ein Klassenname, der zweierlei bedeutet.
 
 DER FALL, GEMESSEN (29.08.2026, 3DTools)
 ========================================
@@ -38,6 +38,7 @@ ergeben sie den Stil. Das ist kein Streit, sondern Aufteilung — und wer es
 dafuer haelt, nimmt beim Aufraeumen einem Element die Haelfte seines Stils.
 Genau das ist beim ersten Anlauf dieser Pruefung passiert.
 """
+
 import re
 from collections import defaultdict
 
@@ -49,16 +50,22 @@ __all__ = ["Stilnamen"]
 
 class Stilnamen(BefundWerkzeug):
     slug = "stilnamen"
-    titel = u"Ein Klassenname, zwei Regeln"
-    zweck = (u"Sucht Klassennamen, die in einer Vorlage (oder über Vorlagen "
-             u"hinweg) mit VERSCHIEDENEN Regeln belegt sind.")
-    befund = (u"3DTools: Ein Umsteller benannte erzeugte Klassen nach ihrer "
-              u"ersten Angabe. Fünf Vorlagen trugen denselben Namen zweimal "
-              u"mit verschiedenem Rumpf — drei Überschriften waren zwei Wochen "
-              u"lang orange statt blau, ohne dass etwas rot wurde.")
-    abhilfe = (u"Den Namen je Fassung eindeutig machen. Welche Verwendung zu "
-               u"welcher Fassung gehört, steht in der Fassung VOR dem "
-               u"Umstellen — dort trug jedes Element seinen Stil selbst.")
+    titel = "Ein Klassenname, zwei Regeln"
+    zweck = (
+        "Sucht Klassennamen, die in einer Vorlage (oder über Vorlagen "
+        "hinweg) mit VERSCHIEDENEN Regeln belegt sind."
+    )
+    befund = (
+        "3DTools: Ein Umsteller benannte erzeugte Klassen nach ihrer "
+        "ersten Angabe. Fünf Vorlagen trugen denselben Namen zweimal "
+        "mit verschiedenem Rumpf — drei Überschriften waren zwei Wochen "
+        "lang orange statt blau, ohne dass etwas rot wurde."
+    )
+    abhilfe = (
+        "Den Namen je Fassung eindeutig machen. Welche Verwendung zu "
+        "welcher Fassung gehört, steht in der Fassung VOR dem "
+        "Umstellen — dort trug jedes Element seinen Stil selbst."
+    )
     dauer = "unter 1 s"
     kriterium = 12
 
@@ -78,18 +85,23 @@ class Stilnamen(BefundWerkzeug):
                 ".hb-gruppe, .hb-andere { background: #111; }\n"
                 ".hb-gruppe, .hb-dritte { padding: 4px; }\n"
                 "</style>\n"
-                '<h3 class="hb-margin-top-20px">Eins</h3>\n'),
+                '<h3 class="hb-margin-top-20px">Eins</h3>\n'
+            ),
         },
-        mindestens=1, hoechstens=1,
+        mindestens=1,
+        hoechstens=1,
         erwartet_in="seite.html",
-        warum=(u"Der echte Fall und die Gruppen-Schreibweise sehen gleich aus: "
-               u"beide Male steht derselbe Name an zwei Regeln. Wer die Gruppe "
-               u"nicht ausnimmt, meldet jede aufgeteilte Regel — und wer sie "
-               u"dann 'aufräumt', nimmt dem Element die halbe Gestalt."))
+        warum=(
+            "Der echte Fall und die Gruppen-Schreibweise sehen gleich aus: "
+            "beide Male steht derselbe Name an zwei Regeln. Wer die Gruppe "
+            "nicht ausnimmt, meldet jede aufgeteilte Regel — und wer sie "
+            "dann 'aufräumt', nimmt dem Element die halbe Gestalt."
+        ),
+    )
 
     @staticmethod
     def _ist_erzeugt(name, rumpf):
-        u"""Traegt der Name seine eigene erste Angabe im Namen?
+        """Traegt der Name seine eigene erste Angabe im Namen?
 
         So arbeiten die Umsteller: ``margin-top: 20px`` wird
         ``…-margin-top-20px``, ``color: #4fc1ff`` wird ``…-color-4fc1ff``.
@@ -101,17 +113,18 @@ class Stilnamen(BefundWerkzeug):
         if ":" not in erste:
             return False
         merkmal, wert = erste.split(":", 1)
-        teile = re.sub(r"[^a-z0-9]+", "-",
-                       ("%s-%s" % (merkmal, wert)).lower()).strip("-")
+        teile = re.sub(r"[^a-z0-9]+", "-", ("%s-%s" % (merkmal, wert)).lower()).strip("-")
         return bool(teile) and name.lower().endswith(teile)
 
     #: At-Regeln, die einen eigenen Geltungsbereich aufmachen.
-    AT_BEREICH = re.compile(r"@(?:media|supports|container|layer|scope)\b"
-                            r"[^{;]*")
+    AT_BEREICH = re.compile(
+        r"@(?:media|supports|container|layer|scope)\b"
+        r"[^{;]*"
+    )
 
     @classmethod
     def _bereiche(cls, css, praefix=""):
-        u"""[(Bereich, Stueck)] — die oberste Ebene und jeder At-Block einzeln.
+        """[(Bereich, Stueck)] — die oberste Ebene und jeder At-Block einzeln.
 
         WARUM (30.08.2026, assistant): ``REGEL`` kennt keine geschachtelten
         Klammern. ``@media print{.noprint{display:none}}`` las sich fuer sie
@@ -127,12 +140,12 @@ class Stilnamen(BefundWerkzeug):
         oben, stelle = [], 0
         for treffer in cls.AT_BEREICH.finditer(css):
             if treffer.start() < stelle:
-                continue                       # schon in einem At-Block
+                continue  # schon in einem At-Block
             anfang = css.find("{", treffer.end() - 1)
             if anfang < 0:
                 continue
             ende = cls._blockende(css, anfang)
-            oben.append(css[stelle:treffer.start()])
+            oben.append(css[stelle : treffer.start()])
             kopf = (praefix + " " + " ".join(treffer.group(0).split())).strip()
             # REKURSIV (Befund CodeRabbit, 31.08.2026): Ein At-Block INNERHALB
             # eines At-Blocks wurde uebersprungen, sein Inhalt blieb aber im
@@ -140,15 +153,14 @@ class Stilnamen(BefundWerkzeug):
             # bekam damit denselben Bereich wie eine daneben — der Pruefer
             # meldete zwei verschiedene Regeln fuer denselben Namen, obwohl die
             # eine nur unter ``@supports`` gilt.
-            for unterbereich, stueck in cls._bereiche(css[anfang + 1:ende], kopf):
-                yield unterbereich, stueck
+            yield from cls._bereiche(css[anfang + 1 : ende], kopf)
             stelle = ende + 1
         oben.append(css[stelle:])
         yield praefix, "\n".join(oben)
 
     @staticmethod
     def _blockende(css, anfang):
-        u"""Stelle der schliessenden Klammer — Zeichenketten zaehlen nicht mit.
+        """Stelle der schliessenden Klammer — Zeichenketten zaehlen nicht mit.
 
         Dieselbe Falle wie in ``cssdubletten`` (31.08.2026): ``content: "}"``
         haette den Block hier zu frueh beendet.
@@ -174,7 +186,7 @@ class Stilnamen(BefundWerkzeug):
         return len(css) - 1
 
     def _regeln(self, text):
-        u"""[(Bereich, Name, Rumpf)] — nur Einzelnamen, Gruppen bleiben draussen."""
+        """[(Bereich, Name, Rumpf)] — nur Einzelnamen, Gruppen bleiben draussen."""
         aus = []
         gruppennamen = set()
         for block in Stilnamen.STIL.finditer(text):
@@ -206,14 +218,16 @@ class Stilnamen(BefundWerkzeug):
             for (bereich, name), saetze in sorted(in_datei.items()):
                 if len(saetze) < 2:
                     continue
-                befunde.append(Befund(
-                    self.kurz(pfad),
-                    u"`.%s` steht %d× mit verschiedenem Inhalt%s"
-                    % (name, len(saetze),
-                       (u" in `%s`" % bereich) if bereich else u""),
-                    u"Beide Regeln gelten — bei gleichem Merkmal gewinnt die "
-                    u"spätere, sonst addieren sie sich",
-                    Befund.FEHLER))
+                befunde.append(
+                    Befund(
+                        self.kurz(pfad),
+                        "`.%s` steht %d× mit verschiedenem Inhalt%s"
+                        % (name, len(saetze), (" in `%s`" % bereich) if bereich else ""),
+                        "Beide Regeln gelten — bei gleichem Merkmal gewinnt die "
+                        "spätere, sonst addieren sie sich",
+                        Befund.FEHLER,
+                    )
+                )
 
         for (bereich, name), fassungen in sorted(ueber_dateien.items()):
             if len(fassungen) < 2:
@@ -222,17 +236,16 @@ class Stilnamen(BefundWerkzeug):
                 continue
             orte = sorted({o for s in fassungen.values() for o in s})
             if len(orte) < 2:
-                continue                       # schon oben als Fehler gemeldet
-            befunde.append(Befund(
-                orte[0],
-                u"`.%s` bedeutet in %d Vorlagen %d Verschiedenes%s"
-                % (name, len(orte), len(fassungen),
-                   (u" (in `%s`)" % bereich) if bereich else u""),
-                u"auch: %s — wer einen dieser Blöcke in eine gemeinsame Datei "
-                u"zieht, gibt allen dieselbe Fassung" % ", ".join(orte[1:4]),
-                Befund.HINWEIS))
+                continue  # schon oben als Fehler gemeldet
+            befunde.append(
+                Befund(
+                    orte[0],
+                    "`.%s` bedeutet in %d Vorlagen %d Verschiedenes%s"
+                    % (name, len(orte), len(fassungen), (" (in `%s`)" % bereich) if bereich else ""),
+                    "auch: %s — wer einen dieser Blöcke in eine gemeinsame Datei "
+                    "zieht, gibt allen dieselbe Fassung" % ", ".join(orte[1:4]),
+                    Befund.HINWEIS,
+                )
+            )
 
-        return Befundsatz(
-            self.titel,
-            kopf=["%d Vorlagen geprüft" % len(dateien)],
-            befunde=befunde)
+        return Befundsatz(self.titel, kopf=["%d Vorlagen geprüft" % len(dateien)], befunde=befunde)

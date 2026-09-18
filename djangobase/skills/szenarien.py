@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Szenarien — BDD ohne Gherkin: sagt jede Prüfung, was sie erwartet?
+"""Szenarien — BDD ohne Gherkin: sagt jede Prüfung, was sie erwartet?
 
 DIE FRAGE (Edgar, 26.08.2026)
 =============================
@@ -36,6 +36,7 @@ WAS ES NICHT PRÜFT
 Ob die Zusicherung die RICHTIGE ist. Das kann kein Werkzeug; dafür gibt
 es den Anlassfall, der den Fall vorführt.
 """
+
 from __future__ import annotations
 
 import ast
@@ -83,16 +84,28 @@ from .pruefcode import Pruefcode
 WOERTER_IM_ERGEBNIS = 2
 
 #: Namen, die nichts erwarten — auch wenn sie lang genug sind.
-NICHTSSAGEND = ('test_basic', 'test_it_works', 'test_works', 'test_ok',
-                'test_simple', 'test_main', 'test_all', 'test_stuff',
-                'test_smoke', 'test_case', 'test_1', 'test_2', 'test_x')
+NICHTSSAGEND = (
+    "test_basic",
+    "test_it_works",
+    "test_works",
+    "test_ok",
+    "test_simple",
+    "test_main",
+    "test_all",
+    "test_stuff",
+    "test_smoke",
+    "test_case",
+    "test_1",
+    "test_2",
+    "test_x",
+)
 
 #: Aufrufe, die eine Zusicherung sind.
-ZUSICHERND = ('assert', 'fail', 'skipTest', 'raises', 'assertRaises')
+ZUSICHERND = ("assert", "fail", "skipTest", "raises", "assertRaises")
 
 
 class Szenarienpruefer:
-    u"""Beurteilt die Prüfmethoden EINER Klasse.
+    """Beurteilt die Prüfmethoden EINER Klasse.
 
     KEIN NodeVisitor MEHR (27.08.2026)
     ==================================
@@ -120,29 +133,34 @@ class Szenarienpruefer:
     # ── Die beiden Fragen an eine Prüfmethode ───────────────────
 
     def _beurteilen(self, knoten):
-        wo = '.'.join(self._klasse + [knoten.name])
+        wo = ".".join(self._klasse + [knoten.name])
         if not self._sagt_etwas(wo):
-            self.befunde.append(Befund(
-                '%s:%d' % (self.datei, knoten.lineno),
-                u'Name nennt kein Verhalten: %s' % wo,
-                u'Gelesen als „%s" — %s. Wer diesen Namen rot sieht, weiß '
-                u'nicht, was kaputt ist; er muss den Rumpf lesen. Ein Name '
-                u'wie `test_person_bleibt_nach_dem_merge_erhalten` sagt es '
-                u'selbst.'
-                % (Testsatz(wo).satz(),
-                   ', '.join(self.maengel(wo)) or u'zu wenig Wörter'),
-                Befund.HINWEIS))
+            self.befunde.append(
+                Befund(
+                    "%s:%d" % (self.datei, knoten.lineno),
+                    "Name nennt kein Verhalten: %s" % wo,
+                    'Gelesen als „%s" — %s. Wer diesen Namen rot sieht, weiß '
+                    "nicht, was kaputt ist; er muss den Rumpf lesen. Ein Name "
+                    "wie `test_person_bleibt_nach_dem_merge_erhalten` sagt es "
+                    "selbst." % (Testsatz(wo).satz(), ", ".join(self.maengel(wo)) or "zu wenig Wörter"),
+                    Befund.HINWEIS,
+                )
+            )
         if not self._sichert_zu(knoten):
-            self.befunde.append(Befund(
-                '%s:%d' % (self.datei, knoten.lineno),
-                u'Prüfung ohne Zusicherung: %s' % wo,
-                u'Der Rumpf behauptet nichts — die Prüfung meldet grün, '
-                u'egal was der Code tut. Das ist teurer als keine Prüfung, '
-                u'weil sie Sicherheit vortäuscht.', Befund.FEHLER))
+            self.befunde.append(
+                Befund(
+                    "%s:%d" % (self.datei, knoten.lineno),
+                    "Prüfung ohne Zusicherung: %s" % wo,
+                    "Der Rumpf behauptet nichts — die Prüfung meldet grün, "
+                    "egal was der Code tut. Das ist teurer als keine Prüfung, "
+                    "weil sie Sicherheit vortäuscht.",
+                    Befund.FEHLER,
+                )
+            )
 
     @staticmethod
     def _sagt_etwas(voll):
-        u"""Wird aus der Kennung ein Satz? Gelesen mit ``Testsatz``.
+        """Wird aus der Kennung ein Satz? Gelesen mit ``Testsatz``.
 
         EINE LESART, NICHT ZWEI (27.08.2026)
         ====================================
@@ -161,14 +179,14 @@ class Szenarienpruefer:
         Tests-Seite anzeigt. Was dort als Satz erscheint, gilt hier als
         Satz.
         """
-        methode = voll.rsplit('.', 1)[-1]
+        methode = voll.rsplit(".", 1)[-1]
         if methode in NICHTSSAGEND:
             return False
         return not Szenarienpruefer.maengel(voll)
 
     @staticmethod
     def maengel(voll):
-        u"""Was dieser Kennung zum Satz fehlt — leere Liste, wenn nichts.
+        """Was dieser Kennung zum Satz fehlt — leere Liste, wenn nichts.
 
         Gemeldet wird nur, was OHNE Sprachwissen entscheidbar ist: ein
         Ergebnisteil aus zu wenigen Wörtern und ein fehlender Gegenstand.
@@ -178,14 +196,14 @@ class Szenarienpruefer:
         satz = Testsatz(voll)
         aus = []
         if not satz.gegenstand():
-            aus.append(u'ohne Gegenstand')
+            aus.append("ohne Gegenstand")
         if len(satz.ergebnis().split()) < WOERTER_IM_ERGEBNIS:
-            aus.append(u'ohne Aussage')
+            aus.append("ohne Aussage")
         return aus
 
     @staticmethod
     def _sichert_zu(knoten):
-        u"""Steht im Rumpf irgendwo eine Zusicherung?
+        """Steht im Rumpf irgendwo eine Zusicherung?
 
         Auch ein ``with self.assertRaises(...)`` und ein ``assert`` zaehlen
         — und ein Aufruf einer eigenen Hilfsmethode, die ihrerseits
@@ -197,14 +215,12 @@ class Szenarienpruefer:
             if isinstance(teil, ast.Assert):
                 return True
             if isinstance(teil, ast.Call):
-                name = getattr(teil.func, 'attr', '') or \
-                    getattr(teil.func, 'id', '')
+                name = getattr(teil.func, "attr", "") or getattr(teil.func, "id", "")
                 if any(name.startswith(z) for z in ZUSICHERND):
                     return True
                 # Eigene Hilfsmethode: `self._pruefe_dass(...)`.
-                eigner = getattr(teil.func, 'value', None)
-                if (isinstance(eigner, ast.Name) and eigner.id == 'self'
-                        and name.startswith('_')):
+                eigner = getattr(teil.func, "value", None)
+                if isinstance(eigner, ast.Name) and eigner.id == "self" and name.startswith("_"):
                     return True
             if isinstance(teil, ast.Raise):
                 return True
@@ -212,7 +228,7 @@ class Szenarienpruefer:
 
     @staticmethod
     def _urteil_als_rueckgabe(knoten):
-        u"""Gibt die Methode ihr Urteil ZURUECK statt es zuzusichern?
+        """Gibt die Methode ihr Urteil ZURUECK statt es zuzusichern?
 
         WARUM DAS ZAEHLT (27.08.2026, 3DTools)
         ======================================
@@ -259,20 +275,19 @@ class Szenarienpruefer:
 
     @staticmethod
     def _ist_urteil(wert):
-        u"""Sieht dieser Ausdruck nach einem gefaellten Urteil aus?"""
+        """Sieht dieser Ausdruck nach einem gefaellten Urteil aus?"""
         if isinstance(wert, (ast.Compare, ast.BoolOp)):
             return True
         if isinstance(wert, ast.UnaryOp) and isinstance(wert.op, ast.Not):
             return True
         if isinstance(wert, ast.Call):
-            name = (getattr(wert.func, 'id', '')
-                    or getattr(wert.func, 'attr', ''))
-            return name in ('bool', 'all', 'any')
+            name = getattr(wert.func, "id", "") or getattr(wert.func, "attr", "")
+            return name in ("bool", "all", "any")
         return False
 
     @staticmethod
     def _urteilsnamen(knoten):
-        u"""Namen, denen im Rumpf ein Urteil zugewiesen wurde.
+        """Namen, denen im Rumpf ein Urteil zugewiesen wurde.
 
         Die uebliche Schreibweise dieser Faelle ist zweizeilig::
 
@@ -294,43 +309,51 @@ class Szenarienpruefer:
 
 
 class Szenarien(BefundWerkzeug):
-
     kriterium = 19
-    slug = 'szenarien'
-    titel = u'Szenarien: sagt jede Prüfung, was sie erwartet?'
-    zweck = (u'BDD ohne Gherkin. Findet Prüfungen, deren Name kein Verhalten '
-             u'nennt, und — schwerer — Prüfungen, die gar nichts zusichern '
-             u'und deshalb immer grün melden.')
-    abhilfe = (u'Vor einem Review und nach jedem Zuwachs an Prüfungen. Ein '
-               u'Name, den man erst durch Lesen des Rumpfes versteht, kostet '
-               u'genau dann Zeit, wenn man sie nicht hat: wenn er rot ist.')
-    befund = (u'Im Ursprungsprojekt trugen 88 % der 1538 Prüfungen schon '
-              u'einen Satz als Namen — das Muster war da, die Ausreisser '
-              u'fielen nur nicht auf.')
-    dauer = u'wenige Sekunden'
+    slug = "szenarien"
+    titel = "Szenarien: sagt jede Prüfung, was sie erwartet?"
+    zweck = (
+        "BDD ohne Gherkin. Findet Prüfungen, deren Name kein Verhalten "
+        "nennt, und — schwerer — Prüfungen, die gar nichts zusichern "
+        "und deshalb immer grün melden."
+    )
+    abhilfe = (
+        "Vor einem Review und nach jedem Zuwachs an Prüfungen. Ein "
+        "Name, den man erst durch Lesen des Rumpfes versteht, kostet "
+        "genau dann Zeit, wenn man sie nicht hat: wenn er rot ist."
+    )
+    befund = (
+        "Im Ursprungsprojekt trugen 88 % der 1538 Prüfungen schon "
+        "einen Satz als Namen — das Muster war da, die Ausreisser "
+        "fielen nur nicht auf."
+    )
+    dauer = "wenige Sekunden"
 
     anlassfall = Anlassfall(
-        {'tests/test_a.py':
-            'import unittest\n'
-            '\n\n'
-            'class A(unittest.TestCase):\n'
-            '    def test_basic(self):\n'
-            '        self.assertTrue(True)\n'
-            '\n'
-            '    def test_person_bleibt_nach_dem_merge_erhalten(self):\n'
-            '        x = 1\n'
-            '        print(x)\n'
-            '\n'
-            '    def test_person_wird_richtig_geloescht(self):\n'
-            '        self.assertEqual(1, 1)\n'},
-        mindestens=2, erwartet_in='test_basic',
-        warum=u'Ein nichtssagender Name und eine Prüfung ohne Zusicherung — '
-              u'die dritte macht beides richtig und darf nicht mitgemeldet '
-              u'werden')
+        {
+            "tests/test_a.py": "import unittest\n"
+            "\n\n"
+            "class A(unittest.TestCase):\n"
+            "    def test_basic(self):\n"
+            "        self.assertTrue(True)\n"
+            "\n"
+            "    def test_person_bleibt_nach_dem_merge_erhalten(self):\n"
+            "        x = 1\n"
+            "        print(x)\n"
+            "\n"
+            "    def test_person_wird_richtig_geloescht(self):\n"
+            "        self.assertEqual(1, 1)\n"
+        },
+        mindestens=2,
+        erwartet_in="test_basic",
+        warum="Ein nichtssagender Name und eine Prüfung ohne Zusicherung — "
+        "die dritte macht beides richtig und darf nicht mitgemeldet "
+        "werden",
+    )
 
     # ------------------------------------------------------------------
     def pruefen(self, **_argumente):
-        u"""Erst das ganze Projekt einlesen, dann urteilen.
+        """Erst das ganze Projekt einlesen, dann urteilen.
 
         Zwei Durchgaenge, weil Vererbung sich nicht in einer Datei
         entscheidet: `Pruefcode` muss ALLE Klassen kennen, bevor es sagen
@@ -353,23 +376,19 @@ class Szenarien(BefundWerkzeug):
         ohne_zusicherung = sum(1 for b in befunde if b.gewicht == Befund.FEHLER)
         stumm = len(befunde) - ohne_zusicherung
         anteil = (100.0 * (methoden - stumm) / methoden) if methoden else 100.0
-        kopf = ['%d Prüfdateien, %d Prüfmethoden' % (dateien, methoden),
-                '%d ohne jede Zusicherung — die melden grün, egal was '
-                'passiert' % ohne_zusicherung,
-                '%d mit einem Namen, der kein Verhalten nennt (%.0f %% tun es)'
-                % (stumm, anteil)]
+        kopf = [
+            "%d Prüfdateien, %d Prüfmethoden" % (dateien, methoden),
+            "%d ohne jede Zusicherung — die melden grün, egal was passiert" % ohne_zusicherung,
+            "%d mit einem Namen, der kein Verhalten nennt (%.0f %% tun es)" % (stumm, anteil),
+        ]
         if not befunde:
-            kopf.append('Keine — jede Prüfung nennt ihr Verhalten und '
-                        'sichert es zu.')
+            kopf.append("Keine — jede Prüfung nennt ihr Verhalten und sichert es zu.")
         return Befundsatz(self.titel, kopf, befunde)
 
     def _einlesen(self):
-        u"""``(kurzer Pfad, Syntaxbaum)`` fuer jede lesbare Datei."""
-        for datei in self.projektdateien('.py'):
+        """``(kurzer Pfad, Syntaxbaum)`` fuer jede lesbare Datei."""
+        for datei in self.projektdateien(".py"):
             try:
-                yield (self.kurz(datei),
-                       ast.parse(datei.read_text(encoding='utf-8',
-                                                 errors='replace')))
+                yield (self.kurz(datei), ast.parse(datei.read_text(encoding="utf-8", errors="replace")))
             except (SyntaxError, OSError, ValueError):
                 continue
-

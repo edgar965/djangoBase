@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""`vorlagen-tags`: Ein umbrochenes ``{% … %}`` ist Text, kein Tag.
+"""`vorlagen-tags`: Ein umbrochenes ``{% … %}`` ist Text, kein Tag.
 
 DER FALL (28.08.2026, 3DTools)
 ==============================
@@ -17,6 +17,7 @@ ZWEI SEITEN, BEIDE WICHTIG
   dokumentierten Vorlage. Ein Pruefer, der sie meldet, wird nach dem dritten
   Fehlalarm ignoriert.
 """
+
 import tempfile
 from pathlib import Path
 
@@ -24,23 +25,21 @@ from django.test import SimpleTestCase
 
 from djangobase.skills.vorlagentags import Vorlagentags
 
-
-ECHT = ('{% include "teil.html" with feld="a"\n'
-        '   wert=b %}\n')
+ECHT = '{% include "teil.html" with feld="a"\n   wert=b %}\n'
 
 EINZEILIG = '{% include "teil.html" with feld="a" wert=b %}\n'
 
-IM_KOMMENTAR = ('{% comment %}\nSo wird es aufgerufen:\n\n'
-                '  {% include "teil.html" with feld="a"\n'
-                '     wert=b %}\n{% endcomment %}\n'
-                '{% include "teil.html" with feld="a" wert=b %}\n')
+IM_KOMMENTAR = (
+    "{% comment %}\nSo wird es aufgerufen:\n\n"
+    '  {% include "teil.html" with feld="a"\n'
+    "     wert=b %}\n{% endcomment %}\n"
+    '{% include "teil.html" with feld="a" wert=b %}\n'
+)
 
-IM_VERBATIM = ('{% verbatim %}\n{% include "teil.html" with feld="a"\n'
-               '   wert=b %}\n{% endverbatim %}\n')
+IM_VERBATIM = '{% verbatim %}\n{% include "teil.html" with feld="a"\n   wert=b %}\n{% endverbatim %}\n'
 
 
 class _Werkzeug(Vorlagentags):
-
     def __init__(self, ordner):
         super().__init__()
         self._ordner = Path(ordner)
@@ -63,50 +62,51 @@ def _lauf(vorlagen):
 
 
 class FindetDenFallTest(SimpleTestCase):
-
     def test_umbrochenes_include_wird_gemeldet(self):
         satz = _lauf({"seite.html": ECHT})
         self.assertEqual(len(satz.befunde), 1, " | ".join(satz.kopf))
         self.assertIn("seite.html:1", satz.befunde[0].ort)
 
     def test_die_meldung_nennt_den_anfang_des_tags(self):
-        u"""Ohne den Anfang muss man die Datei aufmachen, um zu wissen,
+        """Ohne den Anfang muss man die Datei aufmachen, um zu wissen,
         welches der zwanzig Tags gemeint ist."""
         satz = _lauf({"seite.html": ECHT})
         self.assertIn('include "teil.html"', satz.befunde[0].was)
 
     def test_es_ist_ein_fehler_keine_anmerkung(self):
         from djangobase.skills.befund import Befund
+
         satz = _lauf({"seite.html": ECHT})
         self.assertEqual(satz.befunde[0].gewicht, Befund.FEHLER)
 
 
 class KeineFehlalarmeTest(SimpleTestCase):
-
     def test_einzeiliges_tag_ist_in_ordnung(self):
         self.assertEqual(_lauf({"seite.html": EINZEILIG}).befunde, [])
 
     def test_anleitung_im_kommentarblock_zaehlt_nicht(self):
         satz = _lauf({"anleitung.html": IM_KOMMENTAR})
-        self.assertEqual(satz.befunde, [],
-                         "Fehlalarm: " + "; ".join(b.was for b in satz.befunde))
+        self.assertEqual(satz.befunde, [], "Fehlalarm: " + "; ".join(b.was for b in satz.befunde))
 
     def test_verbatim_zaehlt_nicht(self):
         self.assertEqual(_lauf({"beispiel.html": IM_VERBATIM}).befunde, [])
 
     def test_zeilennummer_stimmt_auch_nach_einem_kommentarblock(self):
-        u"""Der Kommentar wird durch Leerzeichen ersetzt, NICHT geloescht —
+        """Der Kommentar wird durch Leerzeichen ersetzt, NICHT geloescht —
         sonst zeigt jede Meldung dahinter auf die falsche Zeile."""
-        satz = _lauf({"seite.html": IM_KOMMENTAR.replace(
-            '{% include "teil.html" with feld="a" wert=b %}\n',
-            '{% include "teil.html" with feld="a"\n   wert=b %}\n')})
+        satz = _lauf(
+            {
+                "seite.html": IM_KOMMENTAR.replace(
+                    '{% include "teil.html" with feld="a" wert=b %}\n',
+                    '{% include "teil.html" with feld="a"\n   wert=b %}\n',
+                )
+            }
+        )
         self.assertEqual(len(satz.befunde), 1)
-        self.assertTrue(satz.befunde[0].ort.endswith(":7"),
-                        satz.befunde[0].ort)
+        self.assertTrue(satz.befunde[0].ort.endswith(":7"), satz.befunde[0].ort)
 
 
 class KopfzeileTest(SimpleTestCase):
-
     def test_kopf_nennt_die_zahl_der_vorlagen(self):
         satz = _lauf({"a.html": EINZEILIG, "b.html": EINZEILIG})
         self.assertIn("2 Vorlagen", " ".join(satz.kopf))

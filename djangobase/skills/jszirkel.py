@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Zirkelkarte — für JEDE Trennlinie einer Datei auf einmal: Zirkel oder nicht.
+"""Zirkelkarte — für JEDE Trennlinie einer Datei auf einmal: Zirkel oder nicht.
 
 WARUM (29.08.2026, gemessen)
 ============================
@@ -35,11 +35,11 @@ Trennlinie eine Feldabfrage. Aus 186,9 s werden 0,05 s.
 Die Antwort ist dieselbe: ``tests/unit/test_jszirkel.py`` rechnet beide
 Fassungen auf echten Dateien gegeneinander.
 """
+
 import re
 
 #: Definitionen auf Modulebene — dieselbe Schreibweise wie in `Schnittstelle`.
-DEFINITION = re.compile(
-    r"^(?:export )?(?:async )?(?:function|class|const) (\w+)", re.M)
+DEFINITION = re.compile(r"^(?:export )?(?:async )?(?:function|class|const) (\w+)", re.M)
 
 #: Ein Bezeichner, der NICHT hinter einem Punkt steht (also kein Feldzugriff).
 #: Entspricht dem `(?<![.\w])name\b` der Einzelabfrage.
@@ -82,11 +82,11 @@ class Zirkelkarte:
         runter = [0] * (anzahl + 2)
         for name, (erste_def, letzte_def) in self.definiert.items():
             bis = letztes.get(name, letzte_def)
-            if bis > erste_def:               # unten braucht oben: (def, bis]
+            if bis > erste_def:  # unten braucht oben: (def, bis]
                 hoch[erste_def + 1] += 1
                 hoch[bis + 1] -= 1
             ab = erstes.get(name, erste_def)
-            if ab < letzte_def:               # oben braucht unten: (ab, def]
+            if ab < letzte_def:  # oben braucht unten: (ab, def]
                 runter[ab + 1] += 1
                 runter[letzte_def + 1] -= 1
 

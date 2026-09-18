@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Lehrentreue — hält der Code die Lehren, die sich prüfen lassen?
+"""Lehrentreue — hält der Code die Lehren, die sich prüfen lassen?
 
 DIE ANSAGE (Edgar, 26.08.2026)
 ==============================
@@ -34,6 +34,7 @@ Jeder Befund nennt die Lehre, gegen die er verstösst. Damit steht auf
 beiden Seiten dasselbe: Die Lehre nennt ihr Werkzeug, das Werkzeug nennt
 seine Lehre.
 """
+
 from __future__ import annotations
 
 import ast
@@ -43,14 +44,13 @@ from .befund import Befund, Befundsatz, BefundWerkzeug
 from .vermerk import Vermerk
 
 #: Wie ein Wegwerf-Verzeichnis angelegt wird, ohne ``dir=`` zu setzen.
-TEMP_RUFE = ('mkdtemp', 'mkstemp', 'gettempdir', 'NamedTemporaryFile',
-             'TemporaryDirectory', 'TemporaryFile')
+TEMP_RUFE = ("mkdtemp", "mkstemp", "gettempdir", "NamedTemporaryFile", "TemporaryDirectory", "TemporaryFile")
 
 
 class Verstoss:
-    u"""Eine Stelle, die gegen eine Lehre verstösst."""
+    """Eine Stelle, die gegen eine Lehre verstösst."""
 
-    __slots__ = ('datei', 'zeile', 'lehre', 'was', 'warum', 'gewicht')
+    __slots__ = ("datei", "zeile", "lehre", "was", "warum", "gewicht")
 
     def __init__(self, datei, zeile, lehre, was, warum, gewicht):
         self.datei = datei
@@ -61,13 +61,16 @@ class Verstoss:
         self.gewicht = gewicht
 
     def als_befund(self):
-        return Befund('%s:%d' % (self.datei, self.zeile),
-                      u'%s (Lehre „%s")' % (self.was, self.lehre),
-                      self.warum, self.gewicht)
+        return Befund(
+            "%s:%d" % (self.datei, self.zeile),
+            '%s (Lehre „%s")' % (self.was, self.lehre),
+            self.warum,
+            self.gewicht,
+        )
 
 
 class Regelsucher(ast.NodeVisitor):
-    u"""Findet alle fünf Muster in EINEM Durchgang durch den Syntaxbaum."""
+    """Findet alle fünf Muster in EINEM Durchgang durch den Syntaxbaum."""
 
     #: Vermerk, der eine Stelle von einer Lehre ausnimmt. Er muss in den
     #: Zeilen DAVOR stehen und gehoert zu einer Begruendung — dieselbe
@@ -87,7 +90,7 @@ class Regelsucher(ast.NodeVisitor):
     #:
     #: Ohne Ausnahme bleiben beide Zeilen fuer immer in der Liste, und eine
     #: Liste mit Dauergaesten liest niemand mehr.
-    VERMERK = 'Lehre gilt hier nicht'
+    VERMERK = "Lehre gilt hier nicht"
 
     #: Der Vermerk gilt in der Funktion, in der er steht, und NUR fuer die
     #: Lehre, die er beim Namen nennt. Zwei Gruende gegen ein reines
@@ -117,7 +120,7 @@ class Regelsucher(ast.NodeVisitor):
         #: weil ``systemablage`` dieselbe Ausnahme anerkennen muss.
         self.vermerk = Vermerk(quelle)
         #: Nur wo cKDTree vorkommt, ist ein ``.query()`` eine Nachbarsuche.
-        self.hat_kdtree = 'KDTree' in quelle
+        self.hat_kdtree = "KDTree" in quelle
 
     # ── Hilfen ──────────────────────────────────────────────────
 
@@ -127,28 +130,27 @@ class Regelsucher(ast.NodeVisitor):
             return knoten.attr
         if isinstance(knoten, ast.Name):
             return knoten.id
-        return ''
+        return ""
 
     @staticmethod
     def _kette(knoten):
-        u"""``np.add.at`` -> ``'np.add.at'`` — so weit es Namen sind."""
+        """``np.add.at`` -> ``'np.add.at'`` — so weit es Namen sind."""
         teile = []
         while isinstance(knoten, ast.Attribute):
             teile.append(knoten.attr)
             knoten = knoten.value
         if isinstance(knoten, ast.Name):
             teile.append(knoten.id)
-        return '.'.join(reversed(teile))
+        return ".".join(reversed(teile))
 
     def _dazu(self, knoten, lehre, was, warum, gewicht=Befund.WARNUNG):
         if self._vermerkt(knoten.lineno, lehre):
             self.ausgenommen += 1
             return
-        self.verstoesse.append(Verstoss(self.datei, knoten.lineno, lehre,
-                                        was, warum, gewicht))
+        self.verstoesse.append(Verstoss(self.datei, knoten.lineno, lehre, was, warum, gewicht))
 
     def _vermerkt(self, zeile, lehre):
-        u"""Nimmt ein Vermerk diese Stelle von DIESER Lehre aus?"""
+        """Nimmt ein Vermerk diese Stelle von DIESER Lehre aus?"""
         return self.vermerk.gilt_nicht(zeile, lehre)
 
     #: So viele Zeichen hinter dem Vermerk darf der Name der Lehre stehen.
@@ -163,7 +165,7 @@ class Regelsucher(ast.NodeVisitor):
         self.generic_visit(knoten)
 
     def _merken(self, knoten):
-        ende = getattr(knoten, 'end_lineno', knoten.lineno) or knoten.lineno
+        ende = getattr(knoten, "end_lineno", knoten.lineno) or knoten.lineno
         self.funktionen.append((knoten.lineno, ende))
 
     # ── Der eine Durchgang ──────────────────────────────────────
@@ -174,112 +176,133 @@ class Regelsucher(ast.NodeVisitor):
         schluessel = {k.arg for k in knoten.keywords if k.arg}
 
         # 1. Wegwerf-Dateien im System-Temp statt im Projekt.
-        if name in TEMP_RUFE and 'dir' not in schluessel:
-            self._dazu(knoten, 'keine-temp-dateien-im-system',
-                       u'%s() ohne dir=' % name,
-                       u'Schreibt in den System-Temp. Ein abgebrochener Lauf '
-                       u'lässt die Dateien dort liegen, und niemand findet '
-                       u'sie wieder — `dir=` auf ein Projektverzeichnis '
-                       u'setzen.')
+        if name in TEMP_RUFE and "dir" not in schluessel:
+            self._dazu(
+                knoten,
+                "keine-temp-dateien-im-system",
+                "%s() ohne dir=" % name,
+                "Schreibt in den System-Temp. Ein abgebrochener Lauf "
+                "lässt die Dateien dort liegen, und niemand findet "
+                "sie wieder — `dir=` auf ein Projektverzeichnis "
+                "setzen.",
+            )
 
         # 2. np.unique(..., axis=...) — teuer bei Paaren.
-        if name == 'unique' and 'axis' in schluessel and 'np' in kette:
-            self._dazu(knoten, 'unique-axis-vermeiden',
-                       u'np.unique(..., axis=...)',
-                       u'Sortiert zeilenweise und ist um ein Vielfaches '
-                       u'langsamer. Paare als `a * n + b` zu int64 falten '
-                       u'und darauf np.unique anwenden.')
+        if name == "unique" and "axis" in schluessel and "np" in kette:
+            self._dazu(
+                knoten,
+                "unique-axis-vermeiden",
+                "np.unique(..., axis=...)",
+                "Sortiert zeilenweise und ist um ein Vielfaches "
+                "langsamer. Paare als `a * n + b` zu int64 falten "
+                "und darauf np.unique anwenden.",
+            )
 
         # 3. np.add.at — streuende Summen.
-        if kette.endswith('add.at'):
-            self._dazu(knoten, 'bincount-statt-add-at', u'np.add.at(...)',
-                       u'Arbeitet elementweise. `np.bincount` rechnet '
-                       u'dieselbe streuende Summe in einem Zug.')
+        if kette.endswith("add.at"):
+            self._dazu(
+                knoten,
+                "bincount-statt-add-at",
+                "np.add.at(...)",
+                "Arbeitet elementweise. `np.bincount` rechnet dieselbe streuende Summe in einem Zug.",
+            )
 
         # 4. Nachbarsuche ohne workers=-1.
-        if (self.hat_kdtree and name == 'query'
-                and 'workers' not in schluessel):
-            self._dazu(knoten, 'kdtree-workers', u'.query(...) ohne workers=',
-                       u'Läuft auf EINEM Kern. `workers=-1` nutzt alle, '
-                       u'ohne dass sich am Ergebnis etwas ändert.')
+        if self.hat_kdtree and name == "query" and "workers" not in schluessel:
+            self._dazu(
+                knoten,
+                "kdtree-workers",
+                ".query(...) ohne workers=",
+                "Läuft auf EINEM Kern. `workers=-1` nutzt alle, ohne dass sich am Ergebnis etwas ändert.",
+            )
 
         # 5. values_list(...).distinct() ohne argumentloses order_by().
-        if name == 'distinct' and self._ohne_ordnung(knoten.func):
-            self._dazu(knoten, 'meta-ordering-distinct',
-                       u'values_list(...).distinct() ohne order_by()',
-                       u'`Meta.ordering` hängt die Sortierspalten an die '
-                       u'Auswahl an — distinct sieht dann Zeilen, die sich '
-                       u'nur dort unterscheiden, und liefert Duplikate. Ein '
-                       u'argumentloses `.order_by()` davor hebt das auf.',
-                       Befund.FEHLER)
+        if name == "distinct" and self._ohne_ordnung(knoten.func):
+            self._dazu(
+                knoten,
+                "meta-ordering-distinct",
+                "values_list(...).distinct() ohne order_by()",
+                "`Meta.ordering` hängt die Sortierspalten an die "
+                "Auswahl an — distinct sieht dann Zeilen, die sich "
+                "nur dort unterscheiden, und liefert Duplikate. Ein "
+                "argumentloses `.order_by()` davor hebt das auf.",
+                Befund.FEHLER,
+            )
         self.generic_visit(knoten)
 
     def _ohne_ordnung(self, knoten):
-        u"""Steht in derselben Kette ein values_list, aber kein order_by?"""
+        """Steht in derselben Kette ein values_list, aber kein order_by?"""
         gesehen_values, gesehen_order = False, False
         while isinstance(knoten, ast.Attribute):
             knoten = knoten.value
             if isinstance(knoten, ast.Call):
                 name = self._name(knoten.func)
-                if name in ('values_list', 'values'):
+                if name in ("values_list", "values"):
                     gesehen_values = True
-                elif name == 'order_by':
+                elif name == "order_by":
                     gesehen_order = True
                 knoten = knoten.func
         return gesehen_values and not gesehen_order
 
 
 class Lehrentreue(BefundWerkzeug):
-
     kriterium = 15
-    slug = 'lehren-treue'
-    titel = u'Lehrentreue: die prüfbaren Regeln'
-    zweck = (u'Prüft die fünf Lehren, die sich am Quelltext ablesen lassen: '
-             u'Wegwerf-Dateien im System-Temp, np.unique mit axis, np.add.at, '
-             u'Nachbarsuche ohne workers, values_list().distinct() ohne '
-             u'order_by().')
-    abhilfe = (u'Nach jedem Umbau. Es sind die Fehler, die man beim zweiten '
-               u'Mal genauso macht wie beim ersten — deshalb ein Werkzeug '
-               u'und keine Erinnerung.')
-    befund = (u'Im Ursprungsprojekt hingen zehn der 22 Lehren an gar keiner '
-              u'Prüfung. Fünf davon sind Muster im Quelltext und damit '
-              u'auffindbar; die anderen fünf sind Abwägungen, für die ein '
-              u'Werkzeug nur Fehlalarme erzeugen würde.')
-    dauer = u'wenige Sekunden'
+    slug = "lehren-treue"
+    titel = "Lehrentreue: die prüfbaren Regeln"
+    zweck = (
+        "Prüft die fünf Lehren, die sich am Quelltext ablesen lassen: "
+        "Wegwerf-Dateien im System-Temp, np.unique mit axis, np.add.at, "
+        "Nachbarsuche ohne workers, values_list().distinct() ohne "
+        "order_by()."
+    )
+    abhilfe = (
+        "Nach jedem Umbau. Es sind die Fehler, die man beim zweiten "
+        "Mal genauso macht wie beim ersten — deshalb ein Werkzeug "
+        "und keine Erinnerung."
+    )
+    befund = (
+        "Im Ursprungsprojekt hingen zehn der 22 Lehren an gar keiner "
+        "Prüfung. Fünf davon sind Muster im Quelltext und damit "
+        "auffindbar; die anderen fünf sind Abwägungen, für die ein "
+        "Werkzeug nur Fehlalarme erzeugen würde."
+    )
+    dauer = "wenige Sekunden"
 
     anlassfall = Anlassfall(
-        {'rechnen.py':
-            'import numpy as np\n'
-            'import tempfile\n'
-            'from scipy.spatial import cKDTree\n'
-            '\n\n'
-            'def machen(punkte, werte, index):\n'
-            '    ordner = tempfile.mkdtemp()\n'
-            '    baum = cKDTree(punkte)\n'
-            '    abstand, nachbar = baum.query(punkte, k=2)\n'
-            '    paare = np.unique(punkte, axis=0)\n'
-            '    summe = np.zeros(10)\n'
-            '    np.add.at(summe, index, werte)\n'
-            '    return ordner, abstand, nachbar, paare, summe\n',
-         'sauber.py':
-            'import numpy as np\n'
-            'import tempfile\n'
-            '\n\n'
-            'def machen(werte, index):\n'
+        {
+            "rechnen.py": "import numpy as np\n"
+            "import tempfile\n"
+            "from scipy.spatial import cKDTree\n"
+            "\n\n"
+            "def machen(punkte, werte, index):\n"
+            "    ordner = tempfile.mkdtemp()\n"
+            "    baum = cKDTree(punkte)\n"
+            "    abstand, nachbar = baum.query(punkte, k=2)\n"
+            "    paare = np.unique(punkte, axis=0)\n"
+            "    summe = np.zeros(10)\n"
+            "    np.add.at(summe, index, werte)\n"
+            "    return ordner, abstand, nachbar, paare, summe\n",
+            "sauber.py": "import numpy as np\n"
+            "import tempfile\n"
+            "\n\n"
+            "def machen(werte, index):\n"
             "    ordner = tempfile.mkdtemp(dir='projekt/tmp')\n"
-            '    summe = np.bincount(index, weights=werte, minlength=10)\n'
-            '    return ordner, summe\n'},
-        mindestens=4, erwartet_in='add.at',
-        warum=u'Vier verschiedene Muster in einer Datei — und die zweite '
-              u'Datei macht dasselbe richtig und darf nicht mitgemeldet '
-              u'werden')
+            "    summe = np.bincount(index, weights=werte, minlength=10)\n"
+            "    return ordner, summe\n",
+        },
+        mindestens=4,
+        erwartet_in="add.at",
+        warum="Vier verschiedene Muster in einer Datei — und die zweite "
+        "Datei macht dasselbe richtig und darf nicht mitgemeldet "
+        "werden",
+    )
 
     # ------------------------------------------------------------------
     def pruefen(self, **_argumente):
         befunde, gelesen, ausgenommen = [], 0, 0
-        for datei in self.projektdateien('.py'):
+        for datei in self.projektdateien(".py"):
             try:
-                quelle = datei.read_text(encoding='utf-8', errors='replace')
+                quelle = datei.read_text(encoding="utf-8", errors="replace")
                 baum = ast.parse(quelle)
             except (SyntaxError, OSError, ValueError):
                 continue
@@ -291,18 +314,20 @@ class Lehrentreue(BefundWerkzeug):
 
         je_lehre = {}
         for v in befunde:
-            lehre = v.was.rsplit(u'„', 1)[-1].rstrip(u'")')
+            lehre = v.was.rsplit("„", 1)[-1].rstrip('")')
             je_lehre[lehre] = je_lehre.get(lehre, 0) + 1
-        kopf = ['%d Dateien gelesen' % gelesen,
-                '%d Verstoß/Verstöße gegen die fünf prüfbaren Lehren'
-                % len(befunde)]
+        kopf = [
+            "%d Dateien gelesen" % gelesen,
+            "%d Verstoß/Verstöße gegen die fünf prüfbaren Lehren" % len(befunde),
+        ]
         for lehre, zahl in sorted(je_lehre.items(), key=lambda p: -p[1]):
-            kopf.append('  %-32s %d' % (lehre, zahl))
+            kopf.append("  %-32s %d" % (lehre, zahl))
         if ausgenommen:
             # Nie verschweigen: Ein Vermerk, den niemand sieht, ist eine
             # Hintertuer.
-            kopf.append(u'%d Stelle(n) durch den Vermerk „%s" ausgenommen'
-                        % (ausgenommen, Regelsucher.VERMERK))
+            kopf.append(
+                '%d Stelle(n) durch den Vermerk „%s" ausgenommen' % (ausgenommen, Regelsucher.VERMERK)
+            )
         if not befunde:
-            kopf.append('Keiner — die prüfbaren Lehren werden gehalten.')
+            kopf.append("Keiner — die prüfbaren Lehren werden gehalten.")
         return Befundsatz(self.titel, kopf, befunde)

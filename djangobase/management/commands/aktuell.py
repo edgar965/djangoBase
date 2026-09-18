@@ -24,6 +24,7 @@ einfache Anfuehrungszeichen oder besser stdin:
     manage.py aktuell --titel "Fix" --text 'Behoben mit `or`: a or b'
     printf '%s' "$TEXT" | manage.py aktuell --titel "Fix"
 """
+
 import sys
 
 from django.core.management.base import BaseCommand, CommandError
@@ -36,16 +37,13 @@ class Command(BaseCommand):
 
     def add_arguments(self, p):
         p.add_argument("--titel", default="", help="Kopfzeile des Eintrags")
-        p.add_argument("--text", default=None,
-                       help="Inhalt (fehlt er, wird stdin gelesen)")
-        p.add_argument("--art", default="notiz",
-                       help="notiz | befund | fix | messung | offen | frage")
-        p.add_argument("--quelle", default="claude-cli",
-                       help="Wer hat es geschrieben (Vorgabe: claude-cli)")
-        p.add_argument("--leeren", action="store_true",
-                       help="Das Fenster leeren (fragt nicht nach)")
-        p.add_argument("--zeigen", type=int, default=0,
-                       help="Die letzten N Einträge ausgeben statt zu schreiben")
+        p.add_argument("--text", default=None, help="Inhalt (fehlt er, wird stdin gelesen)")
+        p.add_argument("--art", default="notiz", help="notiz | befund | fix | messung | offen | frage")
+        p.add_argument("--quelle", default="claude-cli", help="Wer hat es geschrieben (Vorgabe: claude-cli)")
+        p.add_argument("--leeren", action="store_true", help="Das Fenster leeren (fragt nicht nach)")
+        p.add_argument(
+            "--zeigen", type=int, default=0, help="Die letzten N Einträge ausgeben statt zu schreiben"
+        )
 
     def handle(self, *args, **o):
         f = feed()
@@ -71,11 +69,16 @@ class Command(BaseCommand):
 
         art = o["art"].strip().lower()
         if art not in ARTEN:
-            self.stdout.write(self.style.WARNING(
-                "Unbekannte Art %r — wird ungefaerbt angezeigt (bekannt: %s)"
-                % (art, ", ".join(ARTEN))))
+            self.stdout.write(
+                self.style.WARNING(
+                    "Unbekannte Art %r — wird ungefaerbt angezeigt (bekannt: %s)" % (art, ", ".join(ARTEN))
+                )
+            )
 
         e = f.anhaengen(o["titel"], text=text, art=art, quelle=o["quelle"])
-        self.stdout.write(self.style.SUCCESS(
-            "%s  [%s]  %s  (%d Zeichen Text) -> %s"
-            % (e["zeit"], e["art"], e["titel"], len(e["text"]), f.pfad)))
+        self.stdout.write(
+            self.style.SUCCESS(
+                "%s  [%s]  %s  (%d Zeichen Text) -> %s"
+                % (e["zeit"], e["art"], e["titel"], len(e["text"]), f.pfad)
+            )
+        )

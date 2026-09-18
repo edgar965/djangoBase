@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Leserzahl - wie viele Funktionen lesen dieses Rueckgabe-Woerterbuch?
+"""Leserzahl - wie viele Funktionen lesen dieses Rueckgabe-Woerterbuch?
 
 WOZU (16.08.2026)
 =================
@@ -30,6 +30,7 @@ Was uebrig bleibt und hier steht:
 Das Werkzeug ZEIGT die Zahlen; es aendert nichts. Wer eine Ausnahme darauf
 stuetzt, kann sie hier nachrechnen.
 """
+
 import ast
 from collections import Counter
 
@@ -78,26 +79,27 @@ class Leserzaehlung:
                     if not gerufen or gerufen == getattr(traeger, "name", None):
                         continue
                     if isinstance(k.func, ast.Attribute) and gerufen in eindeutig:
-                        aus.setdefault((eindeutig[gerufen], gerufen),
-                                       set()).add(wer)
+                        aus.setdefault((eindeutig[gerufen], gerufen), set()).add(wer)
                         continue
-                    for (heimat, fname) in eigene:
-                        if fname == gerufen and (
-                                name == heimat or
-                                name in importiert.get(gerufen, set())):
+                    for heimat, fname in eigene:
+                        if fname == gerufen and (name == heimat or name in importiert.get(gerufen, set())):
                             aus.setdefault((heimat, gerufen), set()).add(wer)
         return {s: sorted(v) for s, v in aus.items()}
 
     @staticmethod
     def _traeger(baum):
         """Jede Funktion PLUS die Modulebene - beide können Leser sein."""
-        aus = [k for k in ast.walk(baum)
-               if isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef))]
-        aus.append(ast.Module(
-            body=[k for k in baum.body
-                  if not isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef,
-                                        ast.ClassDef))],
-            type_ignores=[]))
+        aus = [k for k in ast.walk(baum) if isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef))]
+        aus.append(
+            ast.Module(
+                body=[
+                    k
+                    for k in baum.body
+                    if not isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+                ],
+                type_ignores=[],
+            )
+        )
         return aus
 
     @staticmethod
@@ -112,15 +114,21 @@ class Leserzaehlung:
 class LeserzahlWerkzeug(Werkzeug):
     slug = "leserzahl"
     titel = "Rückgabe-Wörterbücher: wie viele Leser?"
-    zweck = ("Zählt je Rückgabe-Dictionary, wie viele Funktionen es wirklich "
-             "lesen — die zweite Hälfte der Kriterium-11-Bedingung.")
-    befund = ("An 68 Befunden gemessen: Die Zählweise ging dreimal daneben, "
-              "bevor sie stimmte (nur eigenes Modul: 62 von 68 hätten höchstens "
-              "einen Leser; reiner Namensabgleich: 272 „Leser“ für eine "
-              "Funktion ``kennzahlen``). Deshalb steht sie hier nachrechenbar.")
-    abhilfe = ("Zwei oder mehr Leser: Klasse bauen (Fixer „Rückgabe-Dictionary "
-               "in eine Klasse überführen“). Einer oder keiner: liegen lassen — "
-               "das ist kein Datentyp, der durch das Programm wandert.")
+    zweck = (
+        "Zählt je Rückgabe-Dictionary, wie viele Funktionen es wirklich "
+        "lesen — die zweite Hälfte der Kriterium-11-Bedingung."
+    )
+    befund = (
+        "An 68 Befunden gemessen: Die Zählweise ging dreimal daneben, "
+        "bevor sie stimmte (nur eigenes Modul: 62 von 68 hätten höchstens "
+        "einen Leser; reiner Namensabgleich: 272 „Leser“ für eine "
+        "Funktion ``kennzahlen``). Deshalb steht sie hier nachrechenbar."
+    )
+    abhilfe = (
+        "Zwei oder mehr Leser: Klasse bauen (Fixer „Rückgabe-Dictionary "
+        "in eine Klasse überführen“). Einer oder keiner: liegen lassen — "
+        "das ist kein Datentyp, der durch das Programm wandert."
+    )
     kriterium = 11
     dauer = "30–45 s"
 
@@ -132,7 +140,8 @@ class LeserzahlWerkzeug(Werkzeug):
     #: rufen ueber den Modulnamen; die Zaehlung ist dreimal daneben gegangen,
     #: bevor sie beides erfasste (siehe Modulkopf).
     anlassfall = Anlassfall(
-        {"kennzahlen.py": '''def bilanz(werte):
+        {
+            "kennzahlen.py": """def bilanz(werte):
     return {"n": len(werte), "summe": sum(werte),
             "min": min(werte), "max": max(werte)}
 
@@ -145,10 +154,12 @@ def anzeigen(werte):
 def pruefen(werte):
     b = bilanz(werte)
     return b["max"] > b["min"]
-'''},
+"""
+        },
         erwartet_in="bilanz",
         warum="Kriterium 11 verlangt mehrere Leser — die zweite Hälfte der "
-              "Bedingung zählte fast kein Prüfwerk mit")
+        "Bedingung zählte fast kein Prüfwerk mit",
+    )
 
     def laufen(self):
         baeume = {}
@@ -175,29 +186,39 @@ def pruefen(werte):
                 if not isinstance(f, (ast.FunctionDef, ast.AsyncFunctionDef)):
                     continue
                 for k in ast.walk(f):
-                    if not isinstance(k, ast.Return) or \
-                            not isinstance(k.value, ast.Dict):
+                    if not isinstance(k, ast.Return) or not isinstance(k.value, ast.Dict):
                         continue
-                    feste = [s.value for s in k.value.keys
-                             if isinstance(s, ast.Constant) and
-                             isinstance(s.value, str)]
+                    feste = [
+                        s.value
+                        for s in k.value.keys
+                        if isinstance(s, ast.Constant) and isinstance(s.value, str)
+                    ]
                     if len(feste) < self.MIN_SCHLUESSEL:
                         continue
                     leser = zaehlung.zahlen.get((name, f.name), [])
                     verteilung[min(len(leser), 3)] += 1
-                    zeilen.append({
-                        "datei": name, "funktion": f.name,
-                        "schlüssel": len(feste), "leser": len(leser),
-                        "wer liest": ", ".join(leser[:3]) or "—"})
+                    zeilen.append(
+                        {
+                            "datei": name,
+                            "funktion": f.name,
+                            "schlüssel": len(feste),
+                            "leser": len(leser),
+                            "wer liest": ", ".join(leser[:3]) or "—",
+                        }
+                    )
         zeilen.sort(key=lambda z: (-z["leser"], -z["schlüssel"]))
         mehrere = sum(n for k, n in verteilung.items() if k >= 2)
         return Ergebnis(
-            list(self.SPALTEN), zeilen,
+            list(self.SPALTEN),
+            zeilen,
             "%d Rückgabe-Wörterbücher mit mindestens %d Schlüsseln; %d davon "
             "haben zwei oder mehr Leser und erfüllen Kriterium 11 wirklich"
             "%s."
-            % (len(zeilen), self.MIN_SCHLUESSEL, mehrere,
-               "; %d Prüfdateien zählen nicht mit" % self._pruefungen
-               if self._pruefungen else ""),
-            "Ein einzelner Leser ist kein Datentyp: Dort bleibt das Dictionary "
-            "ein lokales Zwischenergebnis.")
+            % (
+                len(zeilen),
+                self.MIN_SCHLUESSEL,
+                mehrere,
+                "; %d Prüfdateien zählen nicht mit" % self._pruefungen if self._pruefungen else "",
+            ),
+            "Ein einzelner Leser ist kein Datentyp: Dort bleibt das Dictionary ein lokales Zwischenergebnis.",
+        )

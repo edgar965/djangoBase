@@ -13,6 +13,7 @@ Geprüft wird, was an einem Feed schiefgehen kann, ohne dass es auffällt:
 * **Der Schreibweg ist der Verwaltungsbefehl, nicht HTTP.** Es darf keinen
   Endpunkt geben, über den eine fremde Webseite in den Feed schreibt.
 """
+
 import json
 import tempfile
 from io import StringIO
@@ -24,7 +25,7 @@ from django.test import override_settings
 from django.urls import reverse
 
 from djangobase.aktuell import AktuellFeed
-from djangobase.tests.base import BasisTest, StoreIsolationMixin
+from djangobase.tests.base import BasisTest
 
 
 class AktuellFeedTest(BasisTest):
@@ -68,8 +69,9 @@ class AktuellFeedTest(BasisTest):
         # 18 geschrieben; beim 16. wurde auf 5 gekuerzt, danach kamen zwei dazu.
         # Die Zusage lautet „hoechstens MAX + LUFT" — nicht „genau MAX".
         anzahl = len(self.feed.lesen())
-        self.assertLessEqual(anzahl, self.feed.MAX_EINTRAEGE + self.feed.LUFT,
-                             "ab MAX+LUFT muss gekuerzt werden")
+        self.assertLessEqual(
+            anzahl, self.feed.MAX_EINTRAEGE + self.feed.LUFT, "ab MAX+LUFT muss gekuerzt werden"
+        )
         self.assertLess(anzahl, 18, "es wurde gar nicht gekuerzt")
         self.assertEqual(self.feed.lesen()[0]["titel"], "noch 5", "neuester fehlt")
 
@@ -94,16 +96,16 @@ class AktuellFeedTest(BasisTest):
                 dazwischen["getan"] = True
                 # Ein zweiter Schreiber, GENAU im kritischen Fenster.
                 with open(selbst.pfad, "a", encoding="utf-8") as f:
-                    f.write('{"zeit": "x", "titel": "dazwischen", "art": "notiz", '
-                            '"quelle": "", "text": ""}\n')
+                    f.write(
+                        '{"zeit": "x", "titel": "dazwischen", "art": "notiz", "quelle": "", "text": ""}\n'
+                    )
             return echtes_lesen(selbst)
 
         with mock.patch.object(AktuellFeed, "_datei_kuerzen", kuerzen_mit_stoerung):
             self.feed.anhaengen("neu")
 
         titel = [e["titel"] for e in self.feed.lesen()]
-        self.assertIn("dazwischen", titel,
-                      "der gleichzeitige Eintrag wurde beim Kuerzen überschrieben")
+        self.assertIn("dazwischen", titel, "der gleichzeitige Eintrag wurde beim Kuerzen überschrieben")
         self.assertIn("neu", titel)
 
     def test_sperre_verhindert_gleichzeitiges_kuerzen(self):
@@ -113,11 +115,12 @@ class AktuellFeedTest(BasisTest):
         for i in range(8):
             self.feed.anhaengen("e %d" % i)
         sperre = self.feed.pfad.with_suffix(self.feed.pfad.suffix + ".lock")
-        sperre.write_text("", encoding="utf-8")     # fremder Prozess kürzt gerade
+        sperre.write_text("", encoding="utf-8")  # fremder Prozess kürzt gerade
         try:
             self.feed.anhaengen("während der Sperre")
-            self.assertGreater(len(self.feed.lesen()), self.feed.MAX_EINTRAEGE,
-                               "trotz fremder Sperre gekuerzt")
+            self.assertGreater(
+                len(self.feed.lesen()), self.feed.MAX_EINTRAEGE, "trotz fremder Sperre gekuerzt"
+            )
             self.assertEqual(self.feed.lesen()[0]["titel"], "während der Sperre")
         finally:
             sperre.unlink()
@@ -125,7 +128,7 @@ class AktuellFeedTest(BasisTest):
     def test_kaputte_zeile_wird_uebersprungen(self):
         self.feed.anhaengen("gut 1")
         with open(self.datei, "a", encoding="utf-8") as f:
-            f.write('{"titel": "halb geschrieben\n')      # abgebrochene Zeile
+            f.write('{"titel": "halb geschrieben\n')  # abgebrochene Zeile
         self.feed.anhaengen("gut 2")
         titel = [e["titel"] for e in self.feed.lesen()]
         self.assertEqual(titel, ["gut 2", "gut 1"])
@@ -166,8 +169,9 @@ class AktuellBefehlTest(BasisTest):
     def test_befehl_schreibt_eintrag(self):
         with self.settings(DJANGOBASE={"aktuell_datei": str(self.datei)}):
             aus = StringIO()
-            call_command("aktuell", "--titel", "Aus der CLI", "--art", "fix",
-                         "--text", "56 Tests grün", stdout=aus)
+            call_command(
+                "aktuell", "--titel", "Aus der CLI", "--art", "fix", "--text", "56 Tests grün", stdout=aus
+            )
             self.assertIn("Aus der CLI", aus.getvalue())
             eintraege = AktuellFeed(self.datei).lesen()
         self.assertEqual(eintraege[0]["titel"], "Aus der CLI")
@@ -176,6 +180,7 @@ class AktuellBefehlTest(BasisTest):
 
     def test_befehl_ohne_titel_scheitert(self):
         from django.core.management.base import CommandError
+
         with self.settings(DJANGOBASE={"aktuell_datei": str(self.datei)}):
             with self.assertRaises(CommandError):
                 call_command("aktuell", "--text", "ohne Titel", stdout=StringIO())
@@ -217,8 +222,7 @@ class AktuellSeiteTest(BasisTest):
         """Geschrieben wird über den Verwaltungsbefehl. Ein POST auf die Seite
         darf nichts anlegen — sonst könnte eine fremde Webseite den Feed füllen."""
         with self.settings(DJANGOBASE={"zugriff": "staff", "aktuell_datei": str(self.datei)}):
-            a = self.staff_client().post(reverse("djangobase:aktuell"),
-                                         data={"titel": "geschmuggelt"})
+            a = self.staff_client().post(reverse("djangobase:aktuell"), data={"titel": "geschmuggelt"})
             self.assertIn(a.status_code, (403, 405))
             self.assertEqual(AktuellFeed(self.datei).lesen(), [])
 

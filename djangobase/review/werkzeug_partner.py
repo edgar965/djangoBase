@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""WerkzeugPartner — ein lokales Pruefwerkzeug als Gegenueber statt eines Modells.
+"""WerkzeugPartner — ein lokales Pruefwerkzeug als Gegenueber statt eines Modells.
 
 WOZU (31.08.2026)
 -----------------
@@ -37,6 +37,7 @@ vermutetes Format zerlegt, wuerde bei der ersten Formatänderung still das
 Falsche anzeigen — und ein Review, das Befunde verschluckt, ist schlimmer als
 keins.
 """
+
 import logging
 import os
 import re
@@ -56,7 +57,7 @@ _ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
 
 
 class WerkzeugPartner:
-    u"""Startet ein Pruefwerkzeug und gibt dessen Ausgabe als „Antwort" zurueck."""
+    """Startet ein Pruefwerkzeug und gibt dessen Ausgabe als „Antwort" zurueck."""
 
     #: Kennzeichnung in der Konfiguration (``ziel``).
     ZIEL = "werkzeug"
@@ -68,9 +69,21 @@ class WerkzeugPartner:
     #: Ein Review dauert je nach Umfang eine bis fuenf Minuten.
     TIMEOUT = 900
 
-    def __init__(self, slug, name, befehl, wurzel, *, modell="", timeout=None,
-                 auswahl=None, auswahlen=None, schluessel_datei=None,
-                 schluessel_argument=None, umgebung=None):
+    def __init__(
+        self,
+        slug,
+        name,
+        befehl,
+        wurzel,
+        *,
+        modell="",
+        timeout=None,
+        auswahl=None,
+        auswahlen=None,
+        schluessel_datei=None,
+        schluessel_argument=None,
+        umgebung=None,
+    ):
         self.slug = slug
         self.name = name or slug
         self.ziel = self.ZIEL
@@ -86,8 +99,8 @@ class WerkzeugPartner:
         # Fall „nimm die erste".
         if auswahl and auswahl not in self.auswahlen:
             raise ReviewFehler(
-                u"Unbekannte Auswahl %r — bekannt sind: %s"
-                % (auswahl, ", ".join(self.auswahlen) or u"(keine)"))
+                "Unbekannte Auswahl %r — bekannt sind: %s" % (auswahl, ", ".join(self.auswahlen) or "(keine)")
+            )
         self.auswahl = auswahl or self._erste_auswahl()
         #: Datei mit dem Zugangsschluessel — EINE Zeile, ausserhalb des Projekts.
         #:
@@ -115,13 +128,12 @@ class WerkzeugPartner:
         #: einem Modell der Modellname steht.
         self.modell = modell or " ".join(self.befehl) or slug
         #: Damit die Seite denselben Verlauf zeigen kann wie bei einem Modell.
-        self.verlauf = [{"role": "system", "content":
-                         u"Pruefwerkzeug: %s" % self.modell}]
+        self.verlauf = [{"role": "system", "content": "Pruefwerkzeug: %s" % self.modell}]
         self.verbrauch = []
 
     @classmethod
     def _auswahlen_lesen(cls, auswahlen):
-        u"""``{Wert: [Argumente]}`` aus der Konfiguration.
+        """``{Wert: [Argumente]}`` aus der Konfiguration.
 
         Zwei Schreibweisen sind erlaubt, weil sie zwei Zwecken dienen:
 
@@ -144,7 +156,7 @@ class WerkzeugPartner:
 
     @staticmethod
     def anzeige_auswahlen(partner_cfg):
-        u"""``[{wert, name}]`` fuer die Seite — ohne die Argumente.
+        """``[{wert, name}]`` fuer die Seite — ohne die Argumente.
 
         Die Kommandozeile gehoert nicht ins HTML: Sie ist Serversache, und im
         Browser waere sie eine Einladung, daran zu drehen.
@@ -152,14 +164,17 @@ class WerkzeugPartner:
         auswahlen = (partner_cfg or {}).get("auswahlen") or []
         if isinstance(auswahlen, dict):
             return [{"wert": k, "name": k} for k in auswahlen]
-        return [{"wert": e.get("wert", ""), "name": e.get("name") or e.get("wert", "")}
-                for e in auswahlen if (e or {}).get("wert")]
+        return [
+            {"wert": e.get("wert", ""), "name": e.get("name") or e.get("wert", "")}
+            for e in auswahlen
+            if (e or {}).get("wert")
+        ]
 
     def _erste_auswahl(self):
         return next(iter(self.auswahlen), "")
 
     def _befehl_bauen(self, mit_schluessel):
-        u"""Der volle Aufruf. ``mit_schluessel=False`` fuer die Anzeige.
+        """Der volle Aufruf. ``mit_schluessel=False`` fuer die Anzeige.
 
         Der Schluessel darf in die Kommandozeile, aber NIE in die Mitschrift
         auf der Platte und nie ins HTML: Beide werden gelesen, weitergegeben
@@ -171,11 +186,10 @@ class WerkzeugPartner:
         schluessel = self._schluessel()
         if not schluessel:
             return befehl
-        return befehl + [self.schluessel_argument,
-                         schluessel if mit_schluessel else u"…"]
+        return befehl + [self.schluessel_argument, schluessel if mit_schluessel else "…"]
 
     def _schluessel(self):
-        u"""Erste Zeile der Schluesseldatei — oder leer.
+        """Erste Zeile der Schluesseldatei — oder leer.
 
         Kein Absturz, wenn die Datei fehlt: Dann laeuft das Werkzeug ohne
         Schluessel und sagt selbst, dass es keinen hat. Diese Meldung ist
@@ -187,32 +201,33 @@ class WerkzeugPartner:
             pfad = Path(self.schluessel_datei).expanduser()
             return pfad.read_text(encoding="utf-8").strip().splitlines()[0].strip()
         except (OSError, IndexError) as e:
-            logger.warning("Schluesseldatei '%s' nicht lesbar: %s",
-                           self.schluessel_datei, e)
+            logger.warning("Schluesseldatei '%s' nicht lesbar: %s", self.schluessel_datei, e)
             return ""
 
     def auftrag(self, frage=""):
-        u"""Der Text, der als „Frage" im Verlauf und in der Mitschrift steht.
+        """Der Text, der als „Frage" im Verlauf und in der Mitschrift steht.
 
         Er nennt AUSDRUeCKLICH, was geprueft wird — sonst steht in der
         Mitschrift ein Bereichsname, und geprueft wurde der Diff.
         """
-        teile = [u"# Pruefwerkzeug: %s" % self.name,
-                 u"",
-                 # OHNE Schluessel: Dieser Text landet in der Mitschrift.
-                 u"Aufruf: `%s`" % " ".join(self._befehl_bauen(mit_schluessel=False)),
-                 u"Verzeichnis: `%s`" % self.wurzel,
-                 u"",
-                 u"Geprueft wird der Git-Stand dieses Verzeichnisses — NICHT "
-                 u"die auf der Seite gewaehlten Codebereiche."]
+        teile = [
+            "# Pruefwerkzeug: %s" % self.name,
+            "",
+            # OHNE Schluessel: Dieser Text landet in der Mitschrift.
+            "Aufruf: `%s`" % " ".join(self._befehl_bauen(mit_schluessel=False)),
+            "Verzeichnis: `%s`" % self.wurzel,
+            "",
+            "Geprueft wird der Git-Stand dieses Verzeichnisses — NICHT "
+            "die auf der Seite gewaehlten Codebereiche.",
+        ]
         if frage.strip():
-            teile += [u"", u"## Notiz", u"", frage.strip()]
+            teile += ["", "## Notiz", "", frage.strip()]
         return "\n".join(teile)
 
     # ------------------------------------------------------------------ fragen
 
     def fragen(self, text):
-        u"""Das Werkzeug starten. ``text`` ist der Auftrag, nicht die Eingabe.
+        """Das Werkzeug starten. ``text`` ist der Auftrag, nicht die Eingabe.
 
         Der Auftragstext geht NICHT an das Werkzeug — es nimmt keine Frage
         entgegen. Er steht im Verlauf und in der Mitschrift, damit spaeter
@@ -226,29 +241,36 @@ class WerkzeugPartner:
         if not befehl:
             self.verlauf.pop()
             raise ReviewFehler(
-                u"Fuer %s ist kein Befehl konfiguriert (``befehl`` in "
-                u"DJANGOBASE[\"review_partner\"])." % self.name)
+                "Fuer %s ist kein Befehl konfiguriert (``befehl`` in "
+                'DJANGOBASE["review_partner"]).' % self.name
+            )
         t0 = time.time()
         try:
             ergebnis = subprocess.run(
-                befehl, cwd=str(self.wurzel), capture_output=True, text=True,
-                encoding="utf-8", errors="replace", timeout=self.timeout,
-                shell=False, stdin=subprocess.DEVNULL,
-                env=(dict(os.environ, **self.umgebung) if self.umgebung else None))
+                befehl,
+                cwd=str(self.wurzel),
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=self.timeout,
+                shell=False,
+                stdin=subprocess.DEVNULL,
+                env=(dict(os.environ, **self.umgebung) if self.umgebung else None),
+            )
         except FileNotFoundError as e:
             self.verlauf.pop()
             raise ReviewFehler(
-                u"Werkzeug nicht gefunden: %s. Ist es installiert und im PATH "
-                u"des Serverprozesses? (Der PATH einer geplanten Aufgabe ist "
-                u"nicht der der Anmeldesitzung.)" % befehl[0]) from e
+                "Werkzeug nicht gefunden: %s. Ist es installiert und im PATH "
+                "des Serverprozesses? (Der PATH einer geplanten Aufgabe ist "
+                "nicht der der Anmeldesitzung.)" % befehl[0]
+            ) from e
         except subprocess.TimeoutExpired as e:
             self.verlauf.pop()
-            raise ReviewFehler(u"%s hat nach %d s nicht geantwortet."
-                               % (befehl[0], self.timeout)) from e
+            raise ReviewFehler("%s hat nach %d s nicht geantwortet." % (befehl[0], self.timeout)) from e
         except OSError as e:
             self.verlauf.pop()
-            raise ReviewFehler(u"%s liess sich nicht starten: %s"
-                               % (befehl[0], e)) from e
+            raise ReviewFehler("%s liess sich nicht starten: %s" % (befehl[0], e)) from e
 
         dauer = time.time() - t0
         ausgabe = self._saeubern(ergebnis.stdout)
@@ -256,24 +278,23 @@ class WerkzeugPartner:
 
         if ergebnis.returncode != 0 and not ausgabe.strip():
             self.verlauf.pop()
-            raise ReviewFehler(self._klartext(befehl[0], ergebnis.returncode,
-                                              fehlertext))
+            raise ReviewFehler(self._klartext(befehl[0], ergebnis.returncode, fehlertext))
         if ergebnis.returncode != 0:
             # Ausgabe DA, Ende-Code schlecht: Beides zeigen. Ein Werkzeug, das
             # Befunde liefert und trotzdem mit 1 endet, ist der Normalfall bei
             # Pruefwerkzeugen — die Befunde sind die Nachricht.
-            ausgabe += (u"\n\n---\n_Ende-Code %d_" % ergebnis.returncode)
+            ausgabe += "\n\n---\n_Ende-Code %d_" % ergebnis.returncode
             if fehlertext.strip():
-                ausgabe += u"\n\n```\n%s\n```" % fehlertext.strip()
+                ausgabe += "\n\n```\n%s\n```" % fehlertext.strip()
 
-        antwort = ausgabe.strip() or u"_Das Werkzeug hat nichts ausgegeben._"
+        antwort = ausgabe.strip() or "_Das Werkzeug hat nichts ausgegeben._"
         hinweis = self._hinweis_zur_ausgabe(antwort, befehl[0])
         if hinweis:
-            antwort = hinweis + u"\n\n---\n\n" + antwort
+            antwort = hinweis + "\n\n---\n\n" + antwort
         self.verlauf.append({"role": "assistant", "content": antwort})
-        self.verbrauch.append({"sekunden": round(dauer, 1),
-                               "ende_code": ergebnis.returncode,
-                               "zeichen": len(antwort)})
+        self.verbrauch.append(
+            {"sekunden": round(dauer, 1), "ende_code": ergebnis.returncode, "zeichen": len(antwort)}
+        )
         return antwort
 
     # ------------------------------------------------------------------ Hilfen
@@ -284,7 +305,7 @@ class WerkzeugPartner:
 
     @staticmethod
     def _hinweis_zur_ausgabe(ausgabe, werkzeug):
-        u"""Ein deutscher Satz VOR eine englische Absage setzen — wo er hilft.
+        """Ein deutscher Satz VOR eine englische Absage setzen — wo er hilft.
 
         Der Serverprozess hat kein Terminal. Die CodeRabbit-CLI antwortet
         darauf mit „Non-interactive environment detected. Use --api-key for
@@ -300,20 +321,24 @@ class WerkzeugPartner:
         """
         niedrig = (ausgabe or "").lower()
         if "non-interactive" in niedrig and "api-key" in niedrig:
-            return (u"**Nicht angemeldet — der Serverprozess hat kein Terminal.** "
-                    u"Einmalig in einer Konsole:\n\n"
-                    u"```\n%s auth login --api-key cr-…\n```\n\n"
-                    u"Den Schlüssel gibt es auf app.coderabbit.ai unter „API Keys“. "
-                    u"Danach laufen die Prüfungen von dieser Seite aus ohne "
-                    u"weitere Angabe." % werkzeug)
+            return (
+                "**Nicht angemeldet — der Serverprozess hat kein Terminal.** "
+                "Einmalig in einer Konsole:\n\n"
+                "```\n%s auth login --api-key cr-…\n```\n\n"
+                "Den Schlüssel gibt es auf app.coderabbit.ai unter „API Keys“. "
+                "Danach laufen die Prüfungen von dieser Seite aus ohne "
+                "weitere Angabe." % werkzeug
+            )
         if "rate limit" in niedrig or "too many requests" in niedrig:
-            return (u"**Kontingent erschöpft.** Im kostenlosen Plan sind es drei "
-                    u"Läufe je Stunde (Pro fünf, Pro+ zehn).")
+            return (
+                "**Kontingent erschöpft.** Im kostenlosen Plan sind es drei "
+                "Läufe je Stunde (Pro fünf, Pro+ zehn)."
+            )
         return ""
 
     @staticmethod
     def _klartext(werkzeug, code, fehlertext):
-        u"""Aus einem Ende-Code eine Zeile machen, die weiterhilft.
+        """Aus einem Ende-Code eine Zeile machen, die weiterhilft.
 
         Die haeufigsten Faelle stehen zuerst — wer die Seite benutzt, soll
         nicht in einem Stapel englischer Zeilen nach dem Grund suchen. Was
@@ -321,17 +346,26 @@ class WerkzeugPartner:
         """
         knapp = (fehlertext or "").strip()
         niedrig = knapp.lower()
-        if "auth" in niedrig or "log in" in niedrig or "sign in" in niedrig \
-                or "unauthorized" in niedrig or "401" in niedrig:
-            return (u"%s ist nicht angemeldet. Einmalig `%s auth login` in einer "
-                    u"Konsole ausfuehren — der Anmeldevorgang oeffnet den "
-                    u"Browser.\n\n%s" % (werkzeug, werkzeug, knapp))
+        if (
+            "auth" in niedrig
+            or "log in" in niedrig
+            or "sign in" in niedrig
+            or "unauthorized" in niedrig
+            or "401" in niedrig
+        ):
+            return (
+                "%s ist nicht angemeldet. Einmalig `%s auth login` in einer "
+                "Konsole ausfuehren — der Anmeldevorgang oeffnet den "
+                "Browser.\n\n%s" % (werkzeug, werkzeug, knapp)
+            )
         if "rate limit" in niedrig or "too many" in niedrig or "429" in niedrig:
-            return (u"%s meldet, dass das Kontingent erschoepft ist. Im "
-                    u"kostenlosen Plan sind es drei Laeufe je Stunde.\n\n%s"
-                    % (werkzeug, knapp))
+            return (
+                "%s meldet, dass das Kontingent erschoepft ist. Im "
+                "kostenlosen Plan sind es drei Laeufe je Stunde.\n\n%s" % (werkzeug, knapp)
+            )
         if "not a git repository" in niedrig:
-            return (u"Das Verzeichnis ist kein Git-Repository — %s prueft den "
-                    u"Diff und braucht eines.\n\n%s" % (werkzeug, knapp))
-        return u"%s endete mit Code %d.\n\n%s" % (werkzeug, code,
-                                                  knapp or u"(keine Meldung)")
+            return "Das Verzeichnis ist kein Git-Repository — %s prueft den Diff und braucht eines.\n\n%s" % (
+                werkzeug,
+                knapp,
+            )
+        return "%s endete mit Code %d.\n\n%s" % (werkzeug, code, knapp or "(keine Meldung)")

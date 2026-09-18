@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Tests fuer den Skills2-Werkzeugkasten.
+"""Tests fuer den Skills2-Werkzeugkasten.
 
 Skills2 liegt in djangoBase und laeuft damit in SECHS Projekten. Ein Werkzeug,
 das dort eine Ausnahme wirft, zerlegt eine Hilfe-Seite, die jemand gerade
@@ -15,15 +15,14 @@ braucht. Deshalb haelt dieser Test drei Dinge fest:
    ``in der Schleife gewollt``) stufen einen Befund ab. Ohne diesen Test faellt
    ein kaputter Marker erst auf, wenn jemand eine Ausnahmeliste vermisst.
 """
+
 import tempfile
 from pathlib import Path
 
 from django.test import override_settings
 
-from djangobase.skills import (KRITERIEN, LEHREN, OHNE_WERKZEUG, WERKZEUGE,
-                                gruppen, werkzeug_finden, werkzeuge)
-from djangobase.skills.werkzeug import (AUSGESCHLOSSEN, Ergebnis,
-                                        Werkzeug)
+from djangobase.skills import KRITERIEN, LEHREN, OHNE_WERKZEUG, WERKZEUGE, gruppen, werkzeug_finden, werkzeuge
+from djangobase.skills.werkzeug import AUSGESCHLOSSEN, Ergebnis, Werkzeug
 
 from ..base import BasisTest
 
@@ -39,6 +38,7 @@ class MiniProjekt:
     @staticmethod
     def _weg(ordner):
         import shutil
+
         shutil.rmtree(ordner, ignore_errors=True)
 
     @staticmethod
@@ -62,9 +62,11 @@ class WerkzeugGrundlagenTest(BasisTest):
             # Der Fall dahinter ist der Grund, warum es das Werkzeug gibt -
             # ohne ihn ist es eine Formalie.
             self.assertTrue(klasse.befund, "%s ohne Fall" % klasse.__name__)
-            self.assertIn(klasse.kriterium, KRITERIEN,
-                          "%s nennt Kriterium %s, das es nicht gibt"
-                          % (klasse.__name__, klasse.kriterium))
+            self.assertIn(
+                klasse.kriterium,
+                KRITERIEN,
+                "%s nennt Kriterium %s, das es nicht gibt" % (klasse.__name__, klasse.kriterium),
+            )
 
     def test_finden(self):
         self.assertIsNone(werkzeug_finden("gibtesnicht"))
@@ -116,9 +118,10 @@ class WerkzeugGrundlagenTest(BasisTest):
 
     @staticmethod
     def _nur_durchlauf(werkzeug):
-        u"""Haengt das Ergebnis am HOST statt am Projektordner?"""
-        return (werkzeug.slug in WerkzeugGrundlagenTest.NUR_DURCHLAUF
-                or getattr(werkzeug, "ruft_endpunkte_auf", False))
+        """Haengt das Ergebnis am HOST statt am Projektordner?"""
+        return werkzeug.slug in WerkzeugGrundlagenTest.NUR_DURCHLAUF or getattr(
+            werkzeug, "ruft_endpunkte_auf", False
+        )
 
     #: `protokoll` prueft eine Sache NICHT im Verzeichnis, sondern an
     #: ``settings.LOGGING`` — rotierender Handler, Zeitstempel im Format, eigene
@@ -140,18 +143,21 @@ class WerkzeugGrundlagenTest(BasisTest):
     #: gesehen hat sie nur ``git status``.
     @staticmethod
     def _logging_sauber(ordner):
-        u"""Eine korrekte LOGGING-Konfiguration im Wegwerf-Verzeichnis."""
+        """Eine korrekte LOGGING-Konfiguration im Wegwerf-Verzeichnis."""
         return {
             "version": 1,
-            "formatters": {"voll": {"format": "{asctime} {levelname} {message}",
-                                    "style": "{"}},
+            "formatters": {"voll": {"format": "{asctime} {levelname} {message}", "style": "{"}},
             "handlers": {
-                "datei": {"class": "logging.handlers.RotatingFileHandler",
-                          "filename": str(Path(ordner) / "django.log"),
-                          "formatter": "voll"},
-                "fehler": {"class": "logging.handlers.RotatingFileHandler",
-                           "filename": str(Path(ordner) / "error.log"),
-                           "formatter": "voll"},
+                "datei": {
+                    "class": "logging.handlers.RotatingFileHandler",
+                    "filename": str(Path(ordner) / "django.log"),
+                    "formatter": "voll",
+                },
+                "fehler": {
+                    "class": "logging.handlers.RotatingFileHandler",
+                    "filename": str(Path(ordner) / "error.log"),
+                    "formatter": "voll",
+                },
             },
         }
 
@@ -163,30 +169,31 @@ class WerkzeugGrundlagenTest(BasisTest):
     @classmethod
     def _djangobase_mit_befehlen(cls):
         from django.conf import settings
+
         cfg = dict(getattr(settings, "DJANGOBASE", {}) or {})
-        cfg["test_befehle"] = [{"slug": "unit", "name": "Unit",
-                                "cmd": "test djangobase.tests.unit"}]
+        cfg["test_befehle"] = [{"slug": "unit", "name": "Unit", "cmd": "test djangobase.tests.unit"}]
         return cfg
 
     def test_alle_laufen_auf_leerem_projekt(self):
         """Ein Projekt ohne Code darf kein Werkzeug zum Absturz bringen."""
         ordner = MiniProjekt().anlegen(self)
-        with override_settings(BASE_DIR=str(ordner),
-                               LOGGING=self._logging_sauber(ordner),
-                               DJANGOBASE=self._djangobase_mit_befehlen()):
+        with override_settings(
+            BASE_DIR=str(ordner),
+            LOGGING=self._logging_sauber(ordner),
+            DJANGOBASE=self._djangobase_mit_befehlen(),
+        ):
             for w in werkzeuge():
                 ergebnis = w.laufen()
-                self.assertIsInstance(ergebnis, Ergebnis,
-                                      "%s liefert kein Ergebnis" % w.slug)
+                self.assertIsInstance(ergebnis, Ergebnis, "%s liefert kein Ergebnis" % w.slug)
                 if w.slug in self.OHNE_PROJEKTCODE:
-                    self.assertTrue(ergebnis.zeilen,
-                                    "%s misst Python selbst und muss auch im "
-                                    "leeren Projekt etwas liefern" % w.slug)
+                    self.assertTrue(
+                        ergebnis.zeilen,
+                        "%s misst Python selbst und muss auch im leeren Projekt etwas liefern" % w.slug,
+                    )
                     continue
                 if self._nur_durchlauf(w):
                     continue
-                self.assertEqual(ergebnis.zeilen, [],
-                                 "%s findet etwas in einem leeren Projekt" % w.slug)
+                self.assertEqual(ergebnis.zeilen, [], "%s findet etwas in einem leeren Projekt" % w.slug)
 
     def test_zeilen_passen_zu_spalten(self):
         """Jede Zeile muss die angekündigten Spalten tragen - sonst steht in der
@@ -199,8 +206,7 @@ class WerkzeugGrundlagenTest(BasisTest):
                 ergebnis = w.laufen()
                 for zeile in ergebnis.zeilen:
                     fehlend = [s for s in ergebnis.spalten if s not in zeile]
-                    self.assertFalse(fehlend, "%s: Spalte(n) %s fehlen in %s"
-                                     % (w.slug, fehlend, zeile))
+                    self.assertFalse(fehlend, "%s: Spalte(n) %s fehlen in %s" % (w.slug, fehlend, zeile))
 
 
 #: Eine Datei, die MEHRERE der gesuchten Muster enthaelt.
@@ -256,20 +262,23 @@ class ModulZustandTest(BasisTest):
             zeilen = werkzeug_finden("modulzustand").laufen().zeilen
         namen = [z["name"] for z in zeilen]
         self.assertIn("GETEILT", namen)
-        self.assertEqual([z["bewertung"] for z in zeilen if z["name"] == "GETEILT"],
-                         ["prüfen"])
+        self.assertEqual([z["bewertung"] for z in zeilen if z["name"] == "GETEILT"], ["prüfen"])
 
     def test_marker_stuft_ab(self):
         """Gegenprobe: mit Vermerk im Code ist derselbe Fund „belegt"."""
         ordner = MiniProjekt().anlegen(self)
-        MiniProjekt.schreiben(ordner, "modul.py", BEISPIEL_MIT_FEHLERN.replace(
-            "GETEILT = []                    # veraenderlicher Zustand auf Modulebene",
-            "# geteilt gewollt: ein Vorrat je Server\nGETEILT = []"))
+        MiniProjekt.schreiben(
+            ordner,
+            "modul.py",
+            BEISPIEL_MIT_FEHLERN.replace(
+                "GETEILT = []                    # veraenderlicher Zustand auf Modulebene",
+                "# geteilt gewollt: ein Vorrat je Server\nGETEILT = []",
+            ),
+        )
         with override_settings(BASE_DIR=str(ordner)):
             zeilen = werkzeug_finden("modulzustand").laufen().zeilen
         belegt = [z["bewertung"] for z in zeilen if z["name"] == "GETEILT"]
-        self.assertEqual(belegt, ["belegt"],
-                         "Der Vermerk „geteilt gewollt" + '" wirkt nicht mehr')
+        self.assertEqual(belegt, ["belegt"], "Der Vermerk „geteilt gewollt" + '" wirkt nicht mehr')
 
 
 class RueckgabeTest(BasisTest):
@@ -287,9 +296,14 @@ class RueckgabeTest(BasisTest):
 
     def test_dictionary_marker(self):
         ordner = MiniProjekt().anlegen(self)
-        MiniProjekt.schreiben(ordner, "modul.py", BEISPIEL_MIT_FEHLERN.replace(
-            "def datensatz(a, b):\n    return {",
-            "def datensatz(a, b):\n    # Dictionary gewollt: geht als JSON hinaus\n    return {"))
+        MiniProjekt.schreiben(
+            ordner,
+            "modul.py",
+            BEISPIEL_MIT_FEHLERN.replace(
+                "def datensatz(a, b):\n    return {",
+                "def datensatz(a, b):\n    # Dictionary gewollt: geht als JSON hinaus\n    return {",
+            ),
+        )
         with override_settings(BASE_DIR=str(ordner)):
             dicts = werkzeug_finden("rueckgabedict").laufen().zeilen
         self.assertEqual([z["bewertung"] for z in dicts], ["belegt"])
@@ -303,8 +317,10 @@ class SchleifenTest(BasisTest):
         MiniProjekt.schreiben(ordner, "modul.py", BEISPIEL_MIT_FEHLERN)
         with override_settings(BASE_DIR=str(ordner)):
             zeilen = werkzeug_finden("schleifenarbeit").laufen().zeilen
-        self.assertTrue(any("read_text" in z["was"] for z in zeilen),
-                        "read_text in der Schleife nicht gefunden: %s" % zeilen)
+        self.assertTrue(
+            any("read_text" in z["was"] for z in zeilen),
+            "read_text in der Schleife nicht gefunden: %s" % zeilen,
+        )
 
     def test_meldet_nicht_was_an_der_schleifenvariablen_haengt(self):
         """DIE UNTERSCHEIDUNG, die das Werkzeug brauchbar macht (16.08.2026).
@@ -318,8 +334,7 @@ class SchleifenTest(BasisTest):
         MiniProjekt.schreiben(ordner, "modul.py", BEISPIEL_MIT_FEHLERN)
         with override_settings(BASE_DIR=str(ordner)):
             zeilen = werkzeug_finden("schleifenarbeit").laufen().zeilen
-        treffer = [z for z in zeilen if z["zeile"] >= self._zeile_von(
-            BEISPIEL_MIT_FEHLERN, "def lesen_ok")]
+        treffer = [z for z in zeilen if z["zeile"] >= self._zeile_von(BEISPIEL_MIT_FEHLERN, "def lesen_ok")]
         self.assertEqual(treffer, [], "lesen_ok() darf keinen Befund liefern")
 
     @staticmethod
@@ -331,10 +346,15 @@ class SchleifenTest(BasisTest):
 
     def test_marker_stuft_ab(self):
         ordner = MiniProjekt().anlegen(self)
-        MiniProjekt.schreiben(ordner, "modul.py", BEISPIEL_MIT_FEHLERN.replace(
-            '        kopf = Path("vorlage.txt").read_text()',
-            "        # in der Schleife gewollt: die Vorlage ändert sich je Lauf\n"
-            '        kopf = Path("vorlage.txt").read_text()'))
+        MiniProjekt.schreiben(
+            ordner,
+            "modul.py",
+            BEISPIEL_MIT_FEHLERN.replace(
+                '        kopf = Path("vorlage.txt").read_text()',
+                "        # in der Schleife gewollt: die Vorlage ändert sich je Lauf\n"
+                '        kopf = Path("vorlage.txt").read_text()',
+            ),
+        )
         with override_settings(BASE_DIR=str(ordner)):
             zeilen = werkzeug_finden("schleifenarbeit").laufen().zeilen
         lesen = [z for z in zeilen if "read_text" in z["was"]]
@@ -346,11 +366,13 @@ class DoppelrumpfTest(BasisTest):
 
     def test_findet_zwei_gleiche_rumpfe(self):
         ordner = MiniProjekt().anlegen(self)
-        rumpf = ('def rechnen(werte):\n'
-                 '    summe = 0\n'
-                 '    for w in werte:\n'
-                 '        summe += w * 2\n'
-                 '    return summe / len(werte)\n')
+        rumpf = (
+            "def rechnen(werte):\n"
+            "    summe = 0\n"
+            "    for w in werte:\n"
+            "        summe += w * 2\n"
+            "    return summe / len(werte)\n"
+        )
         MiniProjekt.schreiben(ordner, "a.py", rumpf)
         MiniProjekt.schreiben(ordner, "b.py", rumpf.replace("rechnen", "rechnen2"))
         with override_settings(BASE_DIR=str(ordner)):
@@ -361,10 +383,8 @@ class DoppelrumpfTest(BasisTest):
     def test_verschiedene_rumpfe_sind_kein_befund(self):
         """Gegenprobe - sonst meldet das Werkzeug alles."""
         ordner = MiniProjekt().anlegen(self)
-        MiniProjekt.schreiben(ordner, "a.py",
-                              'def rechnen(w):\n    x = 1\n    y = 2\n    return x + y\n')
-        MiniProjekt.schreiben(ordner, "b.py",
-                              'def zaehlen(w):\n    x = 5\n    y = 9\n    return x * y\n')
+        MiniProjekt.schreiben(ordner, "a.py", "def rechnen(w):\n    x = 1\n    y = 2\n    return x + y\n")
+        MiniProjekt.schreiben(ordner, "b.py", "def zaehlen(w):\n    x = 5\n    y = 9\n    return x * y\n")
         with override_settings(BASE_DIR=str(ordner)):
             self.assertEqual(werkzeug_finden("doppelrumpf").laufen().zeilen, [])
 
@@ -382,13 +402,14 @@ class LehrenTest(BasisTest):
         self.assertTrue(LEHREN)
         slugs = [e["slug"] for e in LEHREN]
         self.assertEqual(len(slugs), len(set(slugs)), "doppelter Lehren-Slug")
-        for l in LEHREN:
-            self.assertTrue(l["gruppe"] and l["titel"] and l["tun"])
+        for lehre in LEHREN:
+            self.assertTrue(lehre["gruppe"] and lehre["titel"] and lehre["tun"])
             # Ohne den Fall (oder wenigstens die Begruendung) ist eine Lehre
             # eine Meinung.
-            self.assertTrue(l["fall"] or l["warum"],
-                            "Lehre %s ohne Fall und ohne Begründung" % l["slug"])
-            self.assertIn(l["herkunft"], ("review", "kriterien"))
+            self.assertTrue(
+                lehre["fall"] or lehre["warum"], "Lehre %s ohne Fall und ohne Begründung" % lehre["slug"]
+            )
+            self.assertIn(lehre["herkunft"], ("review", "kriterien"))
 
     def test_gruppen_enthalten_alle(self):
         gezaehlt = sum(len(eintraege) for _, eintraege in gruppen())
@@ -397,8 +418,7 @@ class LehrenTest(BasisTest):
     def test_kriterien_ohne_werkzeug_sind_begruendet(self):
         for nr, titel, text in OHNE_WERKZEUG:
             self.assertIn(nr, KRITERIEN)
-            self.assertTrue(titel and len(text) > 40,
-                            "Kriterium %s ohne brauchbare Begründung" % nr)
+            self.assertTrue(titel and len(text) > 40, "Kriterium %s ohne brauchbare Begründung" % nr)
         # Und sie dürfen KEIN Werkzeug haben - sonst gehören sie nicht hierher.
         mit_werkzeug = {k.kriterium for k in WERKZEUGE}
         doppelt = [nr for nr, _, _ in OHNE_WERKZEUG if nr in mit_werkzeug]
@@ -406,7 +426,7 @@ class LehrenTest(BasisTest):
 
 
 class ModellpaketSichtbarTest(BasisTest):
-    u"""Ein Django-Modellpaket ist Projektcode, kein Gewichte-Ordner.
+    """Ein Django-Modellpaket ist Projektcode, kein Gewichte-Ordner.
 
     BEFUND (29.08.2026, 3DTools): `"models"` stand in `AUSGESCHLOSSEN` —
     gedacht für Ordner mit ML-Gewichten. Getroffen hat es `core/models/` mit
@@ -416,21 +436,20 @@ class ModellpaketSichtbarTest(BasisTest):
     """
 
     def test_models_ist_nicht_pauschal_ausgeschlossen(self):
-        self.assertNotIn('models', AUSGESCHLOSSEN)
+        self.assertNotIn("models", AUSGESCHLOSSEN)
 
     def test_ein_modellpaket_wird_gefunden(self):
-        with tempfile.TemporaryDirectory(prefix='djb-models-') as ordner:
-            paket = Path(ordner) / 'core' / 'models'
+        with tempfile.TemporaryDirectory(prefix="djb-models-") as ordner:
+            paket = Path(ordner) / "core" / "models"
             paket.mkdir(parents=True)
-            (paket / 'auftrag.py').write_text('class Auftrag:\n    pass\n',
-                                              encoding='utf-8')
+            (paket / "auftrag.py").write_text("class Auftrag:\n    pass\n", encoding="utf-8")
             werkzeug = Werkzeug()
             werkzeug.wurzel = lambda: Path(ordner)
-            namen = [p.name for p in werkzeug.pfade('*.py')]
-        self.assertIn('auftrag.py', namen)
+            namen = [p.name for p in werkzeug.pfade("*.py")]
+        self.assertIn("auftrag.py", namen)
 
     def test_die_ausnahme_bleibt_projektweise_moeglich(self):
-        u"""Wer einen Gewichte-Ordner `models` hat, nimmt ihn selbst aus —
+        """Wer einen Gewichte-Ordner `models` hat, nimmt ihn selbst aus —
         über `DJANGOBASE["skills_ignorieren"]`."""
-        with override_settings(DJANGOBASE={'skills_ignorieren': ['models']}):
-            self.assertIn('models', Werkzeug().ausgeschlossen())
+        with override_settings(DJANGOBASE={"skills_ignorieren": ["models"]}):
+            self.assertIn("models", Werkzeug().ausgeschlossen())

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Kein Anführungszeichen mitten in einem HTML-Attribut.
+"""Kein Anführungszeichen mitten in einem HTML-Attribut.
 
 DER FUND (30.08.2026)
 =====================
@@ -39,6 +39,7 @@ Geprüft wird mit dem Parser, nicht mit einem regulären Ausdruck: Ob ein Zeiche
 ein Attribut aufbricht, entscheidet die Zustandsmaschine des Parsers, und die
 kennt Fälle (unquotierte Werte, ``/`` vor ``>``), die ein Muster nicht trifft.
 """
+
 import ast
 import re
 from html.parser import HTMLParser
@@ -85,12 +86,12 @@ class _Sucher(HTMLParser):
 
 
 def _pruefen(text):
-    u"""[(Zeile, Tag, Attributname)] der aufgebrochenen Attribute."""
+    """[(Zeile, Tag, Attributname)] der aufgebrochenen Attribute."""
     s = _Sucher()
     try:
         s.feed(text)
         s.close()
-    except Exception:                                            # noqa: BLE001
+    except Exception:  # noqa: BLE001
         # Ein Fragment, das der Parser nicht zu Ende lesen kann, ist kein
         # Befund dieser Prüfung — es fehlt einfach der Rest der Datei.
         pass
@@ -106,7 +107,7 @@ def _dateien(endung):
 
 
 def _html_zeichenketten(quelle):
-    u"""Alle Zeichenketten-Konstanten, die nach HTML mit Attributen aussehen.
+    """Alle Zeichenketten-Konstanten, die nach HTML mit Attributen aussehen.
 
     ``ast`` führt aneinandergereihte Literale (``'a' 'b'``) schon zu EINER
     Konstante zusammen — genau die Schreibweise, in der die Fragmente hier
@@ -124,7 +125,7 @@ def _html_zeichenketten(quelle):
 
 
 class AttributbruchTest(SimpleTestCase):
-    u"""Kein Attribut endet mitten im Satz."""
+    """Kein Attribut endet mitten im Satz."""
 
     #: Ohne Datenbank — die Prüfung liest Dateien (Regel
     #: ``testlauf-blockiert-server``).
@@ -132,8 +133,9 @@ class AttributbruchTest(SimpleTestCase):
 
     def _melden(self, funde):
         return "\n".join(
-            "%s:%d  <%s %s=…>  — hier endet das Attribut zu früh"
-            % (datei, zeile, tag, name) for datei, zeile, tag, name in funde)
+            "%s:%d  <%s %s=…>  — hier endet das Attribut zu früh" % (datei, zeile, tag, name)
+            for datei, zeile, tag, name in funde
+        )
 
     def test_vorlagen_haben_heile_attribute(self):
         funde = []
@@ -154,24 +156,25 @@ class AttributbruchTest(SimpleTestCase):
         self.assertEqual(funde, [], "\n" + self._melden(funde))
 
     def test_die_pruefung_findet_den_echten_fall(self):
-        u"""Gegenprobe mit genau dem Text, der am 30.08.2026 im Code stand."""
-        kaputt = ('<span class="ts-kat-fest" title="Ein-/ausblenden über '
-                  'Einstellungen → „djangoBase-Testcases sichtbar".">'
-                  'DjangoBase</span>')
+        """Gegenprobe mit genau dem Text, der am 30.08.2026 im Code stand."""
+        kaputt = (
+            '<span class="ts-kat-fest" title="Ein-/ausblenden über '
+            'Einstellungen → „djangoBase-Testcases sichtbar".">'
+            "DjangoBase</span>"
+        )
         self.assertTrue(_pruefen(kaputt), "der bekannte Fall bleibt unbemerkt")
 
-        heil = kaputt.replace('sichtbar".', 'sichtbar“.')
-        self.assertEqual(_pruefen(heil), [],
-                         "mit typografischem Schlusszeichen ist nichts zu melden")
+        heil = kaputt.replace('sichtbar".', "sichtbar“.")
+        self.assertEqual(_pruefen(heil), [], "mit typografischem Schlusszeichen ist nichts zu melden")
 
     def test_platzhalter_und_vorlagen_sind_kein_befund(self):
-        u"""Kein Fehlalarm auf dem, was normal in diesen Dateien steht."""
+        """Kein Fehlalarm auf dem, was normal in diesen Dateien steht."""
         for heil in (
-                '<a href="?run=%s" title="Diesen Test ausführen">Run</a>',
-                '<input type="checkbox" value="%s" aria-label="auswählen">',
-                '<td class="num" data-sort="0.379">379 ms</td>',
-                '<span title="17.08.2026 22:33:24">17.08. 22:33 · 379 ms</span>',
-                "<img src='x.png' alt='Bild'>",
-                '<br/><hr />',
+            '<a href="?run=%s" title="Diesen Test ausführen">Run</a>',
+            '<input type="checkbox" value="%s" aria-label="auswählen">',
+            '<td class="num" data-sort="0.379">379 ms</td>',
+            '<span title="17.08.2026 22:33:24">17.08. 22:33 · 379 ms</span>',
+            "<img src='x.png' alt='Bild'>",
+            "<br/><hr />",
         ):
             self.assertEqual(_pruefen(heil), [], heil)

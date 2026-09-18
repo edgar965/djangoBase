@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Schreibrouten - eine Ansicht, die loescht oder schreibt und GET beantwortet.
+"""Schreibrouten - eine Ansicht, die loescht oder schreibt und GET beantwortet.
 
 DER BEFUND (3DTools, 17.08.2026) - ZWEIMAL AN EINEM TAG
 =======================================================
@@ -39,6 +39,7 @@ die ``Auftragssteuerung.alles_loeschen(job)`` ruft, faellt hier heraus. Ein
 Aufrufgraph waere hier falsch am Platz: Er zieht ueber Django, das ORM und jede
 Bibliothek und liefert mehr Vermutung als Befund. Was hier steht, ist belegt.
 """
+
 import ast
 
 from .anlassfall import Anlassfall
@@ -90,18 +91,25 @@ OHNE = ("tests", "migrations")
 class Schreibrouten(Werkzeug):
     slug = "schreibrouten"
     titel = "Ansicht schreibt und beantwortet GET"
-    zweck = ("Findet Ansichten, die im Rumpf löschen oder schreiben und dabei "
-             "keine Methodenprüfung haben — per GET auslösbar.")
-    befund = ("3DTools: `delete_job` löschte auf ein GET hin Auftrag und Dateien "
-              "(der Link hatte nur ein `confirm`), `scan_bvh_files` schrieb bei "
-              "jedem GET die Bibliothek neu — 7.067 Dateien, 35 Abfragen.")
-    abhilfe = ("`@require_POST` setzen und die Aufrufstelle von `<a href>` auf "
-               "ein POST-Formular umstellen (Rückfrage an `onsubmit`).")
+    zweck = (
+        "Findet Ansichten, die im Rumpf löschen oder schreiben und dabei "
+        "keine Methodenprüfung haben — per GET auslösbar."
+    )
+    befund = (
+        "3DTools: `delete_job` löschte auf ein GET hin Auftrag und Dateien "
+        "(der Link hatte nur ein `confirm`), `scan_bvh_files` schrieb bei "
+        "jedem GET die Bibliothek neu — 7.067 Dateien, 35 Abfragen."
+    )
+    abhilfe = (
+        "`@require_POST` setzen und die Aufrufstelle von `<a href>` auf "
+        "ein POST-Formular umstellen (Rückfrage an `onsubmit`)."
+    )
     dauer = "1–3 s"
     kriterium = 16
 
     anlassfall = Anlassfall(
-        {"seiten.py": '''# -*- coding: utf-8 -*-
+        {
+            "seiten.py": '''# -*- coding: utf-8 -*-
 from django.shortcuts import redirect
 from django.views.decorators.http import require_POST
 
@@ -140,12 +148,18 @@ def zwischenspeicher_leeren(request):
     from django.core.cache import cache
     cache.delete("liste")
     return redirect("liste")
-'''},
-        mindestens=1, hoechstens=1, erwartet_in="auftrag_loeschen",
-        warum=("`delete_job` in 3DTools loeschte Auftrag und Dateien auf ein GET "
-               "hin; der Schutz bestand aus einem JavaScript-`confirm`. Die zwei "
-               "letzten Fälle sind die Fehlalarme des ersten Laufs — ohne sie "
-               "meldete das Werkzeug 3 statt 1."))
+'''
+        },
+        mindestens=1,
+        hoechstens=1,
+        erwartet_in="auftrag_loeschen",
+        warum=(
+            "`delete_job` in 3DTools loeschte Auftrag und Dateien auf ein GET "
+            "hin; der Schutz bestand aus einem JavaScript-`confirm`. Die zwei "
+            "letzten Fälle sind die Fehlalarme des ersten Laufs — ohne sie "
+            "meldete das Werkzeug 3 statt 1."
+        ),
+    )
 
     def laufen(self):
         zeilen = []
@@ -153,15 +167,15 @@ def zwischenspeicher_leeren(request):
             if datei.baum is None or any(t in datei.name.split("/") for t in OHNE):
                 continue
             zeilen += self._datei(datei)
-        zeilen.sort(key=lambda z: (0 if z["art"] == "Datenverlust" else 1,
-                                   z["stelle"]))
+        zeilen.sort(key=lambda z: (0 if z["art"] == "Datenverlust" else 1, z["stelle"]))
         verlust = sum(1 for z in zeilen if z["art"] == "Datenverlust")
         return Ergebnis(
-            ["art", "stelle", "zeile", "ansicht", "aufruf", "abhilfe"], zeilen,
-            "%d Ansichten schreiben und beantworten GET — %d davon löschen"
-            % (len(zeilen), verlust),
+            ["art", "stelle", "zeile", "ansicht", "aufruf", "abhilfe"],
+            zeilen,
+            "%d Ansichten schreiben und beantworten GET — %d davon löschen" % (len(zeilen), verlust),
             "Die Ursprungsprüfung der Middleware fasst GET bewusst nicht an. "
-            "Schutz gibt es hier nur über die Methode.")
+            "Schutz gibt es hier nur über die Methode.",
+        )
 
     # ------------------------------------------------------------------ Datei
 
@@ -176,12 +190,16 @@ def zwischenspeicher_leeren(request):
             if not treffer:
                 continue
             name, zweck, verlust = treffer
-            aus.append({
-                "art": "Datenverlust" if verlust else "Schreibt",
-                "stelle": datei.name, "zeile": knoten.lineno,
-                "ansicht": knoten.name, "aufruf": "%s() — %s" % (name, zweck),
-                "abhilfe": ("`@require_POST` und die Aufrufstelle auf ein "
-                            "POST-Formular umstellen")})
+            aus.append(
+                {
+                    "art": "Datenverlust" if verlust else "Schreibt",
+                    "stelle": datei.name,
+                    "zeile": knoten.lineno,
+                    "ansicht": knoten.name,
+                    "aufruf": "%s() — %s" % (name, zweck),
+                    "abhilfe": ("`@require_POST` und die Aufrufstelle auf ein POST-Formular umstellen"),
+                }
+            )
         return aus
 
     @staticmethod
@@ -246,8 +264,7 @@ def zwischenspeicher_leeren(request):
         for k in ast.walk(knoten):
             if not isinstance(k, ast.Call):
                 continue
-            name = (k.func.attr if isinstance(k.func, ast.Attribute)
-                    else getattr(k.func, "id", ""))
+            name = k.func.attr if isinstance(k.func, ast.Attribute) else getattr(k.func, "id", "")
             for tabelle, verlust in ((VERLUST, True), (SCHREIBT, False)):
                 if name not in tabelle:
                     continue
@@ -261,8 +278,7 @@ def zwischenspeicher_leeren(request):
             # ``obj.save()`` OHNE Argumente ist Djangos Modell-Speichern.
             # ``bild.save(pfad)`` ist Pillow und schreibt eine Datei, die
             # jemand ohnehin gerade abholt - das waere ein Fehlalarm.
-            if (name == "save" and not k.args and not k.keywords
-                    and gefunden is None):
+            if name == "save" and not k.args and not k.keywords and gefunden is None:
                 gefunden = ("save", "speichert einen Datensatz", False)
         return gefunden
 

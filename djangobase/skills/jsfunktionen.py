@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""JsFunktionen - zu lange Funktionen in Browser-Modulen.
+"""JsFunktionen - zu lange Funktionen in Browser-Modulen.
 
 DER BEFUND (3DTools, 16.08.2026)
 ================================
@@ -21,6 +21,7 @@ Template-Strings etwas zu hoch liegen.
 
 Die Grenze steht in ``DJANGOBASE["skills2_funktionsgrenze"]`` (Vorgabe 90).
 """
+
 import re
 
 from django.conf import settings
@@ -31,31 +32,38 @@ from .werkzeug import Ergebnis, Werkzeug
 __all__ = ["JsFunktionen"]
 
 #: `function name(`, `async name(` und Methoden `name(...) {`
-MUSTER = re.compile(r"^\s*(?:export\s+)?(?:async\s+)?function\s+(\w+)"
-                    r"|^\s*(?:export\s+)?(?:static\s+)?(?:async\s+)?(\w+)"
-                    r"\s*\([^)]*\)\s*\{")
+MUSTER = re.compile(
+    r"^\s*(?:export\s+)?(?:async\s+)?function\s+(\w+)"
+    r"|^\s*(?:export\s+)?(?:static\s+)?(?:async\s+)?(\w+)"
+    r"\s*\([^)]*\)\s*\{"
+)
 
 
 class JsFunktionen(Werkzeug):
     slug = "jsfunktionen"
     titel = "Browser-Module: zu lange Funktionen"
-    zweck = ("Findet Funktionen und Methoden ab einer Zeilengrenze - die "
-             "dicken FUNKTIONEN, nicht die dicken Dateien.")
-    befund = ("3DTools: `loadClothUI` hatte 245 Zeilen in einer Datei von 339. "
-              "Beim Aufteilen fielen drei doppelte Bloecke auf, die vorher "
-              "niemand gesehen hatte. 46 solcher Funktionen zu Beginn, 12 am "
-              "Ende des Durchgangs.")
-    abhilfe = ("Aufteilen: Was die Funktion NACHEINANDER tut, wird je eine "
-               "Methode. Wiederholte Bloecke mit anderen Werten werden eine "
-               "Methode mit Tabelle.")
+    zweck = (
+        "Findet Funktionen und Methoden ab einer Zeilengrenze - die "
+        "dicken FUNKTIONEN, nicht die dicken Dateien."
+    )
+    befund = (
+        "3DTools: `loadClothUI` hatte 245 Zeilen in einer Datei von 339. "
+        "Beim Aufteilen fielen drei doppelte Bloecke auf, die vorher "
+        "niemand gesehen hatte. 46 solcher Funktionen zu Beginn, 12 am "
+        "Ende des Durchgangs."
+    )
+    abhilfe = (
+        "Aufteilen: Was die Funktion NACHEINANDER tut, wird je eine "
+        "Methode. Wiederholte Bloecke mit anderen Werten werden eine "
+        "Methode mit Tabelle."
+    )
     dauer = "unter 1 s"
     kriterium = 2
 
     VORGABE_GRENZE = 90
 
     def grenze(self):
-        eigen = (getattr(settings, "DJANGOBASE", {}) or {}).get(
-            "skills2_funktionsgrenze")
+        eigen = (getattr(settings, "DJANGOBASE", {}) or {}).get("skills2_funktionsgrenze")
         try:
             return int(eigen)
         except (TypeError, ValueError):
@@ -63,29 +71,33 @@ class JsFunktionen(Werkzeug):
 
     #: Eine Funktion mit 100 Zeilen (Vorgabe-Grenze 90), erzeugt statt getippt.
     anlassfall = Anlassfall(
-        {"lang.js": "export function vielZuLang(werte) {\n  const aus = [];\n"
-                    + "".join("  aus.push(werte[%d]);\n" % i for i in range(100))
-                    + "  return aus;\n}\n"},
+        {
+            "lang.js": "export function vielZuLang(werte) {\n  const aus = [];\n"
+            + "".join("  aus.push(werte[%d]);\n" % i for i in range(100))
+            + "  return aus;\n}\n"
+        },
         erwartet_in="vielZuLang",
-        warum="Kriterium 3: die dicken Funktionen, nicht die dicken Dateien")
+        warum="Kriterium 3: die dicken Funktionen, nicht die dicken Dateien",
+    )
 
     def laufen(self):
         grenze = self.grenze()
         gefunden = []
         for pfad, kurz in self._quellen():
-            zeilen = pfad.read_text(encoding="utf-8",
-                                    errors="replace").split("\n")
+            zeilen = pfad.read_text(encoding="utf-8", errors="replace").split("\n")
             gefunden.extend(self._in_datei(kurz, zeilen, grenze))
         gefunden.sort(key=lambda e: -e[0])
-        zeilen_aus = [{"zeilen": laenge, "ort": "%s:%d" % (ort, nummer),
-                       "name": name + "()"}
-                      for laenge, ort, name, nummer in gefunden]
+        zeilen_aus = [
+            {"zeilen": laenge, "ort": "%s:%d" % (ort, nummer), "name": name + "()"}
+            for laenge, ort, name, nummer in gefunden
+        ]
         return Ergebnis(
-            ["zeilen", "ort", "name"], zeilen_aus,
-            zusammenfassung="%d Funktionen ab %d Zeilen"
-                            % (len(gefunden), grenze),
+            ["zeilen", "ort", "name"],
+            zeilen_aus,
+            zusammenfassung="%d Funktionen ab %d Zeilen" % (len(gefunden), grenze),
             hinweis="Gezaehlt über die Klammerbilanz; bei vielen "
-                    "Template-Strings kann die Zahl etwas zu hoch liegen.")
+            "Template-Strings kann die Zahl etwas zu hoch liegen.",
+        )
 
     @staticmethod
     def _in_datei(kurz, zeilen, grenze):

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Schleifenarbeit - Datei- und Datenbankzugriff, der in der Schleife steht.
+"""Schleifenarbeit - Datei- und Datenbankzugriff, der in der Schleife steht.
 
 WAS EINE STATISCHE PRUEFUNG HIER LEISTEN KANN - und was nicht
 =============================================================
@@ -22,6 +22,7 @@ sich nicht vor die Schleife ziehen. Solche Stellen tragen den Vermerk
 und werden abgestuft. Ein Vermerk IM CODE statt einer Ausnahmeliste im Werkzeug:
 Eine Liste hier raet, was der Autor gemeint hat, und liegt irgendwann daneben.
 """
+
 import ast
 
 from .anlassfall import Anlassfall
@@ -31,24 +32,37 @@ from .werkzeug import Ergebnis, Werkzeug
 class Schleifenarbeit(Werkzeug):
     slug = "schleifenarbeit"
     titel = "Arbeit in Schleifen"
-    zweck = ("Datei-/DB-Zugriffe innerhalb von Schleifen und Sammlungen, die per "
-             "+= wachsen — mit Schleifentiefe als Maß.")
-    befund = ("Drei Prüffunktionen lasen dasselbe Verzeichnis je einmal komplett "
-              "durch. Einzeln harmlos; die Suite besteht aus hundert solcher "
-              "Prüfungen.")
-    abhilfe = ("Vor die Schleife ziehen und das Ergebnis merken — als Instanz je "
-               "Lauf, nicht als Klassen-Zwischenspeicher (sonst entsteht genau "
-               "der Modul-Zustand aus dem ersten Werkzeug).")
+    zweck = (
+        "Datei-/DB-Zugriffe innerhalb von Schleifen und Sammlungen, die per "
+        "+= wachsen — mit Schleifentiefe als Maß."
+    )
+    befund = (
+        "Drei Prüffunktionen lasen dasselbe Verzeichnis je einmal komplett "
+        "durch. Einzeln harmlos; die Suite besteht aus hundert solcher "
+        "Prüfungen."
+    )
+    abhilfe = (
+        "Vor die Schleife ziehen und das Ergebnis merken — als Instanz je "
+        "Lauf, nicht als Klassen-Zwischenspeicher (sonst entsteht genau "
+        "der Modul-Zustand aus dem ersten Werkzeug)."
+    )
     dauer = "3–8 s"
     kriterium = 12
 
     MARKER = "in der Schleife gewollt"
-    TEUER = {"read_text": "liest eine Datei", "write_text": "schreibt eine Datei",
-             "open": "öffnet eine Datei", "loads": "parst JSON",
-             "dumps": "serialisiert JSON", "glob": "durchsucht das Dateisystem",
-             "rglob": "durchsucht rekursiv", "all": "holt einen Datenbank-Satz",
-             "filter": "stellt eine DB-Abfrage", "get": "stellt eine DB-Abfrage",
-             "count": "zählt in der Datenbank"}
+    TEUER = {
+        "read_text": "liest eine Datei",
+        "write_text": "schreibt eine Datei",
+        "open": "öffnet eine Datei",
+        "loads": "parst JSON",
+        "dumps": "serialisiert JSON",
+        "glob": "durchsucht das Dateisystem",
+        "rglob": "durchsucht rekursiv",
+        "all": "holt einen Datenbank-Satz",
+        "filter": "stellt eine DB-Abfrage",
+        "get": "stellt eine DB-Abfrage",
+        "count": "zählt in der Datenbank",
+    }
     #: Nur bei diesen Empfaengern ist get/filter/all eine DB-Abfrage.
     DB_EMPFAENGER = ("objects", "queryset", "qs")
 
@@ -57,7 +71,8 @@ class Schleifenarbeit(Werkzeug):
     #: einer Schleife ist nur dann Verschwendung, wenn jedes Mal DASSELBE
     #: gelesen wird; haengt der Pfad an der Schleifenvariablen, ist es Arbeit.
     anlassfall = Anlassfall(
-        {"lader.py": '''from pathlib import Path
+        {
+            "lader.py": """from pathlib import Path
 
 
 def summe(namen, vorlage):
@@ -74,11 +89,14 @@ def je_datei(pfade):
         # in der Schleife gewollt: jede Datei ist eine andere.
         aus.append(Path(p).read_text(encoding="utf-8"))
     return aus
-'''},
-        mindestens=1, hoechstens=1,
+"""
+        },
+        mindestens=1,
+        hoechstens=1,
         erwartet_in="read_text",
         warum="``struktur_analyse.py`` las neunmal dieselben Quellen — der "
-              "eine reale Performance-Fall lag unter 190 Fehlalarmen")
+        "eine reale Performance-Fall lag unter 190 Fehlalarmen",
+    )
 
     def laufen(self):
         zeilen = []
@@ -90,10 +108,11 @@ def je_datei(pfade):
         zeilen.sort(key=lambda z: (z["bewertung"] != "prüfen", -z["tiefe"]))
         offen = [z for z in zeilen if z["bewertung"] == "prüfen"]
         return Ergebnis(
-            ["datei", "zeile", "was", "tiefe", "bewertung"], zeilen,
+            ["datei", "zeile", "was", "tiefe", "bewertung"],
+            zeilen,
             "%d Stellen, davon %d ohne Vermerk" % (len(zeilen), len(offen)),
-            "Tiefe 2 heißt: zwei ineinander liegende Schleifen — dort kostet ein "
-            "Dateizugriff n×m mal.")
+            "Tiefe 2 heißt: zwei ineinander liegende Schleifen — dort kostet ein Dateizugriff n×m mal.",
+        )
 
     def _in_schleife(self, d, schleife):
         aus, tiefe = [], self._tiefe(schleife)
@@ -107,8 +126,7 @@ def je_datei(pfade):
         #   3. Haengt der Zugriff an der Schleifenvariablen (auch ueber
         #      Zwischennamen), liest er JE DURCHLAUF ETWAS ANDERES - das ist der
         #      Zweck eines Werkzeugs, das ueber Dateien laeuft.
-        im_kopf = ({id(k) for k in ast.walk(schleife.iter)}
-                   if isinstance(schleife, ast.For) else set())
+        im_kopf = {id(k) for k in ast.walk(schleife.iter)} if isinstance(schleife, ast.For) else set()
         innere = set()
         for k in ast.walk(schleife):
             if k is not schleife and isinstance(k, (ast.For, ast.While)):
@@ -127,20 +145,28 @@ def je_datei(pfade):
                     empf = getattr(getattr(k.func, "value", None), "attr", "")
                     if empf not in self.DB_EMPFAENGER:
                         continue
-                aus.append({"datei": d.name, "zeile": k.lineno,
-                            "was": "%s() %s" % (name, self.TEUER[name]),
-                            "tiefe": tiefe,
-                            "bewertung": "belegt" if self._begruendet(d, k.lineno)
-                                         else "prüfen"})
+                aus.append(
+                    {
+                        "datei": d.name,
+                        "zeile": k.lineno,
+                        "was": "%s() %s" % (name, self.TEUER[name]),
+                        "tiefe": tiefe,
+                        "bewertung": "belegt" if self._begruendet(d, k.lineno) else "prüfen",
+                    }
+                )
             elif isinstance(k, ast.AugAssign) and isinstance(k.op, ast.Add):
                 if isinstance(k.value, (ast.List, ast.JoinedStr)) or (
-                        isinstance(k.value, ast.Constant)
-                        and isinstance(k.value.value, str)):
-                    aus.append({"datei": d.name, "zeile": k.lineno,
-                                "was": "+= kopiert die ganze Sammlung",
-                                "tiefe": tiefe,
-                                "bewertung": "belegt" if self._begruendet(d, k.lineno)
-                                             else "prüfen"})
+                    isinstance(k.value, ast.Constant) and isinstance(k.value.value, str)
+                ):
+                    aus.append(
+                        {
+                            "datei": d.name,
+                            "zeile": k.lineno,
+                            "was": "+= kopiert die ganze Sammlung",
+                            "tiefe": tiefe,
+                            "bewertung": "belegt" if self._begruendet(d, k.lineno) else "prüfen",
+                        }
+                    )
         return aus
 
     @staticmethod
@@ -171,8 +197,8 @@ def je_datei(pfade):
                 if not isinstance(k, (ast.Assign, ast.AnnAssign, ast.AugAssign)):
                     continue
                 if k.value is None or not any(
-                        isinstance(x, ast.Name) and x.id in namen
-                        for x in ast.walk(k.value)):
+                    isinstance(x, ast.Name) and x.id in namen for x in ast.walk(k.value)
+                ):
                     continue
                 ziele = k.targets if isinstance(k, ast.Assign) else [k.target]
                 for z in ziele:
@@ -190,6 +216,7 @@ def je_datei(pfade):
 
     @staticmethod
     def _tiefe(schleife):
-        return 1 + max((1 for k in ast.walk(schleife)
-                        if isinstance(k, (ast.For, ast.While)) and k is not schleife),
-                       default=0)
+        return 1 + max(
+            (1 for k in ast.walk(schleife) if isinstance(k, (ast.For, ast.While)) and k is not schleife),
+            default=0,
+        )

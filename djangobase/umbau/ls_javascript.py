@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""JavaScript im selben Lauf — über den TypeScript-Übersetzer mit ``checkJs``.
+"""JavaScript im selben Lauf — über den TypeScript-Übersetzer mit ``checkJs``.
 
 „mach auch: JavaScript wäre ein zweiter Server (tsserver)" (Edgar, 02.09.2026).
 Für den Stapellauf reicht der Übersetzer ``tsc`` mit ``allowJs``/``checkJs``:
@@ -19,6 +19,7 @@ Fehlalarm des Werkzeugs, sondern eine fehlende Deklaration — die Regel
 
 Django-frei; ``tsc`` kommt aus ``npm install -g typescript`` (``%APPDATA%\\npm``).
 """
+
 import json
 import os
 import re
@@ -30,8 +31,10 @@ from pathlib import Path
 __all__ = ["JsPruefer"]
 
 #: ``pfad(zeile,spalte): error TS1234: Meldung`` — die Form mit ``--pretty false``.
-ZEILE = re.compile(r"^(?P<datei>.+?)\((?P<zeile>\d+),(?P<spalte>\d+)\): "
-                   r"(?P<stufe>error|warning) (?P<regel>TS\d+): (?P<text>.*)$")
+ZEILE = re.compile(
+    r"^(?P<datei>.+?)\((?P<zeile>\d+),(?P<spalte>\d+)\): "
+    r"(?P<stufe>error|warning) (?P<regel>TS\d+): (?P<text>.*)$"
+)
 
 #: TS5xxx/TS6xxx sind Fehler AN DER KONFIGURATION, keine Befunde am Code.
 #:
@@ -43,14 +46,22 @@ KONFIGFEHLER = re.compile(r"error TS(?:5\d{3}|6\d{3}):\s*(?P<text>.+)$", re.M)
 
 
 class JsPruefer:
-    u"""Findet ``tsc``, schreibt die ``jsconfig.json``, liest die Meldungen."""
+    """Findet ``tsc``, schreibt die ``jsconfig.json``, liest die Meldungen."""
 
-    AUSSCHLUSS = ("**/node_modules", "**/*.min.js", "**/pythonVENV", "**/venv",
-                  "**/.venv", "**/.cache", "**/sicherung", "**/backup_*",
-                  "**/*.umd.js", "**/vendor/**")
+    AUSSCHLUSS = (
+        "**/node_modules",
+        "**/*.min.js",
+        "**/pythonVENV",
+        "**/venv",
+        "**/.venv",
+        "**/.cache",
+        "**/sicherung",
+        "**/backup_*",
+        "**/*.umd.js",
+        "**/vendor/**",
+    )
 
-    def __init__(self, wurzel, ordner, pfade=(), zeitlimit=300, zusatz=(),
-                 static_wurzeln=()):
+    def __init__(self, wurzel, ordner, pfade=(), zeitlimit=300, zusatz=(), static_wurzeln=()):
         self.wurzel = Path(wurzel)
         self.ordner = Path(ordner)
         self.pfade = list(pfade)
@@ -76,7 +87,7 @@ class JsPruefer:
 
     # ── Konfiguration ────────────────────────────────────────────────────
     def statikpfade(self):
-        u"""``/static/<app>/x.js`` auf den echten Ordner abbilden.
+        """``/static/<app>/x.js`` auf den echten Ordner abbilden.
 
         DER GRÖSSTE EINZELPOSTEN DES ERSTEN LAUFS (02.09.2026)
         =====================================================
@@ -100,22 +111,27 @@ class JsPruefer:
         for statisch in ordner:
             fest = str(statisch).replace("\\", "/")
             for unter in sorted(p for p in statisch.iterdir() if p.is_dir()):
-                pfade.setdefault("/static/%s/*" % unter.name,
-                                 [fest + "/" + unter.name + "/*"])
+                pfade.setdefault("/static/%s/*" % unter.name, [fest + "/" + unter.name + "/*"])
             pfade.setdefault("/static/*", [fest + "/*"])
         return pfade
 
     def konfig_schreiben(self):
-        u"""``jsconfig.json`` im Ablage-Ordner — Pfade als Muster, Schrägstriche."""
+        """``jsconfig.json`` im Ablage-Ordner — Pfade als Muster, Schrägstriche."""
         self.ordner.mkdir(parents=True, exist_ok=True)
         pfad = self.ordner / "jsconfig.json"
         wurzeln = [self.wurzel / p for p in self.pfade] or [self.wurzel]
         cfg = {
             "compilerOptions": {
-                "allowJs": True, "checkJs": True, "noEmit": True,
-                "target": "es2022", "module": "es2022", "moduleResolution": "bundler",
+                "allowJs": True,
+                "checkJs": True,
+                "noEmit": True,
+                "target": "es2022",
+                "module": "es2022",
+                "moduleResolution": "bundler",
                 "lib": ["es2022", "dom", "dom.iterable"],
-                "strict": False, "noImplicitAny": False, "skipLibCheck": True,
+                "strict": False,
+                "noImplicitAny": False,
+                "skipLibCheck": True,
                 "allowSyntheticDefaultImports": True,
                 # KEIN ``baseUrl`` (02.09.2026): tsc 7 kennt die Option nicht
                 # mehr („Option 'baseUrl' has been removed") und bricht dann
@@ -127,43 +143,51 @@ class JsPruefer:
             # ``window`` teilen, deklarieren die dort (shortlongx:
             # shortlongxWeb/typen/globals.d.ts). Ohne die Endung im include
             # bleibt die Datei unsichtbar und jeder Name gilt als unbekannt.
-            "include": ([str(w).replace("\\", "/") + "/**/*.js" for w in wurzeln]
-                        + [str(w).replace("\\", "/") + "/**/*.d.ts" for w in wurzeln]),
+            "include": (
+                [str(w).replace("\\", "/") + "/**/*.js" for w in wurzeln]
+                + [str(w).replace("\\", "/") + "/**/*.d.ts" for w in wurzeln]
+            ),
             # Absolut wie ``include``: tsc liest ``exclude`` relativ zur Datei,
             # und die liegt im Ablage-Ordner, nicht ueber dem Projekt.
-            "exclude": [str(self.wurzel).replace("\\", "/") + "/" + m
-                        for m in list(self.AUSSCHLUSS) + self.zusatz],
+            "exclude": [
+                str(self.wurzel).replace("\\", "/") + "/" + m for m in list(self.AUSSCHLUSS) + self.zusatz
+            ],
         }
         pfad.write_text(json.dumps(cfg, ensure_ascii=False, indent=2), encoding="utf-8")
         return pfad
 
     # ── laufen ───────────────────────────────────────────────────────────
     def laufen(self):
-        u"""``(befunde, dauer_s, fehlt)`` — Befunde wie beim Python-Lauf, ``sprache: js``."""
+        """``(befunde, dauer_s, fehlt)`` — Befunde wie beim Python-Lauf, ``sprache: js``."""
         tsc = self.finden()
         if not tsc:
-            return [], 0.0, (u"tsc ist nicht installiert. Abhilfe: "
-                             u"npm install -g typescript")
+            return [], 0.0, ("tsc ist nicht installiert. Abhilfe: npm install -g typescript")
         pfad = self.konfig_schreiben()
         start = time.monotonic()
-        prozess = subprocess.Popen([tsc, "-p", str(pfad), "--pretty", "false"],
-                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                   cwd=str(self.wurzel), shell=str(tsc).endswith(".cmd"))
+        prozess = subprocess.Popen(
+            [tsc, "-p", str(pfad), "--pretty", "false"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=str(self.wurzel),
+            shell=str(tsc).endswith(".cmd"),
+        )
         try:
             aus, fehler = prozess.communicate(timeout=self.zeitlimit)
         except subprocess.TimeoutExpired:
             if os.name == "nt":
-                subprocess.run(["taskkill", "/T", "/F", "/PID", str(prozess.pid)],
-                               capture_output=True)
+                subprocess.run(["taskkill", "/T", "/F", "/PID", str(prozess.pid)], capture_output=True)
             else:
                 prozess.kill()
-            return [], round(time.monotonic() - start, 1), (
-                u"tsc: Zeitlimit von %d s überschritten" % self.zeitlimit)
+            return (
+                [],
+                round(time.monotonic() - start, 1),
+                ("tsc: Zeitlimit von %d s überschritten" % self.zeitlimit),
+            )
         text = aus.decode("utf-8", "replace") + fehler.decode("utf-8", "replace")
         dauer = round(time.monotonic() - start, 1)
         schaden = KONFIGFEHLER.search(text)
         if schaden:
-            return [], dauer, u"tsc-Konfiguration: %s" % schaden.group("text").strip()
+            return [], dauer, "tsc-Konfiguration: %s" % schaden.group("text").strip()
         return self._parsen(text, self.wurzel), dauer, ""
 
     @staticmethod
@@ -181,10 +205,15 @@ class JsPruefer:
                 rel = str(pfad.resolve().relative_to(wurzel.resolve()))
             except (ValueError, OSError):
                 rel = str(pfad)
-            befunde.append({
-                "datei": rel.replace("\\", "/"),
-                "zeile": int(m.group("zeile")), "spalte": int(m.group("spalte")),
-                "stufe": m.group("stufe"), "regel": m.group("regel"),
-                "text": m.group("text").strip(), "sprache": "js",
-            })
+            befunde.append(
+                {
+                    "datei": rel.replace("\\", "/"),
+                    "zeile": int(m.group("zeile")),
+                    "spalte": int(m.group("spalte")),
+                    "stufe": m.group("stufe"),
+                    "regel": m.group("regel"),
+                    "text": m.group("text").strip(),
+                    "sprache": "js",
+                }
+            )
         return befunde

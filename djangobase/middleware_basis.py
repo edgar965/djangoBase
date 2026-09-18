@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Eine Middleware, die BEIDE Betriebsarten kann — und warum das kein Luxus ist.
+"""Eine Middleware, die BEIDE Betriebsarten kann — und warum das kein Luxus ist.
 
 DER VORFALL (CamTrack, 11.09.2026)
 ==================================
@@ -81,11 +81,12 @@ Das baut den Ring von Hand wieder auf, den diese Klasse gerade abschafft.
 ``djangobase/tests/konform/test_middleware_beidseitig.py`` hält jede Middleware
 der eingestellten Kette gegen diese Zusage — auch die fremden.
 """
+
 from asgiref.sync import iscoroutinefunction, markcoroutinefunction, sync_to_async
 
 
 class ZweiwegMiddleware:
-    u"""Middleware, die synchron UND asynchron laufen kann.
+    """Middleware, die synchron UND asynchron laufen kann.
 
     Unterklassen überschreiben ``vorbereiten`` und/oder ``nachbereiten``.
     Beide geben nichts zurück; die Antwort wird an Ort und Stelle geändert.
@@ -131,10 +132,10 @@ class ZweiwegMiddleware:
 
     # ---------------------------------------------------------------- Haken
     def vorbereiten(self, request):
-        u"""Vor der Weitergabe. Vorgabe: nichts."""
+        """Vor der Weitergabe. Vorgabe: nichts."""
 
     def nachbereiten(self, request, antwort):
-        u"""Nach der Antwort, an Ort und Stelle. Vorgabe: nichts."""
+        """Nach der Antwort, an Ort und Stelle. Vorgabe: nichts."""
 
     # --------------------------------------------------------------- intern
     def _schuetzen(self, haken, *args):
@@ -142,7 +143,7 @@ class ZweiwegMiddleware:
             return haken(*args)
         try:
             return haken(*args)
-        except Exception:                                   # noqa: BLE001
+        except Exception:  # noqa: BLE001
             return None
 
     async def _schuetzen_async(self, haken, *args):
@@ -150,6 +151,5 @@ class ZweiwegMiddleware:
             # `thread_sensitive=True` ist Absicht: derselbe Faden wie für
             # synchrone Ansichten, also dieselbe Datenbank-Verbindung und
             # dieselbe Transaktion.
-            return await sync_to_async(self._schuetzen,
-                                       thread_sensitive=True)(haken, *args)
+            return await sync_to_async(self._schuetzen, thread_sensitive=True)(haken, *args)
         return self._schuetzen(haken, *args)

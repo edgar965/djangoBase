@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Lehren - alle Erkenntnisse der drei Werkzeugkaesten unter einem Dach.
+"""Lehren - alle Erkenntnisse der drei Werkzeugkaesten unter einem Dach.
 
 DREI DURCHGAENGE, ZWEI DATENFORMEN
 ==================================
@@ -20,13 +20,11 @@ Die Quelldateien bleiben getrennt bestehen: Sie sind gewachsene Texte mit
 Belegen, und sie zusammenzukopieren wuerde die Herkunft löschen - gerade die
 macht eine Lehre ueberpruefbar.
 """
-from .lehren_kriterien import LEHREN as _LEHREN_KRITERIEN
-from .lehren_review import BEREICHE as _BEREICHE_REVIEW
-from .lehren_review import LEHREN as _LEHREN_REVIEW
-from .lehren_review import Lehre, Lehrenstand
 
-__all__ = ["Lehre", "Lehrenstand", "LEHREN", "BEREICHE", "gruppen",
-           "HERKUNFT", "als_zeilen"]
+from .lehren_kriterien import LEHREN as _LEHREN_KRITERIEN
+from .lehren_review import BEREICHE as _BEREICHE_REVIEW, LEHREN as _LEHREN_REVIEW, Lehre, Lehrenstand
+
+__all__ = ["Lehre", "Lehrenstand", "LEHREN", "BEREICHE", "gruppen", "HERKUNFT", "als_zeilen"]
 
 #: Woher eine Lehre kommt - steht an jeder Zeile, damit man den Durchgang
 #: nachschlagen kann, der sie hervorgebracht hat.
@@ -34,19 +32,32 @@ HERKUNFT = {"review": "3DTools-Durchgang", "kriterien": "shortlongx-Durchgang"}
 
 
 def _aus_review():
-    for l in _LEHREN_REVIEW:
+    for lehre in _LEHREN_REVIEW:
         # Dictionary gewollt: geht unveraendert in die Vorlage (Skills-Seite).
-        yield {"slug": l.slug, "gruppe": l.bereich, "titel": l.titel,
-               "tun": l.regel, "warum": l.warum, "fall": l.beleg,
-               "herkunft": "review"}
+        yield {
+            "slug": lehre.slug,
+            "gruppe": lehre.bereich,
+            "titel": lehre.titel,
+            "tun": lehre.regel,
+            "warum": lehre.warum,
+            "fall": lehre.beleg,
+            "herkunft": "review",
+        }
 
 
 def _aus_kriterien():
     for slug, gruppe, titel, tun, fall in _LEHREN_KRITERIEN:
         # Die Tupel-Form kennt kein eigenes ``warum`` - dort steht die
         # Begruendung im Regeltext selbst. Nicht kuenstlich aufteilen.
-        yield {"slug": slug, "gruppe": gruppe, "titel": titel, "tun": tun,
-               "warum": "", "fall": fall, "herkunft": "kriterien"}
+        yield {
+            "slug": slug,
+            "gruppe": gruppe,
+            "titel": titel,
+            "tun": tun,
+            "warum": "",
+            "fall": fall,
+            "herkunft": "kriterien",
+        }
 
 
 #: Alle Lehren in einer Form. Die Kriterien-Lehren zuerst: Sie haengen an den
@@ -55,8 +66,9 @@ def _aus_kriterien():
 LEHREN = list(_aus_kriterien()) + list(_aus_review())
 
 #: Alle vorkommenden Gruppen, Kriterien-Gruppen zuerst.
-BEREICHE = ([g for g in dict.fromkeys(l["gruppe"] for l in LEHREN)
-             if g not in _BEREICHE_REVIEW] + list(_BEREICHE_REVIEW))
+BEREICHE = [
+    g for g in dict.fromkeys(lehre["gruppe"] for lehre in LEHREN) if g not in _BEREICHE_REVIEW
+] + list(_BEREICHE_REVIEW)
 
 
 def gruppen():
@@ -65,17 +77,23 @@ def gruppen():
     Gleiche Signatur wie die Fassung aus ``lehren_kriterien`` - die Seite und
     die Tests rufen sie unverändert weiter auf."""
     aus, index = [], {}
-    for l in LEHREN:
-        if l["gruppe"] not in index:
-            index[l["gruppe"]] = []
-            aus.append((l["gruppe"], index[l["gruppe"]]))
-        index[l["gruppe"]].append(l)
+    for lehre in LEHREN:
+        if lehre["gruppe"] not in index:
+            index[lehre["gruppe"]] = []
+            aus.append((lehre["gruppe"], index[lehre["gruppe"]]))
+        index[lehre["gruppe"]].append(lehre)
     return aus
 
 
 def als_zeilen():
     """Alle Lehren als Tabelle - für den Bericht und die Ausgabe im Klartext."""
-    return [{"gruppe": l["gruppe"], "titel": l["titel"], "tun": l["tun"],
-             "fall": (l["fall"] or l["warum"])[:400],
-             "herkunft": HERKUNFT.get(l["herkunft"], l["herkunft"])}
-            for l in LEHREN]
+    return [
+        {
+            "gruppe": lehre["gruppe"],
+            "titel": lehre["titel"],
+            "tun": lehre["tun"],
+            "fall": (lehre["fall"] or lehre["warum"])[:400],
+            "herkunft": HERKUNFT.get(lehre["herkunft"], lehre["herkunft"]),
+        }
+        for lehre in LEHREN
+    ]

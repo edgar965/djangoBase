@@ -25,6 +25,7 @@ Deshalb rechnet diese View NICHT: Sie liest nur ab, was ein Hintergrund-Faden
 ohnehin bereitgestellt hat (``SystemStats.lesen`` über ``HintergrundCache``).
 Wer das ändert, macht die Anzeige wieder zum Bremsklotz.
 """
+
 import logging
 
 from django.http import JsonResponse
@@ -47,6 +48,6 @@ def api_system_stats(request):
     stillschweigend leer bleiben."""
     try:
         return JsonResponse(dict(SystemStats.lesen(), ok=True))
-    except Exception:                                        # noqa: BLE001
+    except Exception:  # noqa: BLE001
         logger.exception("System-Stats fehlgeschlagen")
         return JsonResponse({"ok": False})

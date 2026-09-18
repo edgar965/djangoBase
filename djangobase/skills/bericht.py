@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Bericht - der Klartext-Stapelbericht der Skills1-Seite.
+"""Bericht - der Klartext-Stapelbericht der Skills1-Seite.
 
 Das ist das skills-Element, das die reine skills2-Welt nicht hat: Mehrere
 Werkzeuge laufen server-seitig als Stapel, und JEDER hängt seinen Bericht als
@@ -30,13 +30,16 @@ class Bericht:
     def anhaengen(self, werkzeug, ergebnis, dauer_s=0.0, zeitstempel=""):
         titel = getattr(werkzeug, "titel", "") or getattr(werkzeug, "slug", "?")
         fehler = (ergebnis.hinweis or "").startswith("FEHLER")
-        stand = ("FEHLER" if fehler
-                 else "%d Treffer" % len(ergebnis.zeilen) if ergebnis.zeilen
-                 else "nichts gefunden")
+        stand = (
+            "FEHLER"
+            if fehler
+            else "%d Treffer" % len(ergebnis.zeilen)
+            if ergebnis.zeilen
+            else "nichts gefunden"
+        )
         kopf = [
             self.LINIE,
-            "# %s [%s]%s" % (titel, werkzeug.slug,
-                             "  " + zeitstempel if zeitstempel else ""),
+            "# %s [%s]%s" % (titel, werkzeug.slug, "  " + zeitstempel if zeitstempel else ""),
             "# %s · %.1f s" % (stand, dauer_s),
             self.LINIE,
         ]
@@ -57,27 +60,25 @@ class Bericht:
             leer = "Nichts gefunden."
             return leer + ("\n" + ergebnis.hinweis if ergebnis.hinweis else "")
         spalten = ergebnis.spalten or list(ergebnis.zeilen[0].keys())
-        zeilen = ergebnis.zeilen[:self.MAX_ZEILEN]
+        zeilen = ergebnis.zeilen[: self.MAX_ZEILEN]
         breite = {
-            s: min(self.MAX_SPALTE,
-                   max(len(str(s)),
-                       max((len(self._zelle(z.get(s, ""))) for z in zeilen), default=0)))
+            s: min(
+                self.MAX_SPALTE,
+                max(len(str(s)), max((len(self._zelle(z.get(s, ""))) for z in zeilen), default=0)),
+            )
             for s in spalten
         }
 
         def zeile(werte):
-            return "  ".join(self._zelle(werte.get(s, "")).ljust(breite[s])
-                             for s in spalten)
+            return "  ".join(self._zelle(werte.get(s, "")).ljust(breite[s]) for s in spalten)
 
-        aus = [zeile({s: s for s in spalten}),
-               "  ".join("-" * breite[s] for s in spalten)]
+        aus = [zeile({s: s for s in spalten}), "  ".join("-" * breite[s] for s in spalten)]
         aus.extend(zeile(z) for z in zeilen)
         if len(ergebnis.zeilen) > self.MAX_ZEILEN:
-            aus.append("… %d weitere — im Werkzeug ansehen"
-                       % (len(ergebnis.zeilen) - self.MAX_ZEILEN))
+            aus.append("… %d weitere — im Werkzeug ansehen" % (len(ergebnis.zeilen) - self.MAX_ZEILEN))
         if ergebnis.hinweis:
             aus.extend(["", ergebnis.hinweis])
         return "\n".join(aus)
 
     def _zelle(self, wert):
-        return str(wert).replace("\n", " ")[:self.MAX_SPALTE]
+        return str(wert).replace("\n", " ")[: self.MAX_SPALTE]

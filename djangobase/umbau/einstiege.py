@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Wo ein Workflow anfaengt — gefunden, nicht aufgeschrieben.
+"""Wo ein Workflow anfaengt — gefunden, nicht aufgeschrieben.
 
 DIE ANSAGE (Edgar, 27.08.2026)
 ==============================
@@ -26,6 +26,7 @@ Eine Seite ohne Route ruft niemand auf. Die Route ist ausserdem die
 einzige Stelle, an der Adresse und Code beieinanderstehen — die Vorlage
 weiss nicht, unter welcher Adresse sie haengt.
 """
+
 import ast
 import re
 from pathlib import Path
@@ -34,24 +35,25 @@ from .klassenmodell import AUS
 
 #: ``path('x/', views.y, name='z')`` — auch ``re_path``.
 _ROUTE = re.compile(
-    r'\b(?:path|re_path)\(\s*'
+    r"\b(?:path|re_path)\(\s*"
     r'[\'"](?P<pfad>[^\'"]*)[\'"]\s*,\s*'
-    r'(?P<ziel>[\w.]+)'
-    r'(?:[^)]*?name\s*=\s*[\'"](?P<name>[^\'"]+)[\'"])?')
+    r"(?P<ziel>[\w.]+)"
+    r'(?:[^)]*?name\s*=\s*[\'"](?P<name>[^\'"]+)[\'"])?'
+)
 
 #: Ordner, in denen ein ``run()`` als Faden gilt.
-FADEN_ORTE = ('live', 'services', 'orchestrator')
+FADEN_ORTE = ("live", "services", "orchestrator")
 
 #: Methodennamen, die einen Faden anzeigen.
-FADEN_NAMEN = ('run', 'run_once', 'tick', 'einmal')
+FADEN_NAMEN = ("run", "run_once", "tick", "einmal")
 
 
 class Einstieg:
-    u"""EIN Ort, an dem ein Workflow anfaengt."""
+    """EIN Ort, an dem ein Workflow anfaengt."""
 
-    __slots__ = ('adresse', 'art', 'ziel', 'datei', 'zeile', 'routenname')
+    __slots__ = ("adresse", "art", "ziel", "datei", "zeile", "routenname")
 
-    def __init__(self, adresse, art, ziel, datei, zeile, routenname=''):
+    def __init__(self, adresse, art, ziel, datei, zeile, routenname=""):
         #: Was der Aufrufer angibt: eine URL, ein Befehlsname, ein Faden.
         self.adresse = adresse
         #: ``'seite'``, ``'api'``, ``'befehl'`` oder ``'faden'``
@@ -64,22 +66,28 @@ class Einstieg:
 
     @property
     def titel(self):
-        u"""Was in der Liste steht."""
-        if self.art in ('seite', 'api'):
-            return '/%s' % self.adresse.lstrip('/')
+        """Was in der Liste steht."""
+        if self.art in ("seite", "api"):
+            return "/%s" % self.adresse.lstrip("/")
         return self.adresse
 
     def als_dict(self):
-        return {'adresse': self.adresse, 'art': self.art, 'ziel': self.ziel,
-                'datei': str(self.datei), 'zeile': self.zeile,
-                'routenname': self.routenname, 'titel': self.titel}
+        return {
+            "adresse": self.adresse,
+            "art": self.art,
+            "ziel": self.ziel,
+            "datei": str(self.datei),
+            "zeile": self.zeile,
+            "routenname": self.routenname,
+            "titel": self.titel,
+        }
 
     def __repr__(self):
-        return '<Einstieg %s %s>' % (self.art, self.titel)
+        return "<Einstieg %s %s>" % (self.art, self.titel)
 
 
 class Einstiegssucher:
-    u"""Durchsucht das Projekt nach Einstiegen."""
+    """Durchsucht das Projekt nach Einstiegen."""
 
     def __init__(self, wurzel):
         self.wurzel = Path(wurzel)
@@ -90,7 +98,7 @@ class Einstiegssucher:
     # ── Routen ──────────────────────────────────────────────────
 
     def routen(self):
-        u"""Jede ``path(...)``-Zeile aus jeder ``urls.py``.
+        """Jede ``path(...)``-Zeile aus jeder ``urls.py``.
 
         Mit einem regulaeren Ausdruck und nicht ueber den AST: Eine
         ``urls.py`` ist eine Liste von Aufrufen, und der Ausdruck liest
@@ -98,29 +106,36 @@ class Einstiegssucher:
         Schluesselwort-Argumente einzeln auseinandernehmen.
         """
         aus = []
-        for datei in sorted(self.wurzel.rglob('urls.py')):
+        for datei in sorted(self.wurzel.rglob("urls.py")):
             if any(teil in AUS for teil in datei.parts):
                 continue
             try:
-                text = datei.read_text(encoding='utf-8')
+                text = datei.read_text(encoding="utf-8")
             except (OSError, UnicodeDecodeError):
                 continue
             for treffer in _ROUTE.finditer(text):
-                pfad = treffer.group('pfad')
-                ziel = treffer.group('ziel')
-                if ziel.endswith('as_view'):
-                    ziel = ziel.rsplit('.', 2)[-2] if '.' in ziel else ziel
+                pfad = treffer.group("pfad")
+                ziel = treffer.group("ziel")
+                if ziel.endswith("as_view"):
+                    ziel = ziel.rsplit(".", 2)[-2] if "." in ziel else ziel
                 else:
                     ziel = self._kurzziel(ziel)
-                zeile = text.count('\n', 0, treffer.start()) + 1
-                aus.append(Einstieg(
-                    pfad, 'api' if pfad.startswith('api/') else 'seite',
-                    ziel, datei, zeile, treffer.group('name') or ''))
+                zeile = text.count("\n", 0, treffer.start()) + 1
+                aus.append(
+                    Einstieg(
+                        pfad,
+                        "api" if pfad.startswith("api/") else "seite",
+                        ziel,
+                        datei,
+                        zeile,
+                        treffer.group("name") or "",
+                    )
+                )
         return aus
 
     @staticmethod
     def _kurzziel(ziel):
-        u"""``views.Webseiten.start`` -> ``Webseiten.start``.
+        """``views.Webseiten.start`` -> ``Webseiten.start``.
 
         WARUM DER KLASSENNAME BLEIBEN MUSS (02.09.2026, Projekt 3DTools)
         ---------------------------------------------------------------
@@ -140,67 +155,65 @@ class Einstiegssucher:
         kleingeschriebenes Modul (``views.dashboard``) bleibt damit
         unveraendert.
         """
-        teile = ziel.rsplit('.', 2)
+        teile = ziel.rsplit(".", 2)
         if len(teile) >= 2 and teile[-2][:1].isupper():
-            return '%s.%s' % (teile[-2], teile[-1])
+            return "%s.%s" % (teile[-2], teile[-1])
         return teile[-1]
 
     # ── Befehle ─────────────────────────────────────────────────
 
     def befehle(self):
-        u"""``manage.py <name>`` — je Datei genau ein ``handle``."""
+        """``manage.py <name>`` — je Datei genau ein ``handle``."""
         aus = []
-        for datei in sorted(self.wurzel.rglob('management/commands/*.py')):
-            if datei.name == '__init__.py':
+        for datei in sorted(self.wurzel.rglob("management/commands/*.py")):
+            if datei.name == "__init__.py":
                 continue
             if any(teil in AUS for teil in datei.parts):
                 continue
-            zeile = self._zeile_von(datei, 'handle')
+            zeile = self._zeile_von(datei, "handle")
             if zeile:
-                aus.append(Einstieg('manage.py %s' % datei.stem, 'befehl',
-                                    'handle', datei, zeile))
+                aus.append(Einstieg("manage.py %s" % datei.stem, "befehl", "handle", datei, zeile))
         return aus
 
     # ── Faeden ──────────────────────────────────────────────────
 
     def faeden(self):
-        u"""Was von selbst weiterlaeuft: eine Schleife in einer Klasse.
+        """Was von selbst weiterlaeuft: eine Schleife in einer Klasse.
 
         Ein Faden hat keine Adresse, unter der ihn jemand aufruft — und
         gerade darum ist er im Bild wichtig: Er ist der Teil, den man beim
         Lesen der Routen NICHT findet.
         """
         aus = []
-        for datei in sorted(self.wurzel.rglob('*.py')):
+        for datei in sorted(self.wurzel.rglob("*.py")):
             teile = set(datei.parts)
             if any(t in AUS for t in datei.parts):
                 continue
             if not teile & set(FADEN_ORTE):
                 continue
             try:
-                baum = ast.parse(datei.read_text(encoding='utf-8'))
+                baum = ast.parse(datei.read_text(encoding="utf-8"))
             except (SyntaxError, UnicodeDecodeError, OSError):
                 continue
             for knoten in ast.walk(baum):
                 if not isinstance(knoten, ast.ClassDef):
                     continue
                 for kind in knoten.body:
-                    if (isinstance(kind, (ast.FunctionDef,
-                                          ast.AsyncFunctionDef))
-                            and kind.name in FADEN_NAMEN):
-                        aus.append(Einstieg(
-                            '%s.%s' % (knoten.name, kind.name), 'faden',
-                            kind.name, datei, kind.lineno))
+                    if isinstance(kind, (ast.FunctionDef, ast.AsyncFunctionDef)) and kind.name in FADEN_NAMEN:
+                        aus.append(
+                            Einstieg(
+                                "%s.%s" % (knoten.name, kind.name), "faden", kind.name, datei, kind.lineno
+                            )
+                        )
         return aus
 
     @staticmethod
     def _zeile_von(datei, name):
         try:
-            baum = ast.parse(datei.read_text(encoding='utf-8'))
+            baum = ast.parse(datei.read_text(encoding="utf-8"))
         except (SyntaxError, UnicodeDecodeError, OSError):
             return 0
         for knoten in ast.walk(baum):
-            if (isinstance(knoten, (ast.FunctionDef, ast.AsyncFunctionDef))
-                    and knoten.name == name):
+            if isinstance(knoten, (ast.FunctionDef, ast.AsyncFunctionDef)) and knoten.name == name:
                 return knoten.lineno
         return 0

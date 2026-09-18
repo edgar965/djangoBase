@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Die Workflows des Projekts — ermittelt, sortiert, gruppiert.
+"""Die Workflows des Projekts — ermittelt, sortiert, gruppiert.
 
 DIE ANSAGE (Edgar, 27.08.2026)
 ==============================
@@ -28,6 +28,7 @@ Weil die meisten nichts erzaehlen. ``GRENZE`` schneidet ab: Was weniger
 als eine Handvoll Klassen beruehrt, ist kein Workflow, sondern ein
 Handgriff. Was uebrig bleibt, sind die 20 bis 50, nach denen gefragt war.
 """
+
 from pathlib import Path
 
 from .ablage import Speicher
@@ -43,23 +44,66 @@ DECKEL = 50
 #: Die Reiter der Seite. Ein Einstieg landet im ERSTEN Reiter, dessen
 #: Muster auf seine Adresse passt; ``''`` faengt den Rest.
 REITER = (
-    ('aufnahme', u'Aufnahme und Erkennung',
-     ('record_streams', 'live_detect', 'process_faces', 'trt_warmup',
-      'capture_snapshots', 'faden:')),
-    ('ansehen', u'Ansehen und Abspielen',
-     ('recordings', 'kameras', 'live/', 'snippet', 'schnipsel', 'media',
-      'treffer', 'analyze-recording', 'calendar')),
-    ('personen', u'Personen und Treffer',
-     ('persons', 'personen', 'sighting', 'cluster', 'merge', 'enrollment',
-      'foto', 'reembed', 'recluster', 'recognition', 'backfill')),
-    ('verwalten', u'Einrichten und Verwalten',
-     ('settings', 'cameras', 'storage', 'help', 'hilfe', 'test', 'cleanup',
-      'export', 'marzahn', 'fernzugriff', 'gesundheit', 'cron')),
+    (
+        "aufnahme",
+        "Aufnahme und Erkennung",
+        ("record_streams", "live_detect", "process_faces", "trt_warmup", "capture_snapshots", "faden:"),
+    ),
+    (
+        "ansehen",
+        "Ansehen und Abspielen",
+        (
+            "recordings",
+            "kameras",
+            "live/",
+            "snippet",
+            "schnipsel",
+            "media",
+            "treffer",
+            "analyze-recording",
+            "calendar",
+        ),
+    ),
+    (
+        "personen",
+        "Personen und Treffer",
+        (
+            "persons",
+            "personen",
+            "sighting",
+            "cluster",
+            "merge",
+            "enrollment",
+            "foto",
+            "reembed",
+            "recluster",
+            "recognition",
+            "backfill",
+        ),
+    ),
+    (
+        "verwalten",
+        "Einrichten und Verwalten",
+        (
+            "settings",
+            "cameras",
+            "storage",
+            "help",
+            "hilfe",
+            "test",
+            "cleanup",
+            "export",
+            "marzahn",
+            "fernzugriff",
+            "gesundheit",
+            "cron",
+        ),
+    ),
 )
 
 
 class Workflowliste:
-    u"""Alle Workflows eines Projekts, sortiert nach Komplexitaet."""
+    """Alle Workflows eines Projekts, sortiert nach Komplexitaet."""
 
     def __init__(self, wurzel, tiefe=5, grenze=GRENZE, deckel=DECKEL):
         self.wurzel = wurzel
@@ -88,36 +132,33 @@ class Workflowliste:
                 self.verworfen += 1
                 continue
             alle.append(weg)
-        alle.sort(key=lambda w: (-len(w.klassen), -len(w.schritte),
-                                 w.einstieg.titel))
-        self.wege = self._entdoppeln(alle)[:self.deckel]
-        self.kennzahlen['einstiege'] = len(alle) + self.verworfen
-        self.kennzahlen['workflows'] = len(self.wege)
+        alle.sort(key=lambda w: (-len(w.klassen), -len(w.schritte), w.einstieg.titel))
+        self.wege = self._entdoppeln(alle)[: self.deckel]
+        self.kennzahlen["einstiege"] = len(alle) + self.verworfen
+        self.kennzahlen["workflows"] = len(self.wege)
         return self
 
     @staticmethod
     def _start(verzeichnis, einstieg):
-        u"""Der Bezug, bei dem das Verfolgen anfaengt."""
+        """Der Bezug, bei dem das Verfolgen anfaengt."""
         name = einstieg.ziel
-        if einstieg.art in ('befehl', 'faden'):
+        if einstieg.art in ("befehl", "faden"):
             for kandidat in verzeichnis._methoden.get(name, ()):
                 if kandidat.datei == einstieg.datei:
                     return kandidat
             return None
-        if '.' in name:
+        if "." in name:
             # ``Webseiten.start`` — der Klassenname steht davor, seit
             # `Einstiegssucher._kurzziel` ihn nicht mehr wegwirft. Die
             # Klasse steht damit fest; `in_klasse` muss nicht raten,
             # welches der sieben ``start`` gemeint ist.
-            klasse, methode = name.rsplit('.', 1)
-            return (verzeichnis.in_klasse(klasse, methode)
-                    or verzeichnis.klassen.get(klasse))
-        return (verzeichnis.funktionen.get(name) or
-                verzeichnis.klassen.get(name))
+            klasse, methode = name.rsplit(".", 1)
+            return verzeichnis.in_klasse(klasse, methode) or verzeichnis.klassen.get(klasse)
+        return verzeichnis.funktionen.get(name) or verzeichnis.klassen.get(name)
 
     @staticmethod
     def _entdoppeln(wege):
-        u"""Zwei Routen auf dieselbe View sind EIN Workflow.
+        """Zwei Routen auf dieselbe View sind EIN Workflow.
 
         ``/recordings/<pk>/media/`` und ``/recordings/live/<slug>/media/``
         laufen durch denselben Code. Beide zu zeigen fuellt die Liste,
@@ -127,23 +168,23 @@ class Workflowliste:
         gesehen = {}
         aus = []
         for weg in wege:
-            schluessel = (weg.start.schluessel if weg.start else
-                          '%s:%s' % (weg.einstieg.art, weg.einstieg.ziel))
+            schluessel = (
+                weg.start.schluessel if weg.start else "%s:%s" % (weg.einstieg.art, weg.einstieg.ziel)
+            )
             if schluessel in gesehen:
-                gesehen[schluessel].setdefault('auch', []).append(
-                    weg.einstieg.titel)
+                gesehen[schluessel].setdefault("auch", []).append(weg.einstieg.titel)
                 continue
             weg.auch = []
-            gesehen[schluessel] = {'auch': weg.auch}
+            gesehen[schluessel] = {"auch": weg.auch}
             aus.append(weg)
         return aus
 
     # ── Gliederung ──────────────────────────────────────────────
 
     def reiter(self):
-        u"""Die Wege auf die Reiter verteilt, Reihenfolge erhalten."""
+        """Die Wege auf die Reiter verteilt, Reihenfolge erhalten."""
         faecher = [(kuerzel, titel, []) for kuerzel, titel, _ in REITER]
-        faecher.append(('rest', u'Weitere Wege', []))
+        faecher.append(("rest", "Weitere Wege", []))
         for weg in self.wege:
             faecher[self._fach(weg)][2].append(weg)
         return [f for f in faecher if f[2]]
@@ -151,8 +192,7 @@ class Workflowliste:
     @staticmethod
     def _fach(weg):
         adresse = weg.einstieg.adresse.lower()
-        marke = ('faden:' + adresse) if weg.einstieg.art == 'faden' \
-            else adresse
+        marke = ("faden:" + adresse) if weg.einstieg.art == "faden" else adresse
         for stelle, (_kuerzel, _titel, muster) in enumerate(REITER):
             if any(m in marke for m in muster):
                 return stelle
@@ -160,16 +200,17 @@ class Workflowliste:
 
     def als_dict(self):
         return {
-            'kennzahlen': self.kennzahlen,
-            'verworfen': self.verworfen,
-            'reiter': [{'kuerzel': k, 'titel': t,
-                        'wege': [w.als_dict() for w in wege]}
-                       for k, t, wege in self.reiter()],
+            "kennzahlen": self.kennzahlen,
+            "verworfen": self.verworfen,
+            "reiter": [
+                {"kuerzel": k, "titel": t, "wege": [w.als_dict() for w in wege]}
+                for k, t, wege in self.reiter()
+            ],
         }
 
 
 class Workflowspeicher(Speicher):
-    u"""Die ermittelten Wege — einmal gelesen, dann gemerkt.
+    """Die ermittelten Wege — einmal gelesen, dann gemerkt.
 
     STEHT HIER, NICHT IN DER ANSICHT (27.08.2026)
     =============================================
@@ -185,15 +226,17 @@ class Workflowspeicher(Speicher):
     sobald die Wege schon einmal gelesen waren.
     """
 
-    bereich = 'workflows'
+    bereich = "workflows"
 
     #: Aendert sich einer dieser vier, ist das gespeicherte Bild ueberholt
     #: und wird beim naechsten Aufschlagen NEU gerechnet — ohne dass
     #: jemand einen Knopf druecken muss.
-    quellen = (__file__,
-               str(Path(__file__).with_name('wegenetz.py')),
-               str(Path(__file__).with_name('einstiege.py')),
-               str(Path(__file__).with_name('workflowbild.py')))
+    quellen = (
+        __file__,
+        str(Path(__file__).with_name("wegenetz.py")),
+        str(Path(__file__).with_name("einstiege.py")),
+        str(Path(__file__).with_name("workflowbild.py")),
+    )
 
     @staticmethod
     def bauen(wurzel):

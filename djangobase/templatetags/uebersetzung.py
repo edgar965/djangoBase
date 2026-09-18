@@ -13,6 +13,7 @@ In Templates der öffentlichen User-Seite:
 Basis-Sprache ist Deutsch; ohne Cookie / für unbekannte Sprachen liefern die
 Tags einfach den deutschen Text – die Seite kann also nie kaputtgehen.
 """
+
 from django import template
 from django.utils.safestring import mark_safe
 
@@ -41,8 +42,7 @@ def tblock(parser, token):
     try:
         _name, schluessel = token.split_contents()
     except ValueError as e:
-        raise template.TemplateSyntaxError(
-            "tblock erwartet genau ein Argument: den Schlüssel") from e
+        raise template.TemplateSyntaxError("tblock erwartet genau ein Argument: den Schlüssel") from e
     nodelist = parser.parse(("endtblock",))
     parser.delete_first_token()
     return TBlockNode(nodelist, schluessel.strip("\"'"))
@@ -55,8 +55,7 @@ class TBlockNode(template.Node):
 
     def render(self, context):
         inhalt = self.nodelist.render(context)
-        ergebnis = uebersetzung.text_holen(
-            inhalt, _sprache(context), schluessel=self.schluessel)
+        ergebnis = uebersetzung.text_holen(inhalt, _sprache(context), schluessel=self.schluessel)
         return mark_safe(ergebnis)
 
 

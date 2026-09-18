@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Ein Import, der eine Frage stellt, ist nicht tot.
+"""Ein Import, der eine Frage stellt, ist nicht tot.
 
 DER ANLASS (3DTools, 31.08.2026)
 ================================
@@ -32,101 +32,101 @@ BDD - GEGEBEN / DANN
     EinToterImport                ... wird gemeldet
     EinToterImportImExceptZweig   ... wird gemeldet
 """
+
 from djangobase.skills.toteimporte import ToteImporte
 
 from .test_neue_werkzeuge import WerkzeugBasis
 
 
 class EinProbeweiserImport(WerkzeugBasis):
-    u"""Gegeben: Ein Import im ``try``, dessen ``except ImportError`` ein
+    """Gegeben: Ein Import im ``try``, dessen ``except ImportError`` ein
     Flag setzt."""
 
-    QUELLE = ("try:\n"
-              "    from playwright.sync_api import sync_playwright\n"
-              "    HAT_PLAYWRIGHT = True\n"
-              "except ImportError:\n"
-              "    HAT_PLAYWRIGHT = False\n")
+    QUELLE = (
+        "try:\n"
+        "    from playwright.sync_api import sync_playwright\n"
+        "    HAT_PLAYWRIGHT = True\n"
+        "except ImportError:\n"
+        "    HAT_PLAYWRIGHT = False\n"
+    )
 
     def test_er_wird_nicht_gemeldet(self):
-        projekt = self.projekt({'pruefung.py': self.QUELLE})
+        projekt = self.projekt({"pruefung.py": self.QUELLE})
         self.assertEqual(projekt.fahren(ToteImporte), [])
 
     def test_auch_modulnotfound_zaehlt(self):
-        projekt = self.projekt({
-            'pruefung.py': self.QUELLE.replace('ImportError',
-                                               'ModuleNotFoundError')})
+        projekt = self.projekt({"pruefung.py": self.QUELLE.replace("ImportError", "ModuleNotFoundError")})
         self.assertEqual(projekt.fahren(ToteImporte), [])
 
     def test_auch_als_tupel(self):
-        projekt = self.projekt({
-            'pruefung.py': self.QUELLE.replace(
-                'except ImportError:', 'except (ImportError, OSError):')})
+        projekt = self.projekt(
+            {"pruefung.py": self.QUELLE.replace("except ImportError:", "except (ImportError, OSError):")}
+        )
         self.assertEqual(projekt.fahren(ToteImporte), [])
 
 
 class EinNacktesExcept(WerkzeugBasis):
-    u"""Gegeben: ``except:`` ohne Typ — faengt auch den ImportError."""
+    """Gegeben: ``except:`` ohne Typ — faengt auch den ImportError."""
 
     def test_er_wird_nicht_gemeldet(self):
-        projekt = self.projekt({
-            'pruefung.py': ("try:\n"
-                            "    import kryptografie\n"
-                            "    DA = True\n"
-                            "except:\n"
-                            "    DA = False\n")})
+        projekt = self.projekt(
+            {"pruefung.py": ("try:\n    import kryptografie\n    DA = True\nexcept:\n    DA = False\n")}
+        )
         self.assertEqual(projekt.fahren(ToteImporte), [])
 
 
 class EinAndererFehler(WerkzeugBasis):
-    u"""Gegeben: Ein ``try``, das gar keinen Importfehler erwartet."""
+    """Gegeben: Ein ``try``, das gar keinen Importfehler erwartet."""
 
     def test_er_wird_gemeldet(self):
-        u"""``except ValueError`` sagt nichts ueber Verfuegbarkeit."""
-        projekt = self.projekt({
-            'rechnen.py': ("try:\n"
-                           "    import json\n"
-                           "    x = 1 / 0\n"
-                           "except ValueError:\n"
-                           "    x = 0\n")})
+        """``except ValueError`` sagt nichts ueber Verfuegbarkeit."""
+        projekt = self.projekt(
+            {"rechnen.py": ("try:\n    import json\n    x = 1 / 0\nexcept ValueError:\n    x = 0\n")}
+        )
         zeilen = projekt.fahren(ToteImporte)
         self.assertEqual(len(zeilen), 1, zeilen)
-        self.assertIn('json', zeilen[0]['befund'])
+        self.assertIn("json", zeilen[0]["befund"])
 
 
 class EinToterImport(WerkzeugBasis):
-    u"""Gegeben: Ein gewoehnlicher Import, den niemand benutzt.
+    """Gegeben: Ein gewoehnlicher Import, den niemand benutzt.
 
     DIE GEGENPROBE zur Schaerfung oben.
     """
 
     def test_er_wird_weiter_gemeldet(self):
-        projekt = self.projekt({
-            'laden.py': ("import json\n"
-                         "import os\n"
-                         "\n"
-                         "\n"
-                         "def lesen(pfad):\n"
-                         "    return json.loads(open(pfad).read())\n")})
+        projekt = self.projekt(
+            {
+                "laden.py": (
+                    "import json\nimport os\n\n\ndef lesen(pfad):\n    return json.loads(open(pfad).read())\n"
+                )
+            }
+        )
         zeilen = projekt.fahren(ToteImporte)
         self.assertEqual(len(zeilen), 1, zeilen)
-        self.assertIn('os', zeilen[0]['befund'])
+        self.assertIn("os", zeilen[0]["befund"])
 
 
 class EinToterImportImExceptZweig(WerkzeugBasis):
-    u"""Gegeben: Der Ersatzweg im ``except`` importiert etwas Unbenutztes.
+    """Gegeben: Der Ersatzweg im ``except`` importiert etwas Unbenutztes.
 
     Nur der ``try``-Rumpf ist die Frage — der Ersatzweg ist eine Antwort
     und kann sehr wohl tot sein.
     """
 
     def test_er_wird_gemeldet(self):
-        projekt = self.projekt({
-            'pruefung.py': ("try:\n"
-                            "    import schnell\n"
-                            "    NUTZE = schnell\n"
-                            "except ImportError:\n"
-                            "    import langsam\n"
-                            "    NUTZE = None\n")})
+        projekt = self.projekt(
+            {
+                "pruefung.py": (
+                    "try:\n"
+                    "    import schnell\n"
+                    "    NUTZE = schnell\n"
+                    "except ImportError:\n"
+                    "    import langsam\n"
+                    "    NUTZE = None\n"
+                )
+            }
+        )
         zeilen = projekt.fahren(ToteImporte)
         self.assertEqual(len(zeilen), 1, zeilen)
-        self.assertIn('langsam', zeilen[0]['befund'])
+        self.assertIn("langsam", zeilen[0]["befund"])

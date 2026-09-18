@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Aus einer Aufzeichnung einen echten Testfall machen.
+"""Aus einer Aufzeichnung einen echten Testfall machen.
 
 DAS ZIEL (Edgar, 20.08.2026)
 ===========================
@@ -32,6 +32,7 @@ Testlauf dieselbe Wirkung noch einmal ausloesen - eine Order, ein geloeschtes
 System, ein neuer Auftrag. Es steht als Kommentar drin, mit dem Hinweis, dass
 es von Hand ergaenzt werden muss.
 """
+
 import re
 from datetime import datetime
 
@@ -41,7 +42,7 @@ __all__ = ["Testfall"]
 
 
 class Testfall:
-    u"""Erzeugt den Quelltext eines Django-Testfalls aus einer Aufzeichnung."""
+    """Erzeugt den Quelltext eines Django-Testfalls aus einer Aufzeichnung."""
 
     #: Diese Pfade werden nie nachgefahren - sie gehoeren zur Aufzeichnung
     #: selbst oder liefern bei jedem Aufruf etwas anderes. Der
@@ -56,20 +57,18 @@ class Testfall:
 
     @property
     def AUS(self):
-        return (Basiswurzel.weg() + "tests/aufzeichnung/",
-                ) + Testfall.FESTE_AUS
+        return (Basiswurzel.weg() + "tests/aufzeichnung/",) + Testfall.FESTE_AUS
 
     def __init__(self, aufzeichnung):
         self.a = aufzeichnung
 
     #: Umlaute und ß in ihre ASCII-Entsprechung - siehe ``_ascii``.
-    UMSCHRIFT = {"ä": "ae", "ö": "oe", "ü": "ue", "ß": "ss",
-                 "Ä": "Ae", "Ö": "Oe", "Ü": "Ue"}
+    UMSCHRIFT = {"ä": "ae", "ö": "oe", "ü": "ue", "ß": "ss", "Ä": "Ae", "Ö": "Oe", "Ü": "Ue"}
 
     # ------------------------------------------------------------------ Namen
     @classmethod
     def _ascii(cls, text):
-        u"""Deutsche Sonderzeichen umschreiben, den Rest verwerfen.
+        """Deutsche Sonderzeichen umschreiben, den Rest verwerfen.
 
         WARUM (21.08.2026): Der erste per Knopf erzeugte Testfall hieß
         ``test_chart_blättern_auf_ib_paper.py``. Python 3 erlaubt das zwar, aber
@@ -86,7 +85,7 @@ class Testfall:
         return text.encode("ascii", "ignore").decode("ascii")
 
     def klassenname(self):
-        u"""Aus dem Namen der Aufzeichnung einen gueltigen Klassennamen."""
+        """Aus dem Namen der Aufzeichnung einen gueltigen Klassennamen."""
         roh = re.sub(r"[^\w\s]", " ", self._ascii(self.a.name or "Aufzeichnung"))
         teile = [w.capitalize() for w in roh.split() if w]
         name = "".join(teile) or "Aufzeichnung"
@@ -95,13 +94,13 @@ class Testfall:
         return name if name.startswith("Test") else name + "Test"
 
     def dateiname(self):
-        roh = self._ascii((self.a.name or self.a.id))
+        roh = self._ascii(self.a.name or self.a.id)
         roh = re.sub(r"[^\w]+", "_", roh).strip("_").lower()
         return "test_%s.py" % (roh or "aufzeichnung")
 
     # ---------------------------------------------------------------- Bausteine
     def abrufe(self):
-        u"""Die GET-Abrufe, die nachgefahren werden können - ohne Doppelte."""
+        """Die GET-Abrufe, die nachgefahren werden können - ohne Doppelte."""
         gesehen, aus = set(), []
         for s in self.a.schritte:
             if s.get("art") != "abruf" or (s.get("methode") or "GET") != "GET":
@@ -114,7 +113,7 @@ class Testfall:
         return aus
 
     def schreibende(self):
-        u"""Aufgezeichnete Schreibzugriffe - NUR als Kommentar."""
+        """Aufgezeichnete Schreibzugriffe - NUR als Kommentar."""
         gesehen, aus = set(), []
         for s in self.a.schritte:
             if s.get("art") != "abruf":
@@ -126,36 +125,45 @@ class Testfall:
             if schluessel in gesehen or any(schluessel[1].startswith(x) for x in self.AUS):
                 continue
             gesehen.add(schluessel)
-            aus.append({"methode": m, "pfad": schluessel[1],
-                        "status": int(s.get("status") or 0)})
+            aus.append({"methode": m, "pfad": schluessel[1], "status": int(s.get("status") or 0)})
         return aus
 
     def bedienung(self):
-        u"""Klicks, Eingaben und Seitenwechsel in ihrer Reihenfolge."""
+        """Klicks, Eingaben und Seitenwechsel in ihrer Reihenfolge."""
         aus = []
         for s in self.a.schritte:
             art = s.get("art")
             if art == "klick":
-                aus.append("%6.1fs  Klick auf %s%s" % (
-                    s.get("t", 0), s.get("ziel", "?"),
-                    (" („%s\")" % s["text"]) if s.get("text") else ""))
+                aus.append(
+                    "%6.1fs  Klick auf %s%s"
+                    % (s.get("t", 0), s.get("ziel", "?"), (' („%s")' % s["text"]) if s.get("text") else "")
+                )
             elif art in ("eingabe", "auswahl"):
-                aus.append("%6.1fs  %s in %s: %s" % (
-                    s.get("t", 0), "Eingabe" if art == "eingabe" else "Auswahl",
-                    s.get("ziel", "?"), s.get("wert", "")))
+                aus.append(
+                    "%6.1fs  %s in %s: %s"
+                    % (
+                        s.get("t", 0),
+                        "Eingabe" if art == "eingabe" else "Auswahl",
+                        s.get("ziel", "?"),
+                        s.get("wert", ""),
+                    )
+                )
             elif art == "seite":
                 aus.append("%6.1fs  Seite %s" % (s.get("t", 0), s.get("seite", "?")))
         return aus
 
     def fehlerzeilen(self):
-        u"""Log-Zeilen ab WARNING - was damals nicht schieflief, darf es auch
+        """Log-Zeilen ab WARNING - was damals nicht schieflief, darf es auch
         jetzt nicht."""
-        return [l for l in self.a.logs
-                if str(l.get("stufe", "")).upper() in ("ERROR", "CRITICAL")]
+        return [
+            eintrag
+            for eintrag in self.a.logs
+            if str(eintrag.get("stufe", "")).upper() in ("ERROR", "CRITICAL")
+        ]
 
     # ------------------------------------------------------------------ Bauen
     def quelltext(self):
-        u"""Der fertige Testfall als Python-Quelltext."""
+        """Der fertige Testfall als Python-Quelltext."""
         abrufe = self.abrufe()
         schreib = self.schreibende()
         return "\n".join(self._kopf() + self._rumpf(abrufe, schreib) + [""])
@@ -169,8 +177,13 @@ class Testfall:
             "ERZEUGT AUS EINER AUFZEICHNUNG (%s)" % datetime.now().strftime("%d.%m.%Y"),
             striche,
             "Aufnahme %s vom %s, %.0f s, %d Schritte, %d Log-Zeilen."
-            % (self.a.id, self.a.start[:16].replace("T", " "), self.a.dauer_s,
-               len(self.a.schritte), len(self.a.logs)),
+            % (
+                self.a.id,
+                self.a.start[:16].replace("T", " "),
+                self.a.dauer_s,
+                len(self.a.schritte),
+                len(self.a.logs),
+            ),
             "",
             "WAS HIER GEPRUEFT WIRD",
             "-" * 22,
@@ -185,38 +198,53 @@ class Testfall:
         zeilen += ["    " + z for z in (self.bedienung() or ["(keine)"])]
         fehler = self.fehlerzeilen()
         if fehler:
-            zeilen += ["", "IM ZEITRAUM PROTOKOLLIERTE FEHLER", "-" * 33,
-                       "Diese Zeilen standen WAEHREND der Aufnahme im Log. Sie sind",
-                       "kein gruener Zustand - erst prüfen, dann den Test uebernehmen:"]
-            zeilen += ["    [%s] %s: %s" % (f.get("stufe"), f.get("logger"),
-                                            str(f.get("text"))[:90]) for f in fehler[:10]]
+            zeilen += [
+                "",
+                "IM ZEITRAUM PROTOKOLLIERTE FEHLER",
+                "-" * 33,
+                "Diese Zeilen standen WAEHREND der Aufnahme im Log. Sie sind",
+                "kein gruener Zustand - erst prüfen, dann den Test uebernehmen:",
+            ]
+            zeilen += [
+                "    [%s] %s: %s" % (f.get("stufe"), f.get("logger"), str(f.get("text"))[:90])
+                for f in fehler[:10]
+            ]
         zeilen += ['"""', "from django.test import TestCase", ""]
         return zeilen
 
     def _rumpf(self, abrufe, schreib):
-        zeilen = ["", "class %s(TestCase):" % self.klassenname(),
-                  '    u"""Nachgefahren aus der Aufzeichnung %s."""' % self.a.id, ""]
+        zeilen = [
+            "",
+            "class %s(TestCase):" % self.klassenname(),
+            '    u"""Nachgefahren aus der Aufzeichnung %s."""' % self.a.id,
+            "",
+        ]
         if not abrufe:
-            zeilen += ["    def test_platzhalter(self):",
-                       '        u"""Die Aufnahme enthielt keinen nachfahrbaren GET-Abruf."""',
-                       "        self.skipTest('Aufzeichnung ohne GET-Abrufe - "
-                       "Zusicherungen von Hand ergänzen')"]
+            zeilen += [
+                "    def test_platzhalter(self):",
+                '        u"""Die Aufnahme enthielt keinen nachfahrbaren GET-Abruf."""',
+                "        self.skipTest('Aufzeichnung ohne GET-Abrufe - Zusicherungen von Hand ergänzen')",
+            ]
             return zeilen
-        zeilen += ["    #: Pfad -> Status, wie er während der Aufnahme geantwortet hat.",
-                   "    ABRUFE = ["]
+        zeilen += ["    #: Pfad -> Status, wie er während der Aufnahme geantwortet hat.", "    ABRUFE = ["]
         zeilen += ["        (%r, %d)," % (a["pfad"], a["status"]) for a in abrufe]
-        zeilen += ["    ]", "",
-                   "    def test_abrufe_antworten_wie_aufgezeichnet(self):",
-                   '        u"""Jeder aufgezeichnete GET liefert denselben Status wie damals."""',
-                   "        for pfad, erwartet in self.ABRUFE:",
-                   "            with self.subTest(pfad=pfad):",
-                   "                self.assertEqual(self.client.get(pfad).status_code,",
-                   "                                 erwartet)"]
+        zeilen += [
+            "    ]",
+            "",
+            "    def test_abrufe_antworten_wie_aufgezeichnet(self):",
+            '        u"""Jeder aufgezeichnete GET liefert denselben Status wie damals."""',
+            "        for pfad, erwartet in self.ABRUFE:",
+            "            with self.subTest(pfad=pfad):",
+            "                self.assertEqual(self.client.get(pfad).status_code,",
+            "                                 erwartet)",
+        ]
         if schreib:
-            zeilen += ["", "    # SCHREIBENDE AUFRUFE DER AUFNAHME - bewusst NICHT",
-                       "    # nachgefahren: Sie loesten damals eine Wirkung aus (Order,",
-                       "    # Loeschung, Auftrag) und wuerden sie beim Testlauf erneut",
-                       "    # ausloesen. Wer sie braucht, baut sie mit eigenen Daten nach."]
-            zeilen += ["    #   %s %s -> %s" % (s["methode"], s["pfad"], s["status"])
-                       for s in schreib]
+            zeilen += [
+                "",
+                "    # SCHREIBENDE AUFRUFE DER AUFNAHME - bewusst NICHT",
+                "    # nachgefahren: Sie loesten damals eine Wirkung aus (Order,",
+                "    # Loeschung, Auftrag) und wuerden sie beim Testlauf erneut",
+                "    # ausloesen. Wer sie braucht, baut sie mit eigenen Daten nach.",
+            ]
+            zeilen += ["    #   %s %s -> %s" % (s["methode"], s["pfad"], s["status"]) for s in schreib]
         return zeilen

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Der Werkzeugkatalog als Testfall - damit niemand nachbaut, was es gibt.
+"""Der Werkzeugkatalog als Testfall - damit niemand nachbaut, was es gibt.
 
 WARUM ES DIESEN TEST GIBT (25.08.2026)
 ======================================
@@ -44,6 +44,7 @@ Dateiname in die Ausnahmeliste, und zwar MIT Begruendung::
 Ein Eintrag ohne Begruendung zaehlt nicht: sonst wird die Liste zu dem
 Schalter, mit dem man den Test abstellt.
 """
+
 import re
 from pathlib import Path
 
@@ -59,21 +60,18 @@ WERKZEUGORTE = ("werkzeug", "werkzeuge", "tools", "scripts", "skripte")
 #: ``sicherung`` sind eingefrorene Kopien, ``befunde`` sind Ausgaben,
 #: und ``aufteilen``/``gegenprobe`` sind Vergleichslaeufe gegen alten
 #: Quelltext - alles keine Nachbauten.
-NICHT_PRUEFEN = ("sicherung", "backup", "befunde", "aufteilen", "sabotage",
-                 "__pycache__", "gegenprobe")
+NICHT_PRUEFEN = ("sicherung", "backup", "befunde", "aufteilen", "sabotage", "__pycache__", "gegenprobe")
 
 
 def katalog():
-    u"""``[(Kennung, Titel, Zweck, Bauform), …]`` - alles, was es gibt."""
+    """``[(Kennung, Titel, Zweck, Bauform), …]`` - alles, was es gibt."""
     from djangobase import skills
 
     raus = []
     for werkzeug in skills.werkzeuge():
-        raus.append((werkzeug.slug, werkzeug.titel,
-                     getattr(werkzeug, "zweck", ""), "Werkzeug"))
+        raus.append((werkzeug.slug, werkzeug.titel, getattr(werkzeug, "zweck", ""), "Werkzeug"))
     for fixer in _fixer():
-        raus.append((fixer.slug, fixer.titel,
-                     getattr(fixer, "tut", ""), "Fixer"))
+        raus.append((fixer.slug, fixer.titel, getattr(fixer, "tut", ""), "Fixer"))
     return sorted(raus)
 
 
@@ -91,20 +89,24 @@ def _fixer():
 
     gefunden = []
     for wert in vars(skills).values():
-        if (isinstance(wert, type) and issubclass(wert, Fixer)
-                and wert is not Fixer and getattr(wert, "slug", None)):
+        if (
+            isinstance(wert, type)
+            and issubclass(wert, Fixer)
+            and wert is not Fixer
+            and getattr(wert, "slug", None)
+        ):
             gefunden.append(wert)
     return gefunden
 
 
 def _wortformen(kennung):
-    u"""``tote-importe`` -> ``{tote_importe, toteimporte, tote-importe}``."""
+    """``tote-importe`` -> ``{tote_importe, toteimporte, tote-importe}``."""
     kern = kennung.strip().lower()
     return {kern, kern.replace("-", "_"), kern.replace("-", "")}
 
 
 def nachbauten(wurzel=None):
-    u"""``[(Datei, Kennung, Titel), …]`` - Projektdateien wie ein Werkzeug."""
+    """``[(Datei, Kennung, Titel), …]`` - Projektdateien wie ein Werkzeug."""
     wurzel = Path(wurzel or getattr(settings, "BASE_DIR", "."))
     erlaubt = _ausnahmen()
     bekannt = [(k, t) for k, t, _z, _b in katalog()]
@@ -129,17 +131,17 @@ def nachbauten(wurzel=None):
 
 
 def _ausnahmen():
-    u"""Dateinamen mit Begründung - ohne Begründung zählen sie nicht."""
+    """Dateinamen mit Begründung - ohne Begründung zählen sie nicht."""
     cfg = (getattr(settings, "DJANGOBASE", {}) or {}).get("werkzeugkatalog") or {}
     eigen = cfg.get("eigene") or {}
     return {name for name, grund in eigen.items() if str(grund).strip()}
 
 
 class GrundtestWerkzeugkatalog(SimpleTestCase):
-    u"""Steht der Katalog im Bericht - und baut das Projekt nichts nach?"""
+    """Steht der Katalog im Bericht - und baut das Projekt nichts nach?"""
 
     def test_katalog_ist_nicht_leer(self):
-        u"""Nur noch die Zahl, nicht mehr die Liste (25.08.2026).
+        """Nur noch die Zahl, nicht mehr die Liste (25.08.2026).
 
         HIER WURDEN BIS HEUTE ALLE 57 EINTRAEGE GEDRUCKT. Die Absicht war
         richtig - ein Verzeichnis, das man aufschlagen KANN, wird nicht
@@ -159,23 +161,23 @@ class GrundtestWerkzeugkatalog(SimpleTestCase):
         wo er danach sucht, und nur die zwei, die passen.
         """
         alles = katalog()
-        self.assertTrue(alles, "Der Werkzeugkasten ist leer - das kann nicht "
-                               "stimmen; läuft djangobase.skills?")
-        print("Werkzeugkasten: %d Einträge (Hilfe -> Werkzeug Code Review). "
-              "Bei einem Fehlschlag wird das passende genannt." % len(alles))
-
+        self.assertTrue(
+            alles, "Der Werkzeugkasten ist leer - das kann nicht stimmen; läuft djangobase.skills?"
+        )
+        print(
+            "Werkzeugkasten: %d Einträge (Hilfe -> Werkzeug Code Review). "
+            "Bei einem Fehlschlag wird das passende genannt." % len(alles)
+        )
 
     def test_projekt_baut_nichts_nach(self):
-        u"""Eine Projektdatei, die heißt wie ein Werkzeug, IST meist eins."""
+        """Eine Projektdatei, die heißt wie ein Werkzeug, IST meist eins."""
         doppelt = nachbauten()
         if not doppelt:
             return
-        meldung = ["%d Projektdatei(en) tragen den Namen eines vorhandenen "
-                   "Werkzeugs:" % len(doppelt), ""]
+        meldung = ["%d Projektdatei(en) tragen den Namen eines vorhandenen Werkzeugs:" % len(doppelt), ""]
         for wie, kennung, titel in doppelt:
             meldung.append("   %s" % wie)
-            meldung.append("      -> es gibt bereits: %s (%s)"
-                           % (kennung, titel))
+            meldung.append("      -> es gibt bereits: %s (%s)" % (kennung, titel))
         meldung += [
             "",
             "Pruefe, ob das vorhandene Werkzeug reicht - meist tut es das,",

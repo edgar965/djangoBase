@@ -1,6 +1,7 @@
 """Hilfe -> Logs: Log-Viewer (Tabs: Exceptions + Alle), 3-Spalten-Tabelle.
 Portiert aus dem Assistant; Log-Quellen + Verzeichnis kommen aus
 settings.DJANGOBASE."""
+
 from __future__ import annotations
 
 import os
@@ -59,8 +60,7 @@ def _tail_lines(path: Path | None, max_lines: int) -> list[str]:
                 # Zeilen (ein Traceback mit eingebettetem base64-Bild, eine
                 # JSON-Zeile ueber Megabyte) gibt es die Umbrueche aber nicht,
                 # und dann wurde die ganze Datei in den Speicher gelesen.
-                while (pos > 0 and data.count(b"\n") <= max_lines
-                       and len(data) < MAX_TAIL_BYTES):
+                while pos > 0 and data.count(b"\n") <= max_lines and len(data) < MAX_TAIL_BYTES:
                     read = min(block, pos)
                     pos -= read
                     f.seek(pos)
@@ -98,8 +98,7 @@ def _parse_blocks(lines: list[str], src_key: str) -> list[dict]:
             if cur is not None:
                 cur["cls"] = _line_class(cur["content"])
                 out.append(cur)
-            cur = {"ts": m.group(1).replace(",", "."), "src": src_key,
-                   "content": m.group(2), "has_ts": True}
+            cur = {"ts": m.group(1).replace(",", "."), "src": src_key, "content": m.group(2), "has_ts": True}
         else:
             if cur is None:
                 cur = {"ts": "", "src": src_key, "content": ln, "has_ts": False}
@@ -111,8 +110,9 @@ def _parse_blocks(lines: list[str], src_key: str) -> list[dict]:
     return out
 
 
-def _collect_all(log_dir: Path, sources: list, max_per_source: int,
-                  noisy: set[str] | None = None) -> list[dict]:
+def _collect_all(
+    log_dir: Path, sources: list, max_per_source: int, noisy: set[str] | None = None
+) -> list[dict]:
     """Tailt alle Quellen und sortiert chronologisch absteigend.
     `noisy` (DJANGOBASE['log_noisy_sources']): Source-Keys, die in der
     'all'-Sicht übersprungen werden — für extrem schreibwuetige Worker
@@ -133,8 +133,11 @@ def _collect_all(log_dir: Path, sources: list, max_per_source: int,
 
 def _collect_exceptions(log_dir, sources, max_per_source, noisy=None) -> list[dict]:
     blocks = _collect_all(log_dir, sources, max_per_source, noisy=noisy)
-    return [b for b in blocks if b["cls"] in ("lg-critical", "lg-err", "lg-trace")
-            or LogClassifier.is_exception_line(b["content"])]
+    return [
+        b
+        for b in blocks
+        if b["cls"] in ("lg-critical", "lg-err", "lg-trace") or LogClassifier.is_exception_line(b["content"])
+    ]
 
 
 def _resolve_log_config(request, c) -> tuple[Path, list]:
@@ -243,7 +246,11 @@ class LogsView(ZugriffMixin, View):
 
         sources_map = {s[0]: s for s in log_sources}
         if source_key not in sources_map:
-            source_key = _DEFAULT_SOURCE if _DEFAULT_SOURCE in sources_map else (log_sources[0][0] if log_sources else "all")
+            source_key = (
+                _DEFAULT_SOURCE
+                if _DEFAULT_SOURCE in sources_map
+                else (log_sources[0][0] if log_sources else "all")
+            )
         _key, label, out_name, err_name = sources_map.get(source_key, (source_key, source_key, None, None))
 
         noisy = set(c.get("log_noisy_sources") or [])
@@ -264,16 +271,20 @@ class LogsView(ZugriffMixin, View):
             exception_records.sort(key=lambda r: r["ts"] or "", reverse=True)
             out_stat, err_stat = _stat(out_path), _stat(err_path)
 
-        return render(request, "djangobase/hilfe/logs.html", {
-            "aktiv": "logs",
-            "source_key": source_key,
-            "source_label": label,
-            "sources": [{"key": k, "label": lab} for k, lab, _o, _e in log_sources],
-            "max_lines": max_lines,
-            "all_records": all_records,
-            "exception_records": exception_records,
-            "all_count": len(all_records),
-            "exception_count": len(exception_records),
-            "out_stat": out_stat,
-            "err_stat": err_stat,
-        })
+        return render(
+            request,
+            "djangobase/hilfe/logs.html",
+            {
+                "aktiv": "logs",
+                "source_key": source_key,
+                "source_label": label,
+                "sources": [{"key": k, "label": lab} for k, lab, _o, _e in log_sources],
+                "max_lines": max_lines,
+                "all_records": all_records,
+                "exception_records": exception_records,
+                "all_count": len(all_records),
+                "exception_count": len(exception_records),
+                "out_stat": out_stat,
+                "err_stat": err_stat,
+            },
+        )

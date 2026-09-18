@@ -29,26 +29,35 @@ from pathlib import Path
 
 from .jsimporte import Importblock
 
-AUSSER = {'node_modules', 'vendor', 'theatre', 'theatre-studio', '__pycache__',
-          'TestCharakter', 'alt', 'Backup', 'ProjektTemp'}
+AUSSER = {
+    "node_modules",
+    "vendor",
+    "theatre",
+    "theatre-studio",
+    "__pycache__",
+    "TestCharakter",
+    "alt",
+    "Backup",
+    "ProjektTemp",
+}
 
 #: Ordner -> Bereichsname in der Konsole
 BEREICHE = {
-    'bvh_studio': 'BVH Studio',
-    'scene': 'Szene',
-    'modellgenerator': 'Modellbau',
-    'viewer': 'Viewer',
-    'cloth': 'Kleidung',
-    'photo_to_3d': 'Photo->3D',
-    'animation': 'Animation',
-    'result_character': 'Ergebnis',
-    'vergleich': 'Vergleich',
-    'modellbau': 'Modellbau',
-    'eigenschaften': 'BVH Studio',
-    'einstellungen': 'Einstellungen',
-    'bvh_player': 'BVH Player',
-    'js': 'BVH Player',
-    'gemeinsam': 'Gemeinsam',
+    "bvh_studio": "BVH Studio",
+    "scene": "Szene",
+    "modellgenerator": "Modellbau",
+    "viewer": "Viewer",
+    "cloth": "Kleidung",
+    "photo_to_3d": "Photo->3D",
+    "animation": "Animation",
+    "result_character": "Ergebnis",
+    "vergleich": "Vergleich",
+    "modellbau": "Modellbau",
+    "eigenschaften": "BVH Studio",
+    "einstellungen": "Einstellungen",
+    "bvh_player": "BVH Player",
+    "js": "BVH Player",
+    "gemeinsam": "Gemeinsam",
 }
 
 #: Meldungen mit diesen Woertern sind abgeschlossene Vorgaenge -> info.
@@ -57,11 +66,14 @@ BEREICHE = {
 #: "[Cloth Export] bound 4 buttons" zur Vorgangsmeldung — das Wort stand im
 #: BEREICHSNAMEN, nicht in der Meldung. Geprueft wird deshalb nur die Meldung
 #: ohne Praefix, und `Export` nur als Verb.
-LAUT = re.compile(r'gespeichert|saved|exportiert|exported|fertig'
-                  r'|abgeschlossen|Export (?:fertig|done)', re.I)
+LAUT = re.compile(
+    r"gespeichert|saved|exportiert|exported|fertig"
+    r"|abgeschlossen|Export (?:fertig|done)",
+    re.I,
+)
 
 #: `console.log(` — der Rest kann ueber mehrere Zeilen gehen
-AUFRUF = re.compile(r'^(\s*)console\.log\(')
+AUFRUF = re.compile(r"^(\s*)console\.log\(")
 #: Praefix in der Meldung: '[BVH Studio] text' oder `[Preview] ${x}`
 PRAEFIX = re.compile(r'^([\'"`])\[([^\]]+)\]\s?')
 
@@ -71,14 +83,14 @@ class ProtokollUmstellung:
 
     def __init__(self, pfad):
         self.pfad = Path(pfad)
-        self.zeilen = self.pfad.read_text(encoding='utf-8').split('\n')
+        self.zeilen = self.pfad.read_text(encoding="utf-8").split("\n")
         self.geaendert = []
 
     def bereich(self):
         for teil in reversed(self.pfad.parts[:-1]):
             if teil in BEREICHE:
                 return BEREICHE[teil]
-        return 'HumanBody'
+        return "HumanBody"
 
     def durchgehen(self):
         for i, zeile in enumerate(self.zeilen):
@@ -95,7 +107,7 @@ class ProtokollUmstellung:
     def _ersatz(self, i, treffer):
         """Ersatz für die Zeile i, oder None wenn nicht sicher machbar."""
         einzug = treffer.group(1)
-        rest = self.zeilen[i][treffer.end():]
+        rest = self.zeilen[i][treffer.end() :]
         # Mehrzeilige Aufrufe: nur der Kopf wird ersetzt, der Rest bleibt.
         argumente = rest
         praefix = PRAEFIX.match(argumente.lstrip())
@@ -105,16 +117,15 @@ class ProtokollUmstellung:
             anfuehrung = praefix.group(1)
             # Praefix aus der Meldung nehmen; bleibt ein leerer String uebrig,
             # faellt das Argument ganz weg.
-            gekuerzt = argumente.lstrip()[praefix.end():]
-            if gekuerzt.startswith(anfuehrung):          # Meldung war nur '[X] '
-                gekuerzt = gekuerzt[1:].lstrip(', ')
+            gekuerzt = argumente.lstrip()[praefix.end() :]
+            if gekuerzt.startswith(anfuehrung):  # Meldung war nur '[X] '
+                gekuerzt = gekuerzt[1:].lstrip(", ")
                 argumente = gekuerzt
             else:
                 argumente = anfuehrung + gekuerzt
         # Nur die Meldung selbst zaehlt, nicht der Bereichsname davor.
-        stufe = 'info' if LAUT.search(argumente) else 'debug'
-        return '%sProtokoll.%s(%s, %s' % (einzug, stufe,
-                                          self._text(bereich), argumente)
+        stufe = "info" if LAUT.search(argumente) else "debug"
+        return "%sProtokoll.%s(%s, %s" % (einzug, stufe, self._text(bereich), argumente)
 
     @staticmethod
     def _text(bereich):
@@ -123,27 +134,27 @@ class ProtokollUmstellung:
     def import_ergaenzen(self):
         block = Importblock(self.pfad)
         block.zeilen = self.zeilen
-        if block.sicherstellen('Protokoll'):
+        if block.sicherstellen("Protokoll"):
             self.zeilen = block.zeilen
 
     def schreiben(self):
-        self.pfad.write_text('\n'.join(self.zeilen), encoding='utf-8')
+        self.pfad.write_text("\n".join(self.zeilen), encoding="utf-8")
 
 
 def dateien(wurzel):
-    for pfad in sorted(Path(wurzel).rglob('*.js')):
-        if any(teil in AUSSER for teil in pfad.parts) or '.min.' in pfad.name:
+    for pfad in sorted(Path(wurzel).rglob("*.js")):
+        if any(teil in AUSSER for teil in pfad.parts) or ".min." in pfad.name:
             continue
-        if pfad.name in ('protokoll.js',):      # die Klasse selbst
+        if pfad.name in ("protokoll.js",):  # die Klasse selbst
             continue
         yield pfad
 
 
 def main():
-    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
-    argumente = [a for a in sys.argv[1:] if not a.startswith('--')]
-    wurzel = argumente[0] if argumente else 'HumanBodyWeb/static'
-    schreiben = '--schreiben' in sys.argv
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    argumente = [a for a in sys.argv[1:] if not a.startswith("--")]
+    wurzel = argumente[0] if argumente else "HumanBodyWeb/static"
+    schreiben = "--schreiben" in sys.argv
 
     gesamt = 0
     for pfad in dateien(wurzel):
@@ -154,10 +165,9 @@ def main():
         if schreiben:
             arbeit.schreiben()
         gesamt += len(arbeit.geaendert)
-        print('%s: %d Stellen' % (pfad, len(arbeit.geaendert)))
-    print('\n%d Stellen umgestellt%s' % (gesamt,
-                                        '' if schreiben else ' (Probelauf)'))
+        print("%s: %d Stellen" % (pfad, len(arbeit.geaendert)))
+    print("\n%d Stellen umgestellt%s" % (gesamt, "" if schreiben else " (Probelauf)"))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

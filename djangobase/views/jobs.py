@@ -2,6 +2,7 @@
 Jobs und zeigt deren Live-Zustand. Optional je Job: „Jetzt ausfuehren" und
 Aktivieren/Deaktivieren. Ein JSON-Endpoint (``?format=json``) liefert denselben
 Snapshot für das Auto-Refresh der Seite."""
+
 from __future__ import annotations
 
 import logging
@@ -24,10 +25,17 @@ class JobsView(ZugriffMixin, View):
         snap = jobs_registry.snapshot()
         if request.GET.get("format") == "json":
             return JsonResponse({"jobs": snap})
-        return render(request, "djangobase/hilfe/jobs.html", dict({
-            "aktiv": "jobs",
-            "jobs": snap,
-        }, **self._uebersicht(neu=False)))
+        return render(
+            request,
+            "djangobase/hilfe/jobs.html",
+            dict(
+                {
+                    "aktiv": "jobs",
+                    "jobs": snap,
+                },
+                **self._uebersicht(neu=False),
+            ),
+        )
 
     @staticmethod
     def _uebersicht(neu):
@@ -61,8 +69,13 @@ class JobsView(ZugriffMixin, View):
             }
         except Exception:
             logger.exception("JobsView._uebersicht: Exception gefangen")
-            return {"zeilen": [], "zahlen": {}, "stand": None,
-                    "stand_veraltet": True, "uebersicht_fehler": True}
+            return {
+                "zeilen": [],
+                "zahlen": {},
+                "stand": None,
+                "stand_veraltet": True,
+                "uebersicht_fehler": True,
+            }
 
     def post(self, request):
         slug = (request.POST.get("job") or "").strip()
@@ -109,7 +122,7 @@ class JobsView(ZugriffMixin, View):
             messages.success(request, "%d Jobs ermittelt." % len(gefunden))
         except Exception:
             logger.exception("JobsView._neu_ermitteln: Exception gefangen")
-            messages.error(request,
-                           "Die Jobs konnten nicht ermittelt werden — "
-                           "Einzelheiten stehen unter Hilfe → Logs.")
+            messages.error(
+                request, "Die Jobs konnten nicht ermittelt werden — Einzelheiten stehen unter Hilfe → Logs."
+            )
         return redirect("djangobase:jobs")

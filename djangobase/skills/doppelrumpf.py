@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Doppelrumpf - zeichengleiche Funktions- und Klassenrumpfe finden.
+"""Doppelrumpf - zeichengleiche Funktions- und Klassenrumpfe finden.
 
 WAS ES GEFUNDEN HAT (shortlongx, 16.08.2026)
 ============================================
@@ -22,6 +22,7 @@ Aufrufer mitnehmen, sonst wandert der Fehler nur.
 Der Vergleich läuft über den Syntaxbaum OHNE Docstrings - sonst gelten zwei
 identische Funktionen als verschieden, nur weil eine besser erklärt ist.
 """
+
 import ast
 from collections import defaultdict
 
@@ -32,13 +33,18 @@ from .werkzeug import Ergebnis, Werkzeug
 class Doppelrumpf(Werkzeug):
     slug = "doppelrumpf"
     titel = "Gleiche Rümpfe (Duplikate)"
-    zweck = ("Funktionen und Klassen mit zeichengleichem Rumpf — über alle "
-             "Dateien hinweg, Docstrings ausgenommen.")
-    befund = ("Vier Gegenproben-Werkzeuge trugen denselben Ablauf viermal. Als "
-              "der geprüfte Befehl umgebaut wurde, lief eine davon ins Leere — "
-              "unbemerkt, weil sie niemand von selbst startet.")
-    abhilfe = ("Zusammenlegen — aber die Signaturen vergleichen: Zeichengleich "
-               "heißt nicht austauschbar. Danach jeden Aufrufer einmal fahren.")
+    zweck = (
+        "Funktionen und Klassen mit zeichengleichem Rumpf — über alle Dateien hinweg, Docstrings ausgenommen."
+    )
+    befund = (
+        "Vier Gegenproben-Werkzeuge trugen denselben Ablauf viermal. Als "
+        "der geprüfte Befehl umgebaut wurde, lief eine davon ins Leere — "
+        "unbemerkt, weil sie niemand von selbst startet."
+    )
+    abhilfe = (
+        "Zusammenlegen — aber die Signaturen vergleichen: Zeichengleich "
+        "heißt nicht austauschbar. Danach jeden Aufrufer einmal fahren."
+    )
     dauer = "5–12 s"
     kriterium = 6
 
@@ -55,7 +61,8 @@ class Doppelrumpf(Werkzeug):
     #: Docstring - so sehen echte Kopien aus. Verglichen wird deshalb der Rumpf
     #: ohne Docstrings und Kommentare.
     anlassfall = Anlassfall(
-        {"lader_a.py": '''def kopf_ende(zeilen):
+        {
+            "lader_a.py": '''def kopf_ende(zeilen):
     """Wo der Importkopf endet - hier steht die eine Begruendung."""
     letzter = 0
     for i, z in enumerate(zeilen):
@@ -63,17 +70,19 @@ class Doppelrumpf(Werkzeug):
             letzter = i
     return letzter + 1
 ''',
-         "lader_b.py": '''def kopf_ende(zeilen):
+            "lader_b.py": """def kopf_ende(zeilen):
     # Und hier steht gar keine.
     letzter = 0
     for i, z in enumerate(zeilen):
         if z.startswith(("import", "from")):
             letzter = i
     return letzter + 1
-'''},
+""",
+        },
         erwartet_in="kopf_ende",
         warum="Vier Werkzeuge trugen denselben Ablauf; beim Umbau zeigte einer "
-              "ins Leere und war drei Tage lang eine Sicherung ohne Wirkung")
+        "ins Leere und war drei Tage lang eine Sicherung ohne Wirkung",
+    )
 
     def laufen(self):
         gruppen = defaultdict(list)
@@ -96,24 +105,38 @@ class Doppelrumpf(Werkzeug):
                 continue
             datei, zeile, name, laenge = eintraege[0]
             weitere = "; ".join("%s:%d %s" % (f, z, n) for f, z, n, _ in eintraege[1:4])
-            zeilen.append({"datei": datei, "zeile": zeile, "name": name,
-                           "kopien": len(eintraege), "zeilen": laenge,
-                           "weitere": weitere})
+            zeilen.append(
+                {
+                    "datei": datei,
+                    "zeile": zeile,
+                    "name": name,
+                    "kopien": len(eintraege),
+                    "zeilen": laenge,
+                    "weitere": weitere,
+                }
+            )
         zeilen.sort(key=lambda z: (-z["kopien"], -z["zeilen"]))
         gesamt = sum(z["kopien"] - 1 for z in zeilen)
         return Ergebnis(
-            ["datei", "zeile", "name", "kopien", "zeilen", "weitere"], zeilen,
+            ["datei", "zeile", "name", "kopien", "zeilen", "weitere"],
+            zeilen,
             "%d Gruppen, %d überzählige Kopien" % (len(zeilen), gesamt),
             "Erfahrungsgemäß wird bei einem Fehler nur EINE Kopie repariert. "
-            "Je größer der Rumpf, desto teurer die Doppelung.")
+            "Je größer der Rumpf, desto teurer die Doppelung.",
+        )
 
     @staticmethod
     def _rumpf(knoten):
         """Die Anweisungen ohne den Docstring."""
-        return [x for x in knoten.body
-                if not (isinstance(x, ast.Expr)
-                        and isinstance(getattr(x, "value", None), ast.Constant)
-                        and isinstance(x.value.value, str))]
+        return [
+            x
+            for x in knoten.body
+            if not (
+                isinstance(x, ast.Expr)
+                and isinstance(getattr(x, "value", None), ast.Constant)
+                and isinstance(x.value.value, str)
+            )
+        ]
 
     @staticmethod
     def _laenge(koerper):
@@ -135,8 +158,11 @@ class Doppelrumpf(Werkzeug):
         Datei ``return Zahl.de(x, n)`` stehen. Das Werkzeug meldete diese 34
         Zeilen prompt als neues Duplikat; wer dem folgt, schreibt 34 Kopien
         zurueck (16.08.2026)."""
-        return (len(koerper) == 1 and isinstance(koerper[0], ast.Return)
-                and isinstance(koerper[0].value, ast.Call))
+        return (
+            len(koerper) == 1
+            and isinstance(koerper[0], ast.Return)
+            and isinstance(koerper[0].value, ast.Call)
+        )
 
     @staticmethod
     def _fingerabdruck(koerper):

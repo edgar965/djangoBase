@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Testlauf - ein Testkommando fahren und seine Laufzeiten festhalten.
+"""Testlauf - ein Testkommando fahren und seine Laufzeiten festhalten.
 
 Aus ``views/tests.py`` herausgeloest (17.08.2026): Die Ansicht war mit den
 Laufzeiten auf 399 Zeilen gewachsen und trug drei Aufgaben. Hier steht nur noch
@@ -14,6 +14,7 @@ WAS DABEI ZU BEACHTEN WAR
 * Ein Fehler beim Schreiben der Historie darf den Lauf nicht kosten: Das
   Ergebnis steht schon fest, nur die Laufzeiten fehlen dann.
 """
+
 import logging
 import subprocess
 import time
@@ -21,8 +22,8 @@ import time
 from django.conf import settings
 
 from .testdauern import Dauern
-from .zeitformat import dauer_text
 from .testhistorie import Testhistorie
+from .zeitformat import dauer_text
 
 __all__ = ["Testlauf"]
 
@@ -42,15 +43,20 @@ class Testlauf:
         self.historie = historie or Testhistorie()
 
     def fahren(self, cmd, name, frist=None, slug=""):
-        u"""Fahren und Ergebnis liefern (dieselben Schlüssel wie bisher)."""
+        """Fahren und Ergebnis liefern (dieselben Schlüssel wie bisher)."""
         cmd = Dauern.option_setzen(cmd)
         t0 = time.time()
         try:
-            r = subprocess.run(cmd, capture_output=True, text=True,
-                               timeout=int(frist or self.FRIST),
-                               encoding="utf-8", errors="replace",
-                               cwd=str(settings.BASE_DIR),
-                               creationflags=_NO_WINDOW)
+            r = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=int(frist or self.FRIST),
+                encoding="utf-8",
+                errors="replace",
+                cwd=str(settings.BASE_DIR),
+                creationflags=_NO_WINDOW,
+            )
             out, err, rc = r.stdout or "", r.stderr or "", r.returncode
         except Exception as exc:  # noqa: BLE001
             out, err, rc = "", str(exc), -1
@@ -77,26 +83,32 @@ class Testlauf:
         if rc != 0:
             try:
                 from .skills.werkzeugwahl import Werkzeugwahl
+
                 hinweis = Werkzeugwahl().zu_ausgabe(out + "\n" + err)
                 if hinweis:
                     out = (out or "") + hinweis
-            except Exception:                                   # noqa: BLE001
+            except Exception:  # noqa: BLE001
                 log.exception("Werkzeug-Empfehlung fehlgeschlagen")
         self._merken(slug, name, dauer, rc == 0, dauern)
         # Dictionary gewollt: geht unveraendert in die Vorlage.
-        return {"name": name,
-                "cmd": " ".join(cmd) if isinstance(cmd, (list, tuple)) else str(cmd),
-                "rc": rc, "ok": rc == 0,
-                "out": out[-40000:], "err": err[-40000:],
-                "dauer": dauer, "dauer_text": dauer_text(dauer),
-                "dauern": len(dauern)}
+        return {
+            "name": name,
+            "cmd": " ".join(cmd) if isinstance(cmd, (list, tuple)) else str(cmd),
+            "rc": rc,
+            "ok": rc == 0,
+            "out": out[-40000:],
+            "err": err[-40000:],
+            "dauer": dauer,
+            "dauer_text": dauer_text(dauer),
+            "dauern": len(dauern),
+        }
 
     def _merken(self, slug, name, dauer, ok, dauern):
         zeit = time.strftime("%d.%m.%Y %H:%M:%S")
-        suite = ({"slug": slug, "name": name, "dauer": dauer, "ok": ok,
-                  "tests": len(dauern)} if slug else None)
+        suite = {"slug": slug, "name": name, "dauer": dauer, "ok": ok, "tests": len(dauern)} if slug else None
         try:
             self.historie.merken(zeit, dauern, suite)
         except Exception:  # noqa: BLE001
-            log.exception("Testhistorie nicht geschrieben — der Lauf selbst ist "
-                          "unberührt, nur seine Laufzeiten fehlen")
+            log.exception(
+                "Testhistorie nicht geschrieben — der Lauf selbst ist unberührt, nur seine Laufzeiten fehlen"
+            )

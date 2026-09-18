@@ -11,11 +11,10 @@ Projekt, das djangoBase einbindet (Vorgabe des Nutzers, 13.08.2026). Solange
 niemand etwas hineinschreibt, zeigt sie eine Anleitung statt einer leeren
 Liste.
 """
-from django.http import JsonResponse
-from django.shortcuts import redirect
-from django.views import View
 
-from django.shortcuts import render
+from django.http import JsonResponse
+from django.shortcuts import redirect, render
+from django.views import View
 
 from ..aktuell import ARTEN, feed
 from ..mixins import ZugriffMixin
@@ -37,14 +36,18 @@ class AktuellView(ZugriffMixin, View):
         # Schluessel lesen — der erste Versuch (`zaehler|default_if_none`) hat
         # deshalb an jedem Filter-Knopf das ganze Dict ausgegeben.
         zaehler = f.arten_zaehlen()
-        return render(request, "djangobase/hilfe/aktuell.html", {
-            "aktiv": "aktuell",
-            "eintraege": eintraege,
-            "arten": [{"slug": a, "anzahl": zaehler.get(a, 0)} for a in ARTEN],
-            "aktive_art": art or "",
-            "datei": str(f.pfad),
-            "max_eintraege": f.MAX_EINTRAEGE,
-        })
+        return render(
+            request,
+            "djangobase/hilfe/aktuell.html",
+            {
+                "aktiv": "aktuell",
+                "eintraege": eintraege,
+                "arten": [{"slug": a, "anzahl": zaehler.get(a, 0)} for a in ARTEN],
+                "aktive_art": art or "",
+                "datei": str(f.pfad),
+                "max_eintraege": f.MAX_EINTRAEGE,
+            },
+        )
 
 
 class AktuellDatenView(ZugriffMixin, View):

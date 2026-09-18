@@ -12,6 +12,7 @@ Opt-in: nur aktiv, wenn ``OnlineMiddleware`` in MIDDLEWARE steht UND
 ``DJANGOBASE_ONLINE_TRACKING = True`` gesetzt ist. Sonst bleibt das bisherige
 Verhalten (aktive Session) erhalten – andere Projekte werden nicht verändert.
 """
+
 from django.conf import settings
 from django.core.cache import cache
 
@@ -42,9 +43,10 @@ def schreibe_zuletzt_aktiv(user):
     """Persistenten „zuletzt aktiv"-Zeitstempel im Profil aktualisieren (für die
     Spalte „Zuletzt" – im Gegensatz zu last_login = letzte Anmeldung)."""
     from django.utils import timezone
+
     from .models import Teilnehmer
-    Teilnehmer.objects.update_or_create(
-        user=user, defaults={"zuletzt_aktiv": timezone.now()})
+
+    Teilnehmer.objects.update_or_create(user=user, defaults={"zuletzt_aktiv": timezone.now()})
 
 
 def online_ids(user_ids):
@@ -91,5 +93,5 @@ class OnlineMiddleware(ZweiwegMiddleware):
         if u is not None and getattr(u, "is_authenticated", False):
             # Fehler verschluckt die Basisklasse: Der Online-Status darf nie
             # die Anfrage stören.
-            if markiere_online(u.id):               # nur wenn nicht gedrosselt
-                schreibe_zuletzt_aktiv(u)            # persistenter Zeitstempel
+            if markiere_online(u.id):  # nur wenn nicht gedrosselt
+                schreibe_zuletzt_aktiv(u)  # persistenter Zeitstempel

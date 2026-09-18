@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Die Kriterien des Review-Auftrags - und welches Werkzeug sie bedient.
+"""Die Kriterien des Review-Auftrags - und welches Werkzeug sie bedient.
 
 Der Auftrag, aus dem Skills2 entstanden ist, nannte 14 Punkte. Zehn davon lassen
 sich mechanisch prüfen; die übrigen vier NICHT - und das ist keine Lücke im
@@ -30,8 +30,7 @@ KRITERIEN = {
     8: "Keine Duplikate der ES-Module",
     9: "Klare Strukturen und Abhängigkeiten",
     10: "Datensatz mit mehr als drei Feldern, der seine Funktion verlässt → Klasse",
-    11: "Dictionary mit mehr als drei festen Schlüsseln, das durch mehrere "
-        "Funktionen gereicht wird → Klasse",
+    11: "Dictionary mit mehr als drei festen Schlüsseln, das durch mehrere Funktionen gereicht wird → Klasse",
     12: "Performance prüfen und optimieren",
     13: "Tiefer Review – mindestens 1.000 Befunde",
     14: "Zweites Modell als Sparringspartner",
@@ -40,15 +39,21 @@ KRITERIEN = {
 
 #: Kriterien ohne Knopf - mit dem Weg, der stattdessen getragen hat.
 OHNE_WERKZEUG = [
-    (8, "Keine doppelten ES-Module",
-     "Zwei Module mit gleichem Zweck erkennt kein Fingerabdruck — sie sind "
-     "selten zeichengleich. Praktikabel: Die Import-Prüfung (Kriterium 3) "
-     "zeigt, welche Module überhaupt noch jemand lädt; was niemand importiert, "
-     "ist der erste Verdacht."),
-    (14, "Zweites Modell als Sparringspartner",
-     "Nützlich, aber nicht als Autorität: Von acht Aussagen eines zweiten "
-     "Modells war eine falsch — ausgerechnet zu der Stelle, an der wirklich ein "
-     "Fehler saß. Hätte man sie übernommen, wäre eine Nicht-Regression "
-     "„behoben“ worden. Der Wert lag im Zwang, jede Behauptung am Code "
-     "nachzurechnen."),
+    (
+        8,
+        "Keine doppelten ES-Module",
+        "Zwei Module mit gleichem Zweck erkennt kein Fingerabdruck — sie sind "
+        "selten zeichengleich. Praktikabel: Die Import-Prüfung (Kriterium 3) "
+        "zeigt, welche Module überhaupt noch jemand lädt; was niemand importiert, "
+        "ist der erste Verdacht.",
+    ),
+    (
+        14,
+        "Zweites Modell als Sparringspartner",
+        "Nützlich, aber nicht als Autorität: Von acht Aussagen eines zweiten "
+        "Modells war eine falsch — ausgerechnet zu der Stelle, an der wirklich ein "
+        "Fehler saß. Hätte man sie übernommen, wäre eine Nicht-Regression "
+        "„behoben“ worden. Der Wert lag im Zwang, jede Behauptung am Code "
+        "nachzurechnen.",
+    ),
 ]

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Vorgefundene Namen sind keine Schreibweisen.
+"""Vorgefundene Namen sind keine Schreibweisen.
 
 DER ANLASS (3DTools, 31.08.2026)
 ================================
@@ -35,50 +35,52 @@ BDD - GEGEBEN / DANN
     EinGewoehnlicherWert     ... bleibt ein Drahtname
     EinEchterBruch           ... wird weiter gemeldet
 """
+
 from djangobase.skills.namensvarianten import Namensvarianten
 
 from .test_neue_werkzeuge import WerkzeugBasis
 
 
 def _tabelle(paare):
-    zeilen = ',\n    '.join("'%s': 'DEF-%s'" % (a, b) for a, b in paare)
+    zeilen = ",\n    ".join("'%s': 'DEF-%s'" % (a, b) for a, b in paare)
     return "BONE_MAP = {\n    %s,\n}\n" % zeilen
 
 
 #: Zwoelf Paare — gerade genug, um als Zuordnung zu gelten.
-GENUG = [('bone%02d' % i, 'ziel.%02d' % i) for i in range(12)]
+GENUG = [("bone%02d" % i, "ziel.%02d" % i) for i in range(12)]
 
 
 class EineZuordnungstabelle(WerkzeugBasis):
-    u"""Gegeben: Zwei Dateien mit den Namen zweier Fremdformate."""
+    """Gegeben: Zwei Dateien mit den Namen zweier Fremdformate."""
 
     def test_die_namen_brechen_nicht(self):
-        projekt = self.projekt({
-            'mocapnet.py': _tabelle(GENUG + [('lcollar', 'shoulder.L')]),
-            'daz.py': _tabelle(GENUG + [('l_collar', 'shoulder.L')]),
-        })
+        projekt = self.projekt(
+            {
+                "mocapnet.py": _tabelle(GENUG + [("lcollar", "shoulder.L")]),
+                "daz.py": _tabelle(GENUG + [("l_collar", "shoulder.L")]),
+            }
+        )
         zeilen = projekt.fahren(Namensvarianten)
-        echte = [z for z in zeilen if z['bruch'] == 'in einer Sprache']
+        echte = [z for z in zeilen if z["bruch"] == "in einer Sprache"]
         self.assertEqual(echte, [], echte)
 
 
 class EineAttributvorgabe(WerkzeugBasis):
-    u"""Gegeben: Eine Blender-Vorgabedatei, die Fremdnamen zuweist."""
+    """Gegeben: Eine Blender-Vorgabedatei, die Fremdnamen zuweist."""
 
     def test_die_namen_brechen_nicht(self):
-        projekt = self.projekt({
-            'daz.py': ("skeleton.left_arm.shoulder = 'lCollar'\n"
-                       "skeleton.left_leg.foot = 'lFoot'\n"),
-            'mixamo.py': ("skeleton.left_arm.shoulder = 'l_collar'\n"
-                          "skeleton.left_leg.foot = 'l_foot'\n"),
-        })
-        echte = [z for z in projekt.fahren(Namensvarianten)
-                 if z['bruch'] == 'in einer Sprache']
+        projekt = self.projekt(
+            {
+                "daz.py": ("skeleton.left_arm.shoulder = 'lCollar'\nskeleton.left_leg.foot = 'lFoot'\n"),
+                "mixamo.py": ("skeleton.left_arm.shoulder = 'l_collar'\nskeleton.left_leg.foot = 'l_foot'\n"),
+            }
+        )
+        echte = [z for z in projekt.fahren(Namensvarianten) if z["bruch"] == "in einer Sprache"]
         self.assertEqual(echte, [], echte)
 
 
 class EinPfadbestandteil(WerkzeugBasis):
-    u"""Gegeben: Zwei Ordnernamen, die auf der Platte verschieden heissen.
+    """Gegeben: Zwei Ordnernamen, die auf der Platte verschieden heissen.
 
     ``.../photoTo3D/SMPLX`` und ``.../3DObjects/SMPL-X`` sind ZWEI
     Verzeichnisse. Sie anzugleichen hiesse, einen Pfad zu erfinden, den
@@ -86,56 +88,57 @@ class EinPfadbestandteil(WerkzeugBasis):
     """
 
     def test_die_ordner_brechen_nicht(self):
-        projekt = self.projekt({
-            'a.py': ("import os\n"
-                     "ZIEL = os.path.join('A:', 'daten', 'SMPLX')\n"),
-            'b.py': ("from pathlib import Path\n"
-                     "QUELLE = Path('A:', 'objekte', 'SMPL-X')\n"),
-        })
-        echte = [z for z in projekt.fahren(Namensvarianten)
-                 if z['bruch'] == 'in einer Sprache']
+        projekt = self.projekt(
+            {
+                "a.py": ("import os\nZIEL = os.path.join('A:', 'daten', 'SMPLX')\n"),
+                "b.py": ("from pathlib import Path\nQUELLE = Path('A:', 'objekte', 'SMPL-X')\n"),
+            }
+        )
+        echte = [z for z in projekt.fahren(Namensvarianten) if z["bruch"] == "in einer Sprache"]
         self.assertEqual(echte, [], echte)
 
 
 class EineKleineTabelle(WerkzeugBasis):
-    u"""Gegeben: Ein Woerterbuch mit drei Eintraegen — keine Zuordnung.
+    """Gegeben: Ein Woerterbuch mit drei Eintraegen — keine Zuordnung.
 
     GEGENPROBE: Eine Handvoll Einstellungen darf nicht als
     Fremdformat durchgehen, sonst waere jede Zeichenkette entschuldigt.
     """
 
     def test_der_bruch_wird_gemeldet(self):
-        projekt = self.projekt({
-            'a.py': "EINSTELLUNG = {'bildRate': 30, 'x': 1, 'y': 2}\n",
-            'b.py': "ANDERE = {'bild_rate': 60, 'p': 1, 'q': 2}\n",
-        })
+        projekt = self.projekt(
+            {
+                "a.py": "EINSTELLUNG = {'bildRate': 30, 'x': 1, 'y': 2}\n",
+                "b.py": "ANDERE = {'bild_rate': 60, 'p': 1, 'q': 2}\n",
+            }
+        )
         zeilen = projekt.fahren(Namensvarianten)
-        treffer = [z for z in zeilen if z['kern'] == 'bildrate']
+        treffer = [z for z in zeilen if z["kern"] == "bildrate"]
         self.assertTrue(treffer, zeilen)
-        self.assertEqual(treffer[0]['bruch'], 'in einer Sprache',
-                         treffer[0])
+        self.assertEqual(treffer[0]["bruch"], "in einer Sprache", treffer[0])
 
 
 class EinEchterBruch(WerkzeugBasis):
-    u"""Gegeben: Dieselbe Sache, zweimal verschieden BENANNT.
+    """Gegeben: Dieselbe Sache, zweimal verschieden BENANNT.
 
     GEGENPROBE: Der Pruefer muss weiter finden, wofuer es ihn gibt.
     """
 
     def test_er_wird_gemeldet(self):
-        projekt = self.projekt({
-            'schreiber.py': "def sichern(meta_data):\n    return meta_data\n",
-            'leser.py': "def laden(metaData):\n    return metaData\n",
-        })
+        projekt = self.projekt(
+            {
+                "schreiber.py": "def sichern(meta_data):\n    return meta_data\n",
+                "leser.py": "def laden(metaData):\n    return metaData\n",
+            }
+        )
         zeilen = projekt.fahren(Namensvarianten)
-        treffer = [z for z in zeilen if z['kern'] == 'metadata']
+        treffer = [z for z in zeilen if z["kern"] == "metadata"]
         self.assertTrue(treffer, zeilen)
-        self.assertEqual(treffer[0]['bruch'], 'in einer Sprache',
-                         treffer[0])
+        self.assertEqual(treffer[0]["bruch"], "in einer Sprache", treffer[0])
 
 
 class EineOrdnerkonstante(WerkzeugBasis):
-    u"""Gegeben: Ein Verzeichnisname in einer Konstante.
+    """Gegeben: Ein Verzeichnisname in einer Konstante.
 
     DER ANLASS (3DTools, 01.09.2026): `ORDNER = 'photoTo3D'` neben der
     Adresse `photo_to_3d` galt als zwei Schreibweisen EINES Namens.
@@ -144,18 +147,20 @@ class EineOrdnerkonstante(WerkzeugBasis):
     """
 
     def test_der_ordnername_bricht_nicht(self):
-        projekt = self.projekt({
-            'ablage.py': "class A:\n    ORDNER = 'photoTo3D'\n",
-            'adressen.py': "def weg():\n    return photo_to_3d\n",
-        })
+        projekt = self.projekt(
+            {
+                "ablage.py": "class A:\n    ORDNER = 'photoTo3D'\n",
+                "adressen.py": "def weg():\n    return photo_to_3d\n",
+            }
+        )
         zeilen = projekt.fahren(Namensvarianten)
-        treffer = [z for z in zeilen if z['kern'] == 'phototo3d']
+        treffer = [z for z in zeilen if z["kern"] == "phototo3d"]
         for zeile in treffer:
-            self.assertNotEqual(zeile['bruch'], 'in einer Sprache', zeile)
+            self.assertNotEqual(zeile["bruch"], "in einer Sprache", zeile)
 
 
 class EinGewoehnlicherWert(WerkzeugBasis):
-    u"""Gegeben: Eine Zeichenkette in einer Konstante OHNE Ordnerbezug.
+    """Gegeben: Eine Zeichenkette in einer Konstante OHNE Ordnerbezug.
 
     GEGENPROBE zur Ordnerkonstante: Nur Namen wie `ORDNER` oder
     `VERZEICHNIS` deuten auf die Platte. Eine gewoehnliche Konstante
@@ -163,11 +168,13 @@ class EinGewoehnlicherWert(WerkzeugBasis):
     """
 
     def test_er_wird_weiter_gemeldet(self):
-        projekt = self.projekt({
-            'a.py': "class A:\n    MODUS = 'schnellLauf'\n",
-            'b.py': "class B:\n    ANDERER = 'schnell_lauf'\n",
-        })
+        projekt = self.projekt(
+            {
+                "a.py": "class A:\n    MODUS = 'schnellLauf'\n",
+                "b.py": "class B:\n    ANDERER = 'schnell_lauf'\n",
+            }
+        )
         zeilen = projekt.fahren(Namensvarianten)
-        treffer = [z for z in zeilen if z['kern'] == 'schnelllauf']
+        treffer = [z for z in zeilen if z["kern"] == "schnelllauf"]
         self.assertTrue(treffer, zeilen)
-        self.assertEqual(treffer[0]['bruch'], 'in einer Sprache', treffer[0])
+        self.assertEqual(treffer[0]["bruch"], "in einer Sprache", treffer[0])

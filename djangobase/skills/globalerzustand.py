@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""GlobalerZustand — Variablen auf Modulebene, die in eine Klasse gehoeren.
+"""GlobalerZustand — Variablen auf Modulebene, die in eine Klasse gehoeren.
 
 AUFTRAG (Edgar, 19.08.2026, Kriterium 18): „Den Code auf freie Funktionen und
 globale Variablen ueberpruefen. Moeglichst in Klassen unterbringen, ggf. in
@@ -43,13 +43,11 @@ from .befund import Befund, Befundsatz, BefundWerkzeug
 
 
 class Modulzustaende:
-    u"""Was ein Modul auf oberster Ebene an Zustand hält."""
+    """Was ein Modul auf oberster Ebene an Zustand hält."""
 
-    __slots__ = ('pfad', 'veraenderlich', 'konstanten', 'global_stellen',
-                 'klassen', 'ist_skript')
+    __slots__ = ("pfad", "veraenderlich", "konstanten", "global_stellen", "klassen", "ist_skript")
 
-    def __init__(self, pfad, veraenderlich, konstanten, global_stellen, klassen,
-                 ist_skript=False):
+    def __init__(self, pfad, veraenderlich, konstanten, global_stellen, klassen, ist_skript=False):
         self.pfad = pfad
         #: Ein Ablaufskript laeuft von oben nach unten - dort IST die Modulebene
         #: das Programm, und jede Zwischenvariable dort zu melden waere ein
@@ -71,81 +69,111 @@ class Modulzustaende:
     @property
     def gewicht(self):
         """Sortierschluessel: geschriebener Zustand zählt am schwersten."""
-        return (len(self.global_stellen) * 10 + len(self.veraenderlich) * 3
-                + len(self.konstanten))
+        return len(self.global_stellen) * 10 + len(self.veraenderlich) * 3 + len(self.konstanten)
 
 
 class GlobalerZustand(BefundWerkzeug):
-
-    slug = 'globaler-zustand'
+    slug = "globaler-zustand"
     kriterium = 18
-    titel = 'Globale Variablen und Konstanten'
-    zweck = ('Findet veränderlichen Zustand auf Modulebene (Zwischenspeicher, '
-             'Zähler, Listen) und Bündel globaler Konstanten — beides '
-             'Kandidaten für eine Klasse bzw. eine Kontext-Klasse.')
-    abhilfe = ('Veraenderlichen Zustand in die Klasse verschieben, die ihn '
-               'benutzt (als Attribut, nicht als Klassenvariable, sonst teilen '
-               'sich alle Instanzen denselben). Konstanten-Bündel in eine '
-               'Kontext- oder Konfigurationsklasse mit sprechenden Namen.')
-    befund = ('Modulweiter Zustand ueberlebt den Aufruf und gehört niemandem: '
-              'Im Testlauf trägt die zweite Prüfung noch, was die erste '
-              'hineingeschrieben hat, und in einem Server-Prozess teilen sich '
-              'alle Anfragen denselben Wert.')
-    dauer = 'Sekunden'
-    eingabe = ('ab', 'Ab wie vielen globalen Namen je Datei melden?', '4')
+    titel = "Globale Variablen und Konstanten"
+    zweck = (
+        "Findet veränderlichen Zustand auf Modulebene (Zwischenspeicher, "
+        "Zähler, Listen) und Bündel globaler Konstanten — beides "
+        "Kandidaten für eine Klasse bzw. eine Kontext-Klasse."
+    )
+    abhilfe = (
+        "Veraenderlichen Zustand in die Klasse verschieben, die ihn "
+        "benutzt (als Attribut, nicht als Klassenvariable, sonst teilen "
+        "sich alle Instanzen denselben). Konstanten-Bündel in eine "
+        "Kontext- oder Konfigurationsklasse mit sprechenden Namen."
+    )
+    befund = (
+        "Modulweiter Zustand ueberlebt den Aufruf und gehört niemandem: "
+        "Im Testlauf trägt die zweite Prüfung noch, was die erste "
+        "hineingeschrieben hat, und in einem Server-Prozess teilen sich "
+        "alle Anfragen denselben Wert."
+    )
+    dauer = "Sekunden"
+    eingabe = ("ab", "Ab wie vielen globalen Namen je Datei melden?", "4")
 
     #: Namen, die auf Modulebene stehen MUESSEN oder dort Vertrag sind.
-    ERLAUBT = frozenset({
-        'urlpatterns', 'app_name', 'admin', 'register', 'router',
-        'logger', 'log', 'application', 'default_app_config',
-        'handler400', 'handler403', 'handler404', 'handler500',
-        # Channels sucht diesen Namen auf Modulebene von `routing.py` —
-        # genau wie Django `urlpatterns`. Ein Pflichtname des Rahmenwerks
-        # ist nie ein Befund (29.08.2026, 3DTools).
-        'websocket_urlpatterns',
-    })
+    ERLAUBT = frozenset(
+        {
+            "urlpatterns",
+            "app_name",
+            "admin",
+            "register",
+            "router",
+            "logger",
+            "log",
+            "application",
+            "default_app_config",
+            "handler400",
+            "handler403",
+            "handler404",
+            "handler500",
+            # Channels sucht diesen Namen auf Modulebene von `routing.py` —
+            # genau wie Django `urlpatterns`. Ein Pflichtname des Rahmenwerks
+            # ist nie ein Befund (29.08.2026, 3DTools).
+            "websocket_urlpatterns",
+        }
+    )
 
     #: Dateien, deren Modulebene die Datenstruktur IST.
-    DATEIEN_AUS = ('settings.py', 'conf.py', 'urls.py', 'kriterien.py',
-                   'apps.py', 'wsgi.py', 'asgi.py', 'manage.py', '__init__.py')
+    DATEIEN_AUS = (
+        "settings.py",
+        "conf.py",
+        "urls.py",
+        "kriterien.py",
+        "apps.py",
+        "wsgi.py",
+        "asgi.py",
+        "manage.py",
+        "__init__.py",
+    )
 
     #: Ordner, in denen JEDE Datei die Datenstruktur ist. Wer seine
     #: Einstellungen aufteilt (`ui/settings/pfade.py`, `…/protokoll.py`),
     #: bekommt sonst genau dafuer einen Befund — obwohl er der Regel „eine
     #: Datei, ein Thema" gefolgt ist (29.08.2026, 3DTools).
-    ORDNER_AUS = ('settings', 'conf', 'einstellungen')
+    ORDNER_AUS = ("settings", "conf", "einstellungen")
 
     #: Aufrufe, deren Ergebnis eine Typdefinition ist, kein Zustand.
-    TYP_AUFRUFE = frozenset({'namedtuple', 'NamedTuple', 'TypeVar', 'Enum',
-                             'IntEnum', 'StrEnum', 'dataclass', 'NewType'})
+    TYP_AUFRUFE = frozenset(
+        {"namedtuple", "NamedTuple", "TypeVar", "Enum", "IntEnum", "StrEnum", "dataclass", "NewType"}
+    )
 
     anlassfall = Anlassfall(
-        {"speicher.py": (
-            "_cache = {}\n"
-            "_zaehler = 0\n"
-            "_geladen = []\n"
-            "GRENZE = 5\n"
-            "TITEL = 'x'\n"
-            "NAME = 'y'\n\n\n"
-            "def merken(schluessel, wert):\n"
-            "    global _zaehler\n"
-            "    _zaehler += 1\n"
-            "    _cache[schlüssel] = wert\n")},
-        mindestens=1, erwartet_in="speicher.py",
+        {
+            "speicher.py": (
+                "_cache = {}\n"
+                "_zaehler = 0\n"
+                "_geladen = []\n"
+                "GRENZE = 5\n"
+                "TITEL = 'x'\n"
+                "NAME = 'y'\n\n\n"
+                "def merken(schluessel, wert):\n"
+                "    global _zaehler\n"
+                "    _zaehler += 1\n"
+                "    _cache[schlüssel] = wert\n"
+            )
+        },
+        mindestens=1,
+        erwartet_in="speicher.py",
         warum="Drei veraenderliche Modulvariablen, davon eine per `global` "
-              "beschrieben: Der Zwischenspeicher ueberlebt jeden Aufruf und "
-              "gehört keiner Klasse")
+        "beschrieben: Der Zwischenspeicher ueberlebt jeden Aufruf und "
+        "gehört keiner Klasse",
+    )
 
-    def pruefen(self, ab='4', **_argumente):
+    def pruefen(self, ab="4", **_argumente):
         try:
             grenze = max(1, int(str(ab).strip() or 4))
         except ValueError:
             grenze = 4
 
         sichten, skripte = [], 0
-        for datei in self.projektdateien('.py'):
-            if (datei.name in self.DATEIEN_AUS
-                    or datei.parent.name in self.ORDNER_AUS):
+        for datei in self.projektdateien(".py"):
+            if datei.name in self.DATEIEN_AUS or datei.parent.name in self.ORDNER_AUS:
                 continue
             sicht = self._modul(datei)
             if sicht is None:
@@ -168,23 +196,23 @@ class GlobalerZustand(BefundWerkzeug):
             # geschuetzt. Jetzt steht dort nur noch, was wirklich ein
             # veraenderlicher Behaelter ist, und EIN `_cache = {}` ist der
             # Fund, um den es geht.
-            if (not sicht.global_stellen and not sicht.veraenderlich
-                    and gesamt < grenze):
+            if not sicht.global_stellen and not sicht.veraenderlich and gesamt < grenze:
                 continue
-            befunde.append(Befund(sicht.pfad, self._kopf(sicht),
-                                  self._rat(sicht),
-                                  Befund.WARNUNG if sicht.global_stellen
-                                  else Befund.HINWEIS))
+            befunde.append(
+                Befund(
+                    sicht.pfad,
+                    self._kopf(sicht),
+                    self._rat(sicht),
+                    Befund.WARNUNG if sicht.global_stellen else Befund.HINWEIS,
+                )
+            )
 
         kopf = [
-            '%d Module geprüft, %d mit globalem Zustand' % (len(sichten),
-                                                             len(befunde)),
+            "%d Module geprüft, %d mit globalem Zustand" % (len(sichten), len(befunde)),
             '%d veraenderliche Modulvariablen, %d davon per "global" beschrieben'
-            % (sum(len(s.veraenderlich) for s in sichten),
-               sum(len(s.global_stellen) for s in sichten)),
-            '%d globale Konstanten' % sum(len(s.konstanten) for s in sichten),
-            '%d Ablaufskripte übersprungen (dort IST die Modulebene das Programm)'
-            % skripte,
+            % (sum(len(s.veraenderlich) for s in sichten), sum(len(s.global_stellen) for s in sichten)),
+            "%d globale Konstanten" % sum(len(s.konstanten) for s in sichten),
+            "%d Ablaufskripte übersprungen (dort IST die Modulebene das Programm)" % skripte,
         ]
         return Befundsatz(self.titel, kopf, befunde)
 
@@ -193,49 +221,58 @@ class GlobalerZustand(BefundWerkzeug):
     def _kopf(sicht):
         teile = []
         if sicht.global_stellen:
-            teile.append('%d× "global" (%s)'
-                         % (len(sicht.global_stellen),
-                            ', '.join(n for n, _z in sicht.global_stellen[:4])))
+            teile.append(
+                '%d× "global" (%s)'
+                % (len(sicht.global_stellen), ", ".join(n for n, _z in sicht.global_stellen[:4]))
+            )
         if sicht.veraenderlich:
-            teile.append('%d veränderlich (%s)'
-                         % (len(sicht.veraenderlich),
-                            ', '.join(n for n, _z, _a in sicht.veraenderlich[:4])))
+            teile.append(
+                "%d veränderlich (%s)"
+                % (len(sicht.veraenderlich), ", ".join(n for n, _z, _a in sicht.veraenderlich[:4]))
+            )
         if sicht.konstanten:
-            teile.append('%d Konstanten' % len(sicht.konstanten))
-        return ' · '.join(teile)
+            teile.append("%d Konstanten" % len(sicht.konstanten))
+        return " · ".join(teile)
 
     @staticmethod
     def _rat(sicht):
-        u"""Der konkrete nächste Schritt - je nachdem, was gefunden wurde."""
+        """Der konkrete nächste Schritt - je nachdem, was gefunden wurde."""
         if sicht.global_stellen:
-            return ('Wird beschrieben: in eine Klasse als Instanz-Attribut. '
-                    'Als Klassenvariable teilen sich alle Instanzen denselben '
-                    'Wert - dasselbe Problem, nur weniger sichtbar.')
+            return (
+                "Wird beschrieben: in eine Klasse als Instanz-Attribut. "
+                "Als Klassenvariable teilen sich alle Instanzen denselben "
+                "Wert - dasselbe Problem, nur weniger sichtbar."
+            )
         if sicht.veraenderlich:
-            return ('Veraenderlicher Zustand ohne Eigentuemer: in die Klasse, '
-                    'die ihn benutzt. Gibt es sie noch nicht, ist sie der '
-                    'eigentliche Befund.')
-        return ('Konstanten-Bündel: in eine Kontext- oder Konfigurationsklasse '
-                '(%d Namen). Dann steht an einer Stelle, was zusammengehoert.'
-                % len(sicht.konstanten))
+            return (
+                "Veraenderlicher Zustand ohne Eigentuemer: in die Klasse, "
+                "die ihn benutzt. Gibt es sie noch nicht, ist sie der "
+                "eigentliche Befund."
+            )
+        return (
+            "Konstanten-Bündel: in eine Kontext- oder Konfigurationsklasse "
+            "(%d Namen). Dann steht an einer Stelle, was zusammengehoert." % len(sicht.konstanten)
+        )
 
     # ------------------------------------------------------------------ Baum
     def _modul(self, datei):
         try:
-            baum = ast.parse(datei.read_text(encoding='utf-8', errors='replace'))
+            baum = ast.parse(datei.read_text(encoding="utf-8", errors="replace"))
         except (SyntaxError, OSError):
             return None
         veraenderlich, konstanten, klassen = [], [], 0
         # ``global x`` steht IN Funktionen - dafuer der ganze Baum. Wird
         # frueher gebraucht als frueher: Es entscheidet mit darueber, ob eine
         # kleingeschriebene Zuweisung Zustand ist.
-        global_stellen = [(name, knoten.lineno)
-                          for knoten in ast.walk(baum)
-                          if isinstance(knoten, ast.Global)
-                          for name in knoten.names]
+        global_stellen = [
+            (name, knoten.lineno)
+            for knoten in ast.walk(baum)
+            if isinstance(knoten, ast.Global)
+            for name in knoten.names
+        ]
         geschrieben = {name for name, _z in global_stellen}
         mehrfach = self._mehrfach_zugewiesen(baum)
-        for knoten in baum.body:              # NUR Modulebene, nicht ast.walk
+        for knoten in baum.body:  # NUR Modulebene, nicht ast.walk
             if isinstance(knoten, ast.ClassDef):
                 klassen += 1
                 continue
@@ -246,24 +283,22 @@ class GlobalerZustand(BefundWerkzeug):
                     continue
                 if name.isupper():
                     konstanten.append((name, knoten.lineno))
-                elif (self._ist_behaelter(knoten) or name in geschrieben
-                      or name in mehrfach):
-                    veraenderlich.append((name, knoten.lineno,
-                                          self._art(knoten)))
+                elif self._ist_behaelter(knoten) or name in geschrieben or name in mehrfach:
+                    veraenderlich.append((name, knoten.lineno, self._art(knoten)))
                 # Sonst: eine DEFINITION, kein Zustand. Siehe
                 # `_ist_behaelter`.
         if not (veraenderlich or konstanten or global_stellen):
             return None
-        return Modulzustaende(self.kurz(datei), veraenderlich, konstanten,
-                              global_stellen, klassen, self._ist_skript(baum))
+        return Modulzustaende(
+            self.kurz(datei), veraenderlich, konstanten, global_stellen, klassen, self._ist_skript(baum)
+        )
 
     #: Aufrufe, die einen veraenderlichen Behaelter liefern.
-    BEHAELTERRUFE = frozenset({'dict', 'list', 'set', 'defaultdict',
-                               'OrderedDict', 'deque', 'Counter'})
+    BEHAELTERRUFE = frozenset({"dict", "list", "set", "defaultdict", "OrderedDict", "deque", "Counter"})
 
     @classmethod
     def _ist_behaelter(cls, knoten):
-        u"""Haelt diese Zuweisung etwas, das man SPAETER aendern kann?
+        """Haelt diese Zuweisung etwas, das man SPAETER aendern kann?
 
         WARUM DIE UNTERSCHEIDUNG (29.08.2026, 3DTools): Bis hierher galt jede
         kleingeschriebene Zuweisung auf Modulebene als „veraenderlicher
@@ -282,13 +317,11 @@ class GlobalerZustand(BefundWerkzeug):
         zweite Zuweisung. Beides wird getrennt geprueft.
         """
         wert = knoten.value
-        if isinstance(wert, (ast.Dict, ast.List, ast.Set, ast.DictComp,
-                             ast.ListComp, ast.SetComp)):
+        if isinstance(wert, (ast.Dict, ast.List, ast.Set, ast.DictComp, ast.ListComp, ast.SetComp)):
             return True
         if isinstance(wert, ast.Call):
             gerufen = wert.func
-            name = (gerufen.attr if isinstance(gerufen, ast.Attribute)
-                    else getattr(gerufen, 'id', ''))
+            name = gerufen.attr if isinstance(gerufen, ast.Attribute) else getattr(gerufen, "id", "")
             return name in cls.BEHAELTERRUFE
         return False
 
@@ -299,8 +332,7 @@ class GlobalerZustand(BefundWerkzeug):
         for knoten in baum.body:
             if not isinstance(knoten, (ast.Assign, ast.AnnAssign)):
                 continue
-            ziele = (knoten.targets if isinstance(knoten, ast.Assign)
-                     else [knoten.target])
+            ziele = knoten.targets if isinstance(knoten, ast.Assign) else [knoten.target]
             for ziel in ziele:
                 if not isinstance(ziel, ast.Name):
                     continue
@@ -311,7 +343,7 @@ class GlobalerZustand(BefundWerkzeug):
 
     @staticmethod
     def _ist_skript(baum):
-        u"""Laeuft die Datei, statt importiert zu werden? Am CODE erkannt.
+        """Laeuft die Datei, statt importiert zu werden? Am CODE erkannt.
 
         Ein Ablaufskript hat ausfuehrbare Anweisungen auf Modulebene: Aufrufe,
         Schleifen, Bedingungen ausserhalb eines ``__main__``-Blocks. Ein Modul,
@@ -332,7 +364,7 @@ class GlobalerZustand(BefundWerkzeug):
                 # die Datei nicht zum Skript im hiesigen Sinn - der Zustand
                 # DARUEBER gehoert trotzdem geprueft.
                 pruefung = ast.dump(knoten.test)
-                if '__name__' not in pruefung:
+                if "__name__" not in pruefung:
                     laufend += 1
         return laufend >= 3
 
@@ -349,7 +381,7 @@ class GlobalerZustand(BefundWerkzeug):
         return namen
 
     def _ueberspringen(self, name, knoten):
-        u"""Fehlalarme aussortieren - die teuerste Sorte Befund.
+        """Fehlalarme aussortieren - die teuerste Sorte Befund.
 
         AM ECHTEN PROJEKT NACHGESCHAERFT (19.08.2026, shortlongx): Der erste
         Wurf meldete 302 veraenderliche Modulvariablen. Zwei Sorten davon waren
@@ -363,11 +395,11 @@ class GlobalerZustand(BefundWerkzeug):
           einen Import, nicht ein Zustand. In ``views/basis.py`` waren die
           ersten drei gemeldeten "Variablen" genau das.
         """
-        if name.startswith('__') or name in self.ERLAUBT:
+        if name.startswith("__") or name in self.ERLAUBT:
             return True
-        if set(name) == {'_'}:                # ``_``, ``__``: Wegwerf-Name
+        if set(name) == {"_"}:  # ``_``, ``__``: Wegwerf-Name
             return True
-        wert = getattr(knoten, 'value', None)
+        wert = getattr(knoten, "value", None)
         # Alias auf eine Funktion/Klasse (``x = Y.z``, ``x = y``): ein zweiter
         # Name, kein Zustand. Grossgeschriebene Ziele bleiben Konstanten.
         if isinstance(wert, (ast.Attribute, ast.Name)) and not name.isupper():
@@ -377,12 +409,11 @@ class GlobalerZustand(BefundWerkzeug):
         # Typdefinitionen sind kein Zustand.
         if isinstance(wert, ast.Call):
             ruf = wert.func
-            gerufen = (ruf.id if isinstance(ruf, ast.Name)
-                       else getattr(ruf, 'attr', ''))
+            gerufen = ruf.id if isinstance(ruf, ast.Name) else getattr(ruf, "attr", "")
             if gerufen in self.TYP_AUFRUFE:
                 return True
             # ``logging.getLogger(__name__)`` - die kanonische Zeile.
-            if gerufen == 'getLogger':
+            if gerufen == "getLogger":
                 return True
         # Reine Typ-Annotation ohne Wert (``x: int``) ist eine Deklaration.
         if isinstance(knoten, ast.AnnAssign) and knoten.value is None:
@@ -391,13 +422,13 @@ class GlobalerZustand(BefundWerkzeug):
 
     @staticmethod
     def _art(knoten):
-        wert = getattr(knoten, 'value', None)
+        wert = getattr(knoten, "value", None)
         if isinstance(wert, ast.Dict):
-            return 'dict'
+            return "dict"
         if isinstance(wert, ast.List):
-            return 'list'
+            return "list"
         if isinstance(wert, ast.Set):
-            return 'set'
+            return "set"
         if isinstance(wert, ast.Call):
-            return 'Aufruf'
-        return 'Wert'
+            return "Aufruf"
+        return "Wert"

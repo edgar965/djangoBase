@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Gegenprobe zum Zyklus-Melder: findet er noch, und findet er zu viel?
+"""Gegenprobe zum Zyklus-Melder: findet er noch, und findet er zu viel?
 
 WARUM ES DIESE PROBE GIBT (25.08.2026)
 ======================================
@@ -27,6 +27,7 @@ Richtungen fest: Die zweite Haelfte ist die wichtigere, denn die
 einfachste Art, die erste gruen zu bekommen, waere den Melder ganz
 abzuschalten.
 """
+
 import ast
 import textwrap
 
@@ -34,21 +35,21 @@ from django.test import SimpleTestCase
 
 __all__ = ["AbhaengigkeitenProbe"]
 
-ECHTER_ZYKLUS = '''
+ECHTER_ZYKLUS = """
     from paket.b import Bee
 
     class Aaa:
         pass
-'''
+"""
 
-IN_FUNKTION = '''
+IN_FUNKTION = """
     class Aaa:
         def hol(self):
             from paket.b import Bee
             return Bee
-'''
+"""
 
-NUR_TYPPRUEFUNG = '''
+NUR_TYPPRUEFUNG = """
     from typing import TYPE_CHECKING
 
     if TYPE_CHECKING:
@@ -57,54 +58,62 @@ NUR_TYPPRUEFUNG = '''
 
     class Aaa:
         pass
-'''
+"""
 
-IM_TRY_OBEN = '''
+IM_TRY_OBEN = """
     try:
         from paket.b import Bee
     except ImportError:
         Bee = None
-'''
+"""
 
 
 class AbhaengigkeitenProbe(SimpleTestCase):
-    u"""Nur Importe, die beim LADEN laufen, bilden einen Zyklus."""
+    """Nur Importe, die beim LADEN laufen, bilden einen Zyklus."""
 
     def _ziele(self, quelle):
-        u"""Welche Module sieht der Melder in diesem Quelltext?"""
+        """Welche Module sieht der Melder in diesem Quelltext?"""
         from .abhaengigkeiten import Abhaengigkeiten
 
-        baum = ast.parse(textwrap.dedent(quelle).strip() + '\n')
-        return Abhaengigkeiten._importe(baum, 'paket.a', {'paket.b'})
+        baum = ast.parse(textwrap.dedent(quelle).strip() + "\n")
+        return Abhaengigkeiten._importe(baum, "paket.a", {"paket.b"})
 
     def test_modulebene_zaehlt(self):
-        u"""Der echte Fall - muss weiter gefunden werden."""
+        """Der echte Fall - muss weiter gefunden werden."""
         self.assertIn(
-            'paket.b', self._ziele(ECHTER_ZYKLUS),
+            "paket.b",
+            self._ziele(ECHTER_ZYKLUS),
             "Ein Import auf Modulebene läuft beim Laden und bildet einen "
             "echten Zyklus. Wird er nicht mehr gesehen, meldet das Werkzeug "
             "gar keine Zyklen mehr - dann ist es abgeschaltet, nicht "
-            "geschaerft.")
+            "geschaerft.",
+        )
 
     def test_im_try_auf_oberster_ebene_zaehlt_auch(self):
-        u"""``try: import`` im Modulrumpf läuft ebenfalls beim Laden."""
+        """``try: import`` im Modulrumpf läuft ebenfalls beim Laden."""
         self.assertIn(
-            'paket.b', self._ziele(IM_TRY_OBEN),
+            "paket.b",
+            self._ziele(IM_TRY_OBEN),
             "Ein Import in try/except auf oberster Ebene wird beim Laden "
-            "ausgefuehrt - er zählt wie jeder andere Modulebene-Import.")
+            "ausgefuehrt - er zählt wie jeder andere Modulebene-Import.",
+        )
 
     def test_import_in_funktion_zaehlt_nicht(self):
-        u"""Die uebliche Auflösung eines Zirkels - kein Befund."""
+        """Die uebliche Auflösung eines Zirkels - kein Befund."""
         self.assertNotIn(
-            'paket.b', self._ziele(IN_FUNKTION),
+            "paket.b",
+            self._ziele(IN_FUNKTION),
             "Ein Import im Funktionsrumpf läuft erst beim Aufruf, wenn "
             "beide Module fertig geladen sind. Genau so löst man einen "
-            "Zirkel auf; als Zyklus gemeldet wird die Reparatur zum Befund.")
+            "Zirkel auf; als Zyklus gemeldet wird die Reparatur zum Befund.",
+        )
 
     def test_type_checking_zaehlt_nicht(self):
-        u"""``if TYPE_CHECKING:`` wird zur Laufzeit nie ausgefuehrt."""
+        """``if TYPE_CHECKING:`` wird zur Laufzeit nie ausgefuehrt."""
         self.assertNotIn(
-            'paket.b', self._ziele(NUR_TYPPRUEFUNG),
+            "paket.b",
+            self._ziele(NUR_TYPPRUEFUNG),
             "Der Block unter `if TYPE_CHECKING:` läuft nie - er steht nur "
             "für die Typpruefung da und ist die sauberste Art, einen "
-            "Zirkel zu vermeiden.")
+            "Zirkel zu vermeiden.",
+        )

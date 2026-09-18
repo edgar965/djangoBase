@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Stelle - eine Zeile in einer JS-Datei und die Frage, ob sie im try steht.
+"""Stelle - eine Zeile in einer JS-Datei und die Frage, ob sie im try steht.
 
 Aus ``jsfaenger.py`` herausgelöst (17.08.2026): Die Datei war beim Nachziehen
 der Aufrufkette auf 402 Zeilen gewachsen und trug drei Aufgaben. Hier steht nur
@@ -11,6 +11,7 @@ Gesucht wird ab dem Aufruf rueckwaerts nach ``try {``; das Blockende kommt aus
 der Klammertiefe (`jsklammern`), nicht aus dem Abstand. Ein ``catch`` irgendwo
 unterhalb beweist nichts - es kann zu einem spaeteren try gehören.
 """
+
 import re
 
 from .jsklammern import Klammerzaehler
@@ -19,8 +20,20 @@ __all__ = ["Stelle", "SCHLUESSELWORTE"]
 
 #: Sieht wie eine Funktionsdefinition aus, ist aber Ablaufsteuerung. Ohne diese
 #: Liste gilt jedes `if (…) {` als umgebende Funktion.
-SCHLUESSELWORTE = {"if", "for", "while", "switch", "catch", "else", "do",
-                   "try", "return", "typeof", "function", "class"}
+SCHLUESSELWORTE = {
+    "if",
+    "for",
+    "while",
+    "switch",
+    "catch",
+    "else",
+    "do",
+    "try",
+    "return",
+    "typeof",
+    "function",
+    "class",
+}
 
 
 class Stelle:
@@ -41,12 +54,13 @@ class Stelle:
     #: Eine Funktions- oder Methodendefinition am Zeilenanfang.
     DEFINITION = re.compile(
         r"^\s*(?:export\s+)?(?:default\s+)?(?:static\s+)?(?:async\s+)?"
-        r"(?:function\s*\*?\s*)?([A-Za-z_$][\w$]*)\s*\([^;]*\)\s*\{\s*$")
+        r"(?:function\s*\*?\s*)?([A-Za-z_$][\w$]*)\s*\([^;]*\)\s*\{\s*$"
+    )
 
     def __init__(self, datei, zeilen, nummer):
         self.datei = datei
         self.zeilen = zeilen
-        self.nummer = nummer          # 0-basiert
+        self.nummer = nummer  # 0-basiert
 
     def gefangen(self):
         for anfang in self._try_bloecke():
@@ -103,7 +117,7 @@ class Stelle:
         # kurz JEDER try-Block als Einzeiler und die Zahl der gefangenen Aufrufe
         # fiel von 128 auf 0 (17.08.2026, beim Bauen dieser Zeile).
         if zaehler.zeile(self.zeilen[anfang].split("try", 1)[1]) <= 0:
-            return anfang                      # Einzeiler, in sich geschlossen
+            return anfang  # Einzeiler, in sich geschlossen
         bis = min(len(self.zeilen), anfang + Stelle.BLOCKGRENZE)
         for i in range(anfang + 1, bis):
             zaehler.zeile(self.zeilen[i])
@@ -128,13 +142,15 @@ class Stelle:
         return ""
 
     def als_zeile(self, aufrufer=""):
-        return {"ort": "%s:%d" % (self.datei, self.nummer + 1),
-                "text": self.zeilen[self.nummer].strip()[:110],
-                "aufrufer": aufrufer}
+        return {
+            "ort": "%s:%d" % (self.datei, self.nummer + 1),
+            "text": self.zeilen[self.nummer].strip()[:110],
+            "aufrufer": aufrufer,
+        }
 
     @staticmethod
     def in_zeichenkette(zeile, stelle):
-        u"""Steht die Fundstelle innerhalb von Anfuehrungszeichen?
+        """Steht die Fundstelle innerhalb von Anfuehrungszeichen?
 
         `retarget_hybrid.js:54` lautet
         ``throw new Error('loadRetargetConfig() must be called …')`` — der

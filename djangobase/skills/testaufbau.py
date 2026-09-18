@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Testaufbau - sind die Tests gegliedert und aus der Oberflaeche startbar?
+"""Testaufbau - sind die Tests gegliedert und aus der Oberflaeche startbar?
 
     Kriterium 17: Testcases sauber unter Hilfe -> Tests, über djangoBase.
     Untermenues für Unit-, Component-, UI-Tests und Longrunner; bei großen
@@ -28,8 +28,9 @@ Eine Testdatei ohne einzige Zusicherung meldet „grün" und prüft nichts. Im
 Ursprungsprojekt lagen 24 gleichnamige ``test_placeholder.py`` mit identischem
 Rumpf - eine Gliederung, die es nur dem Namen nach gab.
 """
-from .werkzeug import Ergebnis
+
 from .basis import EigenesWerkzeug
+from .werkzeug import Ergebnis
 
 __all__ = ["Testaufbau"]
 
@@ -37,13 +38,19 @@ __all__ = ["Testaufbau"]
 class Testaufbau(EigenesWerkzeug):
     slug = "testaufbau"
     titel = "Tests: gegliedert und aus der Hilfe startbar"
-    zweck = ("Prüft die vier Test-Arten (unit/component/ui/longrunner), leere "
-             "Platzhalter und ob jeder Bereich über Hilfe → Tests startbar ist.")
-    befund = ("24 gleichnamige Platzhalter-Dateien mit identischem Rumpf: eine "
-              "Gliederung, die es nur dem Namen nach gab — und Tests, die man "
-              "ohne Kommandozeile nicht starten kann.")
-    abhilfe = ("Nach Art gliedern (bei großen Projekten Bereich × Art) und jeden "
-               "Bereich in DJANGOBASE['test_befehle'] eintragen.")
+    zweck = (
+        "Prüft die vier Test-Arten (unit/component/ui/longrunner), leere "
+        "Platzhalter und ob jeder Bereich über Hilfe → Tests startbar ist."
+    )
+    befund = (
+        "24 gleichnamige Platzhalter-Dateien mit identischem Rumpf: eine "
+        "Gliederung, die es nur dem Namen nach gab — und Tests, die man "
+        "ohne Kommandozeile nicht starten kann."
+    )
+    abhilfe = (
+        "Nach Art gliedern (bei großen Projekten Bereich × Art) und jeden "
+        "Bereich in DJANGOBASE['test_befehle'] eintragen."
+    )
     dauer = "3–8 s"
     kriterium = 17
 
@@ -55,21 +62,21 @@ class Testaufbau(EigenesWerkzeug):
     ohne_anlassfall_weil = "misst nur (wie die Testsuite gegliedert ist)"
 
     def laufen(self):
-        dateien = [d for d in self.dateien()
-                   if self._ist_testdatei(d) and self._ist_django_app(d)]
+        dateien = [d for d in self.dateien() if self._ist_testdatei(d) and self._ist_django_app(d)]
         zeilen = []
         zeilen += self._gliederung(dateien)
         zeilen += self._platzhalter(dateien)
         zeilen += self._startbar(dateien)
-        rang = {"nicht startbar": 0, "Platzhalter": 1, "Art fehlt": 2,
-                "ungegliedert": 3, "Umfang": 4}
+        rang = {"nicht startbar": 0, "Platzhalter": 1, "Art fehlt": 2, "ungegliedert": 3, "Umfang": 4}
         zeilen.sort(key=lambda z: (rang.get(z["art"], 9), z["stelle"]))
         return Ergebnis(
-            ["art", "stelle", "befund", "abhilfe"], zeilen,
+            ["art", "stelle", "befund", "abhilfe"],
+            zeilen,
             "%d Testdateien geprüft, %d Punkte offen" % (len(dateien), len(zeilen)),
             "Die vier Arten sind kein Selbstzweck: Sie trennen, was in Sekunden "
             "läuft, von dem, was Minuten braucht — nur so fährt man die schnellen "
-            "wirklich bei jeder Änderung.")
+            "wirklich bei jeder Änderung.",
+        )
 
     @staticmethod
     def _ist_django_app(d):
@@ -95,6 +102,7 @@ class Testaufbau(EigenesWerkzeug):
         ``diktator/`` und Geschwister bleiben draußen: Dort ist KEIN Segment
         eine installierte App."""
         from django.conf import settings
+
         installiert = {a.split(".")[0] for a in settings.INSTALLED_APPS}
         return any(teil in installiert for teil in d.name.split("/"))
 
@@ -141,49 +149,69 @@ class Testaufbau(EigenesWerkzeug):
             # Befund" ab (17.08.2026).
             if not self.hat_code():
                 return []
-            return [{"art": "Art fehlt", "stelle": "(Projekt)",
-                     "befund": "keine Testdateien gefunden",
-                     "abhilfe": "tests/{unit,component,ui,longrunner}/ anlegen"}]
+            return [
+                {
+                    "art": "Art fehlt",
+                    "stelle": "(Projekt)",
+                    "befund": "keine Testdateien gefunden",
+                    "abhilfe": "tests/{unit,component,ui,longrunner}/ anlegen",
+                }
+            ]
         for art in self.ARTEN:
             if art not in vorhanden:
-                aus.append({"art": "Art fehlt", "stelle": "tests/%s/" % art,
-                            "befund": "keine Tests dieser Art",
-                            "abhilfe": {"automated": "Grundfunktion in Sekunden: "
-                                                     "Seiten ohne 5xx, URLs, "
-                                                     "Importe, Migrationen, "
-                                                     "Logging — djangobase.grundtests",
-                                        "unit": "reine Modul-Logik ohne DB",
-                                        "component": "mit Datenbank",
-                                        "ui": "Templates und Views (HTTP)",
-                                        "performance": "Ladezeiten der wichtigen "
-                                                       "Seiten messen und "
-                                                       "protokollieren — "
-                                                       "djangobase.leistungstests",
-                                        "longrunner": "was Minuten braucht — "
-                                                      "getrennt, damit der Rest "
-                                                      "schnell bleibt"}[art]})
+                aus.append(
+                    {
+                        "art": "Art fehlt",
+                        "stelle": "tests/%s/" % art,
+                        "befund": "keine Tests dieser Art",
+                        "abhilfe": {
+                            "automated": "Grundfunktion in Sekunden: "
+                            "Seiten ohne 5xx, URLs, "
+                            "Importe, Migrationen, "
+                            "Logging — djangobase.grundtests",
+                            "unit": "reine Modul-Logik ohne DB",
+                            "component": "mit Datenbank",
+                            "ui": "Templates und Views (HTTP)",
+                            "performance": "Ladezeiten der wichtigen "
+                            "Seiten messen und "
+                            "protokollieren — "
+                            "djangobase.leistungstests",
+                            "longrunner": "was Minuten braucht — getrennt, damit der Rest schnell bleibt",
+                        }[art],
+                    }
+                )
         for name in ungegliedert[:10]:
-            aus.append({"art": "ungegliedert", "stelle": name,
-                        "befund": "liegt in keinem der vier Art-Ordner",
-                        "abhilfe": "in unit/component/ui/longrunner einsortieren"})
+            aus.append(
+                {
+                    "art": "ungegliedert",
+                    "stelle": name,
+                    "befund": "liegt in keinem der vier Art-Ordner",
+                    "abhilfe": "in unit/component/ui/longrunner einsortieren",
+                }
+            )
         # Der Umfang ist nur dann ein Befund, wenn die Seite die Bereiche NICHT
         # gruppiert. Sind Gruppen gesetzt (``gruppe``-Schluessel, etwa aus
         # djangobase.testbefehle), ist genau das schon erledigt - das weiter zu
         # melden waere ein Fehlalarm auf die eigene Loesung.
         if len(bereiche) >= self.VIEL and not self._hat_gruppen():
-            aus.append({"art": "Umfang", "stelle": "Hilfe → Tests",
-                        "befund": "%d Test-Bereiche (%s …) in einer flachen Liste"
-                                  % (len(bereiche), ", ".join(sorted(bereiche)[:4])),
-                        "abhilfe": "eigene Gruppe/Unterseite je Bereich — "
-                                   "djangobase.testbefehle.Testbefehle setzt den "
-                                   "gruppe-Schlüssel von selbst"})
+            aus.append(
+                {
+                    "art": "Umfang",
+                    "stelle": "Hilfe → Tests",
+                    "befund": "%d Test-Bereiche (%s …) in einer flachen Liste"
+                    % (len(bereiche), ", ".join(sorted(bereiche)[:4])),
+                    "abhilfe": "eigene Gruppe/Unterseite je Bereich — "
+                    "djangobase.testbefehle.Testbefehle setzt den "
+                    "gruppe-Schlüssel von selbst",
+                }
+            )
         return aus
 
     @staticmethod
     def _hat_gruppen():
         from django.conf import settings
-        befehle = ((getattr(settings, "DJANGOBASE", {}) or {})
-                   .get("test_befehle") or [])
+
+        befehle = (getattr(settings, "DJANGOBASE", {}) or {}).get("test_befehle") or []
         return len({b.get("gruppe") for b in befehle if b.get("gruppe")}) > 1
 
     # -------------------------------------------------------------- Platzhalter
@@ -197,6 +225,7 @@ class Testaufbau(EigenesWerkzeug):
         aus ``pass`` und Docstring; das war die Bauform der 24 gleichnamigen
         ``test_placeholder.py`` im Ursprungsprojekt."""
         import ast
+
         aus = []
         for d in dateien:
             if d.baum is None:
@@ -205,17 +234,23 @@ class Testaufbau(EigenesWerkzeug):
             for k in d.knoten(ast.FunctionDef, ast.AsyncFunctionDef):
                 if not k.name.startswith("test"):
                     continue
-                rumpf = [x for x in k.body
-                         if not (isinstance(x, ast.Expr)
-                                 and isinstance(getattr(x, "value", None), ast.Constant))]
+                rumpf = [
+                    x
+                    for x in k.body
+                    if not (isinstance(x, ast.Expr) and isinstance(getattr(x, "value", None), ast.Constant))
+                ]
                 if not rumpf or all(isinstance(x, ast.Pass) for x in rumpf):
                     leer.append(k.name)
             if leer:
-                aus.append({"art": "Platzhalter", "stelle": d.name,
-                            "befund": "%d Testmethode(n) mit leerem Rumpf: %s"
-                                      % (len(leer), ", ".join(leer[:3])),
-                            "abhilfe": "echte Prüfung schreiben oder Datei löschen — "
-                                       "grün ohne Aussage ist schlimmer als keine Datei"})
+                aus.append(
+                    {
+                        "art": "Platzhalter",
+                        "stelle": d.name,
+                        "befund": "%d Testmethode(n) mit leerem Rumpf: %s" % (len(leer), ", ".join(leer[:3])),
+                        "abhilfe": "echte Prüfung schreiben oder Datei löschen — "
+                        "grün ohne Aussage ist schlimmer als keine Datei",
+                    }
+                )
         return aus[:15]
 
     # ---------------------------------------------------------------- startbar
@@ -223,28 +258,43 @@ class Testaufbau(EigenesWerkzeug):
     def _startbar(self, dateien):
         """Ist jeder Test-Bereich über Hilfe -> Tests zu starten?"""
         from django.conf import settings
-        cfg = (getattr(settings, "DJANGOBASE", {}) or {})
+
+        cfg = getattr(settings, "DJANGOBASE", {}) or {}
         befehle = cfg.get("test_befehle") or []
         if not befehle:
-            return [{"art": "nicht startbar", "stelle": "DJANGOBASE['test_befehle']",
-                     "befund": "nicht gesetzt — Hilfe → Tests kann nichts fahren",
-                     "abhilfe": "je App/Bereich einen Eintrag {slug, name, cmd} "
-                                "setzen (siehe djangoBase-Rezept)"}]
-        text = " ".join(str(b.get("cmd", "")) + " " + str(b.get("slug", ""))
-                        for b in befehle)
+            return [
+                {
+                    "art": "nicht startbar",
+                    "stelle": "DJANGOBASE['test_befehle']",
+                    "befund": "nicht gesetzt — Hilfe → Tests kann nichts fahren",
+                    "abhilfe": "je App/Bereich einen Eintrag {slug, name, cmd} "
+                    "setzen (siehe djangoBase-Rezept)",
+                }
+            ]
+        text = " ".join(str(b.get("cmd", "")) + " " + str(b.get("slug", "")) for b in befehle)
         apps = {d.name.split("/")[0] for d in dateien if "/" in d.name}
         aus = []
         for app in sorted(apps):
             if app and app not in text:
-                aus.append({"art": "nicht startbar", "stelle": app,
-                            "befund": "hat Tests, steht aber in keinem test_befehle-Eintrag",
-                            "abhilfe": "Eintrag ergänzen — was man nicht per Knopf "
-                                       "starten kann, fährt man selten"})
+                aus.append(
+                    {
+                        "art": "nicht startbar",
+                        "stelle": app,
+                        "befund": "hat Tests, steht aber in keinem test_befehle-Eintrag",
+                        "abhilfe": "Eintrag ergänzen — was man nicht per Knopf "
+                        "starten kann, fährt man selten",
+                    }
+                )
         # Sind die Arten einzeln startbar? Ein einziger Sammelbefehl je App
         # zwingt dazu, immer alles zu fahren - auch die Longrunner.
         if not any(a in text for a in self.ARTEN):
-            aus.append({"art": "nicht startbar", "stelle": "Hilfe → Tests",
-                        "befund": "kein Eintrag fährt eine einzelne Art",
-                        "abhilfe": "je Art einen Eintrag (…test app.tests.unit), "
-                                   "damit die schnellen ohne die Longrunner laufen"})
+            aus.append(
+                {
+                    "art": "nicht startbar",
+                    "stelle": "Hilfe → Tests",
+                    "befund": "kein Eintrag fährt eine einzelne Art",
+                    "abhilfe": "je Art einen Eintrag (…test app.tests.unit), "
+                    "damit die schnellen ohne die Longrunner laufen",
+                }
+            )
         return aus

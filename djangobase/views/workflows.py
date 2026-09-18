@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Die Workflow-Seite: was das Projekt tut, aus dem Code gelesen.
+"""Die Workflow-Seite: was das Projekt tut, aus dem Code gelesen.
 
 DIE ANSAGE (Edgar, 27.08.2026)
 ==============================
@@ -26,6 +26,7 @@ v0.83 schreibt der Segment-Muxer Stundendateien, seit v0.88 liegt der
 Hauptstrom in 10-SEKUNDEN-Bloecken. Genau dieser Verfall soll hier nicht
 mehr moeglich sein.
 """
+
 import logging
 
 from django.conf import settings
@@ -33,19 +34,19 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from django.views import View
 
+from ..mixins import ZugriffMixin
 from ..umbau.ablauf import Ablauf
 from ..umbau.ablaufbild import Ablaufbild
 from ..umbau.workflowbild import Workflowbild
 from ..umbau.workflows import Workflowspeicher
-from ..mixins import ZugriffMixin
 
-logger = logging.getLogger('djangobase.workflows')
+logger = logging.getLogger("djangobase.workflows")
 
 
 class WorkflowsView(ZugriffMixin, View):
-    u"""Zeigt die Wege; auf Knopfdruck liest sie den Code neu."""
+    """Zeigt die Wege; auf Knopfdruck liest sie den Code neu."""
 
-    vorlage = 'djangobase/hilfe/workflows.html'
+    vorlage = "djangobase/hilfe/workflows.html"
 
     def get(self, request):
         return self._zeigen(request, request.GET)
@@ -55,35 +56,37 @@ class WorkflowsView(ZugriffMixin, View):
 
     def _zeigen(self, request, daten):
         wurzel = self._wurzel()
-        neu = bool(daten.get('neu'))
+        neu = bool(daten.get("neu"))
         liste, alter = Workflowspeicher.holen(wurzel, neu=neu)
         faecher = liste.reiter()
-        reiter = daten.get('reiter') or (faecher[0][0] if faecher else '')
-        gewaehlt = self._weg(liste, faecher, reiter, daten.get('weg', ''))
-        ansicht = daten.get('ansicht') or 'ablauf'
-        bild, ablauf = self._bild(liste, gewaehlt, ansicht,
-                                  daten.get('funktion', ''))
-        return render(request, self.vorlage, {
-            'aktiv': 'workflows',
-            'reiter': [{'kuerzel': k, 'titel': t, 'anzahl': len(w)}
-                       for k, t, w in faecher],
-            'offen': reiter,
-            'ansicht': ansicht,
-            'wege': self._wegliste(faecher, reiter, gewaehlt),
-            'weg': gewaehlt,
-            'bild': bild,
-            'ablauf': ablauf,
-            'kennzahlen': liste.kennzahlen,
-            'verworfen': liste.verworfen,
-            'alter': alter,
-            'wurzel': str(wurzel),
-        })
+        reiter = daten.get("reiter") or (faecher[0][0] if faecher else "")
+        gewaehlt = self._weg(liste, faecher, reiter, daten.get("weg", ""))
+        ansicht = daten.get("ansicht") or "ablauf"
+        bild, ablauf = self._bild(liste, gewaehlt, ansicht, daten.get("funktion", ""))
+        return render(
+            request,
+            self.vorlage,
+            {
+                "aktiv": "workflows",
+                "reiter": [{"kuerzel": k, "titel": t, "anzahl": len(w)} for k, t, w in faecher],
+                "offen": reiter,
+                "ansicht": ansicht,
+                "wege": self._wegliste(faecher, reiter, gewaehlt),
+                "weg": gewaehlt,
+                "bild": bild,
+                "ablauf": ablauf,
+                "kennzahlen": liste.kennzahlen,
+                "verworfen": liste.verworfen,
+                "alter": alter,
+                "wurzel": str(wurzel),
+            },
+        )
 
     # ── Die zwei Ansichten ──────────────────────────────────────
 
     @staticmethod
     def _bild(liste, weg, ansicht, funktion):
-        u"""Landkarte oder Ablauf — zwei Fragen, zwei Bilder.
+        """Landkarte oder Ablauf — zwei Fragen, zwei Bilder.
 
         DIE ANSAGE (Edgar, 27.08.2026)
         ==============================
@@ -100,17 +103,20 @@ class WorkflowsView(ZugriffMixin, View):
         vor fremdem Code zuerst hat.
         """
         if weg is None:
-            return '', None
-        if ansicht != 'ablauf':
+            return "", None
+        if ansicht != "ablauf":
             return Workflowbild(weg).svg(), None
         bezug = weg.start
         if funktion and liste.verzeichnis is not None:
-            klasse, _punkt, name = funktion.rpartition('.')
-            gesucht = (liste.verzeichnis.in_klasse(klasse, name) if klasse
-                       else liste.verzeichnis.funktionen.get(name))
+            klasse, _punkt, name = funktion.rpartition(".")
+            gesucht = (
+                liste.verzeichnis.in_klasse(klasse, name)
+                if klasse
+                else liste.verzeichnis.funktionen.get(name)
+            )
             bezug = gesucht or bezug
         if bezug is None:
-            return '', None
+            return "", None
         lauf = Ablauf(bezug, liste.verzeichnis).lesen()
         return Ablaufbild(lauf).svg(), lauf
 
@@ -118,14 +124,14 @@ class WorkflowsView(ZugriffMixin, View):
 
     @staticmethod
     def _wurzel():
-        u"""Der Projektbaum. Ein Unterordner waere hier falsch: Ein Weg
+        """Der Projektbaum. Ein Unterordner waere hier falsch: Ein Weg
         laeuft quer durch das Projekt, und ein Ausschnitt schnitte ihn
         genau dort ab, wo es interessant wird."""
         return settings.BASE_DIR
 
     @staticmethod
     def _weg(liste, faecher, reiter, gewuenscht):
-        u"""Der angezeigte Weg — der gewaehlte, sonst der erste des Reiters."""
+        """Der angezeigte Weg — der gewaehlte, sonst der erste des Reiters."""
         for kuerzel, _titel, wege in faecher:
             if kuerzel != reiter:
                 continue
@@ -142,28 +148,28 @@ class WorkflowsView(ZugriffMixin, View):
             if kuerzel != reiter:
                 continue
             for weg in wege:
-                aus.append({
-                    'titel': weg.einstieg.titel,
-                    'art': weg.einstieg.art,
-                    'klassen': len(weg.klassen),
-                    'schritte': len(weg.schritte),
-                    'offen': len(set(weg.offen)),
-                    'aktiv': gewaehlt is not None
-                    and weg.einstieg.titel == gewaehlt.einstieg.titel,
-                })
+                aus.append(
+                    {
+                        "titel": weg.einstieg.titel,
+                        "art": weg.einstieg.art,
+                        "klassen": len(weg.klassen),
+                        "schritte": len(weg.schritte),
+                        "offen": len(set(weg.offen)),
+                        "aktiv": gewaehlt is not None and weg.einstieg.titel == gewaehlt.einstieg.titel,
+                    }
+                )
         return aus
 
 
 class WorkflowsDatenView(ZugriffMixin, View):
-    u"""Dieselbe Ermittlung als JSON — fuer die Pruefung im Werkzeugkasten.
+    """Dieselbe Ermittlung als JSON — fuer die Pruefung im Werkzeugkasten.
 
     Damit misst der Test dasselbe, was die Seite zeigt. Zwei Wege zur
     selben Zahl laufen auseinander; das ist die Lehre aus der Live-Kachel.
     """
 
     def get(self, request):
-        liste, _alter = Workflowspeicher.holen(self._wurzel(),
-                                               neu=bool(request.GET.get('neu')))
+        liste, _alter = Workflowspeicher.holen(self._wurzel(), neu=bool(request.GET.get("neu")))
         return JsonResponse(liste.als_dict())
 
     @staticmethod

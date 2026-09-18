@@ -1,4 +1,5 @@
 """Unit-Tests: Traffic-Helfer (Gerät, Bot, anonymer Hash, Verbrauch)."""
+
 from django.test import RequestFactory
 
 from djangobase import traffic
@@ -11,8 +12,11 @@ IPHONE = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Mobile/15E148 S
 IPAD = "Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) Safari"
 
 # Header, die ein echtes Chromium auf HTTPS mitschickt.
-SEC_FETCH = {"HTTP_SEC_FETCH_SITE": "none", "HTTP_SEC_FETCH_MODE": "navigate",
-             "HTTP_SEC_FETCH_DEST": "document"}
+SEC_FETCH = {
+    "HTTP_SEC_FETCH_SITE": "none",
+    "HTTP_SEC_FETCH_MODE": "navigate",
+    "HTTP_SEC_FETCH_DEST": "document",
+}
 
 
 class TrafficUnitTest(BasisTest):
@@ -52,7 +56,7 @@ class TrafficUnitTest(BasisTest):
     def test_chromium_ohne_sec_fetch_ueber_http_ist_kein_bot(self):
         # Über reines HTTP senden Browser keine Fetch-Metadata -> Heuristik
         # darf NICHT greifen (sonst False Positives in der lokalen Entwicklung).
-        req = self.rf.get("/touren/")   # secure=False
+        req = self.rf.get("/touren/")  # secure=False
         self.assertFalse(traffic.ist_bot(req, DESKTOP, "/touren/"))
 
     def test_safari_ohne_sec_fetch_ist_kein_bot(self):
@@ -69,16 +73,15 @@ class TrafficUnitTest(BasisTest):
         h2 = traffic.besucher_hash("1.2.3.4", "UA")
         self.assertEqual(h1, h2)
         self.assertEqual(len(h1), 16)
-        self.assertNotIn("1.2.3.4", h1)   # IP darf nicht im Hash auftauchen
+        self.assertNotIn("1.2.3.4", h1)  # IP darf nicht im Hash auftauchen
 
     def test_besucher_hash_unterscheidet_nutzer(self):
-        self.assertNotEqual(traffic.besucher_hash("1.2.3.4", "UA"),
-                            traffic.besucher_hash("9.9.9.9", "UA"))
+        self.assertNotEqual(traffic.besucher_hash("1.2.3.4", "UA"), traffic.besucher_hash("9.9.9.9", "UA"))
 
     def test_verbrauch_buchen_nur_gueltige_typen(self):
         traffic.verbrauch_buchen("tile", anzahl=5, bytes=1000)
         traffic.verbrauch_buchen("route", anzahl=1, bytes=500, detail="auto")
-        traffic.verbrauch_buchen("quatsch", anzahl=99)   # wird ignoriert
+        traffic.verbrauch_buchen("quatsch", anzahl=99)  # wird ignoriert
         self.assertEqual(Verbrauch.objects.filter(typ="tile").count(), 1)
         self.assertEqual(Verbrauch.objects.filter(typ="route").count(), 1)
         self.assertFalse(Verbrauch.objects.filter(typ="quatsch").exists())

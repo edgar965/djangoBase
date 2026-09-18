@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""``{% fassungspfad %}`` — die Adresse einer statischen Datei MIT Fassung.
+"""``{% fassungspfad %}`` — die Adresse einer statischen Datei MIT Fassung.
 
 Ersetzt in Vorlagen das Muster ``{% static "x/y.js" %}?t={% now "U" %}``.
 Der Unterschied ist nicht kosmetisch (siehe `fassungsstatik.py`):
@@ -11,6 +11,7 @@ Der Unterschied ist nicht kosmetisch (siehe `fassungsstatik.py`):
   sie damit, und die Adresse aendert sich nur, wenn sich wirklich etwas
   geaendert hat.
 """
+
 from django import template
 
 from ..fassungsstatik import Fassungsstatik
@@ -20,5 +21,5 @@ register = template.Library()
 
 @register.simple_tag
 def fassungspfad(relativ):
-    u"""``{% fassungspfad "viewer/viewer/index.js" %}``."""
+    """``{% fassungspfad "viewer/viewer/index.js" %}``."""
     return Fassungsstatik.pfad(relativ)
