@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Erben die Vorlagen den Rahmen — und halten sie seine Konventionen ein?
+"""Erben die Vorlagen den Rahmen — und halten sie seine Konventionen ein?
 
 DER AUFTRAG (Edgar, 21.08.2026): „mach alle"
 ============================================
@@ -30,13 +30,15 @@ Ein ``<pre>`` ohne gesetzte ``color`` erbt die Schriftfarbe des Browsers, nicht
 die des Themes — auf dunklem Grund steht es dann dunkel auf dunkel. Beim Einbau
 neuer Befund-Abschnitte ist das in diesem Projekt zweimal passiert.
 """
+
 import re
 from pathlib import Path
 
-from django.conf import settings
 from django.test import SimpleTestCase
 
 from djangobase.tests.konform.quellen import TABU, dateien, text_von, wurzel  # noqa: F401
+
+from .basis import KonformTest
 
 #: DATEINAMEN, die legitim ein eigenes ``<html>`` haben: E-Mails, PDF-Vorlagen,
 #: Fehlerseiten (die Sidebar braucht einen Kontext, den es dort nicht gibt).
@@ -44,9 +46,20 @@ from djangobase.tests.konform.quellen import TABU, dateien, text_von, wurzel  # 
 #: ``login``/``logout`` kam am 21.08.2026 dazu: Die Anmeldeseite läuft VOR der
 #: Anmeldung. Eine Seitenleiste mit Menü, Konto und Versionsnummer hätte dort
 #: nichts anzuzeigen — genau wie auf einer Fehlerseite.
-EIGEN_ERLAUBT = ("mail", "email", "pdf", "druck", "print", "400.html",
-                 "403.html", "404.html", "500.html", "base",
-                 "login", "logout")
+EIGEN_ERLAUBT = (
+    "mail",
+    "email",
+    "pdf",
+    "druck",
+    "print",
+    "400.html",
+    "403.html",
+    "404.html",
+    "500.html",
+    "base",
+    "login",
+    "logout",
+)
 
 #: ORDNER, in denen dasselbe gilt. Getrennt von den Dateinamen, weil ein
 #: Teilstring wie „mail“ sonst im PFAD jedes Projekts mit einer Mail-App steht
@@ -67,7 +80,9 @@ _HTML_TAG = re.compile(r"<html\b", re.IGNORECASE)
 _STILBLOCK = re.compile(r"<style\b[^>]*>(.*?)</style>", re.IGNORECASE | re.DOTALL)
 _PRE_STIL = re.compile(
     r"(?:\A|[};\n])[ \t]*([^{}\n;]*(?<![\w-])(?:pre|code)(?![\w-])[^{}\n;]*)"
-    r"\{([^}]*)\}", re.IGNORECASE)
+    r"\{([^}]*)\}",
+    re.IGNORECASE,
+)
 
 
 def _vorlagen():
@@ -75,7 +90,7 @@ def _vorlagen():
 
 
 def _stil_regeln(text):
-    u"""[(selektor, block)] aller ``pre``/``code``-Regeln in ``<style>``."""
+    """[(selektor, block)] aller ``pre``/``code``-Regeln in ``<style>``."""
     aus = []
     for stil in _STILBLOCK.findall(text):
         for treffer in _PRE_STIL.finditer(stil):
@@ -84,12 +99,12 @@ def _stil_regeln(text):
 
 
 def _teilvorlage(pfad):
-    u"""Beginnt der Dateiname mit ``_``? Dann ist es ein Include, kein Seiten-Template."""
+    """Beginnt der Dateiname mit ``_``? Dann ist es ein Include, kein Seiten-Template."""
     return pfad.name.startswith("_")
 
 
-class ErbenTest(SimpleTestCase):
-    u"""Jede Seiten-Vorlage endet im djangoBase-Rahmen."""
+class ErbenTest(KonformTest):
+    """Jede Seiten-Vorlage endet im djangoBase-Rahmen."""
 
     def test_keine_seite_mit_eigenem_html(self):
         eigene = []
@@ -108,15 +123,16 @@ class ErbenTest(SimpleTestCase):
                 eigene.append(pfad)
         if eigene:
             self.fail(
-                u"%d Seiten-Vorlagen bringen ein eigenes <html> mit und erben "
-                u"nichts:\n%s\n\nSie zeigen weder Seitenleiste noch Menü noch "
-                u"Versionsnummer — man kommt von dort nirgends mehr hin. "
-                u"Erwartet: {%% extends \"djangobase/base.html\" %%} (oder die "
-                u"Projekt-Basis, die davon erbt)."
-                % (len(eigene), "\n".join("    " + p.name for p in eigene[:10])))
+                "%d Seiten-Vorlagen bringen ein eigenes <html> mit und erben "
+                "nichts:\n%s\n\nSie zeigen weder Seitenleiste noch Menü noch "
+                "Versionsnummer — man kommt von dort nirgends mehr hin. "
+                'Erwartet: {%% extends "djangobase/base.html" %%} (oder die '
+                "Projekt-Basis, die davon erbt)."
+                % (len(eigene), "\n".join("    " + p.name for p in eigene[:10]))
+            )
 
     def test_erb_ketten_enden_bei_djangobase(self):
-        u"""Eine Kette, die im Nichts endet, wirft erst beim Aufruf der Seite —
+        """Eine Kette, die im Nichts endet, wirft erst beim Aufruf der Seite —
         also womöglich erst beim Nutzer."""
         namen = {}
         for pfad in _vorlagen():
@@ -132,17 +148,18 @@ class ErbenTest(SimpleTestCase):
                 continue
             ziel = m.group(1)
             if ziel.startswith("djangobase/") or "{{" in ziel or "{%" in ziel:
-                continue                       # djangoBase oder dynamisch
+                continue  # djangoBase oder dynamisch
             if Path(ziel).name not in namen:
                 offen.append((pfad.name, ziel))
-        self.assertFalse(offen,
-                         u"Diese Vorlagen erben von etwas, das im Projekt nicht "
-                         u"zu finden ist: %s"
-                         % "; ".join("%s → %s" % (a, b) for a, b in offen[:8]))
+        self.assertFalse(
+            offen,
+            "Diese Vorlagen erben von etwas, das im Projekt nicht "
+            "zu finden ist: %s" % "; ".join("%s → %s" % (a, b) for a, b in offen[:8]),
+        )
 
 
-class IconsTest(SimpleTestCase):
-    u"""Die benutzte Icon-Familie muss auch geladen sein."""
+class IconsTest(KonformTest):
+    """Die benutzte Icon-Familie muss auch geladen sein."""
 
     def _benutzt(self, praefix):
         muster = re.compile(r'class\s*=\s*["\'][^"\']*\b%s[a-z0-9-]+' % praefix)
@@ -156,7 +173,7 @@ class IconsTest(SimpleTestCase):
         return None
 
     def _eingebunden(self, brocken):
-        for muster in ("*.html",):
+        for _muster in ("*.html",):
             for pfad in _vorlagen():
                 try:
                     text = pfad.read_text(encoding="utf-8", errors="replace")
@@ -165,7 +182,7 @@ class IconsTest(SimpleTestCase):
                 if brocken in text:
                     return True
         # Auch der djangoBase-Rahmen zählt - er bringt Bootstrap Icons mit.
-        rahmen = (Path(__file__).resolve().parents[2] / "templates" / "djangobase")
+        rahmen = Path(__file__).resolve().parents[2] / "templates" / "djangobase"
         for pfad in rahmen.rglob("*.html"):
             if brocken in pfad.read_text(encoding="utf-8", errors="replace"):
                 return True
@@ -175,13 +192,15 @@ class IconsTest(SimpleTestCase):
         wo = self._benutzt("bi-")
         if wo is None:
             self.skipTest("keine bi-*-Icons im Projekt")
-        self.assertTrue(self._eingebunden("bootstrap-icons"),
-                        u"%s nutzt bi-*-Icons, aber die Bootstrap-Icon-Schrift "
-                        u"ist nirgends eingebunden — dort stehen leere "
-                        u"Kästchen." % wo.name)
+        self.assertTrue(
+            self._eingebunden("bootstrap-icons"),
+            "%s nutzt bi-*-Icons, aber die Bootstrap-Icon-Schrift "
+            "ist nirgends eingebunden — dort stehen leere "
+            "Kästchen." % wo.name,
+        )
 
     def test_fontawesome_geladen_wenn_benutzt(self):
-        u"""Kein Skip: „nicht benutzt" ist ein ERGEBNIS, kein Ausfall.
+        """Kein Skip: „nicht benutzt" ist ein ERGEBNIS, kein Ausfall.
 
         Hier stand ``skipTest("keine fa-*-Icons im Projekt")``. Ein
         übersprungener Test meldet grün, ohne etwas geprüft zu haben —
@@ -192,18 +211,17 @@ class IconsTest(SimpleTestCase):
         """
         wo = self._benutzt("fa-")
         self.assertTrue(
-            wo is None
-            or self._eingebunden("fontawesome")
-            or self._eingebunden("font-awesome"),
-            u"%s nutzt fa-*-Icons, aber FontAwesome ist nirgends eingebunden — "
-            u"dort stehen leere Kästchen." % (wo.name if wo else "?"))
+            wo is None or self._eingebunden("fontawesome") or self._eingebunden("font-awesome"),
+            "%s nutzt fa-*-Icons, aber FontAwesome ist nirgends eingebunden — "
+            "dort stehen leere Kästchen." % (wo.name if wo else "?"),
+        )
 
 
-class KontrastTest(SimpleTestCase):
-    u"""Kein Codeblock ohne gesetzte Schriftfarbe."""
+class KontrastTest(KonformTest):
+    """Kein Codeblock ohne gesetzte Schriftfarbe."""
 
     def test_pre_und_code_setzen_ihre_farbe(self):
-        u"""Ein ``<pre>``-Stil, der Hintergrund und Rahmen setzt, aber keine
+        """Ein ``<pre>``-Stil, der Hintergrund und Rahmen setzt, aber keine
         ``color``, steht auf dunklem Grund dunkel auf dunkel."""
         ohne = []
         for pfad in _vorlagen():
@@ -217,18 +235,18 @@ class KontrastTest(SimpleTestCase):
                     continue
                 if "color:" in block.lower().replace("background-color:", ""):
                     continue
-                ohne.append((pfad.name, "%s { %s"
-                             % (selektor, " ".join(block.split())[:50])))
+                ohne.append((pfad.name, "%s { %s" % (selektor, " ".join(block.split())[:50])))
         if ohne:
             self.fail(
-                u"%d Codeblock-Stile setzen einen Hintergrund, aber keine "
-                u"Schriftfarbe:\n%s\n\nAuf dunklem Grund steht der Inhalt dann "
-                u"dunkel auf dunkel. Immer beides setzen."
-                % (len(ohne), "\n".join("    %s: %s" % (a, b) for a, b in ohne[:10])))
+                "%d Codeblock-Stile setzen einen Hintergrund, aber keine "
+                "Schriftfarbe:\n%s\n\nAuf dunklem Grund steht der Inhalt dann "
+                "dunkel auf dunkel. Immer beides setzen."
+                % (len(ohne), "\n".join("    %s: %s" % (a, b) for a, b in ohne[:10]))
+            )
 
 
 class GegenprobeTest(SimpleTestCase):
-    u"""Greifen die Muster?"""
+    """Greifen die Muster?"""
 
     def test_extends_wird_erkannt(self):
         self.assertTrue(_EXTENDS.search('{% extends "djangobase/base.html" %}'))
@@ -252,22 +270,23 @@ class GegenprobeTest(SimpleTestCase):
         self.assertIn("color:", regeln[0][1].replace("background-color:", ""))
 
     def test_prosa_wird_nicht_als_stil_gelesen(self):
-        u"""Der Fehlalarm vom 21.08.2026: ein Kommentar mit dem Wort „Code“,
+        """Der Fehlalarm vom 21.08.2026: ein Kommentar mit dem Wort „Code“,
         gefolgt von einem beliebigen Block. Ohne diese Gegenprobe schleicht er
         sich beim nächsten Umbau des Musters wieder ein."""
-        quelle = ('<script>\n'
-                  '/* Code wie in chat.html, hier dupliziert weil beide\n'
-                  ' * Templates sich kein Skript teilen. */\n'
-                  'function zeigen(daten) { var banner = "background"; }\n'
-                  '</script>')
+        quelle = (
+            "<script>\n"
+            "/* Code wie in chat.html, hier dupliziert weil beide\n"
+            " * Templates sich kein Skript teilen. */\n"
+            'function zeigen(daten) { var banner = "background"; }\n'
+            "</script>"
+        )
         self.assertEqual(_stil_regeln(quelle), [])
 
     def test_regel_ausserhalb_von_style_zaehlt_nicht(self):
-        u"""Ein ``pre { … }`` im Fließtext einer Hilfeseite ist Doku, kein Stil."""
+        """Ein ``pre { … }`` im Fließtext einer Hilfeseite ist Doku, kein Stil."""
         self.assertEqual(_stil_regeln("<p>Beispiel: pre { background: #111; }</p>"), [])
 
     def test_mehrzeiliger_stil_wird_gefunden(self):
-        u"""Die übliche Schreibweise — sonst prüfte das Muster nur Einzeiler."""
-        quelle = ("<style>\n  pre {\n    background: #0d1626;\n"
-                  "    border: 1px solid #333;\n  }\n</style>")
+        """Die übliche Schreibweise — sonst prüfte das Muster nur Einzeiler."""
+        quelle = "<style>\n  pre {\n    background: #0d1626;\n    border: 1px solid #333;\n  }\n</style>"
         self.assertEqual(len(_stil_regeln(quelle)), 1)

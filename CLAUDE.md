@@ -239,6 +239,12 @@ djangobase.tests.konform`) und fragen: erbt dieses Projekt djangoBase wirklich?
 Alle ohne Datenbank (`SimpleTestCase`, `databases = []`) — geprüft werden
 Einstellungen, Vorlagen und Quelltext, nicht Daten.
 
+**Ein Wirt, der kein Konsument ist, sagt das** (18.09.2026): `DJANGOBASE_KONFORM =
+False` in seinen Settings — dann überspringen die Klassen auf `konform/basis.py
+KonformTest` mit Grund, statt 19 rote Fälle über ein Projekt ohne Vorlagen, Menü
+und LOGGING zu melden. So steht es im Prüf-Wirt `A:\tmp_dbhost`. Die
+`GegenprobeTest`-Klassen (trifft das Muster das Gemeinte?) laufen überall.
+
 **Was sie durchsuchen dürfen, entscheidet `tests/konform/quellen.py`** — eine
 Stelle für alle Prüfer. Draußen bleiben: `TABU`-Ordner (Umgebungen, Caches),
 das djangoBase-Paket selbst, `MEDIA_ROOT` und alles aus dem neuen Schlüssel
@@ -360,6 +366,45 @@ Warum ein Läufer und keine Basisklasse: Eine Basisklasse erreicht nur, wer von
 ihr erbt. Genau der Prüffall mit `unittest.TestCase` ist der, der nach draußen
 telefoniert. `setup_test_environment` läuft einmal je Prozess, für alle.
 
+### ruff als Werkzeug (18.09.2026)
+
+Vierte Bauform aus gunSlinger: `skills/ruffbefunde.py` (Hilfe → Skills → „ruff",
+direkt hinter `code-qualitaet`) fährt `ruff check` und `ruff format --check`
+über dieselbe Dateimenge wie jedes andere Werkzeug (Ausschlussliste,
+`.gitignore`, in Stapeln, weil Windows die Befehlszeile bei 32 k kappt) und
+ordnet die Antworten ein: undefinierte/doppelte Namen und Syntaxfehler
+`fehler`, B/UP/F-Rest `warnung`, E/W/I und „ungeformt" `hinweis`. F401 und
+F541 werden nur gezählt — die führen `tote-importe` und `fix-fzeichenkette`.
+
+**Regeln:** eigene Konfiguration des Projekts (`ruff.toml`, `.ruff.toml`,
+`[tool.ruff]` in `pyproject.toml`) schlägt die Vorgabe **`djangobase/ruff_vorgabe.toml`**
+(110 Zeichen, E/W/F/I/B/UP, Migrationen/`__init__`/Settings ausgenommen). Die
+Vorgabe hat bewusst KEIN `target-version`: mit festem `py310` meldete ruff im
+assistant (Python 3.14) 58 „Syntaxfehler" — f-String-Umbrüche seit 3.12. Das
+Werkzeug übergibt die Version des laufenden Interpreters. UP009/UP025/UP031
+(`coding`-Kopf, `u""`, `%`-Formatierung) sind aus: 86–96 % aller Meldungen in
+assistant/HumanBodyWeb/djangoBase, eine Hausschrift, die keiner beanstandet hat.
+
+Was sonst noch dazugehört: `ruff` steht im Extra `codequalitaet` und muss in der
+Umgebung des **Projekts** liegen (`sys.executable -m ruff`); fehlt es, ist das
+Ergebnis ein `FEHLER` mit Installationshinweis, kein leeres Grün — und der
+Anlassfall-Check übernimmt seit heute den Hinweis „FEHLER: …" eines
+Befund-Werkzeugs als Grund statt „blind: 0 statt 2" zu melden.
+Prüfungen: `tests/unit/test_skills_ruff.py` (drei Zustände wie bei
+`code-qualitaet`; Ausgabeform von `format --check` bis 0.15 und ab 0.16).
+
+**djangoBase selbst ist seit dem 18.09.2026 ruff-sauber** (`ruff check .` und
+`ruff format --check .` über 444 Dateien, Konfiguration `[tool.ruff]` in
+`pyproject.toml` → `extend = "djangobase/ruff_vorgabe.toml"`). Beides gehört vor
+jeden Commit; ruff liegt im gunSlinger-venv oder nach `pip install ruff` im
+Prüf-Wirt. Die Vorgabe heißt bewusst NICHT `ruff.toml`: Eine Datei dieses
+Namens im Paketordner hätte ruff als nächstgelegene Konfiguration für das
+Paket genommen und die `pyproject.toml` darüber ignoriert (so geschehen — die
+Ausnahme für `ki/messungen.py` griff nicht). Ergänzungen dort über
+`[tool.ruff.lint.extend-per-file-ignores]`, sonst ersetzen sie die Ausnahmen
+der Vorgabe. Was der Umbau nebenbei fand: 18 tote Importe, 35 Variablen namens
+`l`, ein `raise` ohne `from`, ein `yield`-Schleifchen — alles behoben.
+
 ### Neue DJANGOBASE-Schlüssel
 
 `skills2_register` (Vorgabe `["fn"]`), `skills2_abrufklassen`
@@ -373,17 +418,27 @@ betreffen): `DJANGOBASE_KONFORM_AUS` (Datenordner, die keine Prüfung ansieht),
 `DJANGOBASE_KONFORM_TABELLEN_AUS` (einzelne Dateien, die bewusst kein
 Tabellen-Raster bekommen — Druckansichten, feste Gliederungen, Tabellen mit
 eigener serverseitiger Sortierung), `DJANGOBASE_NETZ_ERLAUBT` (Rechner, die
-der Prüflauf anfahren darf) und `DJANGOBASE_NETZSPERRE` (`False` = Sperre für
-diesen Lauf aus).
+der Prüflauf anfahren darf), `DJANGOBASE_NETZSPERRE` (`False` = Sperre für
+diesen Lauf aus) und `DJANGOBASE_KONFORM` (`False` = dieser Wirt ist kein
+Konsument, Konformitätsprüfungen überspringen).
 
 ## Vor Änderungen (Breaking-Check)
 - Shell-Templates (`base.html`, `base_app.html`, `_shell.html`, `_sidebar.html`,
   `_nav.html`, `sidebar.css`) treffen ALLE Konsumenten — nur additiv/opt-in ändern.
   Am assistant nie etwas kaputt machen.
 - Tests laufen im Host-Kontext (kein Standalone-Runner): Wegwerf-Host `A:\tmp_dbhost`
-  (py3.10-venv, `python -m django test djangobase`). Teststruktur:
-  `djangobase/tests/{unit,component,integration}`, Basisklasse `BasisTest`
-  (+ `StoreIsolationMixin` lenkt den Store auf eine Temp-Datei).
+  (py3.10-venv `venv310`, `DJANGO_SETTINGS_MODULE=settings python -m django test
+  djangobase`, ~90 s). Teststruktur: `djangobase/tests/{unit,component,integration,
+  konform}`, Basisklasse `BasisTest` (+ `StoreIsolationMixin` lenkt den Store auf
+  eine Temp-Datei). Stand 18.09.2026: 1757 Tests grün, 25 übersprungen (24
+  Konform-Klassen, weil der Wirt kein Konsument ist, und `tomllib` auf 3.10).
+  Der Wirt braucht die Extras `codequalitaet` (radon, pyflakes, pycodestyle, ruff),
+  sonst werden deren Prüfungen übersprungen; seine `urls_host.py` hängt
+  `djangobase.fassungsstatik` ein, sonst meldet `cachekonzept` den Wirt im Leeren.
+  Prüfungen dürfen nichts vom Wirt erwarten (Dateien, LOGGING): `test_fassungsstatik`
+  bringt seinen Statik-Baum seit heute selbst mit (`Wegwerfordner.neu` +
+  `Fassungsstatik.vergessen()`), `test_protokoll_ergebnis` filtert die
+  Einstellungs-Befunde über `Anlassfall.dateibezogen`.
 - Schneller Konsumenten-Realitäts-Check:
   `cd A:\assistant && pythonVENV\Scripts\python.exe manage.py check`
 - Nach djangoBase-Update beim Konsumenten ggf. `pip install -e A:/shared/djangoBase

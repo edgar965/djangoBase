@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Eine Beschriftung in einer Annotation ist kein fehlender Name.
+"""Eine Beschriftung in einer Annotation ist kein fehlender Name.
 
 DER ANLASS (HumanBodyBlender, 01.09.2026)
 =========================================
@@ -31,21 +31,33 @@ BDD - GEGEBEN / DANN
     EineEchteVorwaertsreferenz  ... bleibt gemeldet
     EinEchterFehlerDaneben      ... bleibt gemeldet
 """
+
 import ast
+import importlib.util
 import unittest
 
 from djangobase.umbau.codequalitaet import _annotationsketten
 
 
 class AnnotationsBasis(unittest.TestCase):
-    u"""Faehrt pyflakes und trennt nach dem Filter."""
+    """Faehrt pyflakes und trennt nach dem Filter."""
 
     databases = []
     QUELLE = ""
 
+    @classmethod
+    def setUpClass(cls):
+        # Drei Zustaende (siehe test_skills_codequalitaet): Ohne pyflakes
+        # meldeten diese fuenf Faelle `ModuleNotFoundError` — rot, als waere
+        # der Filter kaputt, obwohl nur das Extra fehlte (18.09.2026).
+        if importlib.util.find_spec("pyflakes") is None:
+            raise unittest.SkipTest("pyflakes ist nicht installiert — siehe Extra „codequalitaet“")
+        super().setUpClass()
+
     def urteile(self):
-        u"""(gemeldet, verworfen) — die Namen aus den pyflakes-Meldungen."""
+        """(gemeldet, verworfen) — die Namen aus den pyflakes-Meldungen."""
         from pyflakes.checker import Checker
+
         baum = ast.parse(self.QUELLE)
         ketten = _annotationsketten(baum)
         gemeldet, verworfen = [], []
@@ -62,13 +74,18 @@ class AnnotationsBasis(unittest.TestCase):
 
 
 class EineBlenderEigenschaft(AnnotationsBasis):
-    u"""Eigenschaften mit Beschriftung, ein- und mehrwortig."""
+    """Eigenschaften mit Beschriftung, ein- und mehrwortig."""
 
     QUELLE = (
-        "class Props:" + chr(10) +
-        '    region: EnumProperty(name="Region", default="TORSO")' + chr(10) +
-        '    alpha: BoolProperty(name="Alpha Channel")' + chr(10) +
-        '    art: EnumProperty(items=[("A", "Ah", "das erste")])' + chr(10))
+        "class Props:"
+        + chr(10)
+        + '    region: EnumProperty(name="Region", default="TORSO")'
+        + chr(10)
+        + '    alpha: BoolProperty(name="Alpha Channel")'
+        + chr(10)
+        + '    art: EnumProperty(items=[("A", "Ah", "das erste")])'
+        + chr(10)
+    )
 
     def test_beschriftungen_gelten_nicht_als_namen(self):
         _gemeldet, verworfen = self.urteile()
@@ -76,19 +93,24 @@ class EineBlenderEigenschaft(AnnotationsBasis):
             self.assertIn(wort, verworfen)
 
     def test_der_aufruf_selbst_bleibt_ein_befund(self):
-        u"""EnumProperty ist wirklich nicht eingefuehrt — das ist echt."""
+        """EnumProperty ist wirklich nicht eingefuehrt — das ist echt."""
         gemeldet, _verworfen = self.urteile()
         self.assertIn("EnumProperty", gemeldet)
 
 
 class EineEchteVorwaertsreferenz(AnnotationsBasis):
-    u"""Die Annotation IST eine Zeichenkette — hier zaehlt der Name."""
+    """Die Annotation IST eine Zeichenkette — hier zaehlt der Name."""
 
     QUELLE = (
-        "from typing import Optional" + chr(10) +
-        "class Props:" + chr(10) +
-        '    a: "GibtEsNicht"' + chr(10) +
-        '    b: Optional["AuchNicht"]' + chr(10))
+        "from typing import Optional"
+        + chr(10)
+        + "class Props:"
+        + chr(10)
+        + '    a: "GibtEsNicht"'
+        + chr(10)
+        + '    b: Optional["AuchNicht"]'
+        + chr(10)
+    )
 
     def test_bleibt_gemeldet(self):
         gemeldet, verworfen = self.urteile()
@@ -98,14 +120,20 @@ class EineEchteVorwaertsreferenz(AnnotationsBasis):
 
 
 class EinEchterFehlerDaneben(AnnotationsBasis):
-    u"""Der Filter darf nur die Beschriftung nehmen, nichts sonst."""
+    """Der Filter darf nur die Beschriftung nehmen, nichts sonst."""
 
     QUELLE = (
-        "class Props:" + chr(10) +
-        '    region: EnumProperty(name="Region")' + chr(10) +
-        "" + chr(10) +
-        "    def f(self):" + chr(10) +
-        "        return fehlt_wirklich" + chr(10))
+        "class Props:"
+        + chr(10)
+        + '    region: EnumProperty(name="Region")'
+        + chr(10)
+        + ""
+        + chr(10)
+        + "    def f(self):"
+        + chr(10)
+        + "        return fehlt_wirklich"
+        + chr(10)
+    )
 
     def test_der_echte_fehler_ueberlebt(self):
         gemeldet, verworfen = self.urteile()
@@ -114,18 +142,24 @@ class EinEchterFehlerDaneben(AnnotationsBasis):
 
 
 class EineSabotage(AnnotationsBasis):
-    u"""Sabotage: Steht die Beschriftung in einer ANDEREN Zeile,
+    """Sabotage: Steht die Beschriftung in einer ANDEREN Zeile,
 
     darf der Filter sie nicht greifen. So faellt auf, wenn jemand die
     Zeilenpruefung herausnimmt und der Filter zu grob wird.
     """
 
     QUELLE = (
-        "class Props:" + chr(10) +
-        '    region: EnumProperty(name="Region")' + chr(10) +
-        "" + chr(10) +
-        "    def f(self):" + chr(10) +
-        "        return Region" + chr(10))
+        "class Props:"
+        + chr(10)
+        + '    region: EnumProperty(name="Region")'
+        + chr(10)
+        + ""
+        + chr(10)
+        + "    def f(self):"
+        + chr(10)
+        + "        return Region"
+        + chr(10)
+    )
 
     def test_dieselbe_zeichenkette_in_anderer_zeile_bleibt(self):
         gemeldet, _verworfen = self.urteile()

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Bauen auch die JavaScript-Module djangoBase-Tabellen?
+"""Bauen auch die JavaScript-Module djangoBase-Tabellen?
 
 DER AUFTRAG (Edgar, 21.08.2026)
 ==============================
@@ -34,6 +34,7 @@ NICHT gemeldet wird:
       Kopfzeile ist es kein Datenraster
     * Doku-Klassen aus ``DOKU_KLASSEN``
 """
+
 import re
 from pathlib import Path
 
@@ -42,12 +43,19 @@ from django.test import SimpleTestCase
 
 from djangobase.tests.konform.quellen import TABU, dateien, text_von  # noqa: F401
 
+from .basis import KonformTest
+
 PAKET = Path(__file__).resolve().parents[2]
 JS_DJANGOBASE = PAKET / "static" / "djangobase" / "js"
 
 #: Werkzeuge, die naturgemäß Tabellen-Markup enthalten.
-WERKZEUG = ("tabelle_bauen.js", "tabellen_auto.js", "tabellen_sortierung.js",
-            "tabellen_breiten.js", "aufzeichner_liste.js")
+WERKZEUG = (
+    "tabelle_bauen.js",
+    "tabellen_auto.js",
+    "tabellen_sortierung.js",
+    "tabellen_breiten.js",
+    "aufzeichner_liste.js",
+)
 
 DOKU_KLASSEN = ("plain", "doku", "legende", "info")
 
@@ -64,12 +72,12 @@ _KOMMENTAR = re.compile(r"/\*.*?\*/|(?<![:\w])//[^\n]*", re.DOTALL)
 
 
 def ohne_kommentare(text):
-    u"""Kommentare durch Leerzeilen ersetzen (Zeilennummern bleiben erhalten)."""
+    """Kommentare durch Leerzeilen ersetzen (Zeilennummern bleiben erhalten)."""
     return _KOMMENTAR.sub(lambda m: "\n" * m.group(0).count("\n"), text)
 
 
 def _module():
-    u"""JS-Dateien des Projekts, ohne djangoBase und ohne Spiegelungen."""
+    """JS-Dateien des Projekts, ohne djangoBase und ohne Spiegelungen."""
     for pfad in dateien(".js"):
         if JS_DJANGOBASE in pfad.parents or pfad.name in WERKZEUG:
             continue
@@ -88,7 +96,7 @@ def _ausgenommen(pfad):
 
 
 def bauende_module():
-    u"""[(pfad, attribute)] jeder selbstgebauten Datentabelle."""
+    """[(pfad, attribute)] jeder selbstgebauten Datentabelle."""
     aus = []
     for pfad in _module():
         if _ausgenommen(pfad):
@@ -117,36 +125,42 @@ def bauende_module():
 
 
 class WerkzeugTest(SimpleTestCase):
-    u"""Gibt es den Bauer, und kann er, was die Vorlage kann?"""
+    """Gibt es den Bauer, und kann er, was die Vorlage kann?"""
 
     databases = []
 
     def test_bauer_existiert(self):
-        self.assertTrue((JS_DJANGOBASE / "tabelle_bauen.js").exists(),
-                        u"tabelle_bauen.js fehlt — dann haben die JS-Module "
-                        u"nichts, worauf sie umsteigen könnten.")
+        self.assertTrue(
+            (JS_DJANGOBASE / "tabelle_bauen.js").exists(),
+            "tabelle_bauen.js fehlt — dann haben die JS-Module nichts, worauf sie umsteigen könnten.",
+        )
 
     def test_bauer_erzeugt_dieselben_marken_wie_die_vorlage(self):
-        u"""Sonst sähe eine gebaute Tabelle anders aus als eine gerenderte, und
+        """Sonst sähe eine gebaute Tabelle anders aus als eine gerenderte, und
         Stile wie Module griffen nur bei einer von beiden."""
         text = (JS_DJANGOBASE / "tabelle_bauen.js").read_text(encoding="utf-8")
-        for marke in ("db-tabelle", "sortable", "data-sort-key",
-                      "db-tabelle-rahmen", "data-sort", "data-key"):
-            self.assertIn(marke, text,
-                          u"tabelle_bauen.js schreibt %r nicht — die Vorlage "
-                          u"_tabelle.html tut es." % marke)
+        for marke in (
+            "db-tabelle",
+            "sortable",
+            "data-sort-key",
+            "db-tabelle-rahmen",
+            "data-sort",
+            "data-key",
+        ):
+            self.assertIn(
+                marke, text, "tabelle_bauen.js schreibt %r nicht — die Vorlage _tabelle.html tut es." % marke
+            )
 
     def test_bauer_verlangt_einen_schluessel(self):
-        u"""Ein stiller Rückfall wäre die schlimmere Lösung: Die Tabelle merkte
+        """Ein stiller Rückfall wäre die schlimmere Lösung: Die Tabelle merkte
         sich nichts, und es fiele erst auf, wenn jemand vergeblich eine Spalte
         zieht."""
         text = (JS_DJANGOBASE / "tabelle_bauen.js").read_text(encoding="utf-8")
-        self.assertIn("throw new Error", text,
-                      u"dbTabelle muss ohne „key“ werfen.")
+        self.assertIn("throw new Error", text, "dbTabelle muss ohne „key“ werfen.")
 
 
-class ModuleNutzenDenBauerTest(SimpleTestCase):
-    u"""Die Module des Projekts."""
+class ModuleNutzenDenBauerTest(KonformTest):
+    """Die Module des Projekts."""
 
     databases = []
 
@@ -156,79 +170,95 @@ class ModuleNutzenDenBauerTest(SimpleTestCase):
         cls.gebaut = bauende_module()
 
     def _melden(self, treffer, was, rat):
-        zeilen = "\n".join("    %s: <table %s>" % (p.name, a[:64].strip())
-                           for p, a in treffer[:10])
-        return u"%d von %d selbstgebauten Tabellen %s:\n%s%s\n\n%s" % (
-            len(treffer), len(self.gebaut), was, zeilen,
-            "\n    …" if len(treffer) > 10 else "", rat)
+        zeilen = "\n".join("    %s: <table %s>" % (p.name, a[:64].strip()) for p, a in treffer[:10])
+        return "%d von %d selbstgebauten Tabellen %s:\n%s%s\n\n%s" % (
+            len(treffer),
+            len(self.gebaut),
+            was,
+            zeilen,
+            "\n    …" if len(treffer) > 10 else "",
+            rat,
+        )
 
     def test_gebaute_tabellen_sind_sortierbar(self):
-        ohne = [(p, a) for p, a in self.gebaut
-                if "sortable" not in " ".join(_KLASSEN.findall(a)).lower().split()]
+        ohne = [
+            (p, a) for p, a in self.gebaut if "sortable" not in " ".join(_KLASSEN.findall(a)).lower().split()
+        ]
         if ohne:
-            self.fail(self._melden(
-                ohne, u"tragen kein class=\"sortable\"",
-                u"Nimm den Bauer, dann kommt es von selbst:\n"
-                u"    import { dbTabelle } from "
-                u"'/static/djangobase/js/tabelle_bauen.js';\n"
-                u"    el.innerHTML = dbTabelle({key: '…', spalten: […], "
-                u"zeilen: […]});"))
+            self.fail(
+                self._melden(
+                    ohne,
+                    'tragen kein class="sortable"',
+                    "Nimm den Bauer, dann kommt es von selbst:\n"
+                    "    import { dbTabelle } from "
+                    "'/static/djangobase/js/tabelle_bauen.js';\n"
+                    "    el.innerHTML = dbTabelle({key: '…', spalten: […], "
+                    "zeilen: […]});",
+                )
+            )
 
     def test_gebaute_tabellen_merken_ihre_breiten(self):
-        u"""Ohne ``data-sort-key`` leitet ``tabellen_auto.js`` einen aus der
+        """Ohne ``data-sort-key`` leitet ``tabellen_auto.js`` einen aus der
         Position ab — das rettet die Tabelle, hält aber nur, solange niemand
         etwas davor einfügt."""
         ohne = [(p, a) for p, a in self.gebaut if "data-sort-key" not in a.lower()]
         if ohne:
-            self.fail(self._melden(
-                ohne, u"tragen kein data-sort-key",
-                u"Der Bauer verlangt den Schlüssel als Pflichtangabe — genau "
-                u"deshalb. Er muss projektweit eindeutig sein."))
+            self.fail(
+                self._melden(
+                    ohne,
+                    "tragen kein data-sort-key",
+                    "Der Bauer verlangt den Schlüssel als Pflichtangabe — genau "
+                    "deshalb. Er muss projektweit eindeutig sein.",
+                )
+            )
 
     def test_es_wurde_wirklich_gesucht(self):
-        u"""Findet der Sucher nichts, ist „0 Verstöße" bedeutungslos."""
+        """Findet der Sucher nichts, ist „0 Verstöße" bedeutungslos."""
         anzahl = sum(1 for _ in _module())
-        self.assertTrue(anzahl > 5,
-                        u"Nur %d JS-Module gefunden — stimmt BASE_DIR?" % anzahl)
+        self.assertTrue(anzahl > 5, "Nur %d JS-Module gefunden — stimmt BASE_DIR?" % anzahl)
 
 
 class GegenprobeTest(SimpleTestCase):
-    u"""Trifft die Erkennung, was sie treffen soll?"""
+    """Trifft die Erkennung, was sie treffen soll?"""
 
     databases = []
 
     def test_tabelle_in_zeichenkette_wird_gefunden(self):
-        for probe in ('`<table class="stats sortable">`',
-                      "'<table>' + kopf",
-                      '"<table class=\\"x\\" data-sort-key=\\"y\\">"'):
+        for probe in (
+            '`<table class="stats sortable">`',
+            "'<table>' + kopf",
+            '"<table class=\\"x\\" data-sort-key=\\"y\\">"',
+        ):
             with self.subTest(probe=probe):
                 self.assertTrue(_TABELLE.search(probe), probe)
 
     def test_klassen_werden_auch_maskiert_gelesen(self):
-        u"""In JS steht die Klasse oft in einer maskierten Zeichenkette
+        """In JS steht die Klasse oft in einer maskierten Zeichenkette
         (``class=\\"stats\\"``). Ohne das würde jede davon als „ohne Klasse"
         gemeldet — ein Fehlalarm auf korrekten Code."""
         self.assertIn("stats", _KLASSEN.findall('<table class=\\"stats\\">'))
         self.assertIn("stats", _KLASSEN.findall('<table class="stats">'))
 
     def test_kommentare_werden_uebersprungen(self):
-        u"""Sonst meldet der Prüfer seine eigene Dokumentation — am 21.08.2026
+        """Sonst meldet der Prüfer seine eigene Dokumentation — am 21.08.2026
         genau so passiert."""
-        quelle = ('/* erklärt das <table> hier */\n'
-                  'const h = `<table class="data sortable" data-sort-key="x">`;\n'
-                  '// auch <table> im Zeilenkommentar\n')
+        quelle = (
+            "/* erklärt das <table> hier */\n"
+            'const h = `<table class="data sortable" data-sort-key="x">`;\n'
+            "// auch <table> im Zeilenkommentar\n"
+        )
         sauber = ohne_kommentare(quelle)
-        self.assertEqual(sauber.count("<table"), 1,
-                         u"Genau EIN echtes <table> sollte übrig bleiben: %r"
-                         % sauber)
+        self.assertEqual(
+            sauber.count("<table"), 1, "Genau EIN echtes <table> sollte übrig bleiben: %r" % sauber
+        )
 
     def test_urls_bleiben_heil(self):
-        u"""``//`` steht auch in ``https://…`` — ein zu gieriges Muster fräße
+        """``//`` steht auch in ``https://…`` — ein zu gieriges Muster fräße
         den halben Import."""
         quelle = "import x from 'https://cdn.example/a.js';"
         self.assertIn("cdn.example", ohne_kommentare(quelle))
 
     def test_werkzeuge_bleiben_draussen(self):
-        u"""Sonst meldete der Prüfer den Bauer selbst."""
+        """Sonst meldete der Prüfer den Bauer selbst."""
         self.assertIn("tabelle_bauen.js", WERKZEUG)
         self.assertIn("aufzeichner_liste.js", WERKZEUG)

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""djangoBase prüft seine EIGENEN Tabellen mit den Regeln, die es aufstellt.
+"""djangoBase prüft seine EIGENEN Tabellen mit den Regeln, die es aufstellt.
 
 DIE LÜCKE (Edgar, 01.09.2026)
 =============================
@@ -34,12 +34,13 @@ Weil sie richtig ist. Ein Projekt soll für den Fremdcode in seinem
 ``site-packages`` nicht verantwortlich sein. Was fehlte, war nicht die
 Aufhebung der Ausnahme, sondern ihr Gegenstück.
 """
+
 from pathlib import Path
 
-from django.test import SimpleTestCase
-
 from djangobase.tests.konform.quellen import TABU
-from djangobase.tests.konform.test_tabellen import (_KLASSEN, datentabellen)
+from djangobase.tests.konform.test_tabellen import _KLASSEN, datentabellen
+
+from .basis import KonformTest
 
 #: Wurzel des Pakets - dieselbe Rechnung wie ``quellen.PAKET``.
 PAKET = Path(__file__).resolve().parents[2]
@@ -49,7 +50,7 @@ ORDNUNG_ZAEHLT = "data-sort-aus"
 
 
 def _eigene_vorlagen():
-    u"""Alle HTML-Vorlagen des djangoBase-Pakets."""
+    """Alle HTML-Vorlagen des djangoBase-Pakets."""
     aus = []
     for pfad in PAKET.rglob("*.html"):
         if any(teil in TABU for teil in pfad.parts):
@@ -58,8 +59,8 @@ def _eigene_vorlagen():
     return aus
 
 
-class EigeneTabellenTest(SimpleTestCase):
-    u"""Was djangoBase von seinen Konsumenten verlangt, gilt für es selbst."""
+class EigeneTabellenTest(KonformTest):
+    """Was djangoBase von seinen Konsumenten verlangt, gilt für es selbst."""
 
     databases = []
 
@@ -70,31 +71,43 @@ class EigeneTabellenTest(SimpleTestCase):
         cls.tabellen = datentabellen(cls.vorlagen)
 
     def test_es_gibt_eigene_vorlagen(self):
-        u"""GEGENPROBE ZUERST. Findet der Sammler nichts, prüfen die Regeln
+        """GEGENPROBE ZUERST. Findet der Sammler nichts, prüfen die Regeln
         unten nichts - und ein grüner Haken hieße nur, dass niemand hinsieht.
 
         Genau diese Sorte stiller Blindheit ist der Anlass dieses Tests."""
-        self.assertGreater(len(self.vorlagen), 10,
-                           u"keine Paket-Vorlagen gefunden - stimmt PAKET noch?")
+        self.assertGreater(len(self.vorlagen), 10, "keine Paket-Vorlagen gefunden - stimmt PAKET noch?")
 
     def test_eigene_datentabellen_sind_sortierbar(self):
-        u"""Jede Datentabelle des Pakets trägt ``class="sortable"``."""
-        ohne = [(p, a) for p, a in self.tabellen
-                if "sortable" not in " ".join(_KLASSEN.findall(a)).lower().split()
-                and ORDNUNG_ZAEHLT not in a.lower()]
+        """Jede Datentabelle des Pakets trägt ``class="sortable"``."""
+        ohne = [
+            (p, a)
+            for p, a in self.tabellen
+            if "sortable" not in " ".join(_KLASSEN.findall(a)).lower().split()
+            and ORDNUNG_ZAEHLT not in a.lower()
+        ]
         self.assertEqual(
-            ohne, [], u"%d Tabellen in djangoBase ohne class=\"sortable\":\n  %s"
-            % (len(ohne), "\n  ".join("%s: <table %s>" % (Path(p).name, a[:60].strip())
-                                      for p, a in ohne[:8])))
+            ohne,
+            [],
+            '%d Tabellen in djangoBase ohne class="sortable":\n  %s'
+            % (
+                len(ohne),
+                "\n  ".join("%s: <table %s>" % (Path(p).name, a[:60].strip()) for p, a in ohne[:8]),
+            ),
+        )
 
     def test_eigene_datentabellen_merken_die_breiten(self):
-        u"""Jede Datentabelle des Pakets trägt ``data-sort-key``.
+        """Jede Datentabelle des Pakets trägt ``data-sort-key``.
 
         Ohne ihn sortiert die Tabelle zwar, aber die Spaltenbreiten werden
         nicht gemerkt - die stille Sorte Abweichung, bei der nichts kaputt
         aussieht und die halbe Bedienung fehlt."""
         ohne = [(p, a) for p, a in self.tabellen if "data-sort-key" not in a.lower()]
         self.assertEqual(
-            ohne, [], u"%d Tabellen in djangoBase ohne data-sort-key:\n  %s"
-            % (len(ohne), "\n  ".join("%s: <table %s>" % (Path(p).name, a[:60].strip())
-                                      for p, a in ohne[:8])))
+            ohne,
+            [],
+            "%d Tabellen in djangoBase ohne data-sort-key:\n  %s"
+            % (
+                len(ohne),
+                "\n  ".join("%s: <table %s>" % (Path(p).name, a[:60].strip()) for p, a in ohne[:8]),
+            ),
+        )
