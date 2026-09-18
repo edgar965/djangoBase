@@ -157,19 +157,38 @@ class JedePruefungErbtVonEinerTestBasis(BasisTest):
     #: Attrappen wie `connection_test.py` — und räumen erst bei Prozessende.
     #: Je nach Reihenfolge sah dieser Wächter sie und meldete rot (einmal
     #: gesehen im Prüf-Wirt, danach nie wieder: der klassische Flackerfall).
-    AUS = ("__pycache__", "migrations", "node_modules", "venv", "_wegwerf", "_anlassfall")
+    AUS = ("__pycache__", "migrations", "node_modules", "site-packages", "_wegwerf", "_anlassfall")
+
+    #: Das Paket selbst zählt mit (18.09.2026): Im Prüf-Wirt liegt unter
+    #: BASE_DIR kein einziger Prüfcode — die „> 100 Klassen" der Gegenprobe
+    #: kamen aus `venv310/Lib/site-packages`, weil nur `venv` ausgeschlossen
+    #: war. Grün aus dem falschen Grund. Jetzt: Umgebungen raus (jeder Ordner,
+    #: der mit `venv` beginnt oder `site-packages` heißt), und das
+    #: djangobase-Paket als zweite Wurzel — es ist der Prüfcode, der überall
+    #: mitläuft.
+    PAKET = Path(__file__).resolve().parents[2]
+
+    def _wurzeln(self):
+        basis = Path(settings.BASE_DIR).resolve()
+        if self.PAKET == basis or basis in self.PAKET.parents:
+            return [basis]
+        return [basis, self.PAKET]
+
+    @classmethod
+    def _umgebung(cls, teil):
+        return teil in cls.AUS or teil.lower().startswith((".venv", "venv", "pythonvenv"))
 
     def _dateien(self):
-        wurzel = Path(settings.BASE_DIR)
-        for pfad in wurzel.rglob("*.py"):
-            if any(t in self.AUS for t in pfad.parts):
-                continue
-            if not any(t in self.ORTE for t in pfad.parts):
-                continue
-            try:
-                yield pfad, ast.parse(pfad.read_text(encoding="utf-8"))
-            except (SyntaxError, OSError, UnicodeDecodeError):
-                continue
+        for wurzel in self._wurzeln():
+            for pfad in wurzel.rglob("*.py"):
+                if any(self._umgebung(t) for t in pfad.parts):
+                    continue
+                if not any(t in self.ORTE for t in pfad.parts):
+                    continue
+                try:
+                    yield pfad, ast.parse(pfad.read_text(encoding="utf-8"))
+                except (SyntaxError, OSError, UnicodeDecodeError):
+                    continue
 
     def test_keine_pruefklasse_bleibt_ohne_basis(self):
         dateien = list(self._dateien())
