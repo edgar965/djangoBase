@@ -405,6 +405,20 @@ Ausnahme für `ki/messungen.py` griff nicht). Ergänzungen dort über
 der Vorgabe. Was der Umbau nebenbei fand: 18 tote Importe, 35 Variablen namens
 `l`, ein `raise` ohne `from`, ein `yield`-Schleifchen — alles behoben.
 
+**Konsumenten (19.09.2026):** WalkHop, Roomguest, HumanBodyWeb, shortlongx und
+assistant haben je eine `ruff.toml` (`extend` auf die Vorgabe, `target-version`
+des Interpreters) und sind formatiert; die sicheren Fixes sind eingespielt.
+Zwei Lehren daraus: (1) **`ruff check --fix` entfernt keine Importe mehr**
+(`unfixable = ["F401"]` in der Vorgabe) — in shortlongx war
+`from .assets import ASSETS` ein Re-Export, `manage.py check` starb mit
+ImportError. (2) **Anführungszeichen sind Projektsache**: HumanBodyWeb und
+assistant schreiben einfache und haben `[format] quote-style = "single"` in
+ihrer `ruff.toml`; die Vorgabe (doppelt) brach dort 13 Tests, die den Quelltext
+lesen und `'…'`-Ausdrücke suchen. Vor einem Format-Lauf über ein Projekt also:
+Quote-Stil messen (`git grep -c "'"` gegen `'"'`) und die Suite danach fahren —
+oder, wo Tests verboten sind (shortlongx), wenigstens prüfen, ob Zeichenketten
+aus Tests noch im Quelltext vorkommen.
+
 ### Neue DJANGOBASE-Schlüssel
 
 `skills2_register` (Vorgabe `["fn"]`), `skills2_abrufklassen`
