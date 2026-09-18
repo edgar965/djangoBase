@@ -296,3 +296,63 @@ class EineGescheiterteMessungIstEinFund(BasisTest):
     def test_die_gute_datei_wird_trotzdem_gemessen(self):
         """Ein Fehlschlag darf nicht den ganzen Lauf kosten."""
         self.assertTrue(any("1 Dateien unter" in z or "0 von 1" in z for z in self._satz().kopf))
+
+
+class KeinWerkzeugInstalliert(BasisTest):
+    """Gegeben: radon, pyflakes und pycodestyle fehlen alle.
+
+    Dann ist das Ergebnis ein FEHLER mit dem Installationshinweis — keine
+    leere Tabelle, die wie ein sauberes Projekt aussieht (18.09.2026, dieselbe
+    Regel wie bei `ruff`). Braucht die Werkzeuge nicht: Die Messung wird
+    durch eine Attrappe ersetzt, deren Verfahren alle `fehlt` tragen.
+    """
+
+    class _Verfahren:
+        def __init__(self, name):
+            self.name, self.fehlt, self.treffer = name, name, []
+
+    class _Messung:
+        def __init__(self):
+            self.dateien, self.pannen = ["a.py"], []
+            self.verfahren = [
+                KeinWerkzeugInstalliert._Verfahren(n) for n in ("radon", "pyflakes", "pycodestyle")
+            ]
+
+    def _satz(self, messung):
+        from unittest import mock
+
+        from djangobase.skills.codequalitaet import CodeQualitaet
+
+        with mock.patch("djangobase.umbau.codequalitaet.Codequalitaet.messen", return_value=messung):
+            return CodeQualitaet().pruefen()
+
+    def test_das_ergebnis_ist_ein_fehler_mit_grund(self):
+        satz = self._satz(self._Messung())
+        self.assertIn("keines der Messwerkzeuge", satz.fehler)
+        self.assertIn("radon", satz.fehler)
+        self.assertEqual(satz.befunde, [])
+
+    def test_der_anlassfall_check_nennt_den_grund(self):
+        """Vorher hieß es „blind: 0 statt 2" — der Grund stand nirgends."""
+        from unittest import mock
+
+        from djangobase.skills.anlassfall_check import Probelauf
+        from djangobase.skills.codequalitaet import CodeQualitaet
+
+        from ..wegwerfordner import Wegwerfordner
+
+        ordner = Wegwerfordner.neu("cq_")
+        with mock.patch("djangobase.umbau.codequalitaet.Codequalitaet.messen", return_value=self._Messung()):
+            lauf = Probelauf(CodeQualitaet, ordner).fahren()
+        self.assertIn("keines der Messwerkzeuge", lauf.fehler)
+
+    def test_ein_teil_gelaufen_bleibt_ein_ergebnis(self):
+        """Die Gegenprobe: Fehlt nur eines, zählt der Rest — mit Vermerk im Kopf."""
+        messung = self._Messung()
+        messung.verfahren[0].fehlt = ""
+        messung.verfahren[0].satz = "0 Funktionen ab Rang C"
+        satz = self._satz(messung)
+        self.assertEqual(satz.fehler, "")
+        self.assertTrue(
+            any(z.startswith("nicht gelaufen: pycodestyle, pyflakes") for z in satz.kopf), satz.kopf
+        )

@@ -137,6 +137,18 @@ class CodeQualitaet(BefundWerkzeug):
 
         if messung.pannen:
             kopf.insert(1, "%d Messungen gescheitert" % len(messung.pannen))
+        if fehlend and all(v.fehlt for v in messung.verfahren):
+            # NICHTS gelaufen ist kein Ergebnis, sondern ein Fehler (18.09.2026,
+            # dieselbe Regel wie bei `ruff`): Eine leere Tabelle mit einer
+            # Kopfzeile „nicht gelaufen" sah aus wie ein sauberes Projekt — und
+            # der Anlassfall-Check meldete „blind: 0 statt 2" ohne den Grund.
+            return Befundsatz(
+                self.titel,
+                kopf,
+                [],
+                fehler="keines der Messwerkzeuge ist installiert (%s) — Extra „codequalitaet“ von djangoBase"
+                % ", ".join(sorted(set(fehlend))),
+            )
         if fehlend:
             kopf.append("nicht gelaufen: %s" % ", ".join(sorted(set(fehlend))))
         # Schwerstes zuerst — bei ueber zweihundert Befunden entscheidet die
