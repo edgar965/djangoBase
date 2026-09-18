@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Cachebusting — jede Skript- und Stilzeile traegt eine Fassungsangabe.
+"""Cachebusting — jede Skript- und Stilzeile traegt eine Fassungsangabe.
 
 DER FEHLER
 ==========
@@ -43,6 +43,7 @@ WAS NICHT GEMELDET WIRD
   zwischengespeichert werden — sonst holt der Browser ihn bei jedem
   Seitenwechsel neu.
 """
+
 import re
 
 from .anlassfall import Anlassfall
@@ -56,32 +57,41 @@ class Cachebusting(BefundWerkzeug):
 
     slug = "cachebusting"
     titel = "Cache-Busting: Skript- und Stilzeilen ohne Fassungsangabe"
-    zweck = ("Jede `<script src>`- und `<link rel=stylesheet>`-Zeile in den "
-             "Vorlagen traegt `?t=` oder `?v=`. Ohne das fuehrt der Browser "
-             "eine alte Fassung aus, ohne dass irgendwo ein Fehler steht.")
-    befund = ("Projektregel in 3DTools seit dem ersten Tag: „Niemals "
-              "Ctrl+Shift+R als Loesung vorschlagen.“ Wer eine Zeile ohne "
-              "Fassungsangabe stehen laesst, erzeugt genau die Frage, auf die "
-              "diese Antwort folgt.")
-    abhilfe = ("`?t={% now \"U\" %}` an die Adresse haengen — bei ES-Importen "
-               "`?v=N` und N erhoehen.")
+    zweck = (
+        "Jede `<script src>`- und `<link rel=stylesheet>`-Zeile in den "
+        "Vorlagen traegt `?t=` oder `?v=`. Ohne das fuehrt der Browser "
+        "eine alte Fassung aus, ohne dass irgendwo ein Fehler steht."
+    )
+    befund = (
+        "Projektregel in 3DTools seit dem ersten Tag: „Niemals "
+        "Ctrl+Shift+R als Loesung vorschlagen.“ Wer eine Zeile ohne "
+        "Fassungsangabe stehen laesst, erzeugt genau die Frage, auf die "
+        "diese Antwort folgt."
+    )
+    abhilfe = '`?t={% now "U" %}` an die Adresse haengen — bei ES-Importen `?v=N` und N erhoehen.'
     dauer = "unter 1 s"
     kriterium = 16
 
     anlassfall = Anlassfall(
-        {"templates/alt.html": (
-            '<script src="/static/app/x.js"></script>\n'
-            '<link rel="stylesheet" href="/static/app/y.css">\n'),
-         "templates/neu.html": (
-            '<script src="/static/app/x.js?v=3"></script>\n'
-            '<link rel="stylesheet" href="/static/app/y.css?t=1">\n'
-            '<script src="https://cdn.example/lib.js"></script>\n'
-            '<link rel="icon" href="/static/img/f.svg">\n')},
-        mindestens=2, hoechstens=2, erwartet_in="alt.html",
+        {
+            "templates/alt.html": (
+                '<script src="/static/app/x.js"></script>\n<link rel="stylesheet" href="/static/app/y.css">\n'
+            ),
+            "templates/neu.html": (
+                '<script src="/static/app/x.js?v=3"></script>\n'
+                '<link rel="stylesheet" href="/static/app/y.css?t=1">\n'
+                '<script src="https://cdn.example/lib.js"></script>\n'
+                '<link rel="icon" href="/static/img/f.svg">\n'
+            ),
+        },
+        mindestens=2,
+        hoechstens=2,
+        erwartet_in="alt.html",
         warum="Eine Seite ohne Fassungsangabe laedt und fuehrt eine ALTE "
-              "Fassung aus — ohne Fehler. `neu.html` steht daneben, weil die "
-              "drei Ausnahmen (Fassung vorhanden, fremde Adresse, Favicon) "
-              "sonst unbemerkt wegfallen koennten.")
+        "Fassung aus — ohne Fehler. `neu.html` steht daneben, weil die "
+        "drei Ausnahmen (Fassung vorhanden, fremde Adresse, Favicon) "
+        "sonst unbemerkt wegfallen koennten.",
+    )
 
     #: Adressen, die keine Fassungsangabe brauchen.
     FREMD = ("http://", "https://", "//", "data:", "#")
@@ -105,8 +115,7 @@ class Cachebusting(BefundWerkzeug):
             geprueft += 1
             text = pfad.read_text(encoding="utf-8", errors="replace")
             befunde += self._aus_datei(self.kurz(pfad), text)
-        kopf = ["%d Vorlagen gelesen" % geprueft,
-                "%d Zeilen ohne Fassungsangabe" % len(befunde)]
+        kopf = ["%d Vorlagen gelesen" % geprueft, "%d Zeilen ohne Fassungsangabe" % len(befunde)]
         return Befundsatz(self.titel, kopf, befunde)
 
     def _aus_datei(self, name, text):
@@ -126,9 +135,12 @@ class Cachebusting(BefundWerkzeug):
         if adresse.startswith(self.FREMD) or self.FASSUNG.search(adresse):
             return []
         zeile = text.count("\n", 0, treffer.start()) + 1
-        return [Befund(
-            "%s:%d" % (name, zeile),
-            "%s ohne `?t=`/`?v=`: %s" % (art, adresse[:70]),
-            "Der Browser darf die Datei aus seinem Zwischenspeicher nehmen. "
-            "Die Seite laedt trotzdem — sie fuehrt nur eine alte Fassung aus.",
-            Befund.WARNUNG)]
+        return [
+            Befund(
+                "%s:%d" % (name, zeile),
+                "%s ohne `?t=`/`?v=`: %s" % (art, adresse[:70]),
+                "Der Browser darf die Datei aus seinem Zwischenspeicher nehmen. "
+                "Die Seite laedt trotzdem — sie fuehrt nur eine alte Fassung aus.",
+                Befund.WARNUNG,
+            )
+        ]

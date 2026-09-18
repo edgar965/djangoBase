@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Klassenkandidat — freie Funktionen, die sich denselben Zustand teilen.
+"""Klassenkandidat — freie Funktionen, die sich denselben Zustand teilen.
 
 AUFTRAG (Edgar, 19.08.2026, Kriterium 18): „Moeglichst in Klassen unterbringen,
 ggf. in Utility-Klassen, statische Funktionen, Klassen verwenden."
@@ -28,16 +28,16 @@ import ast
 from collections import defaultdict
 
 from .anlassfall import Anlassfall
-from .rahmenvorschrift import Rahmenvorschrift
 from .befund import Befund, Befundsatz, BefundWerkzeug
+from .rahmenvorschrift import Rahmenvorschrift
 
 
 class Kandidat:
-    u"""Ein Umbauvorschlag: diese Funktionen, dieser Zustand, diese Klasse."""
+    """Ein Umbauvorschlag: diese Funktionen, dieser Zustand, diese Klasse."""
 
-    __slots__ = ('pfad', 'zustand', 'funktionen', 'schreibend', 'sorte')
+    __slots__ = ("pfad", "zustand", "funktionen", "schreibend", "sorte")
 
-    def __init__(self, pfad, zustand, funktionen, schreibend, sorte='klasse'):
+    def __init__(self, pfad, zustand, funktionen, schreibend, sorte="klasse"):
         self.pfad = pfad
         #: ``'klasse'`` = hier fehlt eine Klasse (nackter Container).
         #: ``'kontext'`` = eine Instanz liegt frei herum; sie gehoert in die
@@ -53,45 +53,69 @@ class Kandidat:
     #: Namen, die als Klassenvorschlag mit etwas Bekanntem kollidieren wuerden.
     #: ``_thread`` ergaebe sonst „Klasse Thread" - und ``threading.Thread`` gibt
     #: es schon (gemessen an ``autotrade_runner.py``, 19.08.2026).
-    BESETZT = frozenset({'Thread', 'Lock', 'Queue', 'Event', 'Timer', 'Process',
-                         'Pool', 'Session', 'Client', 'Logger', 'Cache', 'Path',
-                         'Dict', 'List', 'Set', 'Type', 'Object', 'State'})
+    BESETZT = frozenset(
+        {
+            "Thread",
+            "Lock",
+            "Queue",
+            "Event",
+            "Timer",
+            "Process",
+            "Pool",
+            "Session",
+            "Client",
+            "Logger",
+            "Cache",
+            "Path",
+            "Dict",
+            "List",
+            "Set",
+            "Type",
+            "Object",
+            "State",
+        }
+    )
 
     @property
     def vorschlag(self):
-        u"""Ein Klassenname aus dem Zustandsnamen - Startpunkt, nicht Vorgabe."""
-        rein = self.zustand.strip('_').replace('_', ' ').title().replace(' ', '')
+        """Ein Klassenname aus dem Zustandsnamen - Startpunkt, nicht Vorgabe."""
+        rein = self.zustand.strip("_").replace("_", " ").title().replace(" ", "")
         if not rein:
-            return 'Zustand'
+            return "Zustand"
         # Kollidiert der Name mit einem bekannten Typ, bekommt er den Modulnamen
         # davor: aus „Thread" wird „AutotradeRunnerThread". Ein Vorschlag, der
         # eine Namenskollision baut, wird nicht uebernommen - und dann bleibt
         # der Befund liegen.
         if rein in self.BESETZT:
-            stamm = self.pfad.replace('\\', '/').rsplit('/', 1)[-1]
-            stamm = stamm.removesuffix('.py').replace('_', ' ').title().replace(' ', '')
+            stamm = self.pfad.replace("\\", "/").rsplit("/", 1)[-1]
+            stamm = stamm.removesuffix(".py").replace("_", " ").title().replace(" ", "")
             return stamm + rein
         return rein
 
 
 class Klassenkandidat(BefundWerkzeug):
-
-    slug = 'klassen-kandidat'
+    slug = "klassen-kandidat"
     kriterium = 18
-    titel = 'Klassen-Kandidaten aus geteiltem Zustand'
-    zweck = ('Findet freie Funktionen, die sich dieselbe Modulvariable teilen — '
-             'das ist eine Klasse, die noch niemand geschrieben hat. Und '
-             'getrennt davon: Funktionsbündel ohne Zustand, die in eine '
-             'Utility-Klasse mit statischen Methoden gehören.')
-    abhilfe = ('Geteilter Zustand → Klasse: die Variable wird zum Attribut, die '
-               'Funktionen werden zu Methoden, das erste Argument entfaellt. '
-               'Kein Zustand → Utility-Klasse mit @staticmethod, damit die '
-               'Zusammengehoerigkeit im Namen steht statt im Dateinamen.')
-    befund = ('Der Unterschied ist wichtig: Eine Klasse ohne Zustand, die man '
-              'erst instanziieren muss, ist eine Funktionssammlung mit Umweg — '
-              'sie sieht objektorientiert aus und ist es nicht.')
-    dauer = 'Sekunden'
-    eingabe = ('ab', 'Ab wie vielen Funktionen je geteiltem Namen melden?', '2')
+    titel = "Klassen-Kandidaten aus geteiltem Zustand"
+    zweck = (
+        "Findet freie Funktionen, die sich dieselbe Modulvariable teilen — "
+        "das ist eine Klasse, die noch niemand geschrieben hat. Und "
+        "getrennt davon: Funktionsbündel ohne Zustand, die in eine "
+        "Utility-Klasse mit statischen Methoden gehören."
+    )
+    abhilfe = (
+        "Geteilter Zustand → Klasse: die Variable wird zum Attribut, die "
+        "Funktionen werden zu Methoden, das erste Argument entfaellt. "
+        "Kein Zustand → Utility-Klasse mit @staticmethod, damit die "
+        "Zusammengehoerigkeit im Namen steht statt im Dateinamen."
+    )
+    befund = (
+        "Der Unterschied ist wichtig: Eine Klasse ohne Zustand, die man "
+        "erst instanziieren muss, ist eine Funktionssammlung mit Umweg — "
+        "sie sieht objektorientiert aus und ist es nicht."
+    )
+    dauer = "Sekunden"
+    eingabe = ("ab", "Ab wie vielen Funktionen je geteiltem Namen melden?", "2")
 
     #: Nackte Container und Primitive: Hier FEHLT eine Klasse.
     #:
@@ -120,31 +144,36 @@ class Klassenkandidat(BefundWerkzeug):
     #: Zentralisierung: An EINER Stelle steht dann, was dieses Programm
     #: ueberhaupt an globalem Zustand hat. Wer wissen will, was ein Neustart
     #: zuruecksetzt oder was sich zwei Anfragen teilen, liest eine Datei.
-    KONTEXT_NAME = 'Kontext'
+    KONTEXT_NAME = "Kontext"
 
     anlassfall = Anlassfall(
-        {"zaehlwerk.py": (
-            "_stand = {}\n\n\n"
-            "def erhoehen(schluessel):\n"
-            "    _stand[schlüssel] = _stand.get(schlüssel, 0) + 1\n\n\n"
-            "def lesen(schluessel):\n"
-            "    return _stand.get(schluessel, 0)\n\n\n"
-            "def zuruecksetzen():\n"
-            "    global _stand\n"
-            "    _stand = {}\n")},
-        mindestens=1, erwartet_in="zaehlwerk.py",
+        {
+            "zaehlwerk.py": (
+                "_stand = {}\n\n\n"
+                "def erhoehen(schluessel):\n"
+                "    _stand[schlüssel] = _stand.get(schlüssel, 0) + 1\n\n\n"
+                "def lesen(schluessel):\n"
+                "    return _stand.get(schluessel, 0)\n\n\n"
+                "def zuruecksetzen():\n"
+                "    global _stand\n"
+                "    _stand = {}\n"
+            )
+        },
+        mindestens=1,
+        erwartet_in="zaehlwerk.py",
         warum="Drei Funktionen um EINE Modulvariable: Das ist eine Klasse "
-              "'Stand' mit einem Attribut und drei Methoden")
+        "'Stand' mit einem Attribut und drei Methoden",
+    )
 
-    def pruefen(self, ab='2', **_argumente):
+    def pruefen(self, ab="2", **_argumente):
         try:
             grenze = max(2, int(str(ab).strip() or 2))
         except ValueError:
             grenze = 2
 
         kandidaten, utilities = [], []
-        for datei in self.projektdateien('.py'):
-            if datei.name in ('settings.py', 'urls.py', 'conf.py'):
+        for datei in self.projektdateien(".py"):
+            if datei.name in ("settings.py", "urls.py", "conf.py"):
                 continue
             gefunden, util = self._modul(datei, grenze)
             kandidaten += gefunden
@@ -152,58 +181,66 @@ class Klassenkandidat(BefundWerkzeug):
 
         befunde = []
         # Zuerst die mit geschriebenem Zustand: dort ist der Umbau am dringendsten.
-        for k in sorted(kandidaten, key=lambda k: (-len(k.schreibend),
-                                                   -len(k.funktionen))):
-            if k.sorte == 'kontext':
-                befunde.append(Befund(
-                    k.pfad,
-                    'Kontext-Klasse: Instanz "%s" liegt frei, %d Funktionen '
-                    'benutzen sie (%s)'
-                    % (k.zustand, len(k.funktionen), ', '.join(k.funktionen[:5])),
-                    'Sie ist bereits ein Objekt — es fehlt keine Klasse, es '
-                    'fehlt ein EIGENTUEMER. In die EINE Kontext-Klasse des '
-                    'Projekts (%s), nicht in eine je Modul: Erst dadurch steht '
-                    'an einer Stelle, was dieses Programm an globalem Zustand '
-                    'hat.' % self.KONTEXT_NAME,
-                    Befund.WARNUNG if k.schreibend else Befund.HINWEIS))
+        for k in sorted(kandidaten, key=lambda k: (-len(k.schreibend), -len(k.funktionen))):
+            if k.sorte == "kontext":
+                befunde.append(
+                    Befund(
+                        k.pfad,
+                        'Kontext-Klasse: Instanz "%s" liegt frei, %d Funktionen '
+                        "benutzen sie (%s)" % (k.zustand, len(k.funktionen), ", ".join(k.funktionen[:5])),
+                        "Sie ist bereits ein Objekt — es fehlt keine Klasse, es "
+                        "fehlt ein EIGENTUEMER. In die EINE Kontext-Klasse des "
+                        "Projekts (%s), nicht in eine je Modul: Erst dadurch steht "
+                        "an einer Stelle, was dieses Programm an globalem Zustand "
+                        "hat." % self.KONTEXT_NAME,
+                        Befund.WARNUNG if k.schreibend else Befund.HINWEIS,
+                    )
+                )
                 continue
-            befunde.append(Befund(
-                k.pfad,
-                'Klasse %s: "%s" + %d Funktionen (%s)'
-                % (k.vorschlag, k.zustand, len(k.funktionen),
-                   ', '.join(k.funktionen[:5])),
-                ('%d davon SCHREIBEN den Zustand (%s) — als Attribut einer '
-                 'Instanz gaebe es das Problem nicht'
-                 % (len(k.schreibend), ', '.join(k.schreibend[:3])))
-                if k.schreibend else
-                'Nur lesend — die Variable wird zum Attribut, die Funktionen zu '
-                'Methoden.',
-                Befund.WARNUNG if k.schreibend else Befund.HINWEIS))
+            befunde.append(
+                Befund(
+                    k.pfad,
+                    'Klasse %s: "%s" + %d Funktionen (%s)'
+                    % (k.vorschlag, k.zustand, len(k.funktionen), ", ".join(k.funktionen[:5])),
+                    (
+                        "%d davon SCHREIBEN den Zustand (%s) — als Attribut einer "
+                        "Instanz gaebe es das Problem nicht"
+                        % (len(k.schreibend), ", ".join(k.schreibend[:3]))
+                    )
+                    if k.schreibend
+                    else "Nur lesend — die Variable wird zum Attribut, die Funktionen zu Methoden.",
+                    Befund.WARNUNG if k.schreibend else Befund.HINWEIS,
+                )
+            )
 
         for pfad, anfang, namen in sorted(utilities, key=lambda u: -len(u[2])):
-            befunde.append(Befund(
-                pfad,
-                'Utility-Klasse %s: %d Funktionen ohne gemeinsamen Zustand (%s)'
-                % (anfang.title(), len(namen), ', '.join(namen[:5])),
-                'Kein geteilter Zustand → Klasse mit @staticmethod, kein '
-                '__init__. Sonst entsteht eine Klasse, die man nur baut, um '
-                'ihre Methoden zu rufen.',
-                Befund.HINWEIS))
+            befunde.append(
+                Befund(
+                    pfad,
+                    "Utility-Klasse %s: %d Funktionen ohne gemeinsamen Zustand (%s)"
+                    % (anfang.title(), len(namen), ", ".join(namen[:5])),
+                    "Kein geteilter Zustand → Klasse mit @staticmethod, kein "
+                    "__init__. Sonst entsteht eine Klasse, die man nur baut, um "
+                    "ihre Methoden zu rufen.",
+                    Befund.HINWEIS,
+                )
+            )
 
-        klassen = [k for k in kandidaten if k.sorte == 'klasse']
-        kontexte = [k for k in kandidaten if k.sorte == 'kontext']
-        kopf = ['%d Klassen-Kandidaten (nackter Container + Funktionen)' % len(klassen),
-                '%d Kontext-Kandidaten (Instanz liegt frei auf Modulebene)' % len(kontexte),
-                '%d Utility-Kandidaten ohne Zustand' % len(utilities),
-                '%d Funktionen betroffen'
-                % (sum(len(k.funktionen) for k in kandidaten)
-                   + sum(len(u[2]) for u in utilities))]
+        klassen = [k for k in kandidaten if k.sorte == "klasse"]
+        kontexte = [k for k in kandidaten if k.sorte == "kontext"]
+        kopf = [
+            "%d Klassen-Kandidaten (nackter Container + Funktionen)" % len(klassen),
+            "%d Kontext-Kandidaten (Instanz liegt frei auf Modulebene)" % len(kontexte),
+            "%d Utility-Kandidaten ohne Zustand" % len(utilities),
+            "%d Funktionen betroffen"
+            % (sum(len(k.funktionen) for k in kandidaten) + sum(len(u[2]) for u in utilities)),
+        ]
         return Befundsatz(self.titel, kopf, befunde)
 
     # ------------------------------------------------------------------ Baum
     def _modul(self, datei, grenze):
         try:
-            quelle = datei.read_text(encoding='utf-8', errors='replace')
+            quelle = datei.read_text(encoding="utf-8", errors="replace")
             baum = ast.parse(quelle)
         except (SyntaxError, OSError):
             return [], []
@@ -215,17 +252,15 @@ class Klassenkandidat(BefundWerkzeug):
         # `classes`-Tupel — daraus wurde siebenmal der Vorschlag „Klasse
         # `Classes`", und wer dem folgt, meldet kein Panel mehr an.
         # `DJANGOBASE["rahmenfunktionen"]` nennt sie; siehe `rahmenvorschrift`.
-        vorgeschrieben = (Rahmenvorschrift.namen()
-                          | Rahmenvorschrift.selbst_gerufen(baum))
-        for knoten in baum.body:              # nur Modulebene
+        vorgeschrieben = Rahmenvorschrift.namen() | Rahmenvorschrift.selbst_gerufen(baum)
+        for knoten in baum.body:  # nur Modulebene
             if isinstance(knoten, (ast.Assign, ast.AnnAssign)):
                 sorte = self._sorte(knoten)
                 if sorte:
                     for n in self._zielnamen(knoten):
                         sorte_je_name[n] = sorte
             elif isinstance(knoten, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                if (not knoten.name.startswith('__')
-                        and knoten.name not in vorgeschrieben):
+                if not knoten.name.startswith("__") and knoten.name not in vorgeschrieben:
                     freie.append(knoten)
         if len(freie) < grenze or not sorte_je_name:
             return [], self._utilities(datei, freie, grenze)
@@ -246,12 +281,14 @@ class Klassenkandidat(BefundWerkzeug):
         vergeben = set()
         for name, namen in sorted(nutzer.items(), key=lambda p: -len(p[1])):
             if len(namen) < grenze or name.isupper():
-                continue                      # Konstanten sind kein Zustand
+                continue  # Konstanten sind kein Zustand
             if name in registrierungen:
-                continue                      # Rahmenwerk-Registrierung
-            kandidaten.append(Kandidat(self.kurz(datei), name, namen,
-                                       schreiber.get(name, []),
-                                       sorte_je_name.get(name, 'klasse')))
+                continue  # Rahmenwerk-Registrierung
+            kandidaten.append(
+                Kandidat(
+                    self.kurz(datei), name, namen, schreiber.get(name, []), sorte_je_name.get(name, "klasse")
+                )
+            )
             vergeben |= set(namen)
 
         # Utility-Kandidaten nur aus den Funktionen, die KEINEN Zustand teilen.
@@ -260,7 +297,7 @@ class Klassenkandidat(BefundWerkzeug):
 
     @staticmethod
     def _registrierungsnamen(funktionen, modulnamen):
-        u"""Modulnamen, die als DEKORATOR dienen — Rahmenwerk-Registrierungen.
+        """Modulnamen, die als DEKORATOR dienen — Rahmenwerk-Registrierungen.
 
         AM ECHTEN PROJEKT GEMESSEN (30.08.2026, 3DTools): Gemeldet wurde
         ``core/templatetags/einstellungszeile.py`` — „Instanz *register*
@@ -291,21 +328,23 @@ class Klassenkandidat(BefundWerkzeug):
         return raus
 
     def _utilities(self, datei, funktionen, grenze):
-        u"""Bündel gleichen Namensanfangs OHNE geteilten Zustand."""
+        """Bündel gleichen Namensanfangs OHNE geteilten Zustand."""
         nach_anfang = defaultdict(list)
         for fn in funktionen:
             if self._ruft_das_framework(fn):
                 continue
-            teile = fn.name.strip('_').split('_')
+            teile = fn.name.strip("_").split("_")
             if len(teile) > 1:
                 nach_anfang[teile[0]].append(fn.name)
-        return [(self.kurz(datei), anfang, namen)
-                for anfang, namen in nach_anfang.items()
-                if len(namen) >= max(grenze, 3)]
+        return [
+            (self.kurz(datei), anfang, namen)
+            for anfang, namen in nach_anfang.items()
+            if len(namen) >= max(grenze, 3)
+        ]
 
     @staticmethod
     def _ruft_das_framework(fn):
-        u"""Wird diese Funktion von einem RAHMENWERK gerufen? Dann bleibt sie.
+        """Wird diese Funktion von einem RAHMENWERK gerufen? Dann bleibt sie.
 
         AM ECHTEN PROJEKT GEMESSEN (19.08.2026, shortlongx): Der erste Lauf
         meldete 65 „Utility-Kandidaten" — geschaetzt zwei Drittel davon liessen
@@ -324,9 +363,9 @@ class Klassenkandidat(BefundWerkzeug):
         Umbauvorschlag, der funktionierenden Code kaputtmacht, ist die teuerste
         Sorte Fehlalarm — er sieht wie Fortschritt aus.
         """
-        if fn.decorator_list:                 # @pruefung, @csrf_exempt, @task …
+        if fn.decorator_list:  # @pruefung, @csrf_exempt, @task …
             return True
-        if fn.name.startswith('test_'):       # unittest sammelt ueber den Namen
+        if fn.name.startswith("test_"):  # unittest sammelt ueber den Namen
             return True
         # Was das PROJEKT als Rahmen-Namen angibt: Blenders
         # `register`/`unregister` etwa ruft das Addon-Protokoll am Modul.
@@ -335,22 +374,22 @@ class Klassenkandidat(BefundWerkzeug):
         if fn.name in Rahmenvorschrift.namen():
             return True
         argumente = fn.args.args
-        if argumente and argumente[0].arg in ('request', 'self', 'cls'):
-            return True                       # Django-View bzw. schon Methode
+        if argumente and argumente[0].arg in ("request", "self", "cls"):
+            return True  # Django-View bzw. schon Methode
         return False
 
     def _sorte(self, knoten):
-        u"""Was liegt in diesem Modulnamen? ``'klasse'``, ``'kontext'`` oder None.
+        """Was liegt in diesem Modulnamen? ``'klasse'``, ``'kontext'`` oder None.
 
         * ``'klasse'`` - nackter Container oder Primitiv: Hier fehlt eine Klasse.
         * ``'kontext'`` - eine Instanz: Sie gehört in die Kontext-Klasse.
         * ``None`` - ein Alias auf einen bestehenden Namen; kein Zustand.
         """
-        wert = getattr(knoten, 'value', None)
-        if wert is None:                      # ``x: int`` ohne Wert
+        wert = getattr(knoten, "value", None)
+        if wert is None:  # ``x: int`` ohne Wert
             return None
         if isinstance(wert, (self.PRIMITIV, ast.Constant)):
-            return 'klasse'
+            return "klasse"
         if isinstance(wert, (ast.Call, ast.Lambda)):
             # WER SCHON IM KONTEXT LIEGT, IST KEIN KANDIDAT (20.08.2026).
             # ``_anfrage_cache = Kontext.anfrage_cache()`` ist die UMGESETZTE
@@ -362,13 +401,13 @@ class Klassenkandidat(BefundWerkzeug):
             # 'kontext': Da fehlt nichts, da IST etwas.
             if self._aus_dem_kontext(wert):
                 return None
-            return 'kontext'                  # haelt bereits ein Objekt
+            return "kontext"  # haelt bereits ein Objekt
         # ``x = y`` / ``x = Y.z``: ein zweiter Name, kein eigener Zustand.
         return None
 
     @classmethod
     def _aus_dem_kontext(cls, wert):
-        u"""Kommt der Wert aus der Kontext-Klasse des Projekts?
+        """Kommt der Wert aus der Kontext-Klasse des Projekts?
 
         Erkannt wird der Aufruf ``Kontext.<name>(...)`` - unabhängig davon, wie
         die Klasse importiert wurde, denn geprüft wird der Name links vom
@@ -377,30 +416,30 @@ class Klassenkandidat(BefundWerkzeug):
         if not isinstance(wert, ast.Call):
             return False
         ziel = wert.func
-        return (isinstance(ziel, ast.Attribute)
-                and isinstance(ziel.value, ast.Name)
-                and ziel.value.id == cls.KONTEXT_NAME)
+        return (
+            isinstance(ziel, ast.Attribute)
+            and isinstance(ziel.value, ast.Name)
+            and ziel.value.id == cls.KONTEXT_NAME
+        )
 
     @staticmethod
     def _zielnamen(knoten):
         if isinstance(knoten, ast.AnnAssign):
-            return ({knoten.target.id}
-                    if isinstance(knoten.target, ast.Name) else set())
+            return {knoten.target.id} if isinstance(knoten.target, ast.Name) else set()
         namen = set()
         for ziel in knoten.targets:
             if isinstance(ziel, ast.Name):
                 namen.add(ziel.id)
-        return {n for n in namen if not n.startswith('__')}
+        return {n for n in namen if not n.startswith("__")}
 
     @staticmethod
     def _zugriffe(funktion, modulnamen):
-        u"""(gelesen_oder_geschrieben, geschrieben) - beides nur für Modulnamen.
+        """(gelesen_oder_geschrieben, geschrieben) - beides nur für Modulnamen.
 
         Ein lokaler Name gleichen Namens verdeckt den globalen; deshalb zählen
         nur Namen, die die Funktion NICHT selbst bindet - außer sie erklärt
         ihn ausdruecklich per ``global``."""
-        global_erklaert = {name for k in ast.walk(funktion)
-                           if isinstance(k, ast.Global) for name in k.names}
+        global_erklaert = {name for k in ast.walk(funktion) if isinstance(k, ast.Global) for name in k.names}
         lokal = set()
         for k in ast.walk(funktion):
             if isinstance(k, ast.Name) and isinstance(k.ctx, ast.Store):
@@ -421,8 +460,7 @@ class Klassenkandidat(BefundWerkzeug):
         # Auch ein Aufruf wie ``_cache[x] = y`` schreibt, ohne ``global``.
         for k in ast.walk(funktion):
             if isinstance(k, ast.Subscript) and isinstance(k.value, ast.Name):
-                if (k.value.id in modulnamen and k.value.id not in lokal
-                        and isinstance(k.ctx, ast.Store)):
+                if k.value.id in modulnamen and k.value.id not in lokal and isinstance(k.ctx, ast.Store):
                     benutzt.add(k.value.id)
                     geschrieben.add(k.value.id)
         return benutzt, geschrieben

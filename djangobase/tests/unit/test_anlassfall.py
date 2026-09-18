@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Tests fuer den Anlassfall-Check (Hilfe -> Skills2).
+"""Tests fuer den Anlassfall-Check (Hilfe -> Skills2).
 
 WARUM ES DIESE TESTS GIBT (17.08.2026)
 ======================================
@@ -29,10 +29,10 @@ seinen eigenen Fall — ausgeloest davon, dass am 28.08.2026 eine Grenze von
 Wer diese Zahl deutlich ueberschreiten sieht, sucht nicht nach „ist halt
 viel", sondern nach dem einen Werkzeug: `Probelauf` je Klasse messen.
 """
+
 from djangobase.skills import WERKZEUGE
 from djangobase.skills.anlassfall import Anlassfall
-from djangobase.skills.anlassfall_check import (ORDNER, AnlassfallCheck,
-                                                 Probelauf)
+from djangobase.skills.anlassfall_check import ORDNER, AnlassfallCheck, Probelauf
 
 from ..base import BasisTest
 
@@ -63,7 +63,7 @@ class AnlassfallCheckTest(BasisTest):
         self.ergebnis = AnlassfallCheck().laufen()
 
     def test_kein_werkzeug_ist_blind(self):
-        u"""Geprüft und trotzdem nichts gefunden — das ist der schlimme Fall.
+        """Geprüft und trotzdem nichts gefunden — das ist der schlimme Fall.
 
         Gelesen wird das Feld ``stand``, nicht der Urteilstext: Die Liste
         erlaubter Formulierungen war vorher der Grund, warum dieser Test bei
@@ -73,8 +73,8 @@ class AnlassfallCheckTest(BasisTest):
         self.assertFalse(
             blind,
             "Diese Werkzeuge finden ihren eigenen Anlassfall nicht mehr: %s"
-            % "; ".join("%s (%s)" % (z["werkzeug"], z["urteil"])
-                        for z in blind))
+            % "; ".join("%s (%s)" % (z["werkzeug"], z["urteil"]) for z in blind),
+        )
 
     def test_keines_meldet_auf_leerem_verzeichnis(self):
         """Wer im Leeren etwas findet, sucht nicht in der übergebenen Wurzel.
@@ -82,13 +82,11 @@ class AnlassfallCheckTest(BasisTest):
         Dann sagt auch ein grüner Anlassfall-Lauf nichts aus — das Werkzeug
         durchsucht in Wahrheit das ganze Projekt. ``esmodulimporte`` war genau
         so gebaut (``settings.BASE_DIR`` statt ``self.wurzel()``)."""
-        laut = [z for z in self.ergebnis.zeilen
-                if isinstance(z["im Leeren"], int) and z["im Leeren"] > 0]
-        self.assertFalse(laut, "meldet ohne Code: %s"
-                         % ", ".join(z["werkzeug"] for z in laut))
+        laut = [z for z in self.ergebnis.zeilen if isinstance(z["im Leeren"], int) and z["im Leeren"] > 0]
+        self.assertFalse(laut, "meldet ohne Code: %s" % ", ".join(z["werkzeug"] for z in laut))
 
     def test_jedes_werkzeug_ist_geprueft_oder_erklaert(self):
-        u"""Anlassfall — oder ein Satz, warum es keinen geben kann.
+        """Anlassfall — oder ein Satz, warum es keinen geben kann.
 
         Ein Prüfer, der nach einem Umbau seinen eigenen Fall nicht mehr sieht,
         meldet null und sieht dabei aus wie ein sauberes Projekt. Deshalb
@@ -100,17 +98,17 @@ class AnlassfallCheckTest(BasisTest):
         18.08.2026 eine Namensliste; zwei Orte für dieselbe Angabe laufen
         auseinander, und der zweite ist immer der, den man beim Umbau vergisst.
         """
-        stumm = [z["werkzeug"] for z in self.ergebnis.zeilen
-                 if z["stand"] == "ungeprueft"]
+        stumm = [z["werkzeug"] for z in self.ergebnis.zeilen if z["stand"] == "ungeprueft"]
         self.assertFalse(
             stumm,
             "ohne Anlassfall und ohne Begründung: %s — entweder einen "
-            "Anlassfall bauen oder `ohne_anlassfall_weil` setzen"
-            % ", ".join(stumm))
+            "Anlassfall bauen oder `ohne_anlassfall_weil` setzen" % ", ".join(stumm),
+        )
 
     def test_raeumt_hinter_sich_auf(self):
-        self.assertFalse((AnlassfallCheck().wurzel() / ORDNER).exists(),
-                         "der Wegwerf-Ordner ist liegengeblieben")
+        self.assertFalse(
+            (AnlassfallCheck().wurzel() / ORDNER).exists(), "der Wegwerf-Ordner ist liegengeblieben"
+        )
 
 
 class SabotageTest(BasisTest):
@@ -136,8 +134,7 @@ class SabotageTest(BasisTest):
         try:
             BlindesWerkzeug.anlassfall.schreiben(basis)
             lauf = Probelauf(BlindesWerkzeug, basis).fahren()
-            self.assertIn("blind",
-                          BlindesWerkzeug.anlassfall.urteil(lauf.zeilen))
+            self.assertIn("blind", BlindesWerkzeug.anlassfall.urteil(lauf.zeilen))
         finally:
             pruefung._aufraeumen(pruefung.wurzel() / ORDNER)
 
@@ -149,6 +146,5 @@ class SabotageTest(BasisTest):
             if fall is None:
                 continue
             with self.subTest(werkzeug=klasse.slug):
-                self.assertTrue(fall.warum,
-                                "%s: Anlassfall ohne Begründung" % klasse.slug)
+                self.assertTrue(fall.warum, "%s: Anlassfall ohne Begründung" % klasse.slug)
                 self.assertTrue(fall.dateien, "%s: leerer Fall" % klasse.slug)

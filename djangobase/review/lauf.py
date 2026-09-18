@@ -17,6 +17,7 @@ Bauen je gekostet hat.
 Alles laeuft im Hintergrund-Faden: Eine Runde dauert je nach Modell und
 Paketgroesse eine bis fuenf Minuten. Die Seite fragt den Zustand ab.
 """
+
 import logging
 import os
 import threading
@@ -54,19 +55,23 @@ NACHFASSEN = {
     "widerlegen": (
         "Greife jetzt DEINE EIGENE Antwort an. Welcher deiner Befunde hält einer "
         "Gegenprobe nicht stand, welcher ist Lehrbuchwissen ohne Ausloeser in "
-        "diesem Code? Nenne mindestens einen, den du zuruecknimmst."),
+        "diesem Code? Nenne mindestens einen, den du zuruecknimmst."
+    ),
     "rangfolge": (
         "Genau DREI Änderungen, die ich heute machen soll — nicht vier. Je einen "
         "Satz Begründung. Und sag dazu, was du bewusst NICHT in die drei nimmst "
-        "und warum."),
+        "und warum."
+    ),
     "fehlt": (
         "Was fehlt dir, um sicher zu urteilen? Nenne konkrete Dateien oder "
         "Funktionen, die du sehen musst, und schreibe zu jeder, welche Frage sie "
-        "dir beantworten wuerde."),
+        "dir beantworten wuerde."
+    ),
     "ausloesen": (
         "Nimm deinen schwerwiegendsten Befund und beschreibe ihn als Ablauf, den "
         "ich nachstellen kann: Eingabe, Schritte, erwartetes falsches Ergebnis. "
-        "Wenn du das nicht kannst, sag es — dann ist es kein Befund."),
+        "Wenn du das nicht kannst, sag es — dann ist es kein Befund."
+    ),
 }
 
 
@@ -79,9 +84,19 @@ class ReviewLauf:
     MAX_ZEICHEN_DATEI = 120_000
     MAX_ZEICHEN_PAKET = 400_000
 
-    def __init__(self, modus, partner_cfg, *, wurzel, ablage, rolle=None,
-                 schluessel_datei=None, ollama_url=None, online_url=None,
-                 auswahl=""):
+    def __init__(
+        self,
+        modus,
+        partner_cfg,
+        *,
+        wurzel,
+        ablage,
+        rolle=None,
+        schluessel_datei=None,
+        ollama_url=None,
+        online_url=None,
+        auswahl="",
+    ):
         self.id = uuid.uuid4().hex[:12]
         self.modus = modus
         self.partner_cfg = partner_cfg
@@ -96,7 +111,7 @@ class ReviewLauf:
         self.ollama_url = ollama_url
         self.online_url = online_url
         self.titel = ""
-        self.faeden = {}                   # slug -> ReviewFaden
+        self.faeden = {}  # slug -> ReviewFaden
         self.reihenfolge = []
         self.fehler = ""
 
@@ -125,16 +140,19 @@ class ReviewLauf:
             bereich = bereiche[i] if bereiche else None
             text = self._paket(bereich, frage, self.faeden[slug].partner)
             faden = self.faeden[slug]
-            faden.beansprucht()          # frisch angelegt, gewinnt immer
-            threading.Thread(target=faden.fragen,
-                             args=(text, "Runde 1"), kwargs={"schon_beansprucht": True},
-                             name="review-%s-%s" % (self.id, slug),
-                             daemon=True).start()
+            faden.beansprucht()  # frisch angelegt, gewinnt immer
+            threading.Thread(
+                target=faden.fragen,
+                args=(text, "Runde 1"),
+                kwargs={"schon_beansprucht": True},
+                name="review-%s-%s" % (self.id, slug),
+                daemon=True,
+            ).start()
         return self
 
     @property
     def ist_werkzeug(self):
-        u"""Haengt hinten ein Pruefwerkzeug statt eines Modells?"""
+        """Haengt hinten ein Pruefwerkzeug statt eines Modells?"""
         return (self.partner_cfg or {}).get("ziel") == WerkzeugPartner.ZIEL
 
     def _faden_anlegen(self, slug, titel):
@@ -144,28 +162,36 @@ class ReviewLauf:
             # Geprueft wird ein GIT-Repository, und das ist nicht zwingend der
             # Ordner, aus dem die Bereichs-Dateien gelesen werden.
             partner = WerkzeugPartner(
-                slug=p.get("slug", "werkzeug"), name=p.get("name", ""),
-                befehl=p.get("befehl") or [], wurzel=p.get("wurzel") or self.wurzel,
-                modell=p.get("modell", ""), timeout=p.get("timeout"),
-                auswahl=self.auswahl, auswahlen=p.get("auswahlen"),
+                slug=p.get("slug", "werkzeug"),
+                name=p.get("name", ""),
+                befehl=p.get("befehl") or [],
+                wurzel=p.get("wurzel") or self.wurzel,
+                modell=p.get("modell", ""),
+                timeout=p.get("timeout"),
+                auswahl=self.auswahl,
+                auswahlen=p.get("auswahlen"),
                 schluessel_datei=p.get("schluessel_datei"),
                 schluessel_argument=p.get("schluessel_argument"),
-                umgebung=p.get("umgebung"))
+                umgebung=p.get("umgebung"),
+            )
             self.faeden[slug] = ReviewFaden(
-                slug, titel, partner,
-                mitschrift=self.ablage / ("review_%s_%s.md" % (self.id, slug)))
+                slug, titel, partner, mitschrift=self.ablage / ("review_%s_%s.md" % (self.id, slug))
+            )
             self.reihenfolge.append(slug)
             return
         partner = ReviewPartner(
-            slug=p.get("slug", "partner"), name=p.get("name", ""),
-            ziel=p.get("ziel", "lokal"), modell=p.get("modell", ""),
+            slug=p.get("slug", "partner"),
+            name=p.get("name", ""),
+            ziel=p.get("ziel", "lokal"),
+            modell=p.get("modell", ""),
             rolle=self.rolle,
             url=self.ollama_url if p.get("ziel") == "lokal" else self.online_url,
             schluessel_datei=self.schluessel_datei,
-            num_ctx=p.get("num_ctx"))
+            num_ctx=p.get("num_ctx"),
+        )
         self.faeden[slug] = ReviewFaden(
-            slug, titel, partner,
-            mitschrift=self.ablage / ("review_%s_%s.md" % (self.id, slug)))
+            slug, titel, partner, mitschrift=self.ablage / ("review_%s_%s.md" % (self.id, slug))
+        )
         self.reihenfolge.append(slug)
 
     # ---------------------------------------------------------------- nachfassen
@@ -182,9 +208,13 @@ class ReviewLauf:
             if faden is None or not faden.beansprucht():
                 continue
             marke = "Runde %d" % (len(faden.runden) + 1)
-            threading.Thread(target=faden.fragen,
-                             args=(text, marke), kwargs={"schon_beansprucht": True},
-                             name="review-%s-%s" % (self.id, s), daemon=True).start()
+            threading.Thread(
+                target=faden.fragen,
+                args=(text, marke),
+                kwargs={"schon_beansprucht": True},
+                name="review-%s-%s" % (self.id, s),
+                daemon=True,
+            ).start()
             gestartet.append(s)
         return gestartet
 
@@ -206,12 +236,14 @@ class ReviewLauf:
         if frage.strip():
             teile.append("## Meine Frage\n\n" + frage.strip() + "\n")
         elif bereich and bereich.get("fragen"):
-            teile.append("## Fragen\n\n" + "\n".join(
-                "%d. %s" % (i + 1, f) for i, f in enumerate(bereich["fragen"])) + "\n")
+            teile.append(
+                "## Fragen\n\n"
+                + "\n".join("%d. %s" % (i + 1, f) for i, f in enumerate(bereich["fragen"]))
+                + "\n"
+            )
 
         dateien = list((bereich or {}).get("dateien") or [])
-        dateien = self._verzeichnisse_auffalten(
-            dateien, self._bereichs_wurzel(bereich))
+        dateien = self._verzeichnisse_auffalten(dateien, self._bereichs_wurzel(bereich))
         if dateien:
             teile.append("## Quelltext (vollständig, von der Platte gelesen)\n")
             gesamt = 0
@@ -236,20 +268,20 @@ class ReviewLauf:
                 if text is not None and funktionen:
                     text, hinweis2 = self._funktionen_schneiden(rel, text, funktionen)
                     if text is not None and len(text) > self.MAX_ZEICHEN_DATEI:
-                        text = text[:self.MAX_ZEICHEN_DATEI]
+                        text = text[: self.MAX_ZEICHEN_DATEI]
                         hinweis2 += " / danach auf %d Zeichen gekuerzt" % self.MAX_ZEICHEN_DATEI
-                    hinweis = ' / '.join(h for h in (hinweis, hinweis2) if h)
+                    hinweis = " / ".join(h for h in (hinweis, hinweis2) if h)
                 if text is None:
                     teile.append("### %s\n\n_%s_\n" % (rel, hinweis))
                     continue
                 if gesamt + len(text) > self.MAX_ZEICHEN_PAKET:
-                    teile.append("### %s\n\n_Nicht mehr eingefuegt: Paketgrenze "
-                                 "erreicht._\n" % rel)
+                    teile.append("### %s\n\n_Nicht mehr eingefuegt: Paketgrenze erreicht._\n" % rel)
                     continue
                 gesamt += len(text)
-                teile.append("### %s%s\n\n```%s\n%s\n```\n"
-                             % (rel, (" — " + hinweis) if hinweis else "",
-                                self._sprache(rel), text))
+                teile.append(
+                    "### %s%s\n\n```%s\n%s\n```\n"
+                    % (rel, (" — " + hinweis) if hinweis else "", self._sprache(rel), text)
+                )
         return "\n".join(teile)
 
     @staticmethod
@@ -268,6 +300,7 @@ class ReviewLauf:
         gefunden wurde, steht ausdruecklich dabei — sonst beurteilt das Modell
         einen Ausschnitt, dessen Umfang es für vollständig hält."""
         import ast
+
         if not rel.lower().endswith(".py"):
             return text, "Funktionsauswahl nur für Python möglich — ganze Datei"
         try:
@@ -277,19 +310,17 @@ class ReviewLauf:
         zeilen = text.split("\n")
         gesucht, teile, gefunden = set(namen), [], set()
         for k in baum.body:
-            if isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) \
-                    and k.name in gesucht:
+            if isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and k.name in gesucht:
                 anfang = min([d.lineno for d in k.decorator_list] or [k.lineno]) - 1
-                teile.append("# --- %s  (%s, Zeile %d) ---\n%s"
-                             % (k.name, rel, k.lineno,
-                                "\n".join(zeilen[anfang:k.end_lineno])))
+                teile.append(
+                    "# --- %s  (%s, Zeile %d) ---\n%s"
+                    % (k.name, rel, k.lineno, "\n".join(zeilen[anfang : k.end_lineno]))
+                )
                 gefunden.add(k.name)
         if not teile:
-            return None, ("keine der Funktionen gefunden: %s"
-                          % ", ".join(sorted(gesucht)))
+            return None, ("keine der Funktionen gefunden: %s" % ", ".join(sorted(gesucht)))
         fehlt = sorted(gesucht - gefunden)
-        hinweis = ("AUSSCHNITT: %d von %d Funktionen dieser Datei"
-                   % (len(gefunden), len(namen)))
+        hinweis = "AUSSCHNITT: %d von %d Funktionen dieser Datei" % (len(gefunden), len(namen))
         if fehlt:
             hinweis += " — NICHT gefunden: %s" % ", ".join(fehlt)
         return "\n\n".join(teile), hinweis
@@ -351,16 +382,20 @@ class ReviewLauf:
                 raus.append(eintrag)
                 continue
             kinder = sorted(
-                p for p in ziel.iterdir()
-                if p.is_file() and p.suffix in self.PAKET_ENDUNGEN
-                and not p.name.startswith('.'))
+                p
+                for p in ziel.iterdir()
+                if p.is_file() and p.suffix in self.PAKET_ENDUNGEN and not p.name.startswith(".")
+            )
             if len(kinder) > self.PAKET_HOECHSTENS:
                 logger.warning(
-                    "Review: %s hat %d Dateien, nur die ersten %d werden "
-                    "gelesen", rel, len(kinder), self.PAKET_HOECHSTENS)
-                kinder = kinder[:self.PAKET_HOECHSTENS]
-            stamm = rel.rstrip('/\\')
-            raus.extend('%s/%s' % (stamm, p.name) for p in kinder)
+                    "Review: %s hat %d Dateien, nur die ersten %d werden gelesen",
+                    rel,
+                    len(kinder),
+                    self.PAKET_HOECHSTENS,
+                )
+                kinder = kinder[: self.PAKET_HOECHSTENS]
+            stamm = rel.rstrip("/\\")
+            raus.extend("%s/%s" % (stamm, p.name) for p in kinder)
         return raus
 
     def _datei_lesen(self, rel, wurzel=None, kuerzen=True):
@@ -385,8 +420,10 @@ class ReviewLauf:
         except OSError as e:
             return None, "Nicht lesbar: %s" % e
         if kuerzen and len(text) > self.MAX_ZEICHEN_DATEI:
-            return (text[:self.MAX_ZEICHEN_DATEI],
-                    "GEKUERZT auf %d von %d Zeichen" % (self.MAX_ZEICHEN_DATEI, len(text)))
+            return (
+                text[: self.MAX_ZEICHEN_DATEI],
+                "GEKUERZT auf %d von %d Zeichen" % (self.MAX_ZEICHEN_DATEI, len(text)),
+            )
         return text, ""
 
     @staticmethod
@@ -408,14 +445,17 @@ class ReviewLauf:
     @staticmethod
     def _sprache(rel):
         endung = Path(rel).suffix.lower()
-        return {".py": "python", ".js": "javascript", ".html": "html",
-                ".css": "css", ".json": "json"}.get(endung, "")
+        return {".py": "python", ".js": "javascript", ".html": "html", ".css": "css", ".json": "json"}.get(
+            endung, ""
+        )
 
     # ------------------------------------------------------------------ Anzeige
 
     def zustand(self, mit_text=True):
         return {
-            "id": self.id, "modus": self.modus, "titel": self.titel,
+            "id": self.id,
+            "modus": self.modus,
+            "titel": self.titel,
             "partner": self.partner_cfg.get("name") or self.partner_cfg.get("slug"),
             # Damit die Seite die Nachfass-Vorlagen ausblenden kann: „Widerlege
             # dich selbst" hat gegenueber einem Pruefwerkzeug keinen Sinn — es

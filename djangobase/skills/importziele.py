@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""ImportZiele - ``from x import y``, wo es ``y`` gar nicht gibt.
+"""ImportZiele - ``from x import y``, wo es ``y`` gar nicht gibt.
 
 DER ANLASS (03.09.2026, shortlongx)
 ===================================
@@ -27,6 +27,7 @@ nicht BENUTZT werden. Hier um Namen, die es am Ziel nicht GIBT.
 
 Reine stdlib.
 """
+
 import ast
 
 from .anlassfall import Anlassfall
@@ -35,35 +36,45 @@ from .modulindex import ModulIndex
 
 
 class ImportZiele(BefundWerkzeug):
-
-    slug = 'import-ziele'
+    slug = "import-ziele"
     kriterium = 9
-    titel = 'Importe ins Leere'
-    zweck = ('Findet ``from x import y``, wo das Modul ``x`` zum Projekt gehoert '
-             'und keinen Namen ``y`` definiert. Solche Dateien werfen beim '
-             'Import einen ImportError - auf Modulebene starten sie gar nicht.')
-    abhilfe = ('Nach jedem Umbau, der Namen verschiebt oder entfernt: Wer eine '
-               'Funktion durch eine Klasse ersetzt, laesst die Aufrufer zurueck. '
-               'Ein Werkzeug, das niemand taeglich startet, meldet das nie '
-               'selbst.')
-    befund = ('In shortlongx zehn tote Werkzeuge aus zwei Umbauten: sieben nach '
-              'dem Wegfall von ``sparring.frage_online`` (16.08.2026), drei nach '
-              'dem Umzug der Pruefklassen aus ``tests_app.pruefungen``. Keines '
-              'davon fiel zweieinhalb Wochen lang auf.')
-    dauer = 'Sekunden'
+    titel = "Importe ins Leere"
+    zweck = (
+        "Findet ``from x import y``, wo das Modul ``x`` zum Projekt gehoert "
+        "und keinen Namen ``y`` definiert. Solche Dateien werfen beim "
+        "Import einen ImportError - auf Modulebene starten sie gar nicht."
+    )
+    abhilfe = (
+        "Nach jedem Umbau, der Namen verschiebt oder entfernt: Wer eine "
+        "Funktion durch eine Klasse ersetzt, laesst die Aufrufer zurueck. "
+        "Ein Werkzeug, das niemand taeglich startet, meldet das nie "
+        "selbst."
+    )
+    befund = (
+        "In shortlongx zehn tote Werkzeuge aus zwei Umbauten: sieben nach "
+        "dem Wegfall von ``sparring.frage_online`` (16.08.2026), drei nach "
+        "dem Umzug der Pruefklassen aus ``tests_app.pruefungen``. Keines "
+        "davon fiel zweieinhalb Wochen lang auf."
+    )
+    dauer = "Sekunden"
 
     anlassfall = Anlassfall(
-        {"sparring.py": "class SparringLauf:\n    pass\n",
-         "orb_dialog.py": "from sparring import frage_online\n\n\n"
-                          "def haupt():\n    return frage_online(1, 2, 3, 4)\n",
-         # Der AUSGENOMMENE Fall daneben: eine Tupel-Zuweisung bindet zwei
-         # Namen. Die erste Fassung sah nur ``Name`` und meldete neun solcher
-         # Importe, die alle in Ordnung waren.
-         "richtungen.py": "LONG, SHORT = 1, -1\n",
-         "nutzer.py": "from richtungen import LONG, SHORT\n"},
-        mindestens=1, hoechstens=1, erwartet_in="frage_online",
+        {
+            "sparring.py": "class SparringLauf:\n    pass\n",
+            "orb_dialog.py": "from sparring import frage_online\n\n\n"
+            "def haupt():\n    return frage_online(1, 2, 3, 4)\n",
+            # Der AUSGENOMMENE Fall daneben: eine Tupel-Zuweisung bindet zwei
+            # Namen. Die erste Fassung sah nur ``Name`` und meldete neun solcher
+            # Importe, die alle in Ordnung waren.
+            "richtungen.py": "LONG, SHORT = 1, -1\n",
+            "nutzer.py": "from richtungen import LONG, SHORT\n",
+        },
+        mindestens=1,
+        hoechstens=1,
+        erwartet_in="frage_online",
         warum="Sieben Werkzeuge hingen an zwei Funktionen, die ein Umbau "
-              "entfernt hatte - zweieinhalb Wochen lang unbemerkt")
+        "entfernt hatte - zweieinhalb Wochen lang unbemerkt",
+    )
 
     def pruefen(self, **_argumente):
         dateien = self.dateien(".py")
@@ -88,7 +99,7 @@ class ImportZiele(BefundWerkzeug):
 
     # ---------------------------------------------------------------- sammeln
     def _importe(self, datei):
-        u"""``(Knoten, hat_rueckfall)`` aller ``from … import``-Stellen.
+        """``(Knoten, hat_rueckfall)`` aller ``from … import``-Stellen.
 
         ``hat_rueckfall``: Der Import steht in einem ``try``, dessen ``except``
         einen ``ImportError`` faengt - ein bewusster Weg fuer optionale
@@ -99,9 +110,9 @@ class ImportZiele(BefundWerkzeug):
 
     def _sammeln(self, knoten, im_rueckfall, aus):
         for kind in ast.iter_child_nodes(knoten):
-            drin = im_rueckfall or (isinstance(knoten, ast.Try)
-                                    and kind in knoten.body
-                                    and self._faengt_importfehler(knoten))
+            drin = im_rueckfall or (
+                isinstance(knoten, ast.Try) and kind in knoten.body and self._faengt_importfehler(knoten)
+            )
             if isinstance(kind, ast.ImportFrom):
                 aus.append((kind, drin))
             self._sammeln(kind, drin, aus)
@@ -111,30 +122,34 @@ class ImportZiele(BefundWerkzeug):
         for h in versuch.handlers:
             if h.type is None:
                 return True
-            namen = ([e.id for e in h.type.elts if isinstance(e, ast.Name)]
-                     if isinstance(h.type, ast.Tuple)
-                     else [h.type.id] if isinstance(h.type, ast.Name) else [])
-            if {'ImportError', 'ModuleNotFoundError', 'Exception'} & set(namen):
+            namen = (
+                [e.id for e in h.type.elts if isinstance(e, ast.Name)]
+                if isinstance(h.type, ast.Tuple)
+                else [h.type.id]
+                if isinstance(h.type, ast.Name)
+                else []
+            )
+            if {"ImportError", "ModuleNotFoundError", "Exception"} & set(namen):
                 return True
         return False
 
     # ----------------------------------------------------------------- urteil
     def _urteil(self, index, datei, knoten, geschuetzt):
-        u"""``(Befunde, undurchsichtig, rueckfall)`` fuer EINE Import-Zeile."""
+        """``(Befunde, undurchsichtig, rueckfall)`` fuer EINE Import-Zeile."""
         ziel = index.ziel(datei, knoten)
         if not ziel:
             return [], 0, 0
         modul = index.datei(ziel)
         if modul is None:
-            return [], 0, 0                 # fremdes Paket - nicht unsere Sache
+            return [], 0, 0  # fremdes Paket - nicht unsere Sache
         grund = index.undurchsichtig(modul)
         vorhanden = index.namen(modul)
         befunde, u, r = [], 0, 0
         for a in knoten.names:
-            if a.name == '*' or a.name in vorhanden:
+            if a.name == "*" or a.name in vorhanden:
                 continue
             if index.ist_paketteil(ziel, a.name):
-                continue                    # ein Untermodul, kein Attribut
+                continue  # ein Untermodul, kein Attribut
             if grund:
                 u += 1
             elif geschuetzt:
@@ -148,14 +163,17 @@ class ImportZiele(BefundWerkzeug):
             "%s:%d" % (datei.name, knoten.lineno),
             "%s gibt es in %s nicht" % (name, modul.name),
             self._hinweis(index, modul, name),
-            Befund.FEHLER)
+            Befund.FEHLER,
+        )
 
     def _hinweis(self, index, modul, name):
-        u"""Konkret sagen, was es stattdessen gibt - sonst ist der Befund halb."""
-        kurz = name.lower().lstrip('_')
-        aehnlich = sorted(n for n in index.namen(modul)
-                          if not n.startswith('_')
-                          and (kurz in n.lower() or n.lower() in kurz))[:3]
+        """Konkret sagen, was es stattdessen gibt - sonst ist der Befund halb."""
+        kurz = name.lower().lstrip("_")
+        aehnlich = sorted(
+            n
+            for n in index.namen(modul)
+            if not n.startswith("_") and (kurz in n.lower() or n.lower() in kurz)
+        )[:3]
         if aehnlich:
             return "%s bietet: %s" % (modul.name, ", ".join(aehnlich))
         wo = self._woanders(index, name)

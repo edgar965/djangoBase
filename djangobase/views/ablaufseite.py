@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Die Ablauf-Seite: ein Aktivitaetsdiagramm je Einstieg.
+"""Die Ablauf-Seite: ein Aktivitaetsdiagramm je Einstieg.
 
 DIE ANSAGE (Edgar, 27.08.2026)
 ==============================
@@ -29,6 +29,7 @@ Gemessen an CamTrack tragen nur 16 Prozent der Schritte einen Docstring.
 Der Rest liest sich so gut, wie der Entwickler seinen Namen gewaehlt hat
 — was zugleich sichtbar macht, wo er ihn schlecht gewaehlt hat.
 """
+
 import logging
 
 from django.conf import settings
@@ -41,13 +42,13 @@ from ..umbau.aktivitaetsbild import Aktivitaetsbild
 from ..umbau.beschriftung import Beschriftung
 from ..umbau.workflows import Workflowspeicher
 
-logger = logging.getLogger('djangobase.ablauf')
+logger = logging.getLogger("djangobase.ablauf")
 
 
 class AblaufView(ZugriffMixin, View):
-    u"""Ein Einstieg links, sein Ablauf rechts."""
+    """Ein Einstieg links, sein Ablauf rechts."""
 
-    vorlage = 'djangobase/hilfe/ablauf.html'
+    vorlage = "djangobase/hilfe/ablauf.html"
 
     def get(self, request):
         return self._zeigen(request, request.GET)
@@ -57,47 +58,49 @@ class AblaufView(ZugriffMixin, View):
 
     def _zeigen(self, request, daten):
         wurzel = settings.BASE_DIR
-        liste, alter = Workflowspeicher.holen(wurzel,
-                                              neu=bool(daten.get('neu')))
+        liste, alter = Workflowspeicher.holen(wurzel, neu=bool(daten.get("neu")))
         faecher = liste.reiter()
-        reiter = daten.get('reiter') or (faecher[0][0] if faecher else '')
-        weg = self._weg(liste, faecher, reiter, daten.get('weg', ''))
-        lauf, bild = self._ablauf(liste, weg, daten.get('funktion', ''))
-        return render(request, self.vorlage, {
-            'aktiv': 'ablauf',
-            'reiter': [{'kuerzel': k, 'titel': t, 'anzahl': len(w)}
-                       for k, t, w in faecher],
-            'offen': reiter,
-            'wege': self._wegliste(faecher, reiter, weg),
-            'weg': weg,
-            'ablauf': lauf,
-            'bild': bild,
-            'zurueck': bool(daten.get('funktion')),
-            'kennzahlen': liste.kennzahlen,
-            'alter': alter,
-        })
+        reiter = daten.get("reiter") or (faecher[0][0] if faecher else "")
+        weg = self._weg(liste, faecher, reiter, daten.get("weg", ""))
+        lauf, bild = self._ablauf(liste, weg, daten.get("funktion", ""))
+        return render(
+            request,
+            self.vorlage,
+            {
+                "aktiv": "ablauf",
+                "reiter": [{"kuerzel": k, "titel": t, "anzahl": len(w)} for k, t, w in faecher],
+                "offen": reiter,
+                "wege": self._wegliste(faecher, reiter, weg),
+                "weg": weg,
+                "ablauf": lauf,
+                "bild": bild,
+                "zurueck": bool(daten.get("funktion")),
+                "kennzahlen": liste.kennzahlen,
+                "alter": alter,
+            },
+        )
 
     # ── Das Bild ────────────────────────────────────────────────
 
     @staticmethod
     def _ablauf(liste, weg, funktion):
-        u"""Der Ablauf des Einstiegs — oder der einer angeklickten Stelle."""
+        """Der Ablauf des Einstiegs — oder der einer angeklickten Stelle."""
         if weg is None:
-            return None, ''
+            return None, ""
         bezug = weg.start
         verzeichnis = liste.verzeichnis
         if funktion and verzeichnis is not None:
-            klasse, _punkt, name = funktion.rpartition('.')
-            gesucht = (verzeichnis.in_klasse(klasse, name) if klasse
-                       else verzeichnis.funktionen.get(name))
+            klasse, _punkt, name = funktion.rpartition(".")
+            gesucht = verzeichnis.in_klasse(klasse, name) if klasse else verzeichnis.funktionen.get(name)
             bezug = gesucht or bezug
         if bezug is None:
-            return None, ''
+            return None, ""
         lauf = Ablauf(bezug, verzeichnis).lesen()
         bild = Aktivitaetsbild(
             lauf,
             beschrifter=lambda k: Beschriftung.fuer(k, verzeichnis),
-            herkunft=lambda k: Beschriftung.herkunft(k, verzeichnis))
+            herkunft=lambda k: Beschriftung.herkunft(k, verzeichnis),
+        )
         return lauf, bild.svg()
 
     # ── Auswahl (wie bei den Workflows) ─────────────────────────
@@ -120,11 +123,12 @@ class AblaufView(ZugriffMixin, View):
             if kuerzel != reiter:
                 continue
             for weg in wege:
-                aus.append({
-                    'titel': weg.einstieg.titel,
-                    'art': weg.einstieg.art,
-                    'klassen': len(weg.klassen),
-                    'aktiv': gewaehlt is not None
-                    and weg.einstieg.titel == gewaehlt.einstieg.titel,
-                })
+                aus.append(
+                    {
+                        "titel": weg.einstieg.titel,
+                        "art": weg.einstieg.art,
+                        "klassen": len(weg.klassen),
+                        "aktiv": gewaehlt is not None and weg.einstieg.titel == gewaehlt.einstieg.titel,
+                    }
+                )
         return aus

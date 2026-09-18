@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Kategorien - was sich aus ``DJANGOBASE["test_befehle"]`` ableiten laesst.
+"""Kategorien - was sich aus ``DJANGOBASE["test_befehle"]`` ableiten laesst.
 
 Aus ``views/tests.py`` herausgeloest (17.08.2026): Die Ansicht war auf 399 Zeilen
 gewachsen und trug drei Aufgaben — Herleitung, Ausfuehrung, Darstellung. Hier
@@ -19,6 +19,7 @@ HumanBodyWeb, shortlongx). Jetzt wird Art und Ziel notfalls aus dem Kommando
 gelesen (``manage.py test app.tests.unit`` -> „unit"), und der Reiter steht
 ueberall.
 """
+
 import re
 import sys
 
@@ -43,10 +44,22 @@ class Kategorien:
     SAMMEL_FRIST = 3600
     #: Optionen von ``manage.py test``, auf die ein WERT folgt - deren Wert ist
     #: kein Test-Label (``-v 2`` waere sonst das Label „2").
-    WERT_OPTIONEN = {"-v", "--verbosity", "--settings", "--pythonpath", "-t",
-                     "--top-level-directory", "--testrunner", "--tag",
-                     "--exclude-tag", "--parallel", "-k", "--shuffle",
-                     "--durations", "--pdb"}
+    WERT_OPTIONEN = {
+        "-v",
+        "--verbosity",
+        "--settings",
+        "--pythonpath",
+        "-t",
+        "--top-level-directory",
+        "--testrunner",
+        "--tag",
+        "--exclude-tag",
+        "--parallel",
+        "-k",
+        "--shuffle",
+        "--durations",
+        "--pdb",
+    }
 
     def __init__(self, befehle):
         self.befehle = list(befehle or [])
@@ -73,20 +86,23 @@ class Kategorien:
         # die reihenfolge ist änderbar"). Ohne Angabe bleibt es bei der
         # eingebauten Folge — erst schnell, zuletzt langsam.
         from .testarten import Arten
+
         einteilung = Arten.aus_einstellungen()
         for art in einteilung.liste():
             dabei = nach_art.get(art) or []
             if not dabei:
                 continue
             ziele = [z for e in dabei for z in (e["ziel"] or "").split() if z]
-            arten.append({"art": art, "kurz": einteilung.name_von(art),
-                          "sammel": self.sammel(
-                              python, art,
-                              "Alle %s" % einteilung.lang_von(art), ziele),
-                          "befehle": dabei})
+            arten.append(
+                {
+                    "art": art,
+                    "kurz": einteilung.name_von(art),
+                    "sammel": self.sammel(python, art, "Alle %s" % einteilung.lang_von(art), ziele),
+                    "befehle": dabei,
+                }
+            )
         if ohne_art:
-            arten.append({"art": "apps", "kurz": "Nach App", "sammel": None,
-                          "befehle": ohne_art})
+            arten.append({"art": "apps", "kurz": "Nach App", "sammel": None, "befehle": ohne_art})
         return alles, arten, angereichert
 
     @classmethod
@@ -97,11 +113,15 @@ class Kategorien:
         aufgebaut, nicht sechsmal."""
         # Dictionary gewollt: dasselbe Format wie DJANGOBASE["test_befehle"],
         # damit die Ansicht es ohne Sonderweg ausfuehren kann.
-        return {"slug": "sammel-" + art, "name": name, "art": art,
-                "ziel": " ".join(ziele), "anzahl": len(ziele),
-                "frist": cls.SAMMEL_FRIST,
-                "cmd": [python, "manage.py", "test"] + list(ziele)
-                       + ["--noinput", "-v", "2"]}
+        return {
+            "slug": "sammel-" + art,
+            "name": name,
+            "art": art,
+            "ziel": " ".join(ziele),
+            "anzahl": len(ziele),
+            "frist": cls.SAMMEL_FRIST,
+            "cmd": [python, "manage.py", "test"] + list(ziele) + ["--noinput", "-v", "2"],
+        }
 
     def sammelbefehle(self):
         """Alle abgeleiteten Einträge - für die Ausfuehrung per ``?run=``."""
@@ -127,7 +147,7 @@ class Kategorien:
         return aus
 
     def discover(self):
-        u"""Labels je Art - Grundlage der Einzeltest-Discovery.
+        """Labels je Art - Grundlage der Einzeltest-Discovery.
 
         Wird genommen, wenn das Projekt kein ``test_discover`` pflegt: Die
         Einzeltest-Reiter (und damit die Laufzeit je Testcase) sollen ueberall
@@ -135,8 +155,11 @@ class Kategorien:
         Quelle sind dieselben Ziele wie fuer die Sammelknoepfe — eine Liste, kein
         zweiter Ort.
         """
-        return [{"typ": a["kurz"], "labels": (a["sammel"]["ziel"] or "").split()}
-                for a in self.arten if a.get("sammel")]
+        return [
+            {"typ": a["kurz"], "labels": (a["sammel"]["ziel"] or "").split()}
+            for a in self.arten
+            if a.get("sammel")
+        ]
 
     # ---------------------------------------------------------------- Lesehilfen
 
@@ -147,11 +170,11 @@ class Kategorien:
         if "test" not in toks:
             return []
         aus, vorher = [], ""
-        for t in toks[toks.index("test") + 1:]:
+        for t in toks[toks.index("test") + 1 :]:
             if t.startswith("-"):
                 vorher = t
                 continue
-            if vorher in cls.WERT_OPTIONEN:     # der Wert der Option, kein Label
+            if vorher in cls.WERT_OPTIONEN:  # der Wert der Option, kein Label
                 vorher = ""
                 continue
             vorher = ""
@@ -181,7 +204,7 @@ class Kategorien:
 
     @staticmethod
     def schluessel(name):
-        u"""„Search · chat" -> „search-chat" - Speicher-Schluessel einer Tabelle.
+        """„Search · chat" -> „search-chat" - Speicher-Schluessel einer Tabelle.
 
         Er landet in ``localStorage`` (Sortierung, Spaltenbreiten), deshalb ohne
         Leerzeichen und Sonderzeichen.

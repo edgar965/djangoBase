@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Kapselung - Modulfunktionen, die zusammen eine Klasse ergeben.
+"""Kapselung - Modulfunktionen, die zusammen eine Klasse ergeben.
 
     Kriterium 1 des Auftrags: „Möglichst alle Funktionen kapseln in Klassen"
 
@@ -21,6 +21,7 @@ Mehrere Modulfunktionen, die DASSELBE Argument herumreichen (``cfg``, ``ts``,
 ``daten``). Dieses Argument ist der Zustand, den die Klasse halten wuerde - und
 seine Zahl im Kopf jeder Signatur ist das Mass dafuer, wie viel Kapselung fehlt.
 """
+
 import ast
 from collections import Counter
 
@@ -31,14 +32,20 @@ from .werkzeug import Ergebnis, Werkzeug
 class Kapselung(Werkzeug):
     slug = "kapselung"
     titel = "Funktionen, die eine Klasse ergeben"
-    zweck = ("Dateien mit mehreren Modulfunktionen, die dasselbe Argument "
-             "herumreichen — das ist der Zustand, den eine Klasse hielte.")
-    befund = ("Ein Modul mit zwölf Funktionen, die alle „cfg“ und „quelle“ "
-              "durchreichen: Jede Signatur wiederholt, was die Klasse einmal "
-              "im Konstruktor hätte.")
-    abhilfe = ("Klasse mit dem gemeinsamen Argument als Feld; die Funktionen "
-               "werden Methoden. Views, Commands und Einstiegspunkte bleiben "
-               "Funktionen — Django ruft sie so auf.")
+    zweck = (
+        "Dateien mit mehreren Modulfunktionen, die dasselbe Argument "
+        "herumreichen — das ist der Zustand, den eine Klasse hielte."
+    )
+    befund = (
+        "Ein Modul mit zwölf Funktionen, die alle „cfg“ und „quelle“ "
+        "durchreichen: Jede Signatur wiederholt, was die Klasse einmal "
+        "im Konstruktor hätte."
+    )
+    abhilfe = (
+        "Klasse mit dem gemeinsamen Argument als Feld; die Funktionen "
+        "werden Methoden. Views, Commands und Einstiegspunkte bleiben "
+        "Funktionen — Django ruft sie so auf."
+    )
     dauer = "3–8 s"
     kriterium = 1
 
@@ -50,7 +57,8 @@ class Kapselung(Werkzeug):
     #: Drei freie Funktionen, die denselben Zustand von Hand durchreichen -
     #: genau das ist eine Klasse, die noch keine ist (Kriterium 1).
     anlassfall = Anlassfall(
-        {"depot.py": '''def wert(konto, kurse):
+        {
+            "depot.py": """def wert(konto, kurse):
     return sum(konto[s] * kurse[s] for s in konto)
 
 
@@ -62,8 +70,8 @@ def gewichtung(konto, kurse):
 def umschichten(konto, kurse, ziel):
     ist = gewichtung(konto, kurse)
     return {s: ziel.get(s, 0) - ist.get(s, 0) for s in konto}
-''',
-         "fertig.py": '''class Depot:
+""",
+            "fertig.py": '''class Depot:
     """Schon gekapselt - die drei Huellen darunter sind nur noch Namen."""
 
     def __init__(self, konto, kurse):
@@ -92,11 +100,15 @@ def gewichtung(konto, kurse):
 
 def umschichten(konto, kurse, ziel):
     return Depot(konto, kurse).umschichten(ziel)
-'''},
-        mindestens=1, hoechstens=1, erwartet_in="depot.py",
+''',
+        },
+        mindestens=1,
+        hoechstens=1,
+        erwartet_in="depot.py",
         warum="Kriterium 1: Funktionen, die denselben Zustand durchreichen, "
-              "sind eine Klasse ohne Konstruktor. `fertig.py` daneben ist die "
-              "AUSGEFÜHRTE Abhilfe — sie darf nicht wieder als Befund kommen.")
+        "sind eine Klasse ohne Konstruktor. `fertig.py` daneben ist die "
+        "AUSGEFÜHRTE Abhilfe — sie darf nicht wieder als Befund kommen.",
+    )
 
     def laufen(self):
         zeilen = []
@@ -104,18 +116,20 @@ def umschichten(konto, kurse, ziel):
             if d.baum is None or self._django_sonderfall(d):
                 continue
             tabelle = self._tabellen_namen(d)
-            klassennamen = {k.name for k in d.baum.body
-                            if isinstance(k, ast.ClassDef)}
+            klassennamen = {k.name for k in d.baum.body if isinstance(k, ast.ClassDef)}
             # Ohne dekorierte Funktionen — wie ``klassenplan``: Ein
             # ``@receiver(post_save)`` bekommt ``sender, instance, created``
             # vom Rahmen vorgeschrieben; sechs Empfaenger in ``signals.py``
             # teilen die Namen, aber keinen Zustand (12.09.2026, assistant).
-            funktionen = [k for k in d.baum.body
-                          if isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef))
-                          and k.name not in self.EINSTIEGE
-                          and k.name not in tabelle
-                          and not k.decorator_list
-                          and not self._huelle(k, klassennamen)]
+            funktionen = [
+                k
+                for k in d.baum.body
+                if isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef))
+                and k.name not in self.EINSTIEGE
+                and k.name not in tabelle
+                and not k.decorator_list
+                and not self._huelle(k, klassennamen)
+            ]
             if len(funktionen) < self.AB_ANZAHL:
                 continue
             gemeinsam = self._gemeinsame_argumente(funktionen)
@@ -128,22 +142,27 @@ def umschichten(konto, kurse, ziel):
             if len(gemeinsam) < 2:
                 continue
             klassen = [k.name for k in d.baum.body if isinstance(k, ast.ClassDef)]
-            zeilen.append({
-                "datei": d.name, "zeile": funktionen[0].lineno,
-                "funktionen": len(funktionen),
-                "gemeinsam": ", ".join("%s (%d×)" % (n, c) for n, c in gemeinsam[:3]),
-                "klassen da": len(klassen),
-            })
+            zeilen.append(
+                {
+                    "datei": d.name,
+                    "zeile": funktionen[0].lineno,
+                    "funktionen": len(funktionen),
+                    "gemeinsam": ", ".join("%s (%d×)" % (n, c) for n, c in gemeinsam[:3]),
+                    "klassen da": len(klassen),
+                }
+            )
         zeilen.sort(key=lambda z: -z["funktionen"])
         return Ergebnis(
-            ["datei", "zeile", "funktionen", "gemeinsam", "klassen da"], zeilen,
+            ["datei", "zeile", "funktionen", "gemeinsam", "klassen da"],
+            zeilen,
             "%d Dateien mit Funktionen um denselben Zustand herum" % len(zeilen),
             "Je öfter dasselbe Argument in den Signaturen steht, desto klarer "
-            "ist, was die Klasse halten würde.")
+            "ist, was die Klasse halten würde.",
+        )
 
     @staticmethod
     def _huelle(knoten, klassennamen):
-        u"""Ist das nur die Huelle um eine Klasse DERSELBEN Datei?
+        """Ist das nur die Huelle um eine Klasse DERSELBEN Datei?
 
             def _run_mediapipe_to_csv(job, video_path, output_dir):
                 return Erkennung2d(job, video_path, output_dir).mediapipe()
@@ -157,13 +176,14 @@ def umschichten(konto, kurse, ziel):
         nicht) UND eine Klasse aus dieser Datei darin. Ein Einzeiler, der etwas
         anderes tut, bleibt ein Befund.
         """
-        rumpf = [x for x in knoten.body
-                 if not (isinstance(x, ast.Expr)
-                         and isinstance(getattr(x, "value", None), ast.Constant))]
+        rumpf = [
+            x
+            for x in knoten.body
+            if not (isinstance(x, ast.Expr) and isinstance(getattr(x, "value", None), ast.Constant))
+        ]
         if len(rumpf) != 1 or not isinstance(rumpf[0], ast.Return):
             return False
-        return any(isinstance(x, ast.Name) and x.id in klassennamen
-                   for x in ast.walk(rumpf[0]))
+        return any(isinstance(x, ast.Name) and x.id in klassennamen for x in ast.walk(rumpf[0]))
 
     @staticmethod
     def _tabellen_namen(d):
@@ -197,18 +217,20 @@ def umschichten(konto, kurse, ziel):
                         for y in ast.walk(arg):
                             if isinstance(y, ast.Name):
                                 namen.add(y.id)
-        eigene = {f.name for f in d.baum.body
-                  if isinstance(f, (ast.FunctionDef, ast.AsyncFunctionDef))}
+        eigene = {f.name for f in d.baum.body if isinstance(f, (ast.FunctionDef, ast.AsyncFunctionDef))}
         return namen & eigene
 
     @staticmethod
     def _django_sonderfall(d):
         name = d.name
-        return (name.endswith(("/urls.py", "/admin.py", "/apps.py", "/wsgi.py",
-                               "/asgi.py", "/settings.py", "/conftest.py"))
-                or "/management/commands/" in name
-                or "/migrations/" in name
-                or name.endswith("/views.py"))
+        return (
+            name.endswith(
+                ("/urls.py", "/admin.py", "/apps.py", "/wsgi.py", "/asgi.py", "/settings.py", "/conftest.py")
+            )
+            or "/management/commands/" in name
+            or "/migrations/" in name
+            or name.endswith("/views.py")
+        )
 
     def _gemeinsame_argumente(self, funktionen):
         """[(Name, Anzahl)] der Argumente, die in mehreren Funktionen stehen."""

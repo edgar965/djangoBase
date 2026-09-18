@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Von einem Einstieg aus verfolgen, welcher Code beteiligt ist.
+"""Von einem Einstieg aus verfolgen, welcher Code beteiligt ist.
 
 DIE ANSAGE (Edgar, 27.08.2026)
 ==============================
@@ -48,6 +48,7 @@ Je Einstieg: die beteiligten Klassen, die beruehrten Module, die Schritte
 mit Datei und Zeile — und die offenen Enden. Die Anzahl der Klassen ist
 das Mass fuer die Komplexitaet, nach dem die Liste sortiert wird.
 """
+
 import ast
 from pathlib import Path
 
@@ -59,31 +60,75 @@ from .klassenmodell import AUS
 #: ``_FakeCv2`` aus ``tests/unit/test_motion_gate.py``: Der Name
 #: ``GaussianBlur`` ist im Projekt eindeutig — er gehoert nur eben einem
 #: Doppelgaenger, den nie ein Dienst ruft.
-OHNE = ('tests', 'test', 'testdaten')
+OHNE = ("tests", "test", "testdaten")
 
 #: Namen, die zu jeder zweiten Klasse gehoeren und darum nichts ueber den
 #: Weg aussagen. Ohne diese Liste fuehrt jeder Weg ueber ``__init__``.
 STUMPF = {
-    '__init__', '__str__', '__repr__', '__enter__', '__exit__',
-    '__len__', '__iter__', '__eq__', '__hash__', '__call__',
-    'setUp', 'tearDown', 'setUpClass', 'setUpTestData',
+    "__init__",
+    "__str__",
+    "__repr__",
+    "__enter__",
+    "__exit__",
+    "__len__",
+    "__iter__",
+    "__eq__",
+    "__hash__",
+    "__call__",
+    "setUp",
+    "tearDown",
+    "setUpClass",
+    "setUpTestData",
 }
 
 #: Was Python selbst mitbringt — kein Schritt des Projekts.
 EINGEBAUT = {
-    'len', 'str', 'int', 'float', 'bool', 'list', 'dict', 'set', 'tuple',
-    'print', 'range', 'enumerate', 'zip', 'map', 'filter', 'sorted', 'sum',
-    'min', 'max', 'abs', 'round', 'any', 'all', 'open', 'type', 'super',
-    'isinstance', 'issubclass', 'getattr', 'setattr', 'hasattr', 'repr',
-    'format', 'bytes', 'frozenset', 'reversed', 'iter', 'next', 'id',
+    "len",
+    "str",
+    "int",
+    "float",
+    "bool",
+    "list",
+    "dict",
+    "set",
+    "tuple",
+    "print",
+    "range",
+    "enumerate",
+    "zip",
+    "map",
+    "filter",
+    "sorted",
+    "sum",
+    "min",
+    "max",
+    "abs",
+    "round",
+    "any",
+    "all",
+    "open",
+    "type",
+    "super",
+    "isinstance",
+    "issubclass",
+    "getattr",
+    "setattr",
+    "hasattr",
+    "repr",
+    "format",
+    "bytes",
+    "frozenset",
+    "reversed",
+    "iter",
+    "next",
+    "id",
 }
 
 
 class Bezug:
-    u"""EINE Definition im Projekt — der Ort, auf den ein Kasten zeigt."""
+    """EINE Definition im Projekt — der Ort, auf den ein Kasten zeigt."""
 
-    __slots__ = ('name', 'art', 'klasse', 'modul', 'datei', 'zeile',
-                 'knoten')
+    __slots__ = ("name", "art", "klasse", "modul", "datei", "zeile", "knoten")
 
     def __init__(self, name, art, klasse, modul, datei, zeile, knoten):
         self.name = name
@@ -98,24 +143,24 @@ class Bezug:
 
     @property
     def schluessel(self):
-        u"""Eindeutig ueber das ganze Projekt."""
+        """Eindeutig ueber das ganze Projekt."""
         if self.klasse:
-            return '%s:%s.%s' % (self.modul, self.klasse, self.name)
-        return '%s:%s' % (self.modul, self.name)
+            return "%s:%s.%s" % (self.modul, self.klasse, self.name)
+        return "%s:%s" % (self.modul, self.name)
 
     @property
     def anzeige(self):
-        u"""Was im Kasten steht."""
+        """Was im Kasten steht."""
         if self.klasse:
-            return '%s.%s' % (self.klasse, self.name)
+            return "%s.%s" % (self.klasse, self.name)
         return self.name
 
     def __repr__(self):
-        return '<Bezug %s>' % self.schluessel
+        return "<Bezug %s>" % self.schluessel
 
 
 class Verzeichnis:
-    u"""Alle Definitionen des Projekts, nachschlagbar nach Namen.
+    """Alle Definitionen des Projekts, nachschlagbar nach Namen.
 
     Wird EINMAL gelesen und dann von jedem Weg benutzt — sonst liest jeder
     der fuenfzig Wege das Projekt erneut.
@@ -163,12 +208,11 @@ class Verzeichnis:
         self.klassen_gesamt = 0
 
     def lesen(self):
-        for datei in sorted(self.wurzel.rglob('*.py')):
-            if any(teil in AUS or teil in OHNE or teil in self.ausser
-                   for teil in datei.parts):
+        for datei in sorted(self.wurzel.rglob("*.py")):
+            if any(teil in AUS or teil in OHNE or teil in self.ausser for teil in datei.parts):
                 continue
             try:
-                baum = ast.parse(datei.read_text(encoding='utf-8'))
+                baum = ast.parse(datei.read_text(encoding="utf-8"))
             except (SyntaxError, UnicodeDecodeError, OSError):
                 continue
             self.dateien += 1
@@ -180,24 +224,23 @@ class Verzeichnis:
         for knoten in ast.walk(baum):
             if isinstance(knoten, ast.ClassDef):
                 self.klassen_gesamt += 1
-                self.klassen.setdefault(knoten.name, Bezug(
-                    knoten.name, 'klasse', '', modul, datei,
-                    knoten.lineno, knoten))
+                self.klassen.setdefault(
+                    knoten.name, Bezug(knoten.name, "klasse", "", modul, datei, knoten.lineno, knoten)
+                )
                 for kind in knoten.body:
-                    if isinstance(kind, (ast.FunctionDef,
-                                         ast.AsyncFunctionDef)):
+                    if isinstance(kind, (ast.FunctionDef, ast.AsyncFunctionDef)):
                         self._methoden.setdefault(kind.name, []).append(
-                            Bezug(kind.name, 'methode', knoten.name, modul,
-                                  datei, kind.lineno, kind))
+                            Bezug(kind.name, "methode", knoten.name, modul, datei, kind.lineno, kind)
+                        )
                 self._besitz_lesen(knoten)
         for knoten in baum.body:
             if isinstance(knoten, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                self.funktionen.setdefault(knoten.name, Bezug(
-                    knoten.name, 'funktion', '', modul, datei,
-                    knoten.lineno, knoten))
+                self.funktionen.setdefault(
+                    knoten.name, Bezug(knoten.name, "funktion", "", modul, datei, knoten.lineno, knoten)
+                )
 
     def _besitz_lesen(self, klasse):
-        u"""``self.feld = Klasse(...)`` einsammeln — in JEDER Methode.
+        """``self.feld = Klasse(...)`` einsammeln — in JEDER Methode.
 
         Nicht nur in ``__init__``: Ein Feld wird oft erst dort gesetzt, wo
         es gebraucht wird (``_open_hi_channel``, ``prepare``). Wer nur
@@ -207,14 +250,15 @@ class Verzeichnis:
         for knoten in ast.walk(klasse):
             if not isinstance(knoten, ast.Assign):
                 continue
-            if not (isinstance(knoten.value, ast.Call)
-                    and isinstance(knoten.value.func, ast.Name)):
+            if not (isinstance(knoten.value, ast.Call) and isinstance(knoten.value.func, ast.Name)):
                 continue
             typ = knoten.value.func.id
             for ziel in knoten.targets:
-                if (isinstance(ziel, ast.Attribute)
-                        and isinstance(ziel.value, ast.Name)
-                        and ziel.value.id == 'self'):
+                if (
+                    isinstance(ziel, ast.Attribute)
+                    and isinstance(ziel.value, ast.Name)
+                    and ziel.value.id == "self"
+                ):
                     aus.setdefault(ziel.attr, typ)
 
     def _modul(self, datei):
@@ -222,12 +266,12 @@ class Verzeichnis:
             rel = datei.relative_to(self.wurzel)
         except ValueError:
             return datei.stem
-        return rel.as_posix()[:-3].replace('/', '.')
+        return rel.as_posix()[:-3].replace("/", ".")
 
     # ── Nachschlagen ────────────────────────────────────────────
 
     def in_klasse(self, klassenname, methodenname):
-        u"""Die Methode EINER bestimmten Klasse — auch wenn der Name
+        """Die Methode EINER bestimmten Klasse — auch wenn der Name
         mehrdeutig ist. Hier ist er es nicht: Die Klasse steht fest."""
         for bezug in self._methoden.get(methodenname, ()):
             if bezug.klasse == klassenname:
@@ -235,11 +279,11 @@ class Verzeichnis:
         return None
 
     def feldtyp(self, klassenname, feldname):
-        u"""Was in ``self.<feldname>`` steckt — laut Code, nicht geraten."""
+        """Was in ``self.<feldname>`` steckt — laut Code, nicht geraten."""
         return self.felder.get(klassenname, {}).get(feldname)
 
     def methode(self, name):
-        u"""Der Bezug — aber NUR wenn genau eine Klasse den Namen traegt.
+        """Der Bezug — aber NUR wenn genau eine Klasse den Namen traegt.
 
         Das ist die Stelle, an der dieses Werkzeug sich weigert zu raten.
         Bei ``run`` (sieben Klassen) kommt ``None`` zurueck, und der Weg
@@ -254,7 +298,7 @@ class Verzeichnis:
         return len(self._methoden.get(name, ())) > 1
 
     def rufer(self, schluessel):
-        u"""Wer ruft diese Definition? — ``[Bezug, …]``.
+        """Wer ruft diese Definition? — ``[Bezug, …]``.
 
         DIE ANSAGE (Edgar, 27.08.2026)
         ==============================
@@ -275,11 +319,15 @@ class Verzeichnis:
         return self._rufer.get(schluessel, [])
 
     def _rufer_bauen(self):
-        from .wegenetz import Wegsucher      # Ringschluss vermeiden
+        from .wegenetz import Wegsucher  # Ringschluss vermeiden
+
         sucher = Wegsucher(self)
         self._rufer = {}
-        alle = (list(self.klassen.values()) + list(self.funktionen.values())
-                + [b for liste in self._methoden.values() for b in liste])
+        alle = (
+            list(self.klassen.values())
+            + list(self.funktionen.values())
+            + [b for liste in self._methoden.values() for b in liste]
+        )
         for bezug in alle:
             for ziel, _grund in sucher._gerufene(bezug, None):
                 if ziel.schluessel == bezug.schluessel:
@@ -287,7 +335,7 @@ class Verzeichnis:
                 self._rufer.setdefault(ziel.schluessel, []).append(bezug)
 
     def kennzahlen(self):
-        u"""NAMEN und ANZAHL sind hier nicht dasselbe (27.08.2026).
+        """NAMEN und ANZAHL sind hier nicht dasselbe (27.08.2026).
 
         Die Kopfzeile las sich als „587 Klassen in 587 Dateien" — eine
         Zahl, die stutzig macht und es auch verdient: Es sind 646 Klassen
@@ -300,33 +348,33 @@ class Verzeichnis:
         """
         eindeutig = sum(1 for v in self._methoden.values() if len(v) == 1)
         return {
-            'dateien': self.dateien,
-            'klassen': self.klassen_gesamt,
-            'klassennamen': len(self.klassen),
-            'funktionen': len(self.funktionen),
-            'methodennamen': len(self._methoden),
-            'eindeutig': eindeutig,
+            "dateien": self.dateien,
+            "klassen": self.klassen_gesamt,
+            "klassennamen": len(self.klassen),
+            "funktionen": len(self.funktionen),
+            "methodennamen": len(self._methoden),
+            "eindeutig": eindeutig,
         }
 
 
 class Schritt:
-    u"""Ein Kasten im Bild: eine Definition und wie weit sie vom Einstieg
+    """Ein Kasten im Bild: eine Definition und wie weit sie vom Einstieg
     entfernt liegt."""
 
-    __slots__ = ('bezug', 'tiefe')
+    __slots__ = ("bezug", "tiefe")
 
     def __init__(self, bezug, tiefe):
         self.bezug = bezug
         self.tiefe = tiefe
 
     def __repr__(self):
-        return '<Schritt %s @%d>' % (self.bezug.schluessel, self.tiefe)
+        return "<Schritt %s @%d>" % (self.bezug.schluessel, self.tiefe)
 
 
 class Kante:
-    u"""Eine Linie im Bild: von wo nach wo, und warum sie da ist."""
+    """Eine Linie im Bild: von wo nach wo, und warum sie da ist."""
 
-    __slots__ = ('von', 'nach', 'grund')
+    __slots__ = ("von", "nach", "grund")
 
     def __init__(self, von, nach, grund):
         self.von = von
@@ -335,11 +383,11 @@ class Kante:
         self.grund = grund
 
     def __repr__(self):
-        return '<Kante %s -> %s>' % (self.von, self.nach)
+        return "<Kante %s -> %s>" % (self.von, self.nach)
 
 
 class Weg:
-    u"""EIN Workflow: der Weg des Codes ab einem Einstieg."""
+    """EIN Workflow: der Weg des Codes ab einem Einstieg."""
 
     def __init__(self, einstieg, start=None):
         self.einstieg = einstieg
@@ -366,11 +414,11 @@ class Weg:
 
     @property
     def klassen(self):
-        u"""Die beteiligten Klassen — das Mass fuer die Komplexitaet."""
-        return sorted({s.bezug.klasse for s in self.schritte if
-                       s.bezug.klasse} |
-                      {s.bezug.name for s in self.schritte if
-                       s.bezug.art == 'klasse'})
+        """Die beteiligten Klassen — das Mass fuer die Komplexitaet."""
+        return sorted(
+            {s.bezug.klasse for s in self.schritte if s.bezug.klasse}
+            | {s.bezug.name for s in self.schritte if s.bezug.art == "klasse"}
+        )
 
     @property
     def module(self):
@@ -382,26 +430,30 @@ class Weg:
 
     def als_dict(self):
         return {
-            'einstieg': self.einstieg.als_dict(),
-            'klassen': self.klassen,
-            'module': self.module,
-            'anzahl_klassen': len(self.klassen),
-            'anzahl_schritte': len(self.schritte),
-            'tiefe': self.tiefe,
-            'offen': sorted(set(self.offen)),
-            'abgeschnitten': self.abgeschnitten,
-            'schritte': [{'name': s.bezug.anzeige,
-                          'modul': s.bezug.modul,
-                          'datei': str(s.bezug.datei),
-                          'zeile': s.bezug.zeile,
-                          'tiefe': s.tiefe} for s in self.schritte],
-            'kanten': [{'von': k.von, 'nach': k.nach, 'grund': k.grund}
-                       for k in self.kanten],
+            "einstieg": self.einstieg.als_dict(),
+            "klassen": self.klassen,
+            "module": self.module,
+            "anzahl_klassen": len(self.klassen),
+            "anzahl_schritte": len(self.schritte),
+            "tiefe": self.tiefe,
+            "offen": sorted(set(self.offen)),
+            "abgeschnitten": self.abgeschnitten,
+            "schritte": [
+                {
+                    "name": s.bezug.anzeige,
+                    "modul": s.bezug.modul,
+                    "datei": str(s.bezug.datei),
+                    "zeile": s.bezug.zeile,
+                    "tiefe": s.tiefe,
+                }
+                for s in self.schritte
+            ],
+            "kanten": [{"von": k.von, "nach": k.nach, "grund": k.grund} for k in self.kanten],
         }
 
 
 class Wegsucher:
-    u"""Verfolgt einen Einstieg durch den Code.
+    """Verfolgt einen Einstieg durch den Code.
 
     ``tiefe`` begrenzt, wie weit verfolgt wird. Ohne Grenze laeuft jeder
     Weg irgendwann bei den Hilfsfunktionen zusammen und jedes Bild sieht
@@ -416,7 +468,7 @@ class Wegsucher:
         self.hoechstens = hoechstens
 
     def verfolgen(self, einstieg, start):
-        u"""Ab ``start`` (einem Bezug) den Weg ablaufen."""
+        """Ab ``start`` (einem Bezug) den Weg ablaufen."""
         weg = Weg(einstieg, start)
         gesehen = {start.schluessel}
         weg.schritte.append(Schritt(start, 0))
@@ -444,7 +496,7 @@ class Wegsucher:
 
     @staticmethod
     def _rumpf(bezug):
-        u"""Welche Knoten gehoeren zu diesem Kasten?
+        """Welche Knoten gehoeren zu diesem Kasten?
 
         EIN KLASSENKASTEN IST DER KONSTRUKTOR, NICHT DIE GANZE KLASSE
         =============================================================
@@ -469,18 +521,16 @@ class Wegsucher:
         (``vorgabe = Fabrik()``): Das laeuft beim Import, also erst recht
         vor jedem Gebrauch.
         """
-        if bezug.art != 'klasse':
+        if bezug.art != "klasse":
             return [bezug.knoten]
-        aus = [k for k in bezug.knoten.body
-               if not isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef))]
+        aus = [k for k in bezug.knoten.body if not isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef))]
         for k in bezug.knoten.body:
-            if (isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef))
-                    and k.name == '__init__'):
+            if isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef)) and k.name == "__init__":
                 aus.append(k)
         return aus
 
     def _gerufene(self, bezug, weg):
-        u"""Was in diesem Rumpf gerufen wird — aufgeloest, soweit belegbar.
+        """Was in diesem Rumpf gerufen wird — aufgeloest, soweit belegbar.
 
         ``weg`` darf ``None`` sein: Dann wird nur geantwortet, OB etwas
         gerufen wird, ohne die offenen Enden mitzuschreiben.
@@ -498,38 +548,38 @@ class Wegsucher:
                 name = knoten.func.id
                 if name in EINGEBAUT:
                     continue
-                ziel = (self.verzeichnis.klassen.get(name) or
-                        self.verzeichnis.funktionen.get(name))
-                grund = 'aufruf'
+                ziel = self.verzeichnis.klassen.get(name) or self.verzeichnis.funktionen.get(name)
+                grund = "aufruf"
             elif isinstance(knoten.func, ast.Attribute):
                 name = knoten.func.attr
                 if name in STUMPF or name in EINGEBAUT:
                     continue
                 ziel = self._ueber_besitz(bezug, knoten.func, oertlich)
-                grund = 'besitz'
+                grund = "besitz"
                 if ziel is None:
                     ziel = self.verzeichnis.methode(name)
-                    grund = 'methode'
-                if (ziel is None and weg is not None
-                        and self.verzeichnis.mehrdeutig(name)):
+                    grund = "methode"
+                if ziel is None and weg is not None and self.verzeichnis.mehrdeutig(name):
                     weg.offen.append(name)
             if ziel is not None and ziel.schluessel != bezug.schluessel:
                 aus.append((ziel, grund))
         return aus
 
     def _ueber_besitz(self, bezug, funk, oertlich):
-        u"""``self.service.start()`` und ``p = Producer(); p.start()``.
+        """``self.service.start()`` und ``p = Producer(); p.start()``.
 
         Beides steht im Code: einmal als Feldzuweisung in der Klasse,
         einmal als Zuweisung im selben Rumpf. Kein Raten, keine
         Typermittlung ueber Bibliotheken.
         """
         traeger = None
-        if (isinstance(funk.value, ast.Attribute)
-                and isinstance(funk.value.value, ast.Name)
-                and funk.value.value.id == 'self' and bezug.klasse):
-            traeger = self.verzeichnis.feldtyp(bezug.klasse,
-                                               funk.value.attr)
+        if (
+            isinstance(funk.value, ast.Attribute)
+            and isinstance(funk.value.value, ast.Name)
+            and funk.value.value.id == "self"
+            and bezug.klasse
+        ):
+            traeger = self.verzeichnis.feldtyp(bezug.klasse, funk.value.attr)
         elif isinstance(funk.value, ast.Name):
             traeger = oertlich.get(funk.value.id)
         if not traeger:
@@ -538,13 +588,12 @@ class Wegsucher:
 
     @staticmethod
     def _oertliche_typen(rumpf):
-        u"""``bild = Klassenbild(...)`` -> ``{'bild': 'Klassenbild'}``."""
+        """``bild = Klassenbild(...)`` -> ``{'bild': 'Klassenbild'}``."""
         aus = {}
         for knoten in ast.walk(rumpf):
             if not isinstance(knoten, ast.Assign):
                 continue
-            if not (isinstance(knoten.value, ast.Call)
-                    and isinstance(knoten.value.func, ast.Name)):
+            if not (isinstance(knoten.value, ast.Call) and isinstance(knoten.value.func, ast.Name)):
                 continue
             for ziel in knoten.targets:
                 if isinstance(ziel, ast.Name):

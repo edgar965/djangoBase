@@ -30,13 +30,17 @@ INSTALLED_APPS = [
     "djangobase",
 ]
 
-TEMPLATES = [{
-    "OPTIONS": {"context_processors": [
-        # ... Django-Defaults ...
-        "djangobase.context_processors.djangobase",   # PFLICHT
-        "myapp.context_processors.active_theme",       # für Theme-Switch (s. §3)
-    ]},
-}]
+TEMPLATES = [
+    {
+        "OPTIONS": {
+            "context_processors": [
+                # ... Django-Defaults ...
+                "djangobase.context_processors.djangobase",  # PFLICHT
+                "myapp.context_processors.active_theme",  # für Theme-Switch (s. §3)
+            ]
+        },
+    }
+]
 
 DJANGOBASE = {
     "titel": "Meine App",
@@ -44,9 +48,9 @@ DJANGOBASE = {
     "version": VERSION,
     # 5-Modi-Palette (Wert = (slug, label, akzentfarbe)):
     "theme_modes": [
-        ("dark",   "Dark",   "#4ea8f6"),
-        ("light",  "Light",  "#1976d2"),
-        ("cyber",  "Cyber",  "#00f0ff"),
+        ("dark", "Dark", "#4ea8f6"),
+        ("light", "Light", "#1976d2"),
+        ("cyber", "Cyber", "#00f0ff"),
         ("forest", "Forest", "#4caf50"),
         ("sunset", "Sunset", "#ff7a45"),
     ],
@@ -62,7 +66,7 @@ DJANGOBASE = {
 
 ```python
 urlpatterns = [
-    path("hilfe/", include("djangobase.urls")),   # /hilfe/versionen, /hilfe/einstellungen, ...
+    path("hilfe/", include("djangobase.urls")),  # /hilfe/versionen, /hilfe/einstellungen, ...
     # ...
 ]
 ```
@@ -162,6 +166,7 @@ def active_theme(request):
     """Profil ist die einzige Quelle. CleanOrga-Layout -> light, sonst theme_default."""
     try:
         from djangobase.conf import conf
+
         c = conf()
         if (c.get("base_template") or "").endswith("base_cleanorga.html"):
             return {"aktives_theme": "light"}

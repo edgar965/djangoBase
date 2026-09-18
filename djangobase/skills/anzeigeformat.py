@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Anzeigeformat - wohin gehen die Schlüssel eines Rückgabe-Woerterbuchs?
+"""Anzeigeformat - wohin gehen die Schlüssel eines Rückgabe-Woerterbuchs?
 
 DIE FRAGE, DIE ZWEI DRITTEL DER BEFUNDE ENTSCHEIDET (16.08.2026)
 ================================================================
@@ -25,6 +25,7 @@ Woerterbuch kann unterwegs gelesen werden und am Ende hinausgehen - dann steht
 die Klasse trotzdem zur Debatte. Deshalb wird die Trefferquote ausgewiesen und
 kein Urteil gefaellt: Ab welchem Anteil man umbaut, entscheidet der Mensch.
 """
+
 import ast
 import re
 from collections import Counter
@@ -61,12 +62,10 @@ class FrontendNamen:
                 for pfad in self.wurzel.rglob(muster):
                     if any(t in self.ausgeschlossen for t in pfad.parts):
                         continue
-                    if (self.gitfilter is not None
-                            and not self.gitfilter.erlaubt(pfad)):
+                    if self.gitfilter is not None and not self.gitfilter.erlaubt(pfad):
                         continue
                     try:
-                        z.update(self.WORT.findall(
-                            pfad.read_text(encoding="utf-8", errors="replace")))
+                        z.update(self.WORT.findall(pfad.read_text(encoding="utf-8", errors="replace")))
                     except OSError:
                         continue
                     self._dateien += 1
@@ -75,7 +74,7 @@ class FrontendNamen:
 
     @property
     def dateien(self):
-        self.namen
+        _ = self.namen  # fuellt nebenbei `_dateien`
         return self._dateien
 
     def kennt(self, name):
@@ -85,15 +84,21 @@ class FrontendNamen:
 class Anzeigeformat(Werkzeug):
     slug = "anzeigeformat"
     titel = "Geht das Dictionary an die Oberfläche?"
-    zweck = ("Für jedes Rückgabe-Dictionary: Wie viele seiner Schlüssel stehen "
-             "wörtlich im JavaScript oder in einer Vorlage?")
-    befund = ("134 von 204 Kriterium-11-Befunden waren Anzeigeformate — der "
-              "Auftrag nimmt sie selbst aus („geht es als JSON an den Browser, "
-              "bleibt es ein Dictionary“).")
-    abhilfe = ("Bei hoher Quote: Vermerk „Dictionary gewollt: <wohin>“ setzen "
-               "und nicht umbauen — das Werkzeug liest ihn und urteilt dann "
-               "„belegt“. Bei null Treffern ist es eine interne Kette — dort "
-               "lohnt die Klasse.")
+    zweck = (
+        "Für jedes Rückgabe-Dictionary: Wie viele seiner Schlüssel stehen "
+        "wörtlich im JavaScript oder in einer Vorlage?"
+    )
+    befund = (
+        "134 von 204 Kriterium-11-Befunden waren Anzeigeformate — der "
+        "Auftrag nimmt sie selbst aus („geht es als JSON an den Browser, "
+        "bleibt es ein Dictionary“)."
+    )
+    abhilfe = (
+        "Bei hoher Quote: Vermerk „Dictionary gewollt: <wohin>“ setzen "
+        "und nicht umbauen — das Werkzeug liest ihn und urteilt dann "
+        "„belegt“. Bei null Treffern ist es eine interne Kette — dort "
+        "lohnt die Klasse."
+    )
     dauer = "5–12 s"
     kriterium = 11
 
@@ -110,8 +115,24 @@ class Anzeigeformat(Werkzeug):
     #: So viele Zeilen ueber der `return`-Zeile zaehlen als Begruendung.
     VERMERK_ZEILEN = 7
     #: Schluessel, die ueberall vorkommen und deshalb nichts belegen.
-    ZU_HAEUFIG = {"ok", "error", "name", "key", "value", "date", "id", "type",
-                  "label", "data", "text", "url", "status", "title", "n", "count"}
+    ZU_HAEUFIG = {
+        "ok",
+        "error",
+        "name",
+        "key",
+        "value",
+        "date",
+        "id",
+        "type",
+        "label",
+        "data",
+        "text",
+        "url",
+        "status",
+        "title",
+        "n",
+        "count",
+    }
     #: Ab diesem Anteil gilt es als Anzeigeformat.
     SCHWELLE = 0.7
 
@@ -119,21 +140,23 @@ class Anzeigeformat(Werkzeug):
     #: stehen. Das ist kein Umbaukandidat, sondern ein ANZEIGEFORMAT - der
     #: Auftrag gibt es selbst vor. Von 204 Befunden waren 134 genau das.
     anlassfall = Anlassfall(
-        {"api.py": '''def antwort(t):
+        {
+            "api.py": """def antwort(t):
     return {"kurs": t.kurs, "zeit": t.zeit,
             "menge": t.menge, "richtung": t.richtung}
-''',
-         "tabelle.js": '''export function zeile(d) {
+""",
+            "tabelle.js": """export function zeile(d) {
   return `${d.kurs} ${d.zeit} ${d.menge} ${d.richtung}`;
 }
-'''},
+""",
+        },
         erwartet_in="antwort",
         warum="134 von 204 Befunden waren Anzeigeformate — Schlüssel, die die "
-              "Oberfläche wörtlich liest und die deshalb bleiben müssen")
+        "Oberfläche wörtlich liest und die deshalb bleiben müssen",
+    )
 
     def laufen(self):
-        frontend = FrontendNamen(self.wurzel(), self.ausgeschlossen(),
-                                 gitfilter=self.gitfilter())
+        frontend = FrontendNamen(self.wurzel(), self.ausgeschlossen(), gitfilter=self.gitfilter())
         zeilen = []
         for d in self.dateien():
             if d.baum is None:
@@ -152,18 +175,23 @@ class Anzeigeformat(Werkzeug):
             zeilen,
             "%d Rückgabe-Dictionaries — %d Anzeigeformat, %d Kette, %d belegt, "
             "%d gemischt (Frontend: %d Dateien)"
-            % (len(zeilen), len(anzeige), len(kette), len(belegt),
-               len(zeilen) - len(anzeige) - len(kette) - len(belegt),
-               frontend.dateien),
+            % (
+                len(zeilen),
+                len(anzeige),
+                len(kette),
+                len(belegt),
+                len(zeilen) - len(anzeige) - len(kette) - len(belegt),
+                frontend.dateien,
+            ),
             "„Kette → Klasse“ ist die Liste, die Arbeit macht. „Anzeigeformat“ "
-            "nimmt der Auftrag selbst aus — dort genügt der Vermerk im Code.")
+            "nimmt der Auftrag selbst aus — dort genügt der Vermerk im Code.",
+        )
 
     def _pruefen(self, d, funktion, ret, frontend):
         wert = ret.value
         if not isinstance(wert, ast.Dict):
             return None
-        feste = [k.value for k in wert.keys
-                 if isinstance(k, ast.Constant) and isinstance(k.value, str)]
+        feste = [k.value for k in wert.keys if isinstance(k, ast.Constant) and isinstance(k.value, str)]
         if len(feste) < self.MIN_SCHLUESSEL:
             return None
         aussagekraeftig = [s for s in feste if s not in self.ZU_HAEUFIG]
@@ -174,12 +202,19 @@ class Anzeigeformat(Werkzeug):
         if self._begruendet(d, ret.lineno):
             urteil = "belegt"
         else:
-            urteil = ("Anzeigeformat" if anteil >= self.SCHWELLE
-                      else ("Kette → Klasse" if anteil == 0 else "gemischt"))
-        return {"datei": d.name, "zeile": ret.lineno, "funktion": funktion.name,
-                "schlüssel": len(feste),
-                "im frontend": "%d / %d" % (len(treffer), len(aussagekraeftig)),
-                "urteil": urteil}
+            urteil = (
+                "Anzeigeformat"
+                if anteil >= self.SCHWELLE
+                else ("Kette → Klasse" if anteil == 0 else "gemischt")
+            )
+        return {
+            "datei": d.name,
+            "zeile": ret.lineno,
+            "funktion": funktion.name,
+            "schlüssel": len(feste),
+            "im frontend": "%d / %d" % (len(treffer), len(aussagekraeftig)),
+            "urteil": urteil,
+        }
 
     def _begruendet(self, d, zeile):
         """Steht ueber dem `return` der Vermerk „Dictionary gewollt"?"""

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Wachstum - welche Bauform in einer Schleife WIRKLICH quadratisch waechst.
+"""Wachstum - welche Bauform in einer Schleife WIRKLICH quadratisch waechst.
 
 DIE MESSUNG STATT DER BEHAUPTUNG (16.08.2026)
 =============================================
@@ -33,6 +33,7 @@ antritt, hatte selbst eine.
 Dieses Werkzeug misst es NACH - auf der Maschine, auf der es laeuft. Wer die
 Regel uebernimmt, soll die Zahl dazu haben und sie nicht glauben muessen.
 """
+
 import timeit
 
 from .werkzeug import Ergebnis, Werkzeug
@@ -89,7 +90,7 @@ def _liste_append(n):
 def _liste_neuzuweisung(n):
     aus = []
     for i in range(n):
-        aus = aus + [i]           # DIESE Form kopiert wirklich
+        aus = aus + [i]  # DIESE Form kopiert wirklich
     return aus
 
 
@@ -127,7 +128,7 @@ def _text_gehalten(n):
     """
     s, halten = "", None
     for _i in range(n):
-        halten = s                # <- die zweite Referenz, JETZT
+        halten = s  # <- die zweite Referenz, JETZT
         s += "x" * 20
     return s if halten is None else s
 
@@ -135,12 +136,18 @@ def _text_gehalten(n):
 class Wachstum(Werkzeug):
     slug = "wachstum"
     titel = "Wächst das wirklich quadratisch?"
-    zweck = ("Misst die üblichen Schleifen-Bauformen bei vervierfachter Größe. "
-             "Linear wäre Faktor 4, quadratisch 16.")
-    befund = ("44 Befunde behaupteten „wächst quadratisch“ für ``x += [...]`` — "
-              "gemessen Faktor 3,0. Quadratisch ist allein ``x = x + [...]``.")
-    abhilfe = ("Nur die Neuzuweisung ersetzen. ``+=`` mutiert in place; die "
-               "Textform optimiert CPython. Wer ``join`` will, misst vorher.")
+    zweck = (
+        "Misst die üblichen Schleifen-Bauformen bei vervierfachter Größe. "
+        "Linear wäre Faktor 4, quadratisch 16."
+    )
+    befund = (
+        "44 Befunde behaupteten „wächst quadratisch“ für ``x += [...]`` — "
+        "gemessen Faktor 3,0. Quadratisch ist allein ``x = x + [...]``."
+    )
+    abhilfe = (
+        "Nur die Neuzuweisung ersetzen. ``+=`` mutiert in place; die "
+        "Textform optimiert CPython. Wer ``join`` will, misst vorher."
+    )
     dauer = "3–10 s"
     kriterium = 12
 
@@ -158,8 +165,7 @@ class Wachstum(Werkzeug):
     )
 
     #: Kein Anlassfall - und das ist in Ordnung:
-    ohne_anlassfall_weil = ("misst nur (wie viel Code dazugekommen ist) - "
-                            "dafür gibt es keinen Beispielcode")
+    ohne_anlassfall_weil = "misst nur (wie viel Code dazugekommen ist) - dafür gibt es keinen Beispielcode"
 
     def laufen(self):
         zeilen, abweichungen = [], 0
@@ -169,17 +175,21 @@ class Wachstum(Werkzeug):
             urteil = form.urteil(faktor)
             if urteil != erwartet:
                 abweichungen += 1
-            zeilen.append({
-                "bauform": name,
-                "klein": "%d× %.4f s" % (klein, a),
-                "groß": "%d× %.4f s" % (klein * 4, b),
-                "faktor": round(faktor, 1),
-                "urteil": urteil,
-                "erwartet": erwartet,
-            })
+            zeilen.append(
+                {
+                    "bauform": name,
+                    "klein": "%d× %.4f s" % (klein, a),
+                    "groß": "%d× %.4f s" % (klein * 4, b),
+                    "faktor": round(faktor, 1),
+                    "urteil": urteil,
+                    "erwartet": erwartet,
+                }
+            )
         return Ergebnis(
-            ["bauform", "klein", "groß", "faktor", "urteil", "erwartet"], zeilen,
+            ["bauform", "klein", "groß", "faktor", "urteil", "erwartet"],
+            zeilen,
             "6 Bauformen gemessen, %d weichen von der Erwartung ab" % abweichungen,
             "Linear = Faktor 4, quadratisch = 16. Weicht etwas ab, ist es die "
             "Maschine oder eine neue Python-Fassung — dann gilt die Messung "
-            "hier, nicht die Tabelle im Kopf.")
+            "hier, nicht die Tabelle im Kopf.",
+        )

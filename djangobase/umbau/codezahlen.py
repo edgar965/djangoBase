@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Wie groß ist dieses Projekt — Dateien, Zeilen, Klassen, nach Art getrennt.
+"""Wie groß ist dieses Projekt — Dateien, Zeilen, Klassen, nach Art getrennt.
 
 DIE ANSAGE (Edgar, 24.08.2026)
 ==============================
@@ -32,30 +32,50 @@ Kopf tragen. Gezählt wird deshalb getrennt: Anweisungen, Kommentar, leer.
 Bei Python zählt der AST, nicht ein Muster: `#` in einer Zeichenkette ist
 kein Kommentar, und ein Docstring ist keine Anweisung.
 """
+
 import ast
-import io
 import re
 from pathlib import Path
 
-from .klassenmodell import AUS, ausser
+from .klassenmodell import ausser
 
 #: Die Arten, in der Reihenfolge der Anzeige. Erste Übereinstimmung gilt.
 ARTEN = (
-    (u'Python', ('.py',)),
-    (u'HTML-Vorlagen', ('.html', '.htm')),
-    (u'JavaScript', ('.js', '.mjs')),
-    (u'Stilblätter', ('.css',)),
-    (u'Einstellungen', ('.json', '.yml', '.yaml', '.ini', '.cfg', '.toml',
-                        '.xml')),
-    (u'Dokumentation', ('.md', '.rst', '.txt')),
-    (u'Bilder & Binäres', ('.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico',
-                           '.webp', '.woff', '.woff2', '.ttf', '.eot',
-                           '.pdf', '.zip', '.mp4', '.pt', '.engine',
-                           '.onnx', '.pyc', '.exe', '.dll')),
+    ("Python", (".py",)),
+    ("HTML-Vorlagen", (".html", ".htm")),
+    ("JavaScript", (".js", ".mjs")),
+    ("Stilblätter", (".css",)),
+    ("Einstellungen", (".json", ".yml", ".yaml", ".ini", ".cfg", ".toml", ".xml")),
+    ("Dokumentation", (".md", ".rst", ".txt")),
+    (
+        "Bilder & Binäres",
+        (
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".gif",
+            ".svg",
+            ".ico",
+            ".webp",
+            ".woff",
+            ".woff2",
+            ".ttf",
+            ".eot",
+            ".pdf",
+            ".zip",
+            ".mp4",
+            ".pt",
+            ".engine",
+            ".onnx",
+            ".pyc",
+            ".exe",
+            ".dll",
+        ),
+    ),
 )
 
 #: Was in keine Art passt. Fällt nicht weg — sonst stimmt die Summe nicht.
-UEBRIGE = u'Übrige'
+UEBRIGE = "Übrige"
 
 #: Diese Arten werden nur gezählt, nicht zeilenweise gelesen.
 #:
@@ -71,7 +91,7 @@ UEBRIGE = u'Übrige'
 #: Zeilenzahl darüber ist keine Auskunft, sondern Rauschen — und in der
 #: Summenzeile verdirbt sie jede andere Zahl. Gezählt werden deshalb nur noch
 #: Dateien und Bytes; WAS dort liegt, sagt `uebrige_arten()` nach Endung.
-NICHT_LESEN = frozenset((u'Bilder & Binäres', UEBRIGE))
+NICHT_LESEN = frozenset(("Bilder & Binäres", UEBRIGE))
 
 #: Laufzeitdaten — gehören nicht in eine Statistik über QUELLTEXT.
 #:
@@ -82,8 +102,21 @@ NICHT_LESEN = frozenset((u'Bilder & Binäres', UEBRIGE))
 #: byteweise als Text gelesen. Daneben `media/` mit 2673 Bildern und
 #: Videos, darunter eines mit **1,7 GB**. Das Verzeichnis heisst nicht
 #: umsonst so: Dort liegt, was die Anlage im Betrieb erzeugt.
-DATEN = ('media', 'logs', 'log', '.cache', 'tmp', 'temp', 'output',
-         'htmlcov', 'dist', 'build', '_build', '.pytest_cache', '.idea')
+DATEN = (
+    "media",
+    "logs",
+    "log",
+    ".cache",
+    "tmp",
+    "temp",
+    "output",
+    "htmlcov",
+    "dist",
+    "build",
+    "_build",
+    ".pytest_cache",
+    ".idea",
+)
 
 #: Über dieser Grösse ist es kein Quelltext mehr, egal wie es heisst.
 #: Die längste Datei dieses Projekts hat 126 KB; das Modell daneben 174 MB.
@@ -91,7 +124,7 @@ GROESSTE_QUELLDATEI = 2 * 1024 * 1024
 
 
 def ablagen(wurzel):
-    u"""Verzeichnisse, die das Projekt SELBST als Ablage angemeldet hat.
+    """Verzeichnisse, die das Projekt SELBST als Ablage angemeldet hat.
 
     WARUM NICHT WIEDER EINE NAMENSLISTE (02.09.2026)
     ================================================
@@ -114,13 +147,14 @@ def ablagen(wurzel):
     """
     try:
         from django.conf import settings
+
         wurzel = Path(wurzel).resolve()
         namen = dir(settings)
-    except Exception:                       # kein Django, keine Ablagen
+    except Exception:  # kein Django, keine Ablagen
         return ()
     raus = set()
     for name in namen:
-        if not name.endswith('_ROOT') or name == 'BASE_DIR':
+        if not name.endswith("_ROOT") or name == "BASE_DIR":
             continue
         try:
             wert = getattr(settings, name)
@@ -130,29 +164,27 @@ def ablagen(wurzel):
             continue
         try:
             teile = Path(wert).resolve().relative_to(wurzel).parts
-        except (ValueError, OSError):       # ausserhalb des Projekts
+        except (ValueError, OSError):  # ausserhalb des Projekts
             continue
         if teile:
             raus.add(teile)
     # Untergeordnete wegwerfen: `Mail-Archive/trash` sagt nichts mehr, wenn
     # `Mail-Archive` schon draussen ist — sonst zaehlt die Meldung doppelt.
-    return tuple(sorted(
-        t for t in raus
-        if not any(a != t and t[:len(a)] == a for a in raus)))
+    return tuple(sorted(t for t in raus if not any(a != t and t[: len(a)] == a for a in raus)))
 
 
 #: `class Name {` und `class Name extends X {` — die ES6-Schreibweise.
-JS_KLASSE = re.compile(r'^\s*(?:export\s+)?(?:default\s+)?class\s+(\w+)',
-                       re.MULTILINE)
+JS_KLASSE = re.compile(r"^\s*(?:export\s+)?(?:default\s+)?class\s+(\w+)", re.MULTILINE)
 #: `function name(`, `name(…) {` als Methode, und `const name = (…) =>`.
 JS_FUNKTION = re.compile(
-    r'^\s*(?:export\s+)?(?:async\s+)?function\s+(\w+)'
-    r'|^\s*(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s*)?\([^)]*\)\s*=>',
-    re.MULTILINE)
+    r"^\s*(?:export\s+)?(?:async\s+)?function\s+(\w+)"
+    r"|^\s*(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s*)?\([^)]*\)\s*=>",
+    re.MULTILINE,
+)
 
 
 class Artzahlen:
-    u"""Was von EINER Art zusammenkommt."""
+    """Was von EINER Art zusammenkommt."""
 
     #: ``ausserhalb`` = Anweisungszeilen, die in KEINER Klasse stehen
     #: (27.08.2026, auf Ansage). Die Spalte „Klassen" sagt, wie viele es
@@ -168,8 +200,18 @@ class Artzahlen:
     #: Klassenbegriff (HTML, CSS) tragen deshalb ``None``, nicht 0: Die
     #: Vorlage zeigt dann „-" statt einer Null, die wie ein Messergebnis
     #: aussaehe.
-    __slots__ = ('name', 'dateien', 'zeilen', 'anweisungen', 'kommentar',
-                 'leer', 'klassen', 'funktionen', 'bytes', 'ausserhalb')
+    __slots__ = (
+        "name",
+        "dateien",
+        "zeilen",
+        "anweisungen",
+        "kommentar",
+        "leer",
+        "klassen",
+        "funktionen",
+        "bytes",
+        "ausserhalb",
+    )
 
     def __init__(self, name):
         self.name = name
@@ -185,7 +227,7 @@ class Artzahlen:
         self.ausserhalb = None
 
     def als_dict(self):
-        u"""Alle Felder — plus ``gelesen``.
+        """Alle Felder — plus ``gelesen``.
 
         NULL IST KEIN MESSERGEBNIS (02.09.2026): „Bilder & Binäres" und
         „Übrige" werden nur gezählt, nicht zeilenweise gelesen. In der
@@ -194,12 +236,12 @@ class Artzahlen:
         Argument wie bei ``ausserhalb``, das aus diesem Grund `None` trägt.
         """
         raus = dict((f, getattr(self, f)) for f in self.__slots__)
-        raus['gelesen'] = self.name not in NICHT_LESEN
+        raus["gelesen"] = self.name not in NICHT_LESEN
         return raus
 
 
 class Codezahlen:
-    u"""Zählt ein Projektverzeichnis aus."""
+    """Zählt ein Projektverzeichnis aus."""
 
     def __init__(self, wurzel):
         self.wurzel = Path(wurzel)
@@ -217,9 +259,9 @@ class Codezahlen:
 
     # ── einlesen ────────────────────────────────────────────────
     def lesen(self):
-        raus = ausser()      # samt der virtuellen Umgebungen des Projekts
+        raus = ausser()  # samt der virtuellen Umgebungen des Projekts
         anmeldungen = ablagen(self.wurzel)
-        for pfad in self.wurzel.rglob('*'):
+        for pfad in self.wurzel.rglob("*"):
             if not pfad.is_file():
                 continue
             # NUR DER TEIL INNERHALB DES PROJEKTS ZAEHLT (24.08.2026).
@@ -249,16 +291,15 @@ class Codezahlen:
                 continue
             # Vom Projekt angemeldete Ablagen (…_ROOT) — dieselbe Behandlung
             # wie `DATEN`: ausgelassen, aber GENANNT.
-            angemeldet = next((a for a in anmeldungen
-                               if teile[:len(a)] == a), None)
+            angemeldet = next((a for a in anmeldungen if teile[: len(a)] == a), None)
             if angemeldet is not None:
-                self._auslassen('/'.join(angemeldet))
+                self._auslassen("/".join(angemeldet))
                 continue
             if any(teil in raus for teil in teile):
                 continue
             try:
                 if pfad.stat().st_size > GROESSTE_QUELLDATEI:
-                    self._auslassen(u'zu groß')
+                    self._auslassen("zu groß")
                     continue
             except OSError:
                 pass
@@ -269,7 +310,7 @@ class Codezahlen:
     DATEN = frozenset(DATEN)
 
     def _innen(self, pfad):
-        u"""Die Pfadteile INNERHALB des Projekts — nie die davor."""
+        """Die Pfadteile INNERHALB des Projekts — nie die davor."""
         try:
             return pfad.relative_to(self.wurzel).parts
         except ValueError:
@@ -280,14 +321,14 @@ class Codezahlen:
         self.ausgelassen_wo[wo] = self.ausgelassen_wo.get(wo, 0) + 1
 
     def _uebrig(self, pfad, groesse):
-        u"""Eine Datei ohne bekannte Art vermerken — nach Endung.
+        """Eine Datei ohne bekannte Art vermerken — nach Endung.
 
         Als Beispiel steht die GRÖSSTE Datei der Endung, nicht die erste:
         Bei 385 Dateien ohne Endung ist die erste zufällig (`.gitignore`),
         die grösste dagegen sagt, worum es geht.
         """
-        punkt = pfad.name.rfind('.')
-        endung = pfad.name[punkt:].lower() if punkt > 0 else u'(ohne Endung)'
+        punkt = pfad.name.rfind(".")
+        endung = pfad.name[punkt:].lower() if punkt > 0 else "(ohne Endung)"
         try:
             name = str(pfad.relative_to(self.wurzel))
         except ValueError:
@@ -317,23 +358,22 @@ class Codezahlen:
         if art in NICHT_LESEN:
             return
         try:
-            text = pfad.read_text(encoding='utf-8', errors='replace')
+            text = pfad.read_text(encoding="utf-8", errors="replace")
         except OSError:
             self.unlesbar += 1
             return
-        if art == u'Python':
+        if art == "Python":
             self._python(text, zahlen)
         else:
-            self._zeilenweise(text, zahlen,
-                              art in (u'JavaScript', u'Stilblätter'))
-            if art == u'JavaScript':
+            self._zeilenweise(text, zahlen, art in ("JavaScript", "Stilblätter"))
+            if art == "JavaScript":
                 zahlen.klassen += len(JS_KLASSE.findall(text))
                 zahlen.funktionen += len(JS_FUNKTION.findall(text))
 
     # ── je Art ──────────────────────────────────────────────────
     @staticmethod
     def _python(text, zahlen):
-        u"""Bei Python entscheidet der AST, nicht ein Muster.
+        """Bei Python entscheidet der AST, nicht ein Muster.
 
         `#` in einer Zeichenkette ist kein Kommentar, und ein Docstring ist
         keine Anweisung. Wer das mit `startswith('#')` zählt, bekommt in
@@ -347,7 +387,7 @@ class Codezahlen:
             blank = zeile.strip()
             if not blank:
                 zahlen.leer += 1
-            elif blank.startswith('#'):
+            elif blank.startswith("#"):
                 zahlen.kommentar += 1
             else:
                 zahlen.anweisungen += 1
@@ -381,7 +421,7 @@ class Codezahlen:
 
     @staticmethod
     def _klassenzeilen(baum):
-        u"""Alle Zeilennummern, die INNERHALB einer Klasse liegen.
+        """Alle Zeilennummern, die INNERHALB einer Klasse liegen.
 
         Dekoratoren gehoeren dazu: ``@dataclass`` ueber ``class Punkt``
         steht vor ``lineno`` und ist trotzdem Teil der Klasse. Verschachtelte
@@ -392,9 +432,9 @@ class Codezahlen:
             if not isinstance(knoten, ast.ClassDef):
                 continue
             anfang = knoten.lineno
-            for schmuck in getattr(knoten, 'decorator_list', ()):
-                anfang = min(anfang, getattr(schmuck, 'lineno', anfang))
-            ende = getattr(knoten, 'end_lineno', None) or anfang
+            for schmuck in getattr(knoten, "decorator_list", ()):
+                anfang = min(anfang, getattr(schmuck, "lineno", anfang))
+            ende = getattr(knoten, "end_lineno", None) or anfang
             innen.update(range(anfang, ende + 1))
         return innen
 
@@ -406,10 +446,10 @@ class Codezahlen:
             blank = zeile.strip()
             if not blank:
                 zahlen.leer += 1
-            elif (blank.startswith('<!--')
-                  or (mit_schraegstrich and (blank.startswith('//')
-                                             or blank.startswith('/*')
-                                             or blank.startswith('*')))):
+            elif blank.startswith("<!--") or (
+                mit_schraegstrich
+                and (blank.startswith("//") or blank.startswith("/*") or blank.startswith("*"))
+            ):
                 zahlen.kommentar += 1
             else:
                 zahlen.anweisungen += 1
@@ -417,16 +457,16 @@ class Codezahlen:
     # ── Auskunft ────────────────────────────────────────────────
     @staticmethod
     def art(dateiname):
-        u"""Die Art einer Datei am Suffix."""
-        punkt = dateiname.rfind('.')
-        endung = dateiname[punkt:].lower() if punkt > 0 else ''
+        """Die Art einer Datei am Suffix."""
+        punkt = dateiname.rfind(".")
+        endung = dateiname[punkt:].lower() if punkt > 0 else ""
         for name, endungen in ARTEN:
             if endung in endungen:
                 return name
         return UEBRIGE
 
     def liste(self):
-        u"""Alle Arten in der Reihenfolge von ``ARTEN``, Übrige zuletzt.
+        """Alle Arten in der Reihenfolge von ``ARTEN``, Übrige zuletzt.
 
         Auch die leeren: Dass ein Projekt KEIN JavaScript hat, ist eine
         Auskunft, und eine fehlende Zeile liest sich als Versehen.
@@ -438,7 +478,7 @@ class Codezahlen:
         return raus
 
     def uebrige_arten(self, hoechstens=25):
-        u"""Woraus die Zeile „Übrige" besteht — nach Endung, grösste zuerst.
+        """Woraus die Zeile „Übrige" besteht — nach Endung, grösste zuerst.
 
         Die Zeile nennt eine Zahl und lässt offen, wofür sie steht. Am
         02.09.2026 waren es 45.000 `.eml`-Dateien, und die Frage „was ist
@@ -449,30 +489,44 @@ class Codezahlen:
         # die Endung selbst, oder ``(ohne)`` für die ohne. Ein LEERER Wert
         # ginge nicht — im Formular wäre er von „fehlt" nicht zu
         # unterscheiden, und das Löschen träfe dann alles oder nichts.
-        from .uebrigesuche import geschuetzt      # spät: Kreis vermeiden
-        raus = [{'endung': endung, 'dateien': n, 'bytes': b,
-                 'mb': round(b / 1048576.0, 2), 'beispiel': beispiel,
-                 'groesste': gross,
-                 'groesste_mb': round(gross / 1048576.0, 2),
-                 'schluessel': ('(ohne)' if endung == u'(ohne Endung)'
-                                else endung),
-                 # Geschützte Arten bekommen keinen Löschen-Knopf. Sie
-                 # bleiben SICHTBAR — dass 10 `.xlsm` im Projektbaum
-                 # liegen, ist eine Auskunft; sie von hier aus löschen zu
-                 # können war der Fehler (02.09.2026).
-                 'loeschbar': not geschuetzt(endung)}
-                for endung, (n, b, beispiel, gross) in self.uebrige.items()]
-        raus.sort(key=lambda e: (-e['dateien'], e['endung']))
+        from .uebrigesuche import geschuetzt  # spät: Kreis vermeiden
+
+        raus = [
+            {
+                "endung": endung,
+                "dateien": n,
+                "bytes": b,
+                "mb": round(b / 1048576.0, 2),
+                "beispiel": beispiel,
+                "groesste": gross,
+                "groesste_mb": round(gross / 1048576.0, 2),
+                "schluessel": ("(ohne)" if endung == "(ohne Endung)" else endung),
+                # Geschützte Arten bekommen keinen Löschen-Knopf. Sie
+                # bleiben SICHTBAR — dass 10 `.xlsm` im Projektbaum
+                # liegen, ist eine Auskunft; sie von hier aus löschen zu
+                # können war der Fehler (02.09.2026).
+                "loeschbar": not geschuetzt(endung),
+            }
+            for endung, (n, b, beispiel, gross) in self.uebrige.items()
+        ]
+        raus.sort(key=lambda e: (-e["dateien"], e["endung"]))
         return raus[:hoechstens]
 
     def gesamt(self):
-        u"""Die Summe über alle Arten — dieselben Felder."""
-        summe = Artzahlen(u'Gesamt')
+        """Die Summe über alle Arten — dieselben Felder."""
+        summe = Artzahlen("Gesamt")
         for zahlen in self.arten.values():
-            for feld in ('dateien', 'zeilen', 'anweisungen', 'kommentar',
-                         'leer', 'klassen', 'funktionen', 'bytes'):
-                setattr(summe, feld,
-                        getattr(summe, feld) + getattr(zahlen, feld))
+            for feld in (
+                "dateien",
+                "zeilen",
+                "anweisungen",
+                "kommentar",
+                "leer",
+                "klassen",
+                "funktionen",
+                "bytes",
+            ):
+                setattr(summe, feld, getattr(summe, feld) + getattr(zahlen, feld))
             # ``ausserhalb`` getrennt: None heisst „nicht ermittelbar" und
             # darf nicht als 0 in die Summe. Bleibt KEINE Art messbar, bleibt
             # auch die Summe None - eine 0 saehe aus wie „kein globaler Code".
@@ -481,29 +535,28 @@ class Codezahlen:
         return summe.als_dict()
 
     def kennzahlen(self):
-        u"""Die wenigen Zahlen für die Karten oben."""
+        """Die wenigen Zahlen für die Karten oben."""
         gesamt = self.gesamt()
-        py = (self.arten.get(u'Python') or Artzahlen(u'Python')).als_dict()
-        js = (self.arten.get(u'JavaScript')
-              or Artzahlen(u'JavaScript')).als_dict()
+        py = (self.arten.get("Python") or Artzahlen("Python")).als_dict()
+        js = (self.arten.get("JavaScript") or Artzahlen("JavaScript")).als_dict()
         return {
-            'dateien': gesamt['dateien'],
-            'zeilen': gesamt['zeilen'],
-            'anweisungen': gesamt['anweisungen'],
-            'klassen': gesamt['klassen'],
-            'py_dateien': py['dateien'],
-            'py_zeilen': py['zeilen'],
-            'py_klassen': py['klassen'],
-            'py_ausserhalb': py['ausserhalb'],
-            'js_dateien': js['dateien'],
-            'js_zeilen': js['zeilen'],
-            'js_klassen': js['klassen'],
+            "dateien": gesamt["dateien"],
+            "zeilen": gesamt["zeilen"],
+            "anweisungen": gesamt["anweisungen"],
+            "klassen": gesamt["klassen"],
+            "py_dateien": py["dateien"],
+            "py_zeilen": py["zeilen"],
+            "py_klassen": py["klassen"],
+            "py_ausserhalb": py["ausserhalb"],
+            "js_dateien": js["dateien"],
+            "js_zeilen": js["zeilen"],
+            "js_klassen": js["klassen"],
             # Wie viel vom Quelltext ist Erklärung? In diesem Projekt eine
             # aussagekräftige Zahl, weil die Vorgeschichte im Kopf steht.
-            'kommentar_anteil': (
-                round(100.0 * gesamt['kommentar']
-                      / max(1, gesamt['zeilen'] - gesamt['leer']), 1)),
+            "kommentar_anteil": (
+                round(100.0 * gesamt["kommentar"] / max(1, gesamt["zeilen"] - gesamt["leer"]), 1)
+            ),
         }
 
 
-__all__ = ['ARTEN', 'UEBRIGE', 'ablagen', 'Artzahlen', 'Codezahlen']
+__all__ = ["ARTEN", "UEBRIGE", "ablagen", "Artzahlen", "Codezahlen"]

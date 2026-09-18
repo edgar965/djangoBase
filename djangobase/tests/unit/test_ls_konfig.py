@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-u"""LsKonfig: Vorgaben, Formular, Datei, Abdruck, pyrightconfig."""
+"""LsKonfig: Vorgaben, Formular, Datei, Abdruck, pyrightconfig."""
+
 import json
 import tempfile
 import unittest
@@ -15,7 +16,6 @@ class Formular(dict):
 
 
 class LsKonfigTest(unittest.TestCase):
-
     def test_vorgaben_sind_vollstaendig(self):
         k = LsKonfig()
         self.assertEqual(k.modus, "basic")
@@ -34,10 +34,18 @@ class LsKonfigTest(unittest.TestCase):
             self.assertEqual(LsKonfig.laden(Path(d) / "fehlt.json").modus, "basic")
 
     def test_formular_liest_listen_und_haken(self):
-        daten = Formular({"werkzeug": "pyright", "modus": "standard", "stufe": "error",
-                          "pfade": ["brain", "depot"], "ausschluss": ["tests"],
-                          "regel_reportUnusedImport": "none", "deckel": "9999",
-                          "zeitlimit": "5"})
+        daten = Formular(
+            {
+                "werkzeug": "pyright",
+                "modus": "standard",
+                "stufe": "error",
+                "pfade": ["brain", "depot"],
+                "ausschluss": ["tests"],
+                "regel_reportUnusedImport": "none",
+                "deckel": "9999",
+                "zeitlimit": "5",
+            }
+        )
         k = LsKonfig.aus_formular(daten, LsKonfig())
         self.assertEqual(k.werkzeug, "pyright")
         self.assertEqual(k.pfade, ["brain", "depot"])
@@ -55,8 +63,7 @@ class LsKonfigTest(unittest.TestCase):
     def test_projektliste_wirkt_auf_muster_und_abdruck_aber_nicht_auf_die_datei(self):
         k = LsKonfig({"zusatz": ["**/sicherung", "werkzeug/netz_*.py"]})
         self.assertIn("werkzeug/netz_*.py", k.ausschluss_muster())
-        self.assertNotIn("zusatz", k.als_dict(),
-                         u"die Liste steht im Projekt, nicht in der konfig.json")
+        self.assertNotIn("zusatz", k.als_dict(), "die Liste steht im Projekt, nicht in der konfig.json")
         self.assertNotEqual(k.abdruck(), LsKonfig().abdruck())
         # Doppelt genannte Muster stehen nur einmal in der Konfiguration.
         doppelt = LsKonfig({"zusatz": ["**/migrations"]})
@@ -71,16 +78,15 @@ class LsKonfigTest(unittest.TestCase):
         self.assertNotEqual(a.abdruck(), LsKonfig({"modus": "strict"}).abdruck())
         # Anzeigefelder aendern das Ergebnis nicht - sonst kostete jeder
         # umgelegte Filter einen neuen Lauf.
-        for feld, wert in (("deckel", 501), ("stufe", "error"),
-                           ("zeitlimit", 60), ("js_stumm", [])):
+        for feld, wert in (("deckel", 501), ("stufe", "error"), ("zeitlimit", 60), ("js_stumm", [])):
             self.assertEqual(a.abdruck(), LsKonfig({feld: wert}).abdruck(), feld)
 
     def test_js_regeln_stummschalten(self):
-        self.assertIn("TS2339", LsKonfig().js_stumm, u"DOM-Rauschen ist in der Vorgabe aus")
+        self.assertIn("TS2339", LsKonfig().js_stumm, "DOM-Rauschen ist in der Vorgabe aus")
         k = LsKonfig.aus_formular(Formular({"js_stumm": ["TS2304"]}), LsKonfig())
         self.assertEqual(k.js_stumm, ["TS2304"])
         leer = LsKonfig.aus_formular(Formular({}), LsKonfig())
-        self.assertEqual(leer.js_stumm, [], u"kein Haken = nichts stumm")
+        self.assertEqual(leer.js_stumm, [], "kein Haken = nichts stumm")
 
     def test_pyrightconfig_mit_absoluten_pfaden_und_venv(self):
         k = LsKonfig({"pfade": ["brain"], "python": r"C:\p\venv\Scripts\python.exe"})
@@ -95,19 +101,20 @@ class LsKonfigTest(unittest.TestCase):
         self.assertEqual(cfg2["include"], ["../../../../brain"])
         self.assertIn("../../../../**/migrations", cfg2["exclude"])
         self.assertEqual(cfg["reportUndefinedVariable"], "error")
-        json.dumps(cfg)                                  # muss serialisierbar sein
+        json.dumps(cfg)  # muss serialisierbar sein
 
     def test_lsp_einstellungen_je_abschnitt(self):
         e = LsKonfig().als_lsp_einstellungen(r"C:\p")
         self.assertIn("python", e)
         self.assertIn("python.analysis", e)
         self.assertEqual(e["python.analysis"]["typeCheckingMode"], "basic")
-        self.assertEqual(e["python.analysis"]["diagnosticSeverityOverrides"]
-                         ["reportUndefinedVariable"], "error")
+        self.assertEqual(
+            e["python.analysis"]["diagnosticSeverityOverrides"]["reportUndefinedVariable"], "error"
+        )
 
 
 class EineRundreiseVerliertNichts(unittest.TestCase):
-    u"""``LsKonfig(k.alle_werte())`` muss ``k`` sein — auch die Projektliste.
+    """``LsKonfig(k.alle_werte())`` muss ``k`` sein — auch die Projektliste.
 
     DER ANLASS (02.09.2026)
     =======================
@@ -130,18 +137,17 @@ class EineRundreiseVerliertNichts(unittest.TestCase):
         self.assertEqual(neu.ausschluss_muster(), k.ausschluss_muster())
 
     def test_und_damit_auch_der_abdruck(self):
-        u"""Sonst zeigte die Seite nach der Rundreise ein FREMDES Ergebnis
+        """Sonst zeigte die Seite nach der Rundreise ein FREMDES Ergebnis
         aus der Ablage — dieselbe Kennung für einen anderen Umfang."""
         k = LsKonfig({"zusatz": self.LISTE})
         self.assertEqual(LsKonfig(k.alle_werte()).abdruck(), k.abdruck())
 
     def test_alle_felder_der_datei_kommen_ebenfalls_mit(self):
-        k = LsKonfig({"modus": "strict", "pfade": ["app"], "deckel": 42,
-                      "zusatz": self.LISTE})
+        k = LsKonfig({"modus": "strict", "pfade": ["app"], "deckel": 42, "zusatz": self.LISTE})
         self.assertEqual(LsKonfig(k.alle_werte()).als_dict(), k.als_dict())
 
     def test_die_datei_bleibt_frei_von_der_projektliste(self):
-        u"""Die Gegenrichtung: `alle_werte()` darf `als_dict()` nicht
+        """Die Gegenrichtung: `alle_werte()` darf `als_dict()` nicht
         aufweichen. Die Liste gehört ins Projekt, nicht in den
         Zwischenspeicher dieses Rechners."""
         k = LsKonfig({"zusatz": self.LISTE})
@@ -149,11 +155,13 @@ class EineRundreiseVerliertNichts(unittest.TestCase):
         self.assertIn("zusatz", k.alle_werte())
 
     def test_kein_feld_faellt_kuenftig_still_heraus(self):
-        u"""Der eigentliche Waechter: Was `__init__` annimmt und was den
+        """Der eigentliche Waechter: Was `__init__` annimmt und was den
         Abdruck ändert, MUSS aus `alle_werte()` zurückkommen. Wer ein
         neues Feld einführt und hier nichts nachträgt, erfährt es sofort —
         nicht erst an zwei Läufen, die nicht zusammenpassen."""
         for feld in tuple(LsKonfig.LAUFFELDER) + ("zusatz",):
-            self.assertIn(feld, LsKonfig().alle_werte(),
-                          u"%r bestimmt den Lauf, fehlt aber in "
-                          u"alle_werte() — eine Rundreise verliert es." % feld)
+            self.assertIn(
+                feld,
+                LsKonfig().alle_werte(),
+                "%r bestimmt den Lauf, fehlt aber in alle_werte() — eine Rundreise verliert es." % feld,
+            )

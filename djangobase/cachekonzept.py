@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Cachekonzept — prueft ein Projekt gegen die Cache-Regeln von djangoBase.
+"""Cachekonzept — prueft ein Projekt gegen die Cache-Regeln von djangoBase.
 
 EINE QUELLE, DREI VERBRAUCHER (06.09.2026, Edgar: „dokumentiere das Caching-
 Konzept (auch fuer ES-Module usw.) in djangoBase Hilfe - Cache … und schreibe
@@ -46,6 +46,7 @@ Regeln 1, 2, 5 prueft djangoBase seit dem 21.08.2026 an anderer Stelle
 hier der Vollstaendigkeit halber und werden mitgeprueft, damit die Seite
 Hilfe -> Cache EIN Bild zeigt.
 """
+
 import os
 import re
 
@@ -55,7 +56,7 @@ __all__ = ["Cachekonzept", "Regel"]
 
 
 class Regel:
-    u"""Eine Regel des Konzepts — Kennung, Titel, Warum, und was zu tun ist."""
+    """Eine Regel des Konzepts — Kennung, Titel, Warum, und was zu tun ist."""
 
     __slots__ = ("kennung", "titel", "warum", "wie")
 
@@ -67,89 +68,117 @@ class Regel:
 
 
 class Cachekonzept:
-    u"""Findet Verstoesse in Vorlagen, JavaScript und Einstellungen."""
+    """Findet Verstoesse in Vorlagen, JavaScript und Einstellungen."""
 
     REGELN = (
-        Regel("html-no-store", u"HTML nie aus dem Zwischenspeicher",
-              u"Nach einem Deploy sieht der Nutzer sonst die Seite von gestern und sucht den Fehler "
-              u"im Code.",
-              u"`CacheHeaderMiddleware` traegt sich selbst ein (`djangobase.apps`). Nichts zu tun — "
-              u"nur nicht entfernen."),
-        Regel("keine-nocache-middleware", u"Keine pauschale NoCache-Middleware",
-              u"`no-store` auf ALLES laesst jede Seite saemtliche Module neu laden; jede `?v=`-Kennung "
-              u"ist dann wirkungslos.",
-              u"Eigene `NoCacheMiddleware` aus `MIDDLEWARE` streichen; die djangoBase-Middleware "
-              u"unterscheidet HTML und Statik."),
-        Regel("kein-zeitstempel-an-statik", u"Kein `?t={% now %}` an Skript- und Stildateien",
-              u"Der Zeitstempel aendert sich jede Sekunde: die Datei liegt nie im Zwischenspeicher, "
-              u"jede Seite laedt alles neu.",
-              u"`{% fassungspfad 'css/seite.css' %}` — die Fassung aendert sich genau dann, wenn sich "
-              u"eine Datei aendert."),
-        Regel("modul-ueber-fassungspfad", u"ES-Module ueber `{% fassungspfad %}`, nicht ueber `{% static %}?t=`",
-              u"Eine Abfrage vererbt sich nicht auf relative Importe: Einstieg frisch, Geschwistermodul "
-              u"alt — `SyntaxError: does not provide an export named …`, leere Seite bei HTTP 200 "
-              u"(3DTools, 05.09.2026).",
-              u"`<script type=\"module\" src=\"{% fassungspfad 'viewer/index.js' %}\">` und "
-              u"`import('{% fassungspfad \"js/x.js\" %}')`; `{% load fassung %}` oben in der Vorlage."),
-        Regel("keine-kennung-in-importen", u"Keine Kennung in Import-Adressen",
-              u"`from './x.js?v=3'` laedt dieselbe Datei ein zweites Mal, mit eigenem Zustand — jeder "
-              u"Klick doppelt (21.08.2026).",
-              u"Importe ohne Abfrage lassen; die Fassung kommt aus dem Pfad des Einstiegs."),
-        Regel("fassungspfad-eingehaengt", u"Der Fassungspfad ist eingehaengt",
-              u"Ohne `include('djangobase.fassungsstatik')` antwortet `/statik/v-…/` mit 404, und jede "
-              u"Modulseite ist leer.",
-              u"In `urls.py`: `path('', include('djangobase.fassungsstatik'))`."),
-        Regel("statik-kopfzeilen-im-asgi", u"`StatikKopfzeilen` um die ASGI-Anwendung",
-              u"Der Entwicklungsserver beantwortet Statik vor der Middleware; ohne die Huelle schaetzt "
-              u"der Browser die Frische selbst — 10 % des Dateialters, bei drei Wochen zwei Tage ohne "
-              u"Rueckfrage.",
-              u"In `asgi.py`: `application = StatikKopfzeilen(ASGIStaticFilesHandler("
-              u"get_asgi_application()))`."),
+        Regel(
+            "html-no-store",
+            "HTML nie aus dem Zwischenspeicher",
+            "Nach einem Deploy sieht der Nutzer sonst die Seite von gestern und sucht den Fehler im Code.",
+            "`CacheHeaderMiddleware` traegt sich selbst ein (`djangobase.apps`). Nichts zu tun — "
+            "nur nicht entfernen.",
+        ),
+        Regel(
+            "keine-nocache-middleware",
+            "Keine pauschale NoCache-Middleware",
+            "`no-store` auf ALLES laesst jede Seite saemtliche Module neu laden; jede `?v=`-Kennung "
+            "ist dann wirkungslos.",
+            "Eigene `NoCacheMiddleware` aus `MIDDLEWARE` streichen; die djangoBase-Middleware "
+            "unterscheidet HTML und Statik.",
+        ),
+        Regel(
+            "kein-zeitstempel-an-statik",
+            "Kein `?t={% now %}` an Skript- und Stildateien",
+            "Der Zeitstempel aendert sich jede Sekunde: die Datei liegt nie im Zwischenspeicher, "
+            "jede Seite laedt alles neu.",
+            "`{% fassungspfad 'css/seite.css' %}` — die Fassung aendert sich genau dann, wenn sich "
+            "eine Datei aendert.",
+        ),
+        Regel(
+            "modul-ueber-fassungspfad",
+            "ES-Module ueber `{% fassungspfad %}`, nicht ueber `{% static %}?t=`",
+            "Eine Abfrage vererbt sich nicht auf relative Importe: Einstieg frisch, Geschwistermodul "
+            "alt — `SyntaxError: does not provide an export named …`, leere Seite bei HTTP 200 "
+            "(3DTools, 05.09.2026).",
+            '`<script type="module" src="{% fassungspfad \'viewer/index.js\' %}">` und '
+            "`import('{% fassungspfad \"js/x.js\" %}')`; `{% load fassung %}` oben in der Vorlage.",
+        ),
+        Regel(
+            "keine-kennung-in-importen",
+            "Keine Kennung in Import-Adressen",
+            "`from './x.js?v=3'` laedt dieselbe Datei ein zweites Mal, mit eigenem Zustand — jeder "
+            "Klick doppelt (21.08.2026).",
+            "Importe ohne Abfrage lassen; die Fassung kommt aus dem Pfad des Einstiegs.",
+        ),
+        Regel(
+            "fassungspfad-eingehaengt",
+            "Der Fassungspfad ist eingehaengt",
+            "Ohne `include('djangobase.fassungsstatik')` antwortet `/statik/v-…/` mit 404, und jede "
+            "Modulseite ist leer.",
+            "In `urls.py`: `path('', include('djangobase.fassungsstatik'))`.",
+        ),
+        Regel(
+            "statik-kopfzeilen-im-asgi",
+            "`StatikKopfzeilen` um die ASGI-Anwendung",
+            "Der Entwicklungsserver beantwortet Statik vor der Middleware; ohne die Huelle schaetzt "
+            "der Browser die Frische selbst — 10 % des Dateialters, bei drei Wochen zwei Tage ohne "
+            "Rueckfrage.",
+            "In `asgi.py`: `application = StatikKopfzeilen(ASGIStaticFilesHandler(get_asgi_application()))`.",
+        ),
     )
 
     #: <script type="module" src="{% static 'x.js' %}?t=…"> (Attributreihenfolge beliebig)
     MODUL_EINSTIEG = re.compile(
         r'<script\b(?=[^>]*\btype\s*=\s*["\']module["\'])[^>]*\bsrc\s*=\s*["\']\{%\s*static\s+[^%]*%\}\?[tv]=',
-        re.I | re.S)
+        re.I | re.S,
+    )
     #: import('{% static "x.js" %}?t=…')
     IMPORT_MIT_ABFRAGE = re.compile(r'\bimport\(\s*["\']\{%\s*static\s+[^%]*%\}\?[tv]=', re.I)
     #: {% static 'x.js' %}?t={% now … %} — an Skript oder Stil
     ZEITSTEMPEL = re.compile(r'\{%\s*static\s+["\'][^"\']+\.(?:js|css)["\']\s*%\}\?t=\{%\s*now\b', re.I)
     #: from './x.js?v=3' / import('./x.js?t=…') in JavaScript
-    IMPORT_KENNUNG = re.compile(r'''(?:\bfrom\s*|\bimport\s*\(\s*)["'][^"']*\.m?js\?[tv]=[^"']*["']''')
+    IMPORT_KENNUNG = re.compile(r"""(?:\bfrom\s*|\bimport\s*\(\s*)["'][^"']*\.m?js\?[tv]=[^"']*["']""")
     #: Vorlagenkommentare zaehlen nicht
-    KOMMENTAR = re.compile(r'\{%\s*comment\s*%\}.*?\{%\s*endcomment\s*%\}|\{#.*?#\}|<!--.*?-->', re.S)
-    NOCACHE = re.compile(r'nocache', re.I)
+    KOMMENTAR = re.compile(r"\{%\s*comment\s*%\}.*?\{%\s*endcomment\s*%\}|\{#.*?#\}|<!--.*?-->", re.S)
+    NOCACHE = re.compile(r"nocache", re.I)
 
     # --------------------------------------------------------------- Vorlagen
 
     @classmethod
     def vorlage(cls, name, text):
-        u"""Befunde einer Vorlage: Liste von `{regel, ort, was}`."""
+        """Befunde einer Vorlage: Liste von `{regel, ort, was}`."""
         text = cls.KOMMENTAR.sub(lambda m: "\n" * m.group(0).count("\n"), text)
         raus = []
-        for regel, muster in (("modul-ueber-fassungspfad", cls.MODUL_EINSTIEG),
-                              ("modul-ueber-fassungspfad", cls.IMPORT_MIT_ABFRAGE),
-                              ("kein-zeitstempel-an-statik", cls.ZEITSTEMPEL)):
+        for regel, muster in (
+            ("modul-ueber-fassungspfad", cls.MODUL_EINSTIEG),
+            ("modul-ueber-fassungspfad", cls.IMPORT_MIT_ABFRAGE),
+            ("kein-zeitstempel-an-statik", cls.ZEITSTEMPEL),
+        ):
             for treffer in muster.finditer(text):
                 zeile = text.count("\n", 0, treffer.start()) + 1
-                raus.append({"regel": regel, "ort": "%s:%d" % (name, zeile),
-                             "was": treffer.group(0).strip()[:120]})
+                raus.append(
+                    {"regel": regel, "ort": "%s:%d" % (name, zeile), "was": treffer.group(0).strip()[:120]}
+                )
         return cls._einmal(raus)
 
     @classmethod
     def skript(cls, name, text):
-        u"""Befunde einer JavaScript-Datei."""
+        """Befunde einer JavaScript-Datei."""
         raus = []
         for treffer in cls.IMPORT_KENNUNG.finditer(text):
             zeile = text.count("\n", 0, treffer.start()) + 1
-            raus.append({"regel": "keine-kennung-in-importen", "ort": "%s:%d" % (name, zeile),
-                         "was": treffer.group(0).strip()[:120]})
+            raus.append(
+                {
+                    "regel": "keine-kennung-in-importen",
+                    "ort": "%s:%d" % (name, zeile),
+                    "was": treffer.group(0).strip()[:120],
+                }
+            )
         return raus
 
     @staticmethod
     def _einmal(befunde):
-        u"""Ein Treffer je Ort — der Modul-Einstieg mit `?t=` faellt sonst zweimal auf."""
+        """Ein Treffer je Ort — der Modul-Einstieg mit `?t=` faellt sonst zweimal auf."""
         gesehen, raus = set(), []
         for b in befunde:
             if b["ort"] in gesehen:
@@ -162,27 +191,45 @@ class Cachekonzept:
 
     @classmethod
     def einstellungen(cls):
-        u"""Befunde an `MIDDLEWARE`, `urls.py` und `asgi.py` des laufenden Projekts."""
+        """Befunde an `MIDDLEWARE`, `urls.py` und `asgi.py` des laufenden Projekts."""
         raus = []
         kette = list(getattr(settings, "MIDDLEWARE", []) or [])
         if "djangobase.cache_middleware.CacheHeaderMiddleware" not in kette:
-            raus.append({"regel": "html-no-store", "ort": "settings.MIDDLEWARE",
-                         "was": u"CacheHeaderMiddleware fehlt in der Kette"})
+            raus.append(
+                {
+                    "regel": "html-no-store",
+                    "ort": "settings.MIDDLEWARE",
+                    "was": "CacheHeaderMiddleware fehlt in der Kette",
+                }
+            )
         for eintrag in kette:
             if cls.NOCACHE.search(eintrag) and not eintrag.startswith("djangobase."):
-                raus.append({"regel": "keine-nocache-middleware", "ort": "settings.MIDDLEWARE", "was": eintrag})
+                raus.append(
+                    {"regel": "keine-nocache-middleware", "ort": "settings.MIDDLEWARE", "was": eintrag}
+                )
         if not cls.fassungspfad_eingehaengt():
-            raus.append({"regel": "fassungspfad-eingehaengt", "ort": "urls.py",
-                         "was": u"/statik/v-1/x.js loest nicht auf"})
+            raus.append(
+                {
+                    "regel": "fassungspfad-eingehaengt",
+                    "ort": "urls.py",
+                    "was": "/statik/v-1/x.js loest nicht auf",
+                }
+            )
         asgi = cls.asgi_quelle()
         if asgi is not None and "StatikKopfzeilen" not in asgi:
-            raus.append({"regel": "statik-kopfzeilen-im-asgi", "ort": cls.asgi_pfad() or "asgi.py",
-                         "was": u"StatikKopfzeilen kommt in der ASGI-Anwendung nicht vor"})
+            raus.append(
+                {
+                    "regel": "statik-kopfzeilen-im-asgi",
+                    "ort": cls.asgi_pfad() or "asgi.py",
+                    "was": "StatikKopfzeilen kommt in der ASGI-Anwendung nicht vor",
+                }
+            )
         return raus
 
     @staticmethod
     def fassungspfad_eingehaengt():
         from django.urls import Resolver404, resolve
+
         try:
             treffer = resolve("/statik/v-1/x.js")
         except Resolver404:
@@ -191,7 +238,7 @@ class Cachekonzept:
 
     @staticmethod
     def asgi_pfad():
-        u"""Die Datei hinter `ASGI_APPLICATION` — `None`, wenn es keine gibt."""
+        """Die Datei hinter `ASGI_APPLICATION` — `None`, wenn es keine gibt."""
         modul = getattr(settings, "ASGI_APPLICATION", "") or ""
         if not modul:
             return None
@@ -211,7 +258,7 @@ class Cachekonzept:
 
     @classmethod
     def alles(cls, vorlagen, skripte):
-        u"""`vorlagen`/`skripte`: Folgen von `(name, text)`. Liefert alle Befunde."""
+        """`vorlagen`/`skripte`: Folgen von `(name, text)`. Liefert alle Befunde."""
         raus = []
         for name, text in vorlagen:
             raus.extend(cls.vorlage(name, text))

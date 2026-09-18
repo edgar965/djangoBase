@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Die Werkzeuge stehen EINMAL auf der Seite: in der Tabelle.
+"""Die Werkzeuge stehen EINMAL auf der Seite: in der Tabelle.
 
 DIE ANSAGE (Edgar, 26.08.2026)
 ==============================
@@ -29,6 +29,7 @@ Drei Vorläufer dieser Prüfung sind gescheitert, weil sie die Kästen
 festhielten statt die Regel: Kein Werkzeug steht zweimal, und jeder
 Abschnitt fährt genau seine eigenen.
 """
+
 from djangobase.skills import werkzeuge
 from djangobase.skills.rangliste import rangliste
 from djangobase.views.skills import SkillsView
@@ -41,49 +42,45 @@ def _abschnitte():
 
 
 class JedesWerkzeugStehtGenauEinmal(BasisTest):
-
     def test_die_tabelle_zeigt_alle_werkzeuge(self):
-        in_tabelle = [w.slug for a in _abschnitte()
-                      for _rang, w in a['eintraege']]
-        self.assertEqual(sorted(in_tabelle),
-                         sorted(w.slug for w in werkzeuge()),
-                         'Ein Werkzeug fällt aus der Tabelle — dann ist es '
-                         'auf der Seite nicht mehr zu starten.')
+        in_tabelle = [w.slug for a in _abschnitte() for _rang, w in a["eintraege"]]
+        self.assertEqual(
+            sorted(in_tabelle),
+            sorted(w.slug for w in werkzeuge()),
+            "Ein Werkzeug fällt aus der Tabelle — dann ist es auf der Seite nicht mehr zu starten.",
+        )
 
     def test_keines_steht_in_zwei_abschnitten(self):
-        in_tabelle = [w.slug for a in _abschnitte()
-                      for _rang, w in a['eintraege']]
+        in_tabelle = [w.slug for a in _abschnitte() for _rang, w in a["eintraege"]]
         doppelt = sorted({s for s in in_tabelle if in_tabelle.count(s) > 1})
-        self.assertEqual(doppelt, [],
-                         'Diese Werkzeuge stehen mehrfach: %s' % doppelt)
+        self.assertEqual(doppelt, [], "Diese Werkzeuge stehen mehrfach: %s" % doppelt)
 
 
 class DerKnopfFaehrtGenauSeinenAbschnitt(BasisTest):
-    u"""Ein Knopf, der etwas anderes fährt als die Zeile darüber zeigt, ist
+    """Ein Knopf, der etwas anderes fährt als die Zeile darüber zeigt, ist
     schlimmer als kein Knopf."""
 
     def test_jeder_abschnitt_faehrt_seine_eigenen(self):
         for nummer, a in enumerate(_abschnitte()):
-            if not a['eintraege']:
+            if not a["eintraege"]:
                 continue
-            with self.subTest(bereich=a['bereich']['name']):
+            with self.subTest(bereich=a["bereich"]["name"]):
                 self.assertEqual(
-                    sorted(SkillsView._bereich_slugs(nummer)),
-                    sorted(w.slug for _rang, w in a['eintraege']))
+                    sorted(SkillsView._bereich_slugs(nummer)), sorted(w.slug for _rang, w in a["eintraege"])
+                )
 
     def test_jeder_abschnitt_hat_einen_knopf(self):
         for nummer, a in enumerate(_abschnitte()):
-            if not a['eintraege']:
+            if not a["eintraege"]:
                 continue
-            kopf = SkillsView._gruppenkopf(nummer, a['bereich'],
-                                           len(a['eintraege']))
-            with self.subTest(bereich=a['bereich']['name']):
+            kopf = SkillsView._gruppenkopf(nummer, a["bereich"], len(a["eintraege"]))
+            with self.subTest(bereich=a["bereich"]["name"]):
                 self.assertIn('name="bereich" value="%d"' % nummer, kopf)
-                self.assertIn(a['bereich']['name'], kopf)
+                self.assertIn(a["bereich"]["name"], kopf)
 
 
 class EineUnsinnigeNummerFaehrtNICHTS(BasisTest):
-    u"""Die Nummer kommt aus der Anfrage — sie wird geprüft, nicht benutzt.
+    """Die Nummer kommt aus der Anfrage — sie wird geprüft, nicht benutzt.
 
     Ohne das würde ein ``bereich=99`` entweder werfen (500) oder, schlimmer,
     versehentlich etwas fahren.
@@ -96,15 +93,15 @@ class EineUnsinnigeNummerFaehrtNICHTS(BasisTest):
         self.assertEqual(SkillsView._bereich_slugs(-1), [])
 
     def test_keine_zahl(self):
-        self.assertEqual(SkillsView._bereich_slugs('alle'), [])
+        self.assertEqual(SkillsView._bereich_slugs("alle"), [])
 
     def test_nichts_uebergeben(self):
-        u"""Der Normalfall: Es wurde ein Werkzeug angehakt, kein Bereich."""
+        """Der Normalfall: Es wurde ein Werkzeug angehakt, kein Bereich."""
         self.assertEqual(SkillsView._bereich_slugs(None), [])
 
 
 class JedesKriteriumIstEinemBereichZUGEORDNET(BasisTest):
-    u"""Der Wächter, den ich beim Umbau selbst verloren habe (26.08.2026).
+    """Der Wächter, den ich beim Umbau selbst verloren habe (26.08.2026).
 
     In der ersten Fassung dieser Datei stand er als
     ``JedesKriteriumMitWerkzeugenHatEinenPlatz``. Beim Umbau von „Kästen"
@@ -122,48 +119,56 @@ class JedesKriteriumIstEinemBereichZUGEORDNET(BasisTest):
 
     def test_jedes_kriterium_mit_werkzeugen_steht_in_einem_bereich(self):
         from djangobase.skills.rangliste import BEREICHE
-        zugeordnet = {nr for b in BEREICHE for nr in b['kriterien']}
-        vorhanden = {getattr(w, 'kriterium', 0) for w in werkzeuge()}
+
+        zugeordnet = {nr for b in BEREICHE for nr in b["kriterien"]}
+        vorhanden = {getattr(w, "kriterium", 0) for w in werkzeuge()}
         # 0 heisst ausdruecklich „kein Auftrags-Kriterium" und ist damit
         # selbst eine Zuordnung — es braucht keinen eigenen Bereich.
         fehlend = sorted(vorhanden - zugeordnet - {0})
         self.assertEqual(
-            fehlend, [],
-            'Kriterium %s trägt Werkzeuge, ist aber keinem Bereich '
-            'zugeordnet. `bereich_von()` steckt es dann stillschweigend in '
-            'den letzten — sichtbar falsch wäre besser.' % fehlend)
+            fehlend,
+            [],
+            "Kriterium %s trägt Werkzeuge, ist aber keinem Bereich "
+            "zugeordnet. `bereich_von()` steckt es dann stillschweigend in "
+            "den letzten — sichtbar falsch wäre besser." % fehlend,
+        )
 
     def test_kein_bereich_ist_leer(self):
-        u"""Ein Abschnitt ohne Werkzeuge ist eine Überschrift ins Nichts."""
-        leer = [a['bereich']['name'] for a in _abschnitte()
-                if not a['eintraege']]
+        """Ein Abschnitt ohne Werkzeuge ist eine Überschrift ins Nichts."""
+        leer = [a["bereich"]["name"] for a in _abschnitte() if not a["eintraege"]]
         self.assertEqual(leer, [])
 
     def test_der_bdd_bereich_traegt_seine_beiden_werkzeuge(self):
-        u"""Gegenprobe zum neuen Abschnitt: Steht er da, ist er auch
+        """Gegenprobe zum neuen Abschnitt: Steht er da, ist er auch
         gefuellt — und zwar mit denen, für die er angelegt wurde."""
-        drin = {w.slug for a in _abschnitte()
-                if a['bereich']['name'].startswith('Abnahme')
-                for _r, w in a['eintraege']}
-        self.assertIn('anlassfall-check', drin)
-        self.assertIn('szenarien', drin)
+        drin = {
+            w.slug
+            for a in _abschnitte()
+            if a["bereich"]["name"].startswith("Abnahme")
+            for _r, w in a["eintraege"]
+        }
+        self.assertIn("anlassfall-check", drin)
+        self.assertIn("szenarien", drin)
 
 
 class KeineZWEITEDarstellungAufDerSeite(BasisTest):
-    u"""Der Rückfall, gegen den diese Datei geschrieben ist."""
+    """Der Rückfall, gegen den diese Datei geschrieben ist."""
 
-    VORLAGE = 'djangobase/hilfe/skills.html'
+    VORLAGE = "djangobase/hilfe/skills.html"
 
     def _markup(self):
-        from django.template.loader import get_template
         from pathlib import Path
-        return Path(get_template(self.VORLAGE).origin.name).read_text(
-            encoding='utf-8')
+
+        from django.template.loader import get_template
+
+        return Path(get_template(self.VORLAGE).origin.name).read_text(encoding="utf-8")
 
     def test_die_kaesten_sind_weg(self):
         markup = self._markup()
         for rest in ('name="k1617"', 'name="k18"'):
             self.assertNotIn(
-                rest, markup,
-                'Der Kasten mit %s ist zurück — dann stehen die Werkzeuge '
-                'wieder doppelt, einmal koennend und einmal nicht.' % rest)
+                rest,
+                markup,
+                "Der Kasten mit %s ist zurück — dann stehen die Werkzeuge "
+                "wieder doppelt, einmal koennend und einmal nicht." % rest,
+            )

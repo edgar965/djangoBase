@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Leistungstests - Ladezeiten messen, protokollieren, vergleichen.
+"""Leistungstests - Ladezeiten messen, protokollieren, vergleichen.
 
     Test-Art „performance": alle wichtigen Seiten und Ablaeufe werden gemessen,
     die Ergebnisse protokolliert.
@@ -40,6 +40,7 @@ Einstellen ueber ``DJANGOBASE["leistung"]``:
         "laeufe": 3,              # Messungen je Seite (Median zaehlt)
     }
 """
+
 import json
 import logging
 import statistics
@@ -55,8 +56,7 @@ __all__ = ["Messwert", "Leistungsablage", "GrundtestLadezeiten"]
 
 
 def _cfg(name, vorgabe=None):
-    return ((getattr(settings, "DJANGOBASE", {}) or {}).get("leistung") or {}
-            ).get(name, vorgabe)
+    return ((getattr(settings, "DJANGOBASE", {}) or {}).get("leistung") or {}).get(name, vorgabe)
 
 
 class Messwert:
@@ -70,12 +70,10 @@ class Messwert:
 
     def als_dict(self):
         # Dictionary gewollt: geht so in die JSON-Ablage und ins Protokoll.
-        return {"pfad": self.pfad, "ms": round(self.ms, 1),
-                "abfragen": self.abfragen, "status": self.status}
+        return {"pfad": self.pfad, "ms": round(self.ms, 1), "abfragen": self.abfragen, "status": self.status}
 
     def zeile(self):
-        return ("%-44s %7.1f ms  %4d Abfragen  HTTP %s"
-                % (self.pfad[:44], self.ms, self.abfragen, self.status))
+        return "%-44s %7.1f ms  %4d Abfragen  HTTP %s" % (self.pfad[:44], self.ms, self.abfragen, self.status)
 
 
 class Leistungsablage:
@@ -88,8 +86,7 @@ class Leistungsablage:
     MAX_LAEUFE = 20
 
     def __init__(self, datei=None):
-        self.datei = Path(datei or (Path(str(settings.BASE_DIR))
-                                    / ".djangobase-leistung.json"))
+        self.datei = Path(datei or (Path(str(settings.BASE_DIR)) / ".djangobase-leistung.json"))
 
     def laden(self):
         try:
@@ -103,12 +100,10 @@ class Leistungsablage:
 
     def schreiben(self, werte, stempel):
         daten = self.laden()
-        daten.setdefault("laeufe", []).append(
-            {"stand": stempel, "werte": [w.als_dict() for w in werte]})
-        daten["laeufe"] = daten["laeufe"][-self.MAX_LAEUFE:]
+        daten.setdefault("laeufe", []).append({"stand": stempel, "werte": [w.als_dict() for w in werte]})
+        daten["laeufe"] = daten["laeufe"][-self.MAX_LAEUFE :]
         try:
-            self.datei.write_text(json.dumps(daten, ensure_ascii=False, indent=1),
-                                  encoding="utf-8")
+            self.datei.write_text(json.dumps(daten, ensure_ascii=False, indent=1), encoding="utf-8")
         except OSError as e:
             logger.warning("Leistungsablage nicht schreibbar: %s", e)
         return self.datei
@@ -132,10 +127,11 @@ class GrundtestLadezeiten(TestCase):
         blitzschnellen Anwendung aus und war die Zurueckweisung am Eingang -
         genau die Sorte Zahl, die man besser gar nicht erhebt."""
         from django.contrib.auth import get_user_model
+
         Nutzer = get_user_model()
         cls.messnutzer = Nutzer.objects.create_superuser(
-            **{Nutzer.USERNAME_FIELD: "leistungsmessung",
-               "password": "nur-fuer-die-messung"})
+            **{Nutzer.USERNAME_FIELD: "leistungsmessung", "password": "nur-fuer-die-messung"}
+        )
 
     def setUp(self):
         super().setUp()
@@ -153,6 +149,7 @@ class GrundtestLadezeiten(TestCase):
         if fest:
             return list(fest)
         from djangobase.grundtests import _routen
+
         aus = set(_cfg("aus") or [])
         mit_api = bool(_cfg("mit_endpunkten", False))
         pfade = []
@@ -165,12 +162,13 @@ class GrundtestLadezeiten(TestCase):
             if not mit_api and any(m in pfad for m in self.ENDPUNKT_MARKER):
                 continue
             pfade.append(pfad)
-        return pfade[:self.HOECHSTENS]
+        return pfade[: self.HOECHSTENS]
 
     def _messen(self, pfad, laeufe):
         from django.db import connection
         from django.test.utils import CaptureQueriesContext
-        self.client.get(pfad)                        # Aufwaermlauf, zaehlt nicht
+
+        self.client.get(pfad)  # Aufwaermlauf, zaehlt nicht
         zeiten, abfragen, status = [], 0, 0
         for _ in range(laeufe):
             with CaptureQueriesContext(connection) as q:
@@ -190,32 +188,31 @@ class GrundtestLadezeiten(TestCase):
         for pfad in self._pfade():
             try:
                 w = self._messen(pfad, laeufe)
-            except Exception as e:                            # noqa: BLE001
+            except Exception as e:  # noqa: BLE001
                 logger.warning("Leistung: %s nicht messbar: %s", pfad, e)
                 continue
             werte.append(w)
             alt = vorher.get(pfad)
             if alt and alt.get("ms"):
-                if (w.ms > alt["ms"] * self.FAKTOR
-                        and w.ms - alt["ms"] >= self.MINDEST_ZUWACHS_MS):
-                    langsamer.append("%s: %.0f -> %.0f ms"
-                                     % (pfad, alt["ms"], w.ms))
+                if w.ms > alt["ms"] * self.FAKTOR and w.ms - alt["ms"] >= self.MINDEST_ZUWACHS_MS:
+                    langsamer.append("%s: %.0f -> %.0f ms" % (pfad, alt["ms"], w.ms))
             if grenze and w.ms > float(grenze):
                 ueber_grenze.append("%s: %.0f ms" % (pfad, w.ms))
 
         stempel = time.strftime("%d.%m.%Y %H:%M:%S")
         datei = Leistungsablage().schreiben(werte, stempel)
         # Protokoll: einmal als Block ins Log (mit Zeitstempel aus dem Format).
-        logger.info("Leistungsmessung %s — %d Seiten, Ablage %s\n%s",
-                    stempel, len(werte), datei,
-                    "\n".join(w.zeile() for w in
-                              sorted(werte, key=lambda x: -x.ms)[:25]))
+        logger.info(
+            "Leistungsmessung %s — %d Seiten, Ablage %s\n%s",
+            stempel,
+            len(werte),
+            datei,
+            "\n".join(w.zeile() for w in sorted(werte, key=lambda x: -x.ms)[:25]),
+        )
 
-        self.assertEqual(langsamer, [],
-                         "Deutlich langsamer als beim letzten Lauf: %s" % langsamer)
+        self.assertEqual(langsamer, [], "Deutlich langsamer als beim letzten Lauf: %s" % langsamer)
         if grenze:
-            self.assertEqual(ueber_grenze, [],
-                             "Über der Grenze von %s ms: %s" % (grenze, ueber_grenze))
+            self.assertEqual(ueber_grenze, [], "Über der Grenze von %s ms: %s" % (grenze, ueber_grenze))
 
     def test_keine_seite_stellt_uebermaessig_viele_abfragen(self):
         """Die stabilere Größe: Abfragen hängen nicht an der Tageslast."""
@@ -224,10 +221,10 @@ class GrundtestLadezeiten(TestCase):
         for pfad in self._pfade():
             try:
                 w = self._messen(pfad, 1)
-            except Exception:                                 # noqa: BLE001
+            except Exception:  # noqa: BLE001
                 continue
             if w.abfragen > grenze:
                 viele.append("%s: %d Abfragen" % (pfad, w.abfragen))
-        self.assertEqual(viele, [],
-                         "Mehr als %d SQL-Abfragen je Seite (N+1 verdächtig): %s"
-                         % (grenze, viele))
+        self.assertEqual(
+            viele, [], "Mehr als %d SQL-Abfragen je Seite (N+1 verdächtig): %s" % (grenze, viele)
+        )

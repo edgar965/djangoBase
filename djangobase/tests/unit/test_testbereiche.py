@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Bereiche, Kategorien-Reihenfolge und Laufzeit-Darstellung.
+"""Bereiche, Kategorien-Reihenfolge und Laufzeit-Darstellung.
 
 Jeder Test hier steht fuer einen Fehler, der am 17.08.2026 WIRKLICH passiert
 ist — nicht fuer einen ausgedachten Fall:
@@ -12,9 +12,10 @@ ist — nicht fuer einen ausgedachten Fall:
 * Die Laufzeit stand mal als „35 ms", mal als „0,00 s" in derselben Spalte.
 * Das JavaScript baute Zeilen mit weniger Zellen, als die Tabelle Spalten hat.
 """
+
 import json
-import shutil
 import re
+import shutil
 from pathlib import Path
 
 from django.test import SimpleTestCase
@@ -35,7 +36,6 @@ ANGABE = [
 
 
 class BereicheTests(SimpleTestCase):
-
     def test_laengstes_praefix_gewinnt(self):
         b = Bereiche(ANGABE)
         self.assertEqual(b.slug_von("search.tests.musik.unit.test_x.K.t"), "musik")
@@ -49,38 +49,37 @@ class BereicheTests(SimpleTestCase):
         self.assertEqual(b.slug_von("irgendwas"), "")
 
     def test_reihenfolge_folgt_der_angabe(self):
-        u"""„auch die reihenfolge ist änderbar" — nicht alphabetisch."""
+        """„auch die reihenfolge ist änderbar" — nicht alphabetisch."""
         b = Bereiche(ANGABE)
-        tests = [{"id": "search.tests.musik.unit.test_a.K.t"},
-                 {"id": "mail.tests.unit.test_b.K.t"},
-                 {"id": "search.tests.chat.unit.test_c.K.t"}]
-        self.assertEqual([g["slug"] for g in b.gruppieren(tests)],
-                         ["mail", "chat", "musik"])
+        tests = [
+            {"id": "search.tests.musik.unit.test_a.K.t"},
+            {"id": "mail.tests.unit.test_b.K.t"},
+            {"id": "search.tests.chat.unit.test_c.K.t"},
+        ]
+        self.assertEqual([g["slug"] for g in b.gruppieren(tests)], ["mail", "chat", "musik"])
 
     def test_elternordner_ist_kein_ziel(self):
-        u"""`search.tests` liegt über `search.tests.chat` — nicht waehlbar."""
+        """`search.tests` liegt über `search.tests.chat` — nicht waehlbar."""
         b = Bereiche(ANGABE)
         self.assertIn("chat", b.ziele())
         self.assertNotIn("suche", b.ziele())
         self.assertNotIn("suche", [w for w, _n, _g in b.auswahl("chat")])
 
     def test_zeilenformat_hin_und_zurueck(self):
-        u"""Was im Formular steht, muss dasselbe ergeben wie die Angabe."""
+        """Was im Formular steht, muss dasselbe ergeben wie die Angabe."""
         zeilen = Bereiche.als_zeilen(ANGABE)
         self.assertEqual(zeilen[0], "mail | Mail | mail.tests")
         zurueck = Bereiche(zeilen)
-        self.assertEqual(zurueck.slug_von("search.tests.musik.unit.test_x.K.t"),
-                         "musik")
+        self.assertEqual(zurueck.slug_von("search.tests.musik.unit.test_x.K.t"), "musik")
         self.assertEqual(set(zurueck.ziele()), set(Bereiche(ANGABE).ziele()))
 
     def test_kurzform_nur_umbenennen(self):
         b = Bereiche({"schedule": "Kalender"})
         self.assertEqual(b.name_von("schedule"), "Kalender")
-        self.assertFalse(b.ziele())          # ohne Praefix kein Ziel
+        self.assertFalse(b.ziele())  # ohne Praefix kein Ziel
 
 
 class ArtenTests(SimpleTestCase):
-
     def test_reihenfolge_und_namen(self):
         a = Arten(["longrunner | Nachtlauf", "unit"])
         self.assertEqual(a.liste()[:2], ["longrunner", "unit"])
@@ -93,7 +92,6 @@ class ArtenTests(SimpleTestCase):
 
 
 class ZeitformatTests(SimpleTestCase):
-
     def test_unter_einer_sekunde_immer_ms(self):
         self.assertEqual(dauer_text(0), "0 ms")
         self.assertEqual(dauer_text(0.002), "2 ms")
@@ -109,7 +107,7 @@ class ZeitformatTests(SimpleTestCase):
 
 
 class SpaltenDeckungTests(SimpleTestCase):
-    u"""Die Spalten der Tabelle und die Zuordnung im JavaScript.
+    """Die Spalten der Tabelle und die Zuordnung im JavaScript.
 
     `testzeiten.js` schreibt Laufzeiten ueber feste Zellen-Indizes. Kommt eine
     Spalte dazu (der Bereich, 17.08.2026), landen die Zahlen sonst in der
@@ -117,8 +115,7 @@ class SpaltenDeckungTests(SimpleTestCase):
     """
 
     def test_js_kennt_dieselben_spalten(self):
-        pfad = (Path(__file__).resolve().parents[2] / "static" / "djangobase"
-                / "js" / "testzeiten.js")
+        pfad = Path(__file__).resolve().parents[2] / "static" / "djangobase" / "js" / "testzeiten.js"
         text = pfad.read_text(encoding="utf-8")
         block = re.search(r"export const SPALTE = \{(.+?)\};", text, re.S).group(1)
         js = dict(re.findall(r"(\w+):\s*(\d+)", block))
@@ -127,23 +124,20 @@ class SpaltenDeckungTests(SimpleTestCase):
 
 
 class KartenLabelTests(SimpleTestCase):
-
     def test_label_nur_wenn_es_genau_passt(self):
-        u"""Ein Label, das mehr fährt als die Tabelle zeigt, wäre gelogen."""
-        gleiche = [{"id": "mail.tests.unit.test_a.K.t"},
-                   {"id": "mail.tests.unit.test_b.K.t"}]
+        """Ein Label, das mehr fährt als die Tabelle zeigt, wäre gelogen."""
+        gleiche = [{"id": "mail.tests.unit.test_a.K.t"}, {"id": "mail.tests.unit.test_b.K.t"}]
         self.assertEqual(Karten.label(gleiche), "mail.tests.unit")
         gemischt = gleiche + [{"id": "search.tests.unit.test_c.K.t"}]
         self.assertEqual(Karten.label(gemischt), "")
 
     def test_kein_label_fuer_ganze_app(self):
-        u"""`mail.tests` fährt auch Component und UI — kein Kategorie-Knopf."""
-        self.assertEqual(Karten.label([{"id": "mail.tests.a.K.t"},
-                                       {"id": "mail.tests.b.K.t"}]), "")
+        """`mail.tests` fährt auch Component und UI — kein Kategorie-Knopf."""
+        self.assertEqual(Karten.label([{"id": "mail.tests.a.K.t"}, {"id": "mail.tests.b.K.t"}]), "")
 
 
 class BereichWechselTests(SimpleTestCase):
-    u"""Die Datei wandert wirklich — an einer Kunst-Struktur, nicht am Projekt."""
+    """Die Datei wandert wirklich — an einer Kunst-Struktur, nicht am Projekt."""
 
     def setUp(self):
         # Im Projekt, nicht in System-Temp (harte Vorgabe: kein Datenmuell auf C:).
@@ -152,11 +146,13 @@ class BereichWechselTests(SimpleTestCase):
         self.quelle = self.wurzel / "app" / "tests" / "musik" / "unit"
         self.quelle.mkdir(parents=True)
         (self.quelle / "test_probe.py").write_text("# Probe\n", encoding="utf-8")
-        self.bereiche = Bereiche([
-            {"slug": "musik", "name": "Musik", "praefixe": ["app.tests.musik"]},
-            {"slug": "chat", "name": "Chat", "praefixe": ["app.tests.chat"]},
-            {"slug": "alles", "name": "Alles", "praefixe": ["app.tests"]},
-        ])
+        self.bereiche = Bereiche(
+            [
+                {"slug": "musik", "name": "Musik", "praefixe": ["app.tests.musik"]},
+                {"slug": "chat", "name": "Chat", "praefixe": ["app.tests.chat"]},
+                {"slug": "alles", "name": "Alles", "praefixe": ["app.tests"]},
+            ]
+        )
         self.v = Verschieber(wurzel=self.wurzel, bereiche=self.bereiche)
         self.tid = "app.tests.musik.unit.test_probe.Probe.test_eins"
 
@@ -185,16 +181,17 @@ class BereichWechselTests(SimpleTestCase):
         self.assertTrue((self.quelle / "test_probe.py").exists())
 
     def test_historie_zieht_mit(self):
-        u"""Sonst stünde der Fall danach auf „noch nie gelaufen"."""
+        """Sonst stünde der Fall danach auf „noch nie gelaufen"."""
         from djangobase.testhistorie import Testhistorie
+
         ablage = self.wurzel / "historie.json"
-        ablage.write_text(json.dumps({"tests": {self.tid: [{"zeit": "x", "dauer": 1}]},
-                                      "suiten": {}}), encoding="utf-8")
+        ablage.write_text(
+            json.dumps({"tests": {self.tid: [{"zeit": "x", "dauer": 1}]}, "suiten": {}}), encoding="utf-8"
+        )
         # Testhistorie() ohne Pfad zeigt auf BASE_DIR — hier wird der ECHTE
         # Umzug geprueft, deshalb die Ablage des Projekts unangetastet lassen:
         # der Verschieber legt seine eigene an, und die ist im Testlauf leer.
         vorher = dict(Testhistorie().daten["tests"])
         self.v.bereich_verschieben(self.tid, "chat")
         nachher = Testhistorie().daten["tests"]
-        self.assertEqual(set(vorher), set(nachher),
-                         "fremde Einträge dürfen sich nicht ändern")
+        self.assertEqual(set(vorher), set(nachher), "fremde Einträge dürfen sich nicht ändern")

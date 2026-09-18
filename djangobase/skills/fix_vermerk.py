@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""FixVermerk - Anzeigeformate mit dem Vermerk versehen, der sie ausnimmt.
+"""FixVermerk - Anzeigeformate mit dem Vermerk versehen, der sie ausnimmt.
 
 DER HAEUFIGSTE „FIX" IST KEIN UMBAU (16.08.2026)
 ================================================
@@ -24,6 +24,7 @@ aussagekraeftigen Schlüssel stehen im Frontend, und die Fundstelle nennt die
 Dateien, in denen sie gefunden wurden. Alles darunter bleibt liegen - „gemischt"
 heißt, ein Mensch muss hinsehen.
 """
+
 import ast
 import re
 from collections import Counter
@@ -57,13 +58,17 @@ class Fundstelle:
     def vermerk(self):
         """Der Kommentar, der gesetzt wird - er NENNT den Beleg."""
         if self.serialisiert:
-            return ("        # Dictionary gewollt: verlässt das Programm als JSON "
-                    "über %s — dort wird ein echtes Dictionary gebraucht "
-                    "(geprüft mit Skills2 → Anzeigeformat)." % self.serialisiert)
+            return (
+                "        # Dictionary gewollt: verlässt das Programm als JSON "
+                "über %s — dort wird ein echtes Dictionary gebraucht "
+                "(geprüft mit Skills2 → Anzeigeformat)." % self.serialisiert
+            )
         wo = ", ".join(self.quellen[:3]) or "der Oberfläche"
-        return ("        # Dictionary gewollt: geht als JSON an %s (%d von %d "
-                "Schlüsseln stehen dort wörtlich, geprüft mit Skills2 → "
-                "Anzeigeformat)." % (wo, len(self.treffer), len(self.schluessel)))
+        return (
+            "        # Dictionary gewollt: geht als JSON an %s (%d von %d "
+            "Schlüsseln stehen dort wörtlich, geprüft mit Skills2 → "
+            "Anzeigeformat)." % (wo, len(self.treffer), len(self.schluessel))
+        )
 
 
 class Serialisierungsweg:
@@ -116,8 +121,7 @@ class Serialisierungsweg:
                 if ziel not in self.ZIELE or not k.args:
                     continue
                 erstes = k.args[0]
-                if isinstance(erstes, ast.Call) and \
-                        self._name(erstes.func) == funktion:
+                if isinstance(erstes, ast.Call) and self._name(erstes.func) == funktion:
                     return k.lineno, ziel
                 if isinstance(erstes, ast.Name) and erstes.id in namen:
                     return k.lineno, ziel
@@ -127,8 +131,11 @@ class Serialisierungsweg:
         """Namen, denen das Ergebnis von ``funktion`` zugewiesen wurde."""
         aus = set()
         for k in ast.walk(funktion_knoten):
-            if isinstance(k, ast.Assign) and isinstance(k.value, ast.Call) and \
-                    self._name(k.value.func) == funktion:
+            if (
+                isinstance(k, ast.Assign)
+                and isinstance(k.value, ast.Call)
+                and self._name(k.value.func) == funktion
+            ):
                 for ziel in k.targets:
                     if isinstance(ziel, ast.Name):
                         aus.add(ziel.id)
@@ -149,16 +156,22 @@ class FixVermerk(Fixer):
     #: Werkzeugs, das ihn meldet. Die Oberflaeche zeigt daraus die
     #: NUMMER der Pruefung in der Tabelle statt einer
     #: Kriteriums-Nummer, die dort nirgends steht.
-    behebt = 'anzeigeformat'
+    behebt = "anzeigeformat"
     titel = "Anzeigeformate mit Vermerk versehen"
-    tut = ("Setzt „# Dictionary gewollt: …“ über jede Rückgabe, deren Schlüssel "
-           "nachweislich im Frontend stehen — mit Angabe der JS-Datei.")
-    warum = ("134 von 204 Befunden waren Anzeigeformate. Der Auftrag nimmt sie "
-             "aus; ohne Vermerk taucht jeder beim nächsten Lauf wieder auf und "
-             "verdeckt die echten Fälle.")
-    grenzen = ("Nur bei mindestens 70 % Trefferquote. „Gemischt“ bleibt liegen — "
-               "dort muss ein Mensch entscheiden, ob das Dictionary unterwegs "
-               "gelesen wird.")
+    tut = (
+        "Setzt „# Dictionary gewollt: …“ über jede Rückgabe, deren Schlüssel "
+        "nachweislich im Frontend stehen — mit Angabe der JS-Datei."
+    )
+    warum = (
+        "134 von 204 Befunden waren Anzeigeformate. Der Auftrag nimmt sie "
+        "aus; ohne Vermerk taucht jeder beim nächsten Lauf wieder auf und "
+        "verdeckt die echten Fälle."
+    )
+    grenzen = (
+        "Nur bei mindestens 70 % Trefferquote. „Gemischt“ bleibt liegen — "
+        "dort muss ein Mensch entscheiden, ob das Dictionary unterwegs "
+        "gelesen wird."
+    )
     kriterium = 11
     dauer = "5–15 s"
 
@@ -171,8 +184,8 @@ class FixVermerk(Fixer):
         # Punkt 3 kam am 17.08.2026 dazu: Namensgleichheit allein hatte
         # einem Skript ohne jede Antwort „geht als JSON an audio.html"
         # in den Code geschrieben.
-        {"kennzahlen.py":
-            "from django.http import JsonResponse\n"
+        {
+            "kennzahlen.py": "from django.http import JsonResponse\n"
             "\n\n"
             "def kennzahlen(x):\n"
             "    return {'tagesquote': x, 'restposten': 0,\n"
@@ -180,34 +193,76 @@ class FixVermerk(Fixer):
             "\n\n"
             "def api_kennzahlen(request):\n"
             "    return JsonResponse(kennzahlen(1))\n",
-         "tafel.html":
-            "<div data-feld=\"tagesquote\"></div>\n"
-            "<div data-feld=\"restposten\"></div>\n"
-            "<div data-feld=\"laufzeitmittel\"></div>\n",
-         "tafel.js":
-            "export function zeichnen(d) {\n"
+            "tafel.html": '<div data-feld="tagesquote"></div>\n'
+            '<div data-feld="restposten"></div>\n'
+            '<div data-feld="laufzeitmittel"></div>\n',
+            "tafel.js": "export function zeichnen(d) {\n"
             "    return [d.tagesquote, d.restposten, d.fehlerquote];\n"
-            "}\n"},
-        mindestens=1, hoechstens=1, erwartet_in="kennzahlen.py",
+            "}\n",
+        },
+        mindestens=1,
+        hoechstens=1,
+        erwartet_in="kennzahlen.py",
         warum="Ein Rückgabe-Dictionary, dessen Schlüssel woertlich in der "
-              "Oberflaeche stehen und das nachweislich als JSON hinausgeht — "
-              "genau der Fall, den der Auftrag ausdruecklich ausnimmt")
+        "Oberflaeche stehen und das nachweislich als JSON hinausgeht — "
+        "genau der Fall, den der Auftrag ausdruecklich ausnimmt",
+    )
 
     MIN_SCHLUESSEL = 4
     SCHWELLE = 0.7
-    ZU_HAEUFIG = {"ok", "error", "name", "key", "value", "date", "id", "type",
-                  "label", "data", "text", "url", "status", "title", "n", "count"}
+    ZU_HAEUFIG = {
+        "ok",
+        "error",
+        "name",
+        "key",
+        "value",
+        "date",
+        "id",
+        "type",
+        "label",
+        "data",
+        "text",
+        "url",
+        "status",
+        "title",
+        "n",
+        "count",
+    }
     WORT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
-    RAUS = ("__pycache__", "node_modules", "venv", "pythonVENV", ".git",
-            "sicherung", "backup", "archiv", "_web",
-            # Fremdcode, der neben dem Projekt liegt - siehe werkzeug.AUSGESCHLOSSEN
-            "virensuche_quarantine", "quarantine", "chrome-profile",
-            "Extensions", "var", "vendor")
+    RAUS = (
+        "__pycache__",
+        "node_modules",
+        "venv",
+        "pythonVENV",
+        ".git",
+        "sicherung",
+        "backup",
+        "archiv",
+        "_web",
+        # Fremdcode, der neben dem Projekt liegt - siehe werkzeug.AUSGESCHLOSSEN
+        "virensuche_quarantine",
+        "quarantine",
+        "chrome-profile",
+        "Extensions",
+        "var",
+        "vendor",
+    )
     #: Mitgelieferte Bibliotheken und Buendel. Ein Vermerk, der „geht an
     #: aws-sdk.js" behauptet, ist keine Begruendung, sondern ein Zufallstreffer:
     #: In einem 3-MB-Buendel steht JEDER kurze Bezeichner irgendwo.
-    FREMDE_DATEI = ("min.js", "-sdk", "bundle", "compiler", "vendor", "polyfill",
-                    "chunk", "runtime.", "jquery", "bootstrap", "htmx")
+    FREMDE_DATEI = (
+        "min.js",
+        "-sdk",
+        "bundle",
+        "compiler",
+        "vendor",
+        "polyfill",
+        "chunk",
+        "runtime.",
+        "jquery",
+        "bootstrap",
+        "htmx",
+    )
     #: Zeilen ab dieser Laenge heissen: minifiziert. Auch das ist Fremdcode.
     MINIFIZIERT_AB = 500
     #: Wie viele der gefundenen Schluessel EINE Datei enthalten muss, damit sie
@@ -267,8 +322,7 @@ class FixVermerk(Fixer):
                     # ``backup_dax_handel_vor_modulen.html`` - einer Datei, die
                     # niemand mehr ausliefert. Ein Beleg auf totem Code ist
                     # genau die Sorte Begründung, die hier nichts verloren hat.
-                    if any(t in pfad.stem.lower()
-                           for t in ("backup", "_alt", "_vor_", ".bak", "kopie")):
+                    if any(t in pfad.stem.lower() for t in ("backup", "_alt", "_vor_", ".bak", "kopie")):
                         continue
                     if any(t in pfad.name.lower() for t in self.FREMDE_DATEI):
                         continue
@@ -302,8 +356,9 @@ class FixVermerk(Fixer):
             for k in ast.walk(baum):
                 if not isinstance(k, ast.Return) or not isinstance(k.value, ast.Dict):
                     continue
-                feste = [s.value for s in k.value.keys
-                         if isinstance(s, ast.Constant) and isinstance(s.value, str)]
+                feste = [
+                    s.value for s in k.value.keys if isinstance(s, ast.Constant) and isinstance(s.value, str)
+                ]
                 if len(feste) < self.MIN_SCHLUESSEL:
                     continue
                 aussage = [s for s in feste if s not in self.ZU_HAEUFIG]
@@ -311,7 +366,7 @@ class FixVermerk(Fixer):
                     continue
                 # Steht der Vermerk schon da?
                 von = max(0, k.lineno - 7)
-                if any(MARKER in z for z in zeilen[von:k.lineno]):
+                if any(MARKER in z for z in zeilen[von : k.lineno]):
                     continue
                 treffer = [s for s in aussage if s in self.frontend]
                 # NUR Dateien, die einen nennenswerten Teil der Schluessel
@@ -331,10 +386,8 @@ class FixVermerk(Fixer):
                 # der wenig anfasst, als einer, der Behauptungen in den Code
                 # schreibt.
                 funktion_hier = self._funktion_um(baum, k.lineno)
-                geht_hinaus = bool(funktion_hier
-                                   and self.weg.beleg(pfad, funktion_hier))
-                if (belegend and geht_hinaus
-                        and len(treffer) / len(aussage) >= self.SCHWELLE):
+                geht_hinaus = bool(funktion_hier and self.weg.beleg(pfad, funktion_hier))
+                if belegend and geht_hinaus and len(treffer) / len(aussage) >= self.SCHWELLE:
                     yield fund
                     continue
                 # ZWEITER WEG: Die Schluessel stehen nirgends woertlich, aber das
@@ -349,8 +402,9 @@ class FixVermerk(Fixer):
     def _funktion_um(baum, zeile):
         treffer = None
         for k in ast.walk(baum):
-            if isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef)) and \
-                    k.lineno <= zeile <= (k.end_lineno or k.lineno):
+            if isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef)) and k.lineno <= zeile <= (
+                k.end_lineno or k.lineno
+            ):
                 if treffer is None or k.lineno > treffer.lineno:
                     treffer = k
         return treffer.name if treffer else ""
@@ -366,18 +420,20 @@ class FixVermerk(Fixer):
             # VON HINTEN einsetzen, sonst verschieben sich die Zeilennummern der
             # noch offenen Fundstellen (klassischer Fehler beim Mehrfach-Einfuegen).
             for f in sorted(funde, key=lambda x: -x.knoten.lineno):
-                einzug = len(zeilen[f.knoten.lineno - 1]) - \
-                    len(zeilen[f.knoten.lineno - 1].lstrip())
-                zeilen.insert(f.knoten.lineno - 1,
-                              " " * einzug + f.vermerk.strip())
-            aenderungen.append(Aenderung(
-                pfad, "%d Vermerk(e) setzen: %s" % (
-                    len(funde), ", ".join(sorted(f.quellen[0] for f in funde
-                                                 if f.quellen)[:2])),
-                "\n".join(zeilen)))
-        return Vorschau(aenderungen,
-                        "Der Vermerk nennt die Frontend-Datei — er ist damit "
-                        "nachprüfbar und kein bloßes Stummschalten.")
+                einzug = len(zeilen[f.knoten.lineno - 1]) - len(zeilen[f.knoten.lineno - 1].lstrip())
+                zeilen.insert(f.knoten.lineno - 1, " " * einzug + f.vermerk.strip())
+            aenderungen.append(
+                Aenderung(
+                    pfad,
+                    "%d Vermerk(e) setzen: %s"
+                    % (len(funde), ", ".join(sorted(f.quellen[0] for f in funde if f.quellen)[:2])),
+                    "\n".join(zeilen),
+                )
+            )
+        return Vorschau(
+            aenderungen,
+            "Der Vermerk nennt die Frontend-Datei — er ist damit nachprüfbar und kein bloßes Stummschalten.",
+        )
 
     def pruefen(self, aenderung):
         """Kompiliert die Datei noch, und steht der Vermerk wirklich drin?"""

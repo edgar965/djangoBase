@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Verschieber - einen Testfall in eine andere Kategorie umhaengen.
+"""Verschieber - einen Testfall in eine andere Kategorie umhaengen.
 
     „mach in jeder tabelle eine neue Spalte, Überschrift „Verschieben". eine
     Combo Box, wo ich die aktuelle Kategorie sehe und durch auswahl in eine
@@ -36,6 +36,7 @@ liegt unter der Projektwurzel in einem ``tests``-Baum, heisst ``test_*.py``, und
 am Ziel liegt noch keine Datei dieses Namens. Sonst passiert nichts und die
 Antwort nennt den Grund.
 """
+
 import logging
 import shutil
 from pathlib import Path
@@ -63,6 +64,7 @@ class Verschieber:
         #: Einstellungen des Projekts - siehe :mod:`.testbereiche`.
         if bereiche is None:
             from .testbereiche import Bereiche
+
             bereiche = Bereiche.aus_einstellungen()
         self.bereiche = bereiche
         #: {Modulpfad: Datei|None} - siehe :meth:`modul`.
@@ -75,7 +77,7 @@ class Verschieber:
 
     @staticmethod
     def aus_djangobase(test_id):
-        u"""Stammt der Fall aus djangoBase selbst (statt aus dem Projekt)?
+        """Stammt der Fall aus djangoBase selbst (statt aus dem Projekt)?
 
         Am Modulpfad erkannt, nicht am Ordner: djangoBase laeuft als editable
         Install, seine Testmodule heissen immer ``djangobase.…`` — egal, wo das
@@ -88,7 +90,7 @@ class Verschieber:
 
     @classmethod
     def art_von(cls, test_id):
-        u"""Die Kategorie einer Test-ID - oder ``""``.
+        """Die Kategorie einer Test-ID - oder ``""``.
 
         ``mail.tests.unit.test_x.Klasse.test_fall`` -> ``unit``
         """
@@ -98,7 +100,7 @@ class Verschieber:
         return ""
 
     def modul(self, test_id):
-        u"""Die Datei hinter einer Test-ID - oder ``None``.
+        """Die Datei hinter einer Test-ID - oder ``None``.
 
         Die ID endet auf ``Klasse.test_fall``; davor steht der Modulpfad. Weil
         die Zahl der Endstuecke schwanken kann (Unterklassen, ``subTest``), wird
@@ -127,21 +129,21 @@ class Verschieber:
         return gefunden
 
     def moeglich(self, test_id):
-        u"""``(art, datei)`` wenn verschiebbar, sonst ``(art, None)``."""
+        """``(art, datei)`` wenn verschiebbar, sonst ``(art, None)``."""
         art = self.art_von(test_id)
         datei = self.modul(test_id) if art else None
         if datei is None:
             return art, None
         if not datei.name.startswith("test_"):
             return art, None
-        if art not in [t for t in datei.parts]:      # Ordner muss die Art tragen
+        if art not in [t for t in datei.parts]:  # Ordner muss die Art tragen
             return art, None
         return art, datei
 
     # -------------------------------------------------------------- Schreiben
 
     def verschieben(self, test_id, ziel_art):
-        u"""Datei in den Ordner der Zielkategorie legen.
+        """Datei in den Ordner der Zielkategorie legen.
 
         Zurueck kommt ``(erfolg, meldung, neue_id)``. Es wird NICHTS angefasst,
         solange nicht alle Bedingungen erfuellt sind.
@@ -150,40 +152,45 @@ class Verschieber:
             return False, "Unbekannte Kategorie: %s" % ziel_art, ""
         art, datei = self.moeglich(test_id)
         if datei is None:
-            return False, ("Dieser Fall lässt sich nicht verschieben — die Datei "
-                           "liegt nicht in einem `tests/<art>/`-Ordner."), ""
+            return (
+                False,
+                (
+                    "Dieser Fall lässt sich nicht verschieben — die Datei "
+                    "liegt nicht in einem `tests/<art>/`-Ordner."
+                ),
+                "",
+            )
         if art == ziel_art:
             return False, "Liegt schon in dieser Kategorie.", test_id
         ziel_ordner = self._ziel_ordner(datei, art, ziel_art)
         if ziel_ordner is None:
-            return False, ("Zielordner nicht ermittelbar — erwartet wird "
-                           "`…/tests/%s/`." % art), ""
+            return False, ("Zielordner nicht ermittelbar — erwartet wird `…/tests/%s/`." % art), ""
         ziel = ziel_ordner / datei.name
         if ziel.exists():
-            return False, ("Am Ziel liegt schon eine Datei %s — bitte dort "
-                           "zuerst aufräumen." % datei.name), ""
+            return (
+                False,
+                ("Am Ziel liegt schon eine Datei %s — bitte dort zuerst aufräumen." % datei.name),
+                "",
+            )
         try:
             ziel_ordner.mkdir(parents=True, exist_ok=True)
             self._paket_marke(ziel_ordner)
             shutil.move(str(datei), str(ziel))
         except OSError as fehler:
-            log.exception("Test %s konnte nicht nach %s verschoben werden",
-                          test_id, ziel_art)
+            log.exception("Test %s konnte nicht nach %s verschoben werden", test_id, ziel_art)
             return False, "Verschieben fehlgeschlagen: %s" % fehler, ""
         neue_id = str(test_id).replace(".%s." % art, ".%s." % ziel_art, 1)
         self._historie_umhaengen(datei, art, ziel_art)
         praefix = self._modulpraefix(datei)
         if praefix:
-            self._reihenfolge_umziehen(
-                praefix, praefix.replace(".%s." % art, ".%s." % ziel_art, 1))
+            self._reihenfolge_umziehen(praefix, praefix.replace(".%s." % art, ".%s." % ziel_art, 1))
         log.info("Test verschoben: %s -> %s (%s)", datei.name, ziel_art, ziel)
-        return True, ("%s liegt jetzt in „%s“."
-                      % (datei.name, self.NAMEN.get(ziel_art, ziel_art))), neue_id
+        return True, ("%s liegt jetzt in „%s“." % (datei.name, self.NAMEN.get(ziel_art, ziel_art))), neue_id
 
     # ------------------------------------------------------- Bereich wechseln
 
     def bereich_moeglich(self, test_id):
-        u"""``(slug, datei)`` wenn der Bereich wechselbar ist, sonst ``(slug, None)``.
+        """``(slug, datei)`` wenn der Bereich wechselbar ist, sonst ``(slug, None)``.
 
         Dieselben Bedingungen wie beim Kategoriewechsel — plus: Es muss ein
         Zielbereich mit Modulpraefix konfiguriert sein. Ein Bereich, der nur
@@ -196,7 +203,7 @@ class Verschieber:
         return slug, datei
 
     def bereich_verschieben(self, test_id, ziel_slug):
-        u"""Die Testdatei in den Ordner eines ANDEREN Bereichs legen.
+        """Die Testdatei in den Ordner eines ANDEREN Bereichs legen.
 
             „der Bereich und die Kategorie können bei jedem test in der Tabelle
             per Combo Box geändert werden" (Edgar, 17.08.2026)
@@ -218,20 +225,32 @@ class Verschieber:
         # Bereichsgliederung herausheben — siehe `Bereiche.ziele`.
         ziel = self.bereiche.ziele().get(str(ziel_slug or ""), "")
         if not ziel:
-            return False, ("Kein gültiges Ziel: %s (unbekannt oder Elternordner "
-                           "anderer Bereiche)" % ziel_slug), ""
+            return (
+                False,
+                ("Kein gültiges Ziel: %s (unbekannt oder Elternordner anderer Bereiche)" % ziel_slug),
+                "",
+            )
         art, datei = self.moeglich(test_id)
         if datei is None:
-            return False, ("Dieser Fall lässt sich nicht verschieben — die Datei "
-                           "liegt nicht in einem `tests/<art>/`-Ordner."), ""
+            return (
+                False,
+                (
+                    "Dieser Fall lässt sich nicht verschieben — die Datei "
+                    "liegt nicht in einem `tests/<art>/`-Ordner."
+                ),
+                "",
+            )
         if self.bereiche.slug_von(test_id) == ziel_slug:
             return False, "Liegt schon in diesem Bereich.", test_id
         ziel_ordner = self.wurzel.joinpath(*ziel.split(".")) / art
         neu_praefix = "%s.%s.%s" % (ziel, art, datei.stem)
         ziel_datei = ziel_ordner / datei.name
         if ziel_datei.exists():
-            return False, ("Am Ziel liegt schon eine Datei %s — bitte dort "
-                           "zuerst aufräumen." % datei.name), ""
+            return (
+                False,
+                ("Am Ziel liegt schon eine Datei %s — bitte dort zuerst aufräumen." % datei.name),
+                "",
+            )
         alt_praefix = self._modulpraefix(datei)
         try:
             ziel_ordner.mkdir(parents=True, exist_ok=True)
@@ -241,20 +260,24 @@ class Verschieber:
             self._paket_marke(ziel_ordner.parent)
             shutil.move(str(datei), str(ziel_datei))
         except OSError as fehler:
-            log.exception("Test %s konnte nicht in den Bereich %s verschoben "
-                          "werden", test_id, ziel_slug)
+            log.exception("Test %s konnte nicht in den Bereich %s verschoben werden", test_id, ziel_slug)
             return False, "Verschieben fehlgeschlagen: %s" % fehler, ""
-        neue_id = neu_praefix + str(test_id)[len(alt_praefix):] \
-            if alt_praefix and str(test_id).startswith(alt_praefix) else ""
+        neue_id = (
+            neu_praefix + str(test_id)[len(alt_praefix) :]
+            if alt_praefix and str(test_id).startswith(alt_praefix)
+            else ""
+        )
         self._historie_umziehen(alt_praefix, neu_praefix)
         self._reihenfolge_umziehen(alt_praefix, neu_praefix)
-        log.info("Test-Bereich gewechselt: %s -> %s (%s)",
-                 datei.name, ziel_slug, ziel_datei)
-        return True, ("%s liegt jetzt im Bereich „%s“."
-                      % (datei.name, self.bereiche.name_von(ziel_slug))), neue_id
+        log.info("Test-Bereich gewechselt: %s -> %s (%s)", datei.name, ziel_slug, ziel_datei)
+        return (
+            True,
+            ("%s liegt jetzt im Bereich „%s“." % (datei.name, self.bereiche.name_von(ziel_slug))),
+            neue_id,
+        )
 
     def _ziel_ordner(self, datei, art, ziel_art):
-        u"""Der Schwesterordner der Zielkategorie - ``…/tests/<ziel_art>/``.
+        """Der Schwesterordner der Zielkategorie - ``…/tests/<ziel_art>/``.
 
         Gesucht wird der Ordner, der die ALTE Art traegt; sein Nachbar mit dem
         neuen Namen ist das Ziel. Damit landet die Datei im selben ``tests``-Baum
@@ -267,7 +290,7 @@ class Verschieber:
 
     @staticmethod
     def _paket_marke(ordner):
-        u"""``__init__.py`` anlegen, falls der Zielordner neu ist.
+        """``__init__.py`` anlegen, falls der Zielordner neu ist.
 
         Ohne sie findet Djangos Discovery den Ordner nicht — der Fall waere nach
         dem Verschieben aus jeder Liste verschwunden."""
@@ -276,7 +299,7 @@ class Verschieber:
             marke.write_text("", encoding="utf-8")
 
     def _historie_umhaengen(self, datei, art, ziel_art):
-        u"""Laufzeiten der VERSCHOBENEN DATEI mitnehmen.
+        """Laufzeiten der VERSCHOBENEN DATEI mitnehmen.
 
         Sonst stuende der Fall danach auf „noch nie gelaufen": Die Test-ID
         enthaelt die Art, nach dem Umzug heisst derselbe Fall anders.
@@ -290,18 +313,18 @@ class Verschieber:
         alt_praefix = self._modulpraefix(datei)
         if not alt_praefix:
             return
-        self._historie_umziehen(
-            alt_praefix, alt_praefix.replace(".%s." % art, ".%s." % ziel_art, 1))
+        self._historie_umziehen(alt_praefix, alt_praefix.replace(".%s." % art, ".%s." % ziel_art, 1))
 
     @staticmethod
     def _reihenfolge_umziehen(alt_praefix, neu_praefix):
-        u"""Auch den Platz („Nr.") mitnehmen - gleiche Ueberlegung wie oben."""
+        """Auch den Platz („Nr.") mitnehmen - gleiche Ueberlegung wie oben."""
         from .testreihenfolge import Reihenfolge
+
         Reihenfolge().umhaengen(alt_praefix, neu_praefix)
 
     @staticmethod
     def _historie_umziehen(alt_praefix, neu_praefix):
-        u"""Laufzeiten von einem Modulpraefix auf ein anderes schreiben.
+        """Laufzeiten von einem Modulpraefix auf ein anderes schreiben.
 
         Der gemeinsame Kern von Kategorie- und BEREICHS-Wechsel. Er fehlte beim
         Bereichswechsel schlicht (``AttributeError`` im Betrieb, 17.08.2026) —
@@ -315,17 +338,16 @@ class Verschieber:
         if not alt_praefix or not neu_praefix or alt_praefix == neu_praefix:
             return
         historie = Testhistorie()
-        umzug = {k: v for k, v in historie.daten["tests"].items()
-                 if k.startswith(alt_praefix + ".")}
+        umzug = {k: v for k, v in historie.daten["tests"].items() if k.startswith(alt_praefix + ".")}
         if not umzug:
             return
         for alt, reihe in umzug.items():
             historie.daten["tests"].pop(alt, None)
-            historie.daten["tests"][neu_praefix + alt[len(alt_praefix):]] = reihe
+            historie.daten["tests"][neu_praefix + alt[len(alt_praefix) :]] = reihe
         historie.schreiben()
 
     def _modulpraefix(self, datei):
-        u"""``…/firma/tests/unit/test_parser.py`` -> ``firma.tests.unit.test_parser``."""
+        """``…/firma/tests/unit/test_parser.py`` -> ``firma.tests.unit.test_parser``."""
         try:
             teile = datei.relative_to(self.wurzel).with_suffix("").parts
         except ValueError:
@@ -336,7 +358,7 @@ class Verschieber:
 
     @classmethod
     def auswahl(cls, art, moeglich):
-        u"""Die Einträge der Combo-Box - ``[(wert, name, ausgewaehlt)]``.
+        """Die Einträge der Combo-Box - ``[(wert, name, ausgewaehlt)]``.
 
         Alle sechs Arten stehen drin, auch die, die im Projekt noch keinen Ordner
         hat: Der Ordner wird beim Verschieben angelegt. Ist der Fall nicht
@@ -346,8 +368,8 @@ class Verschieber:
         # (siehe `testarten.Arten`), und zwei verschiedene Reihenfolgen fuer
         # dieselbe Sache waeren genau der Unterschied, der niemandem auffaellt.
         from .testarten import Arten
+
         einteilung = Arten.aus_einstellungen()
         if not moeglich:
             return [(art, einteilung.name_von(art) if art else "—", True)]
-        return [(a, einteilung.name_von(a), a == art)
-                for a in einteilung.liste()]
+        return [(a, einteilung.name_von(a), a == art) for a in einteilung.liste()]

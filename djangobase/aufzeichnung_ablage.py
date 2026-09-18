@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Wohin ein erzeugter Testfall geschrieben wird — und ob das erlaubt ist.
+"""Wohin ein erzeugter Testfall geschrieben wird — und ob das erlaubt ist.
 
 DER AUFTRAG (Edgar, 21.08.2026, Punkt 1)
 ========================================
@@ -28,24 +28,34 @@ Jedes Projekt legt seine UI-Tests woanders ab. Reihenfolge:
     3. Nichts gefunden: eine Meldung, die sagt, welches Setting fehlt — kein
        geratener Ort. Eine Datei, die irgendwo landet, findet niemand wieder.
 """
+
 from pathlib import Path
 
 from django.conf import settings
 
 #: Verzeichnisse, die nie durchsucht werden (schnell und ohne Überraschungen).
-_TABU = {"node_modules", "__pycache__", "venv", "pythonVENV", ".git",
-         "site-packages", "migrations", "static", "media"}
+_TABU = {
+    "node_modules",
+    "__pycache__",
+    "venv",
+    "pythonVENV",
+    ".git",
+    "site-packages",
+    "migrations",
+    "static",
+    "media",
+}
 
 
 class TestfallAblage:
-    u"""Findet das Zielverzeichnis und legt den Testfall dort ab."""
+    """Findet das Zielverzeichnis und legt den Testfall dort ab."""
 
     def __init__(self, ziel=None):
         self._ziel = Path(ziel) if ziel else None
 
     # ------------------------------------------------------------- Ziel
     def ziel(self):
-        u"""Das Verzeichnis für neue Testfälle — oder ``None``."""
+        """Das Verzeichnis für neue Testfälle — oder ``None``."""
         if self._ziel:
             return self._ziel if self._ziel.is_dir() else None
         aus_settings = getattr(settings, "DJANGOBASE_TESTFALL_ZIEL", "")
@@ -56,7 +66,7 @@ class TestfallAblage:
 
     @staticmethod
     def _suchen():
-        u"""Ein ``…/tests…/ui``-Verzeichnis unterhalb von BASE_DIR.
+        """Ein ``…/tests…/ui``-Verzeichnis unterhalb von BASE_DIR.
 
         Bewusst flach (höchstens sechs Ebenen) und ohne die Tabu-Ordner: Ein
         vollständiger Durchlauf über ein Projekt mit ``node_modules`` dauert
@@ -80,22 +90,21 @@ class TestfallAblage:
 
     # ------------------------------------------------------------- Schreiben
     def ablegen(self, fall):
-        u"""Den Testfall schreiben. -> (pfad, meldung); ``pfad`` None bei Fehler.
+        """Den Testfall schreiben. -> (pfad, meldung); ``pfad`` None bei Fehler.
 
         NICHT ÜBERSCHREIBEN: Eine vorhandene Datei kann von Hand ergänzte
         Zusicherungen tragen — genau die, die eine Aufnahme nicht kennt.
         """
         ordner = self.ziel()
         if ordner is None:
-            return None, ("Kein Zielverzeichnis gefunden. Bitte "
-                          "DJANGOBASE_TESTFALL_ZIEL in den Settings setzen.")
+            return None, (
+                "Kein Zielverzeichnis gefunden. Bitte DJANGOBASE_TESTFALL_ZIEL in den Settings setzen."
+            )
         pfad = ordner / fall.dateiname()
         if pfad.exists():
-            return None, ("Es gibt schon %s — erst umbenennen oder löschen."
-                          % pfad.name)
+            return None, ("Es gibt schon %s — erst umbenennen oder löschen." % pfad.name)
         try:
             pfad.write_text(fall.quelltext(), encoding="utf-8")
         except OSError as fehler:
             return None, "Schreiben fehlgeschlagen: %s" % fehler
-        return pfad, "%s geschrieben (%d Abrufe geprüft)" % (pfad.name,
-                                                             len(fall.abrufe()))
+        return pfad, "%s geschrieben (%d Abrufe geprüft)" % (pfad.name, len(fall.abrufe()))

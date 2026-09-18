@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Funktionen, die auf Modulebene stehen MUESSEN — Djangos Vorschrift.
+"""Funktionen, die auf Modulebene stehen MUESSEN — Djangos Vorschrift.
 
 DER FEHLALARM (27.08.2026, 3DTools)
 ===================================
@@ -43,20 +43,27 @@ from django.conf import settings
 
 
 class Rahmenvorschrift:
-    u"""Welche Modulfunktionen Django beim Namen aus den Einstellungen holt."""
+    """Welche Modulfunktionen Django beim Namen aus den Einstellungen holt."""
 
     #: Einstellungen, die gepunktete Pfade auf Funktionen/Klassen fuehren.
     #: `TEMPLATES` steht nicht dabei — die Kontextprozessoren liegen dort
     #: verschachtelt und werden eigens gelesen.
-    LISTEN = ('MIDDLEWARE', 'AUTHENTICATION_BACKENDS',
-              'PASSWORD_HASHERS', 'DEFAULT_EXCEPTION_REPORTER_FILTER',
-              'MESSAGE_STORAGE', 'SESSION_ENGINE', 'FILE_UPLOAD_HANDLERS',
-              'STATICFILES_FINDERS', 'LOGIN_URL')
+    LISTEN = (
+        "MIDDLEWARE",
+        "AUTHENTICATION_BACKENDS",
+        "PASSWORD_HASHERS",
+        "DEFAULT_EXCEPTION_REPORTER_FILTER",
+        "MESSAGE_STORAGE",
+        "SESSION_ENGINE",
+        "FILE_UPLOAD_HANDLERS",
+        "STATICFILES_FINDERS",
+        "LOGIN_URL",
+    )
 
     #: Dateien, deren Modulfunktion der Rahmen selbst ruft. `manage.py` ist
     #: von Django erzeugt (`main()` unter `if __name__ == "__main__"`),
     #: `wsgi.py`/`asgi.py` tragen `application`.
-    DATEIEN = ('manage.py', 'wsgi.py', 'asgi.py')
+    DATEIEN = ("manage.py", "wsgi.py", "asgi.py")
 
     #: Dekoratoren, die eine Funktion beim Rahmen ANMELDEN. Wer sie in
     #: eine Klasse verschiebt, meldet nichts mehr an.
@@ -78,21 +85,29 @@ class Rahmenvorschrift:
     #: NICHT in dieser Liste stehen `require_POST`, `csrf_exempt`,
     #: `contextmanager` und `atomic` — die wirken auch auf Methoden. Sie
     #: nehmen keine Anmeldung vor, sie umhuellen nur den Aufruf.
-    ANMELDENDE_DEKORATOREN = frozenset((
-        # Django-Signale
-        'receiver',
-        # Django-Templatetags: register.filter / .simple_tag / .tag /
-        # .inclusion_tag
-        'filter', 'simple_tag', 'inclusion_tag', 'tag',
-        # Celery und verwandte Aufgabenplaner
-        'task', 'shared_task', 'periodic_task',
-        # Django-Admin-Aktionen werden ueber den Funktionsnamen gefunden
-        'action', 'display',
-    ))
+    ANMELDENDE_DEKORATOREN = frozenset(
+        (
+            # Django-Signale
+            "receiver",
+            # Django-Templatetags: register.filter / .simple_tag / .tag /
+            # .inclusion_tag
+            "filter",
+            "simple_tag",
+            "inclusion_tag",
+            "tag",
+            # Celery und verwandte Aufgabenplaner
+            "task",
+            "shared_task",
+            "periodic_task",
+            # Django-Admin-Aktionen werden ueber den Funktionsnamen gefunden
+            "action",
+            "display",
+        )
+    )
 
     @staticmethod
     def _aus_einstellungen():
-        u"""Alle gepunkteten Pfade, die in den Einstellungen stehen."""
+        """Alle gepunkteten Pfade, die in den Einstellungen stehen."""
         pfade = set()
         for name in Rahmenvorschrift.LISTEN:
             wert = getattr(settings, name, None)
@@ -100,14 +115,14 @@ class Rahmenvorschrift:
                 pfade.add(wert)
             elif isinstance(wert, (list, tuple)):
                 pfade.update(w for w in wert if isinstance(w, str))
-        for vorlage in getattr(settings, 'TEMPLATES', None) or ():
-            werte = (vorlage.get('OPTIONS') or {}).get('context_processors')
+        for vorlage in getattr(settings, "TEMPLATES", None) or ():
+            werte = (vorlage.get("OPTIONS") or {}).get("context_processors")
             pfade.update(w for w in (werte or ()) if isinstance(w, str))
         return pfade
 
     @staticmethod
     def namen():
-        u"""Die letzten Namensteile: `{'version', 'active_theme', …}`.
+        """Die letzten Namensteile: `{'version', 'active_theme', …}`.
 
         Nur der Name, nicht der Pfad — das Werkzeug sieht Dateipfade, nicht
         Modulpfade, und ein Abgleich ueber den Modulnamen waere in einem
@@ -117,7 +132,7 @@ class Rahmenvorschrift:
         """
         namen = set(Rahmenvorschrift._eigene_namen())
         for pfad in Rahmenvorschrift._aus_einstellungen():
-            teil = pfad.rsplit('.', 1)[-1]
+            teil = pfad.rsplit(".", 1)[-1]
             # Klassen (`SessionMiddleware`) meint diese Frage nicht — die
             # duerfen und sollen Klassen sein.
             if teil and teil[:1].islower():
@@ -126,7 +141,7 @@ class Rahmenvorschrift:
 
     @staticmethod
     def _eigene_namen():
-        u"""Was das Projekt als Rahmen-Namen ANGIBT.
+        """Was das Projekt als Rahmen-Namen ANGIBT.
 
         `DJANGOBASE["rahmenfunktionen"]` — eine Liste blanker Namen, kein
         gepunkteter Pfad: Der fremde Rahmen ruft sie am Modul, nicht ueber
@@ -137,16 +152,15 @@ class Rahmenvorschrift:
         Eine Klasse darf und soll eine Klasse sein, und ein Tippfehler
         `Register` soll keine stille Ausnahme bewirken.
         """
-        cfg = getattr(settings, 'DJANGOBASE', None) or {}
-        eintraege = cfg.get('rahmenfunktionen') or ()
+        cfg = getattr(settings, "DJANGOBASE", None) or {}
+        eintraege = cfg.get("rahmenfunktionen") or ()
         if isinstance(eintraege, str):
             eintraege = (eintraege,)
-        return {str(e) for e in eintraege
-                if str(e) and str(e)[:1].islower()}
+        return {str(e) for e in eintraege if str(e) and str(e)[:1].islower()}
 
     @staticmethod
     def selbst_gerufen(baum):
-        u"""Namen, die die Datei in ihrem ``__main__``-Block selbst ruft.
+        """Namen, die die Datei in ihrem ``__main__``-Block selbst ruft.
 
         DER FEHLALARM (01.09.2026, 3DTools)
         ===================================
@@ -168,20 +182,19 @@ class Rahmenvorschrift:
             if "'__name__'" not in pruefung and '"__name__"' not in pruefung:
                 continue
             for teil in ast.walk(knoten):
-                if isinstance(teil, ast.Call) and isinstance(teil.func,
-                                                             ast.Name):
+                if isinstance(teil, ast.Call) and isinstance(teil.func, ast.Name):
                     namen.add(teil.func.id)
         return namen
 
     @staticmethod
     def eigene_datei(pfad):
-        u"""Ist die Datei selbst eine Rahmendatei (`manage.py`, `wsgi.py`)?"""
-        name = str(pfad).replace('\\', '/').split('/')[-1]
+        """Ist die Datei selbst eine Rahmendatei (`manage.py`, `wsgi.py`)?"""
+        name = str(pfad).replace("\\", "/").split("/")[-1]
         return name in Rahmenvorschrift.DATEIEN
 
     @staticmethod
     def wird_angemeldet(knoten):
-        u"""Traegt die Funktion einen Dekorator, der sie ANMELDET?
+        """Traegt die Funktion einen Dekorator, der sie ANMELDET?
 
         Erkannt werden alle Schreibweisen, in denen sie vorkommen::
 
@@ -195,12 +208,12 @@ class Rahmenvorschrift:
         """
         import ast
 
-        for dekorator in getattr(knoten, 'decorator_list', ()):
+        for dekorator in getattr(knoten, "decorator_list", ()):
             teil = dekorator
             # ``@receiver(...)`` -> der Aufruf, dann die Funktion darin
             while isinstance(teil, ast.Call):
                 teil = teil.func
-            name = getattr(teil, 'attr', None) or getattr(teil, 'id', None)
+            name = getattr(teil, "attr", None) or getattr(teil, "id", None)
             if name in Rahmenvorschrift.ANMELDENDE_DEKORATOREN:
                 return True
         return False

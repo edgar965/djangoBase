@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Gegenprobe zum Import-Fixer: schneidet er noch, und schneidet er zu viel?
+"""Gegenprobe zum Import-Fixer: schneidet er noch, und schneidet er zu viel?
 
 WARUM ES DIESE PROBE GIBT (25.08.2026)
 ======================================
@@ -39,7 +39,7 @@ sie ein paar Befunde weniger meldet. Hier steht daneben, was WEITERHIN
 geschnitten werden muss - sonst waere die einfachste Art, diese Probe
 gruen zu bekommen, den Fixer ganz abzuschalten.
 """
-import ast
+
 import tempfile
 from pathlib import Path
 
@@ -49,81 +49,75 @@ __all__ = ["FixImporteProbe"]
 
 #: Der Vorfall: ``kern`` reicht ``SyncFolderResult`` an ``__init__`` weiter.
 WEITERGEREICHT = {
-    'kern.py': (
-        'from __future__ import annotations\n'
-        'from .basis import SyncFolderResult\n'
-        '\n'
-        'class MailboxSyncer:\n'
-        '    pass\n'
+    "kern.py": (
+        "from __future__ import annotations\n"
+        "from .basis import SyncFolderResult\n"
+        "\n"
+        "class MailboxSyncer:\n"
+        "    pass\n"
     ),
-    '__init__.py': (
-        'from .kern import MailboxSyncer, SyncFolderResult  # noqa: F401\n'
-    ),
-    'basis.py': (
-        'class SyncFolderResult:\n'
-        '    pass\n'
-    ),
+    "__init__.py": ("from .kern import MailboxSyncer, SyncFolderResult  # noqa: F401\n"),
+    "basis.py": ("class SyncFolderResult:\n    pass\n"),
 }
 
 #: Dasselbe Bild OHNE Weiterreichung - hier MUSS geschnitten werden.
 WIRKLICH_TOT = {
-    'kern.py': (
-        'from __future__ import annotations\n'
-        'from .basis import SyncFolderResult\n'
-        '\n'
-        'class MailboxSyncer:\n'
-        '    pass\n'
+    "kern.py": (
+        "from __future__ import annotations\n"
+        "from .basis import SyncFolderResult\n"
+        "\n"
+        "class MailboxSyncer:\n"
+        "    pass\n"
     ),
-    '__init__.py': (
-        'from .kern import MailboxSyncer  # noqa: F401\n'
-    ),
-    'basis.py': (
-        'class SyncFolderResult:\n'
-        '    pass\n'
-    ),
+    "__init__.py": ("from .kern import MailboxSyncer  # noqa: F401\n"),
+    "basis.py": ("class SyncFolderResult:\n    pass\n"),
 }
 
 
 class FixImporteProbe(SimpleTestCase):
-    u"""Der Fixer lässt Durchgangstore stehen - und schneidet sonst weiter."""
+    """Der Fixer lässt Durchgangstore stehen - und schneidet sonst weiter."""
 
     def _vorschlag(self, dateien):
-        u"""``{Datei: entfernte Zeilen}`` für ein gebautes Paket."""
+        """``{Datei: entfernte Zeilen}`` für ein gebautes Paket."""
         from .fix_importe import ImportFixer
 
         with tempfile.TemporaryDirectory() as ordner:
-            paket = Path(ordner) / 'paket'
+            paket = Path(ordner) / "paket"
             paket.mkdir()
             for name, inhalt in dateien.items():
-                (paket / name).write_text(inhalt, encoding='utf-8')
+                (paket / name).write_text(inhalt, encoding="utf-8")
 
             fixer = ImportFixer()
-            fixer.pfade = lambda muster='*.py': list(paket.rglob('*.py'))
+            fixer.pfade = lambda muster="*.py": list(paket.rglob("*.py"))
             fixer._geholt = None
             raus = {}
             for aenderung in fixer.vorschau().aenderungen:
-                alt = aenderung.pfad.read_text(encoding='utf-8').splitlines()
+                alt = aenderung.pfad.read_text(encoding="utf-8").splitlines()
                 neu = aenderung.neuer_text.splitlines()
                 raus[aenderung.pfad.name] = [z for z in alt if z not in neu]
             return raus
 
     def test_weitergereichter_name_bleibt(self):
-        u"""Der Vorfall vom 25.08.2026 - darf nie wieder geschnitten werden."""
+        """Der Vorfall vom 25.08.2026 - darf nie wieder geschnitten werden."""
         vorschlag = self._vorschlag(WEITERGEREICHT)
-        geschnitten = vorschlag.get('kern.py', [])
+        geschnitten = vorschlag.get("kern.py", [])
         self.assertNotIn(
-            'from .basis import SyncFolderResult', geschnitten,
+            "from .basis import SyncFolderResult",
+            geschnitten,
             "Der Fixer will einen Namen entfernen, den __init__.py aus "
             "genau dieser Datei holt. Nach dem Schnitt ist die Anwendung "
             "nicht mehr startbar - und das Netz merkt es nicht, weil die "
-            "Datei weiter kompiliert. Siehe _wird_weitergereicht.")
+            "Datei weiter kompiliert. Siehe _wird_weitergereicht.",
+        )
 
     def test_wirklich_toter_import_faellt_weiter(self):
-        u"""Gegenrichtung: die Sicherung darf den Fixer nicht abschalten."""
+        """Gegenrichtung: die Sicherung darf den Fixer nicht abschalten."""
         vorschlag = self._vorschlag(WIRKLICH_TOT)
-        geschnitten = vorschlag.get('kern.py', [])
+        geschnitten = vorschlag.get("kern.py", [])
         self.assertIn(
-            'from .basis import SyncFolderResult', geschnitten,
+            "from .basis import SyncFolderResult",
+            geschnitten,
             "Hier holt NIEMAND den Namen aus kern.py - er ist wirklich "
             "tot und muss fallen. Fällt er nicht, ist die fuenfte "
-            "Sicherung zu grob und der Fixer tut nichts mehr.")
+            "Sicherung zu grob und der Fixer tut nichts mehr.",
+        )

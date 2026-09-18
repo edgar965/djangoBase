@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""JsBefunde - zaehlbare Auffälligkeiten im Frontend (JavaScript und Vorlagen).
+"""JsBefunde - zaehlbare Auffälligkeiten im Frontend (JavaScript und Vorlagen).
 
 DER BEFUND (3DTools, 16.08.2026)
 ================================
@@ -22,8 +22,9 @@ Inline-Stile" ist eine Meinung.
 Die Regeln stehen in `jsregeln.py` - eine Klasse je Auffaelligkeit, jede mit dem
 Fehlalarm, der beim Bau aufgefallen ist.
 """
-from .jsregeln import REGELN
+
 from .anlassfall import Anlassfall
+from .jsregeln import REGELN
 from .werkzeug import Ergebnis, Werkzeug
 
 __all__ = ["JsBefunde"]
@@ -32,16 +33,22 @@ __all__ = ["JsBefunde"]
 class JsBefunde(Werkzeug):
     slug = "jsbefunde"
     titel = "Frontend-Befunde (JS + Vorlagen)"
-    zweck = ("Zählt zehn objektiv prüfbare Auffälligkeiten in .js und .html "
-             "- fehlende ok-Prüfung, console.log, var, Inline-Stile, lange "
-             "Zeilen, TODOs.")
-    befund = ("3DTools: 3.290 Befunde erhoben. Die 71 fehlenden .ok-Prüfungen "
-              "waren eine echte Fehlerklasse - bei einer 500er-Antwort las der "
-              "Code die HTML-Fehlerseite als JSON und meldete "
-              "\"Unexpected token '<'\".")
-    abhilfe = ("Nach Wirkung abarbeiten: erst fehlende ok-Prüfungen und "
-               "Dauerlaeufer, dann console.log und var, zuletzt Inline-Stile "
-               "und lange Zeilen.")
+    zweck = (
+        "Zählt zehn objektiv prüfbare Auffälligkeiten in .js und .html "
+        "- fehlende ok-Prüfung, console.log, var, Inline-Stile, lange "
+        "Zeilen, TODOs."
+    )
+    befund = (
+        "3DTools: 3.290 Befunde erhoben. Die 71 fehlenden .ok-Prüfungen "
+        "waren eine echte Fehlerklasse - bei einer 500er-Antwort las der "
+        "Code die HTML-Fehlerseite als JSON und meldete "
+        "\"Unexpected token '<'\"."
+    )
+    abhilfe = (
+        "Nach Wirkung abarbeiten: erst fehlende ok-Prüfungen und "
+        "Dauerlaeufer, dann console.log und var, zuletzt Inline-Stile "
+        "und lange Zeilen."
+    )
     dauer = "1-3 s"
     kriterium = 13
 
@@ -55,7 +62,8 @@ class JsBefunde(Werkzeug):
     #: ``== null`` (die uebliche Pruefung auf null oder undefined) und ``==``
     #: in einem Django-Vorlagen-Tag, wo es die einzige richtige Form ist.
     anlassfall = Anlassfall(
-        {"seite.js": '''var alt = 1;
+        {
+            "seite.js": """var alt = 1;
 
 export async function laden(url) {
   console.log('lade', url);
@@ -63,12 +71,14 @@ export async function laden(url) {
   if (d.wert == '3') return d;
   return alt == null ? null : d;
 }
-''',
-         "seite.html": '''{% if job.status == 'complete' %}<b>fertig</b>{% endif %}
-'''},
+""",
+            "seite.html": """{% if job.status == 'complete' %}<b>fertig</b>{% endif %}
+""",
+        },
         erwartet_in="var",
         warum="Zehn objektiv prüfbare Auffälligkeiten — mit den zwei "
-              "Fehlalarm-Fallen daneben, die vier Regeln erst brauchbar machten")
+        "Fehlalarm-Fallen daneben, die vier Regeln erst brauchbar machten",
+    )
 
     def laufen(self):
         gruppen = {}
@@ -77,13 +87,12 @@ export async function laden(url) {
         # uebergehen. Vor jedem Lauf zuruecksetzen: Die Regeln sind
         # Einzelstuecke in `REGELN` und leben laenger als ein Lauf.
         for regel in REGELN:
-            for zaehler in ('dynamisch', 'unteilbar'):
+            for zaehler in ("dynamisch", "unteilbar"):
                 if hasattr(regel, zaehler):
                     setattr(regel, zaehler, 0)
         for pfad in self._quellen():
             dateien += 1
-            zeilen = pfad.read_text(encoding="utf-8",
-                                    errors="replace").split("\n")
+            zeilen = pfad.read_text(encoding="utf-8", errors="replace").split("\n")
             kurz = pfad.relative_to(self.wurzel()).as_posix()
             ist_html = pfad.suffix == ".html"
             skript = JsBefunde.skriptzeilen(zeilen) if ist_html else set()
@@ -97,28 +106,31 @@ export async function laden(url) {
         sortiert = sorted(gruppen.items(), key=lambda p: -len(p[1]))
         zeilen_aus = []
         for art, funde in sortiert:
-            zeilen_aus.append({"art": "%s (%d)" % (art, len(funde)),
-                               "ort": funde[0].datei + ":%d" % funde[0].zeile,
-                               "text": funde[0].warum})
-            for fund in funde[:JsBefunde.JE_ART]:
+            zeilen_aus.append(
+                {
+                    "art": "%s (%d)" % (art, len(funde)),
+                    "ort": funde[0].datei + ":%d" % funde[0].zeile,
+                    "text": funde[0].warum,
+                }
+            )
+            for fund in funde[: JsBefunde.JE_ART]:
                 zeilen_aus.append(fund.als_zeile())
         gesamt = sum(len(f) for f in gruppen.values())
-        dynamisch = sum(getattr(r, 'dynamisch', 0) for r in REGELN)
-        unteilbar = sum(getattr(r, 'unteilbar', 0) for r in REGELN)
-        satz = ("%d Befunde in %d Arten, %d Dateien geprüft"
-                % (gesamt, len(gruppen), dateien))
+        dynamisch = sum(getattr(r, "dynamisch", 0) for r in REGELN)
+        unteilbar = sum(getattr(r, "unteilbar", 0) for r in REGELN)
+        satz = "%d Befunde in %d Arten, %d Dateien geprüft" % (gesamt, len(gruppen), dateien)
         if dynamisch:
             # Nie verschweigen, wie viel die Ausnahme schluckt.
-            satz += ("; %d Stil-Stellen uebergangen (Wert erst zur Laufzeit)"
-                     % dynamisch)
+            satz += "; %d Stil-Stellen uebergangen (Wert erst zur Laufzeit)" % dynamisch
         if unteilbar:
-            satz += ("; %d lange Zeilen haengen an EINEM "
-                     "Vorlagen-Tag (nicht umbrechbar)" % unteilbar)
+            satz += "; %d lange Zeilen haengen an EINEM Vorlagen-Tag (nicht umbrechbar)" % unteilbar
         return Ergebnis(
-            ["art", "ort", "text"], zeilen_aus,
+            ["art", "ort", "text"],
+            zeilen_aus,
             zusammenfassung=satz,
             hinweis="Je Art die ersten %d Stellen; die Zahl in Klammern ist die "
-                    "vollstaendige." % JsBefunde.JE_ART)
+            "vollstaendige." % JsBefunde.JE_ART,
+        )
 
     #: So viele Beispielstellen je Art. Alle waeren mehrere Tausend Zeilen.
     JE_ART = 12
@@ -131,7 +143,7 @@ export async function laden(url) {
 
     @staticmethod
     def skriptzeilen(zeilen):
-        u"""Zeilennummern (0-basiert) innerhalb von <script>-Bloecken.
+        """Zeilennummern (0-basiert) innerhalb von <script>-Bloecken.
 
         FEHLALARM, der hier behoben ist: Ein Einzeiler wie
         ``<script src="…/three.min.js"></script>`` oeffnete den Block und

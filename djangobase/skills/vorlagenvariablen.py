@@ -4,36 +4,40 @@ import collections
 
 from django.template.base import Variable
 
-from .routen import klient
 from .befund import Befund, Befundsatz, BefundWerkzeug
+from .routen import klient
 
 
 class Vorlagenvariablen(BefundWerkzeug):
-
-    slug = 'vorlagen-variablen'
-    titel = 'Vorlagen-Variablen'
-    zweck = ('Zählt beim Rendern einer Seite jede Variablenauflösung — '
-             'insgesamt und je Name. Zeigt damit, ob eine Seite viele '
-             'verschiedene Werte anzeigt oder wenige Werte sehr oft.')
-    abhilfe = ('Wenn eine Seite langsam ist und das Profil nur Django-Interna '
-            'zeigt. Grosse {% for %}-Schleifen kosten pro Durchlauf eine '
-            'Auflösung je Variable — das summiert sich, ohne dass eine einzelne '
-            'Funktion auffällt.')
-    befund = ('Eine Einstellungsseite kam auf 70.772 Auflösungen bei nur ACHT '
-             'verschiedenen Namen: vier Namen mal 7.067 Listeneintraege, und der '
-             'Baustein war zweimal eingebunden. Sichtbar war davon nichts — die '
-             'Liste startete zugeklappt. Nach dem Umbau: 297 Auflösungen.')
-    dauer = 'Sekunden'
-    eingabe = ('weg', 'Welche Route? (z. B. /hilfe/versionen/)', '/')
+    slug = "vorlagen-variablen"
+    titel = "Vorlagen-Variablen"
+    zweck = (
+        "Zählt beim Rendern einer Seite jede Variablenauflösung — "
+        "insgesamt und je Name. Zeigt damit, ob eine Seite viele "
+        "verschiedene Werte anzeigt oder wenige Werte sehr oft."
+    )
+    abhilfe = (
+        "Wenn eine Seite langsam ist und das Profil nur Django-Interna "
+        "zeigt. Grosse {% for %}-Schleifen kosten pro Durchlauf eine "
+        "Auflösung je Variable — das summiert sich, ohne dass eine einzelne "
+        "Funktion auffällt."
+    )
+    befund = (
+        "Eine Einstellungsseite kam auf 70.772 Auflösungen bei nur ACHT "
+        "verschiedenen Namen: vier Namen mal 7.067 Listeneintraege, und der "
+        "Baustein war zweimal eingebunden. Sichtbar war davon nichts — die "
+        "Liste startete zugeklappt. Nach dem Umbau: 297 Auflösungen."
+    )
+    dauer = "Sekunden"
+    eingabe = ("weg", "Welche Route? (z. B. /hilfe/versionen/)", "/")
 
     #: Kein Anlassfall - und das ist in Ordnung:
-    ohne_anlassfall_weil = ("braucht den Renderer zur Laufzeit - "
-                            "gezählt wird, was beim Rendern aufgelöst wird")
+    ohne_anlassfall_weil = "braucht den Renderer zur Laufzeit - gezählt wird, was beim Rendern aufgelöst wird"
 
-    def pruefen(self, weg='/', **_argumente):
-        ziel = (str(weg).strip() or '/')
-        if not ziel.startswith('/'):
-            ziel = '/' + ziel
+    def pruefen(self, weg="/", **_argumente):
+        ziel = str(weg).strip() or "/"
+        if not ziel.startswith("/"):
+            ziel = "/" + ziel
 
         zaehler = collections.Counter()
         echt = Variable._resolve_lookup
@@ -52,18 +56,20 @@ class Vorlagenvariablen(BefundWerkzeug):
 
         gesamt = sum(zaehler.values())
         kopf = [
-            '%s -> Status %s, %d Byte' % (ziel, antwort.status_code,
-                                          len(antwort.content)),
-            '%d Auflösungen, %d verschiedene Namen' % (gesamt, len(zaehler)),
+            "%s -> Status %s, %d Byte" % (ziel, antwort.status_code, len(antwort.content)),
+            "%d Auflösungen, %d verschiedene Namen" % (gesamt, len(zaehler)),
         ]
         if zaehler:
             haeufigster, anzahl = zaehler.most_common(1)[0]
             if anzahl > 500:
-                kopf.append('Auffaellig: "%s" wird %d-mal aufgelöst — das ist '
-                            'eine Schleife, keine Seite voller Werte.'
-                            % (haeufigster, anzahl))
-        befunde = [Befund(name, '%d Auflösungen' % anzahl,
-                          gewicht=(Befund.WARNUNG if anzahl > 500
-                                   else Befund.HINWEIS))
-                   for name, anzahl in zaehler.most_common(30)]
+                kopf.append(
+                    'Auffaellig: "%s" wird %d-mal aufgelöst — das ist '
+                    "eine Schleife, keine Seite voller Werte." % (haeufigster, anzahl)
+                )
+        befunde = [
+            Befund(
+                name, "%d Auflösungen" % anzahl, gewicht=(Befund.WARNUNG if anzahl > 500 else Befund.HINWEIS)
+            )
+            for name, anzahl in zaehler.most_common(30)
+        ]
         return Befundsatz(self.titel, kopf, befunde)

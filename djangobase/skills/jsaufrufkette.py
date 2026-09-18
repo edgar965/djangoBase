@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Aufrufkette - faengt wenigstens EIN Glied ueber diesem Aufruf?
+"""Aufrufkette - faengt wenigstens EIN Glied ueber diesem Aufruf?
 
 Aus ``jsfaenger.py`` herausgeloest (17.08.2026), zusammen mit ``Stelle``.
 
@@ -33,6 +33,7 @@ VIER FALLEN, ALLE BELEGT
 
 Von 20 blieben 2. Beide waren echt.
 """
+
 import re
 
 from .jsstelle import Stelle
@@ -57,13 +58,30 @@ class Aufrufkette:
     #: Methodennamen, die in jeder zweiten Bibliothek vorkommen. Fuer sie zaehlt
     #: nur der Import-Weg, nicht die Sammelstelle — sonst entscheidet ein
     #: fremdes `load()` ueber den Befund.
-    GENERISCH = {"load", "save", "init", "update", "render", "get", "set",
-                 "send", "open", "close", "start", "stop", "run", "add",
-                 "remove", "reset", "laden", "speichern", "senden"}
+    GENERISCH = {
+        "load",
+        "save",
+        "init",
+        "update",
+        "render",
+        "get",
+        "set",
+        "send",
+        "open",
+        "close",
+        "start",
+        "stop",
+        "run",
+        "add",
+        "remove",
+        "reset",
+        "laden",
+        "speichern",
+        "senden",
+    }
 
     #: `fn.Name = …`, `window.Name = …`, `window.__Name = …` am Zeilenanfang.
-    SAMMELSTELLE = re.compile(
-        r"^\s*(?:fn|window|globalThis)\.(?:__)?([A-Za-z_$][\w$]*)\s*=")
+    SAMMELSTELLE = re.compile(r"^\s*(?:fn|window|globalThis)\.(?:__)?([A-Za-z_$][\w$]*)\s*=")
 
     def __init__(self, quellen, ausgenommen=()):
         #: [(kurzer Pfad, Zeilenliste)] aller geprueften Dateien.
@@ -73,7 +91,7 @@ class Aufrufkette:
         self._sicht = {}
 
     def urteil(self, stelle, tiefe=0, gesehen=None):
-        u"""``""`` wenn alle Aufrufstellen fangen, sonst der Grund."""
+        """``""`` wenn alle Aufrufstellen fangen, sonst der Grund."""
         name = stelle.umgebende_funktion()
         if not name:
             return "keine umgebende Funktion erkannt"
@@ -82,12 +100,11 @@ class Aufrufkette:
         stellen = 0
         for oben in self._aufrufstellen(stelle.datei, name):
             if (oben.datei, oben.umgebende_funktion()) in gesehen:
-                continue                      # Ringschluss oder Rekursion
+                continue  # Ringschluss oder Rekursion
             stellen += 1
             if oben.gefangen():
                 continue
-            offen = "%s() wird in %s:%d ungefangen gerufen" % (
-                name, oben.datei, oben.nummer + 1)
+            offen = "%s() wird in %s:%d ungefangen gerufen" % (name, oben.datei, oben.nummer + 1)
             if tiefe + 1 >= Aufrufkette.TIEFE:
                 return offen
             weiter = self.urteil(oben, tiefe + 1, gesehen)
@@ -103,8 +120,7 @@ class Aufrufkette:
 
     def _aufrufstellen(self, datei, name):
         """Jede Zeile, die ``name`` als Aufruf enthält - dort, wo er sichtbar ist."""
-        muster = re.compile(r"(?<![\w$.])(?:\w[\w$]*\.)?" + re.escape(name)
-                            + r"\s*\(")
+        muster = re.compile(r"(?<![\w$.])(?:\w[\w$]*\.)?" + re.escape(name) + r"\s*\(")
         ueber_import, ueber_sammelstelle, namen = self._sichtbar(datei)
         # Bei einem Allerweltsnamen zaehlt NUR der Import-Weg. `load()` heisst in
         # 3DTools sowohl die Methode von `CharacterInstance` als auch die von
@@ -127,19 +143,18 @@ class Aufrufkette:
                 if not treffer or zeile.lstrip().startswith(("*", "//")):
                     continue
                 if Stelle.DEFINITION.match(zeile):
-                    continue                      # die Definition selbst
+                    continue  # die Definition selbst
                 if any(v in zeile for v in self.ausgenommen):
-                    continue                      # der Abruf, um den es geht
+                    continue  # der Abruf, um den es geht
                 if Stelle.in_zeichenkette(zeile, treffer.start()):
                     continue
-                if marken is not None and not self._nahebei(zeilen, nummer,
-                                                            marken):
+                if marken is not None and not self._nahebei(zeilen, nummer, marken):
                     continue
                 yield Stelle(kurz, zeilen, nummer)
 
     @staticmethod
     def _nahebei(zeilen, nummer, marken):
-        u"""Wird ein veroeffentlichter Name in der Naehe des Aufrufs genannt?
+        """Wird ein veroeffentlichter Name in der Naehe des Aufrufs genannt?
 
         Bei einer Datei, die den Namen nur ueber die Sammelstelle sieht, ist die
         Frage: Geht es hier ueberhaupt um DIESE Klasse? Zwei Extreme sind beide
@@ -167,9 +182,7 @@ class Aufrufkette:
         # Cache-Busting-Anhang: In 3DTools steht
         # `from '../retarget_hybrid.js?v=32'`. Ohne das `?…` im Muster galt die
         # Datei als von niemandem importiert (17.08.2026).
-        bezug = re.compile(r"""from\s+['"][^'"]*?/?"""
-                           + re.escape(stamm)
-                           + r"""(?:\.js)?(?:\?[^'"]*)?['"]""")
+        bezug = re.compile(r"""from\s+['"][^'"]*?/?""" + re.escape(stamm) + r"""(?:\.js)?(?:\?[^'"]*)?['"]""")
         namen = set()
         for kurz, zeilen in self.quellen:
             if kurz == datei:
@@ -179,7 +192,7 @@ class Aufrufkette:
         for kurz, zeilen in self.quellen:
             if kurz == datei:
                 continue
-            if bezug.search("\n".join(zeilen[:Aufrufkette.KOPF])):
+            if bezug.search("\n".join(zeilen[: Aufrufkette.KOPF])):
                 per_import.add(kurz)
             elif namen:
                 per_sammelstelle.add(kurz)

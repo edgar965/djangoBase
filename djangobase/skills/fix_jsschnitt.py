@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""FixJsSchnitt - eine zu grosse JS-Datei teilen, mit Netz gegen acht Fallen.
+"""FixJsSchnitt - eine zu grosse JS-Datei teilen, mit Netz gegen acht Fallen.
 
 WARUM DAS NETZ DER EIGENTLICHE INHALT IST (16.08.2026)
 ======================================================
@@ -29,6 +29,7 @@ setzen, den Rueckverweis legen. Die inhaltliche Ueberschrift - WAS beantwortet
 die neue Datei? - bleibt Handarbeit; ohne sie steht ein Platzhalter drin, den
 man nicht uebersehen kann.
 """
+
 import re
 from collections import Counter
 
@@ -36,8 +37,18 @@ from .anlassfall import Anlassfall
 from .fixer import Aenderung, Fixer, Vorschau
 
 #: Namen, die eine Seite mitbringt. Ein Zugriff darauf auf Modulebene ist Falle 6.
-SEITEN_GLOBALS = ("SeitenDaten", "OptZustand", "ErgSpalten", "LaufKopf", "ErgTab",
-                  "WfUrteil", "WfGesamt", "LaufAnzeige", "LaufSperre", "Chart")
+SEITEN_GLOBALS = (
+    "SeitenDaten",
+    "OptZustand",
+    "ErgSpalten",
+    "LaufKopf",
+    "ErgTab",
+    "WfUrteil",
+    "WfGesamt",
+    "LaufAnzeige",
+    "LaufSperre",
+    "Chart",
+)
 
 
 class Haelfte:
@@ -73,33 +84,37 @@ class Haelfte:
         Der Ersatz für „je Name einmal den ganzen Text durchsuchen": Ein
         Durchlauf, danach beantwortet ein Mengenschnitt dieselbe Frage.
         """
-        return self._gemerkt(
-            "bezeichner", lambda: set(self.BEZEICHNER.findall(self.text)))
+        return self._gemerkt("bezeichner", lambda: set(self.BEZEICHNER.findall(self.text)))
 
     @property
     def namen(self):
-        return self._gemerkt("namen", lambda: set(re.findall(
-            r"^(?:export )?(?:async )?(?:function|class|const|let|var) (\w+)",
-            self.text, re.M)))
+        return self._gemerkt(
+            "namen",
+            lambda: set(
+                re.findall(r"^(?:export )?(?:async )?(?:function|class|const|let|var) (\w+)", self.text, re.M)
+            ),
+        )
 
     @property
     def exportierte(self):
         def bauen():
-            aus = set(re.findall(
-                r"^export\s+(?:async\s+)?(?:function|class|const|let|var)\s+(\w+)",
-                self.text, re.M))
+            aus = set(
+                re.findall(
+                    r"^export\s+(?:async\s+)?(?:function|class|const|let|var)\s+(\w+)", self.text, re.M
+                )
+            )
             for m in re.finditer(r"^export\s*\{([^}]*)\}", self.text, re.M):
                 for teil in m.group(1).split(","):
                     n = teil.strip().split(" as ")[-1].strip()
                     if n:
                         aus.add(n)
             return aus
+
         return self._gemerkt("exportierte", bauen)
 
     @property
     def freie_variablen(self):
-        return self._gemerkt("freie", lambda: set(
-            re.findall(r"^(?:let|var) (\w+)", self.text, re.M)))
+        return self._gemerkt("freie", lambda: set(re.findall(r"^(?:let|var) (\w+)", self.text, re.M)))
 
     @property
     def modulebene_globals(self):
@@ -116,6 +131,7 @@ class Haelfte:
                             aus.add(g)
                 tiefe = max(0, tiefe + z.count("{") - z.count("}"))
             return aus
+
         return self._gemerkt("globals", bauen)
 
     @property
@@ -124,8 +140,10 @@ class Haelfte:
 
         Auch das lief vorher je Name einzeln über den ganzen Text.
         """
-        return self._gemerkt("ziele", lambda: set(re.findall(
-            r"(?<![.\w])([A-Za-z_$][\w$]*)\s*(?:=[^=]|\+\+|--|\+=)", self.text)))
+        return self._gemerkt(
+            "ziele",
+            lambda: set(re.findall(r"(?<![.\w])([A-Za-z_$][\w$]*)\s*(?:=[^=]|\+\+|--|\+=)", self.text)),
+        )
 
     def benutzt(self, namen):
         """Welche dieser Namen kommen hier freistehend vor?
@@ -144,7 +162,7 @@ class Schnitt:
 
     def __init__(self, pfad, bei, neuer_name, versioniert=False, zeilen=None):
         self.pfad = pfad
-        self.bei = bei                              # 0-basiert
+        self.bei = bei  # 0-basiert
         self.neuer_name = neuer_name
         #: Laedt eine Vorlage die Datei mit ``?v=`` (dann kein Rueck-Import)?
         self.versioniert = versioniert
@@ -172,8 +190,7 @@ class Schnitt:
         globs = self.unten.modulebene_globals
         if globs:
             aus.append("Global auf Modulebene: %s" % ", ".join(sorted(globs)))
-        if re.search(r"class \w+ extends", self.unten.text) and \
-                not re.search(r"super\s*\(", self.unten.text):
+        if re.search(r"class \w+ extends", self.unten.text) and not re.search(r"super\s*\(", self.unten.text):
             aus.append("erbende Klasse ohne super()")
         beschrieben = sorted(self.oben.freie_variablen & self.unten.zuweisungsziele)
         if beschrieben:
@@ -181,16 +198,13 @@ class Schnitt:
         konstanten = set(re.findall(r"^export const (\w+)", self.oben.text, re.M))
         tdz = self.unten.benutzt(konstanten)
         if tdz:
-            aus.append("Temporal Dead Zone: %s ist oben ein const"
-                       % ", ".join(sorted(tdz)))
+            aus.append("Temporal Dead Zone: %s ist oben ein const" % ", ".join(sorted(tdz)))
         klassen_unten = re.findall(r"^export class (\w+)", self.unten.text, re.M)
         if klassen_unten and not self.oben.namen:
-            aus.append("die Datei IST eine Klasse (%s) - über Vererbung teilen"
-                       % ", ".join(klassen_unten))
+            aus.append("die Datei IST eine Klasse (%s) - über Vererbung teilen" % ", ".join(klassen_unten))
         for wo, h in (("oben", self.oben), ("unten", self.unten)):
             if len(h.zeilen) + 8 > self.GRENZE:
-                aus.append("lohnt nicht: %s bliebe bei ~%d Zeilen"
-                           % (wo, len(h.zeilen) + 8))
+                aus.append("lohnt nicht: %s bliebe bei ~%d Zeilen" % (wo, len(h.zeilen) + 8))
         return aus
 
     # ---- der Text ------------------------------------------------------------
@@ -200,8 +214,7 @@ class Schnitt:
         haelfte = self.oben if fuer == "oben" else self.unten
         ohne = re.sub(r"^import[^;]*;", "", haelfte.text, flags=re.M | re.S)
         je_modul = {}
-        for m in re.finditer(r"import\s*\{([^}]*)\}\s*from\s*['\"]([^'\"]+)['\"]",
-                             quelle, re.S):
+        for m in re.finditer(r"import\s*\{([^}]*)\}\s*from\s*['\"]([^'\"]+)['\"]", quelle, re.S):
             for teil in m.group(1).split(","):
                 voll = teil.strip()
                 if not voll:
@@ -209,35 +222,41 @@ class Schnitt:
                 benutzt = voll.split(" as ")[-1].strip()
                 if re.search(r"(?<![.\w])%s\b" % re.escape(benutzt), ohne):
                     je_modul.setdefault(m.group(2), []).append(voll)
-        return ["import {%s} from '%s';" % (", ".join(sorted(v)), k)
-                for k, v in sorted(je_modul.items())]
+        return ["import {%s} from '%s';" % (", ".join(sorted(v)), k) for k, v in sorted(je_modul.items())]
 
     def neuer_text(self):
         gebraucht = sorted(self.unten.benutzt(self.oben.namen))
-        kopf = ["/* <WOFÜR ist diese Datei da? Ein Satz — HANDARBEIT.>",
-                "   " + "=" * 72,
-                "   Aus %s herausgelöst (%d Zeilen)."
-                % (self.pfad.name, len(self.oben.zeilen) + len(self.unten.zeilen)),
-                "   " + "=" * 72 + " */"]
+        kopf = [
+            "/* <WOFÜR ist diese Datei da? Ein Satz — HANDARBEIT.>",
+            "   " + "=" * 72,
+            "   Aus %s herausgelöst (%d Zeilen)."
+            % (self.pfad.name, len(self.oben.zeilen) + len(self.unten.zeilen)),
+            "   " + "=" * 72 + " */",
+        ]
         neu = kopf + self.importzeilen("unten")
         if gebraucht and self.versioniert:
-            neu += ["// ACHTUNG: %s wird mit ?v= geladen - ein Rück-Import wäre eine"
-                    % self.pfad.name,
-                    "// ZWEITE Modul-URL. Diese Namen anders beschaffen: %s"
-                    % ", ".join(gebraucht)]
+            neu += [
+                "// ACHTUNG: %s wird mit ?v= geladen - ein Rück-Import wäre eine" % self.pfad.name,
+                "// ZWEITE Modul-URL. Diese Namen anders beschaffen: %s" % ", ".join(gebraucht),
+            ]
         elif gebraucht:
-            neu.append("import {%s} from './%s';" % (", ".join(gebraucht),
-                                                     self.pfad.name))
+            neu.append("import {%s} from './%s';" % (", ".join(gebraucht), self.pfad.name))
         return "\n".join(neu + [""] + self.unten.zeilen)
 
     def resttext(self):
         gebraucht = sorted(self.unten.benutzt(self.oben.namen))
         text = self.oben.text
         for name in gebraucht:
-            text = re.sub(r"^(function|class|const|let) %s\b" % re.escape(name),
-                          r"export \1 %s" % name, text, flags=re.M)
-        return text + ("\n\n// Herausgelöst am %s: %s\nimport './%s';\n"
-                       % ("16.08.2026", self.neuer_name, self.neuer_name))
+            text = re.sub(
+                r"^(function|class|const|let) %s\b" % re.escape(name),
+                r"export \1 %s" % name,
+                text,
+                flags=re.M,
+            )
+        return text + (
+            "\n\n// Herausgelöst am %s: %s\nimport './%s';\n"
+            % ("16.08.2026", self.neuer_name, self.neuer_name)
+        )
 
 
 class FixJsSchnitt(Fixer):
@@ -246,34 +265,53 @@ class FixJsSchnitt(Fixer):
     #: Werkzeugs, das ihn meldet. Die Oberflaeche zeigt daraus die
     #: NUMMER der Pruefung in der Tabelle statt einer
     #: Kriteriums-Nummer, die dort nirgends steht.
-    behebt = 'jsschnitt'
+    behebt = "jsschnitt"
     titel = "JS-Datei teilen (mit Fallen-Prüfung)"
-    tut = ("Teilt jede zu große JS-Datei an ihrer besten Funktionsgrenze — aber "
-           "nur, wenn keine der acht bekannten Fallen zuschlägt.")
-    warum = ("Ein Modul, das beim Laden wirft, verwirft der Browser komplett — "
-             "samt aller window-Namen, teils auch denen der Nachbardateien. "
-             "Einmal waren acht Handler auf einen Schlag weg.")
-    grenzen = ("Schreibt nur, wo alle acht Prüfungen halten. Der Kopfkommentar "
-               "der neuen Datei bleibt ein Platzhalter — WAS sie beantwortet, "
-               "weiß nur ein Mensch.")
+    tut = (
+        "Teilt jede zu große JS-Datei an ihrer besten Funktionsgrenze — aber "
+        "nur, wenn keine der acht bekannten Fallen zuschlägt."
+    )
+    warum = (
+        "Ein Modul, das beim Laden wirft, verwirft der Browser komplett — "
+        "samt aller window-Namen, teils auch denen der Nachbardateien. "
+        "Einmal waren acht Handler auf einen Schlag weg."
+    )
+    grenzen = (
+        "Schreibt nur, wo alle acht Prüfungen halten. Der Kopfkommentar "
+        "der neuen Datei bleibt ein Platzhalter — WAS sie beantwortet, "
+        "weiß nur ein Mensch."
+    )
     kriterium = 3
     dauer = "5–15 s"
 
     anlassfall = Anlassfall(
         # Über GRENZE (200) Zeilen, mit sauberen Funktionsgrenzen zum Teilen.
-        {"gross.js": "".join(
-            "export function teil%02d() {\n"
-            "    const wert = %d;\n"
-            "    return wert * 2;\n"
-            "}\n\n" % (i, i) for i in range(60))},
-        mindestens=1, hoechstens=1, erwartet_in="gross.js",
+        {
+            "gross.js": "".join(
+                "export function teil%02d() {\n    const wert = %d;\n    return wert * 2;\n}\n\n" % (i, i)
+                for i in range(60)
+            )
+        },
+        mindestens=1,
+        hoechstens=1,
+        erwartet_in="gross.js",
         warum="Dreihundert Zeilen in einer Datei liest niemand am Stück — und "
-              "der Schnitt braucht eine Funktionsgrenze, an der er ansetzen kann")
+        "der Schnitt braucht eine Funktionsgrenze, an der er ansetzen kann",
+    )
 
     GRENZE = 200
     RAND = 40
-    RAUS = ("__pycache__", "node_modules", "venv", "pythonVENV", ".git",
-            "sicherung", "backup", "archiv", "_web")
+    RAUS = (
+        "__pycache__",
+        "node_modules",
+        "venv",
+        "pythonVENV",
+        ".git",
+        "sicherung",
+        "backup",
+        "archiv",
+        "_web",
+    )
 
     def _jsdateien(self):
         for pfad in self.pfade("*.js"):
@@ -345,14 +383,15 @@ class FixJsSchnitt(Fixer):
         if not kandidaten:
             klassen = re.findall(r"^(?:export )?class (\w+)", "\n".join(zeilen), re.M)
             if klassen:
-                methoden = len(re.findall(r"^\s{2,4}(?:async )?\w+\s*\(",
-                                          "\n".join(zeilen), re.M))
-                return ("keine Trennlinie: die Datei IST %s (%d Methoden) — "
-                        "über Vererbung teilen, nicht an einer Zeilennummer"
-                        % (" und ".join(klassen), methoden))
-            return ("keine Trennlinie: keine einzige Deklaration am Zeilenanfang "
-                    "zwischen Zeile %d und %d" % (FixJsSchnitt.RAND,
-                                                  len(zeilen) - FixJsSchnitt.RAND))
+                methoden = len(re.findall(r"^\s{2,4}(?:async )?\w+\s*\(", "\n".join(zeilen), re.M))
+                return (
+                    "keine Trennlinie: die Datei IST %s (%d Methoden) — "
+                    "über Vererbung teilen, nicht an einer Zeilennummer" % (" und ".join(klassen), methoden)
+                )
+            return "keine Trennlinie: keine einzige Deklaration am Zeilenanfang zwischen Zeile %d und %d" % (
+                FixJsSchnitt.RAND,
+                len(zeilen) - FixJsSchnitt.RAND,
+            )
         haupt = ", ".join("%s (%dx)" % (w, n) for w, n in blocker.most_common(2))
         return "%d Trennlinien geprüft, alle blockiert — %s" % (kandidaten, haupt)
 
@@ -368,15 +407,20 @@ class FixJsSchnitt(Fixer):
                 continue
             s, diagnose = self._bester_schnitt(pfad)
             if s is None:
-                aenderungen.append(Aenderung(
-                    pfad, "%d Zeilen — kein sauberer Schnitt" % len(zeilen),
-                    None, [diagnose]))
+                aenderungen.append(
+                    Aenderung(pfad, "%d Zeilen — kein sauberer Schnitt" % len(zeilen), None, [diagnose])
+                )
                 continue
-            aenderungen.append(Aenderung(
-                pfad, "bei Zeile %d teilen -> %s (%d / %d Zeilen)"
-                % (s.bei + 1, s.neuer_name, len(s.oben.zeilen), len(s.unten.zeilen)),
-                s.resttext(),
-                begleiter=(pfad.parent / s.neuer_name, s.neuer_text())))
-        return Vorschau(aenderungen,
-                        "Der Kopfkommentar der neuen Datei ist ein Platzhalter — "
-                        "bitte nach dem Anwenden füllen.")
+            aenderungen.append(
+                Aenderung(
+                    pfad,
+                    "bei Zeile %d teilen -> %s (%d / %d Zeilen)"
+                    % (s.bei + 1, s.neuer_name, len(s.oben.zeilen), len(s.unten.zeilen)),
+                    s.resttext(),
+                    begleiter=(pfad.parent / s.neuer_name, s.neuer_text()),
+                )
+            )
+        return Vorschau(
+            aenderungen,
+            "Der Kopfkommentar der neuen Datei ist ein Platzhalter — bitte nach dem Anwenden füllen.",
+        )

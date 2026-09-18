@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""JsWaisen - Browser-Module, die niemand lädt, und Importe ins Leere.
+"""JsWaisen - Browser-Module, die niemand lädt, und Importe ins Leere.
 
 DER BEFUND (3DTools, 16.08.2026)
 ================================
@@ -30,6 +30,7 @@ Wer nur zählt, welche Datei irgendwo importiert wird, uebersieht ganze
 Altlast-Ketten: ``scene_state.js`` wurde von drei alten Modulen importiert - und
 alle vier lud niemand. Erst der Lauf von den Vorlagen aus zeigt das.
 """
+
 import re
 from pathlib import Path
 
@@ -57,16 +58,16 @@ ANMELDUNG = re.compile(r"^\s*(?:fn|window)\.(\w+)\s*=", re.MULTILINE)
 #: Ordnerliste pflegt, liegt beim naechsten Projekt daneben. Diese Merkmale
 #: kann der Browser gar nicht ausfuehren, also ist die Datei ein Laeufer:
 LAEUFER = (
-    "require(",         # CommonJS — im Browser-Modul unmoeglich
-    "module.exports",   # dito
-    "__dirname",        # Node
-    "process.env",      # Node
-    "defineConfig(",    # Vite/Playwright/Jest-Konfiguration
+    "require(",  # CommonJS — im Browser-Modul unmoeglich
+    "module.exports",  # dito
+    "__dirname",  # Node
+    "process.env",  # Node
+    "defineConfig(",  # Vite/Playwright/Jest-Konfiguration
 )
 
 
 def ohne_kommentarzeilen(text):
-    u"""Reine Kommentarzeilen entfernen.
+    """Reine Kommentarzeilen entfernen.
 
     Ohne das melden Kommentare, die einen Import ERWAEHNEN, einen Treffer -
     genau das passierte beim eigenen Hinweis „holte sein Netz per
@@ -98,8 +99,7 @@ class Modulinventar:
     def erheben(self):
         bekannt = set(self.dateien)
         for pfad in self.dateien:
-            text = ohne_kommentarzeilen(
-                pfad.read_text(encoding="utf-8", errors="replace"))
+            text = ohne_kommentarzeilen(pfad.read_text(encoding="utf-8", errors="replace"))
             if any(marke in text for marke in LAEUFER):
                 self.laeufer.add(pfad)
             self.anmeldungen[pfad] = sorted(set(ANMELDUNG.findall(text)))
@@ -136,16 +136,15 @@ class Modulinventar:
 
     @staticmethod
     def _nennt_genau(pfad, angabe):
-        u"""Meint die Angabe der Vorlage GENAU diese Datei?
+        """Meint die Angabe der Vorlage GENAU diese Datei?
 
         Die Vorlage schreibt einen Ausschnitt des Pfades
         (``mail/js/inbox/index.js``), die Datei liegt unter
         ``mail/static/mail/js/inbox/index.js`` - der Ausschnitt muss also
         das ENDE des Pfades sein.
         """
-        teile = [t for t in str(angabe).replace("\\", "/").split("/")
-                 if t and t != "."]
-        return tuple(pfad.parts[-len(teile):]) == tuple(teile)
+        teile = [t for t in str(angabe).replace("\\", "/").split("/") if t and t != "."]
+        return tuple(pfad.parts[-len(teile) :]) == tuple(teile)
 
     def _einstiegspunkte(self):
         """Dateien, die eine Vorlage lädt - über {% static %} oder als src.
@@ -178,23 +177,27 @@ class Modulinventar:
                 if "/" not in treffer.strip("/"):
                     einstieg.update(kandidaten)
                     continue
-                einstieg.update(p for p in kandidaten
-                                if self._nennt_genau(p, treffer))
+                einstieg.update(p for p in kandidaten if self._nennt_genau(p, treffer))
         return einstieg
 
     #: Konfigurationsdateien eines Bündlers. Sie nennen den Einstieg,
     #: von dem aus gebaut wird — die Vorlage laedt danach nur noch das
     #: fertige Buendel.
-    BUENDELKONFIG = ("vite.config.js", "vite.config.mjs", "vite.config.ts",
-                     "rollup.config.js", "rollup.config.mjs",
-                     "webpack.config.js")
+    BUENDELKONFIG = (
+        "vite.config.js",
+        "vite.config.mjs",
+        "vite.config.ts",
+        "rollup.config.js",
+        "rollup.config.mjs",
+        "webpack.config.js",
+    )
 
     #: Eine Zeichenkette in so einer Konfiguration, die auf eine Quelldatei
     #: zeigt.
     KONFIG_QUELLE = re.compile(r"""['"]([^'"]+\.(?:js|mjs|ts|jsx|tsx))['"]""")
 
     def _buendel_einstiege(self, nach_name):
-        u"""Einstiege, die eine Bündler-Konfiguration nennt.
+        """Einstiege, die eine Bündler-Konfiguration nennt.
 
         DER FEHLALARM (3DTools, 01.09.2026): 44 von 44 „Waisen" lagen in
         `TheatreJS/src/` — einer Vite-Anwendung. Ihre Vorlage laedt nur
@@ -239,7 +242,7 @@ class Modulinventar:
     STILLGELEGT = re.compile(r"//\s*stillgelegt gewollt:\s*\S+")
 
     def verwaist(self):
-        u"""Dateien, die keine Seite lädt — Laeufer und Stillgelegte ausgenommen.
+        """Dateien, die keine Seite lädt — Laeufer und Stillgelegte ausgenommen.
 
         Ein Laeufer (Node-Skript, Bauwerkzeug, Testlaeufer) gehört nicht zu den
         Seiten und MUSS unerreichbar sein. Er unter „lädt niemand" zu führen
@@ -257,8 +260,7 @@ class Modulinventar:
     def _stillgelegt(self, pfad):
         """Trägt der Modulkopf den Vermerk mit Begründung?"""
         try:
-            kopf = "\n".join(Path(pfad).read_text(
-                encoding="utf-8", errors="replace").split("\n")[:30])
+            kopf = "\n".join(Path(pfad).read_text(encoding="utf-8", errors="replace").split("\n")[:30])
         except OSError:
             return False
         return bool(self.STILLGELEGT.search(kopf))
@@ -277,65 +279,82 @@ class Modulinventar:
 class JsWaisen(Werkzeug):
     slug = "jswaisen"
     titel = "Browser-Module: Waisen und Importe ins Leere"
-    zweck = ("Läuft von den Vorlagen aus durch alle Importe: Welche .js-Datei "
-             "lädt niemand, und welcher Import zeigt auf eine Datei, die es "
-             "nicht gibt?")
-    befund = ("3DTools: drei Module waren verwaist und meldeten trotzdem "
-              "Funktionen an - Fotoanalyse, Ausricht-Assistent und Textur-Reiter "
-              "waren dadurch ohne Wirkung, ohne eine Fehlermeldung.")
-    abhilfe = ("Verwaist + angemeldet: importieren oder löschen. Import ins "
-               "Leere: Pfad korrigieren - meist ist die Datei umgezogen.")
+    zweck = (
+        "Läuft von den Vorlagen aus durch alle Importe: Welche .js-Datei "
+        "lädt niemand, und welcher Import zeigt auf eine Datei, die es "
+        "nicht gibt?"
+    )
+    befund = (
+        "3DTools: drei Module waren verwaist und meldeten trotzdem "
+        "Funktionen an - Fotoanalyse, Ausricht-Assistent und Textur-Reiter "
+        "waren dadurch ohne Wirkung, ohne eine Fehlermeldung."
+    )
+    abhilfe = (
+        "Verwaist + angemeldet: importieren oder löschen. Import ins "
+        "Leere: Pfad korrigieren - meist ist die Datei umgezogen."
+    )
     dauer = "unter 1 s"
     kriterium = 5
-
 
     #: Drei Module, eine Vorlage: ``geladen.js`` haengt an der Seite und zieht
     #: ``teil.js`` nach - ``waise.js`` zieht niemand. Genau so waren
     #: ``ib_aktionen.js`` und ``ib_spielmodus.js`` verwaist, und damit war jeder
     #: Spielmodus- und Bracket-Knopf tot, ohne eine Zeile in der Konsole.
     anlassfall = Anlassfall(
-        {"templates/seite.html": '''<script type="module"
+        {
+            "templates/seite.html": """<script type="module"
         src="/static/app/geladen.js"></script>
-''',
-         "static/app/geladen.js": '''import { hilf } from './teil.js';
+""",
+            "static/app/geladen.js": """import { hilf } from './teil.js';
 
 export function start() { return hilf(); }
-''',
-         "static/app/teil.js": '''export function hilf() { return 1; }
-''',
-         "static/app/waise.js": '''export function niemandLaedtMich() { return 2; }
-'''},
+""",
+            "static/app/teil.js": """export function hilf() { return 1; }
+""",
+            "static/app/waise.js": """export function niemandLaedtMich() { return 2; }
+""",
+        },
         erwartet_in="waise.js",
         warum="Zwei verwaiste Teildateien machten alle Spielmodus- und "
-              "Bracket-Knöpfe wirkungslos — ohne Fehlermeldung")
+        "Bracket-Knöpfe wirkungslos — ohne Fehlermeldung",
+    )
 
     def laufen(self):
         wurzel = self.wurzel()
         inventar = Modulinventar(self._quellen(), self._vorlagen()).erheben()
         zeilen = []
         for pfad, angabe in inventar.fehlende():
-            zeilen.append({"art": "Import ins Leere",
-                           "ort": pfad.relative_to(wurzel).as_posix(),
-                           "text": angabe})
+            zeilen.append(
+                {"art": "Import ins Leere", "ort": pfad.relative_to(wurzel).as_posix(), "text": angabe}
+            )
         for pfad in inventar.verwaist():
             namen = inventar.anmeldungen.get(pfad, [])
-            zeilen.append({
-                "art": "verwaist + angemeldet" if namen else "verwaist",
-                "ort": pfad.relative_to(wurzel).as_posix(),
-                "text": ", ".join(namen[:6]) if namen else ""})
+            zeilen.append(
+                {
+                    "art": "verwaist + angemeldet" if namen else "verwaist",
+                    "ort": pfad.relative_to(wurzel).as_posix(),
+                    "text": ", ".join(namen[:6]) if namen else "",
+                }
+            )
         # Der gefaehrliche Fall zuerst.
         rang = {"Import ins Leere": 0, "verwaist + angemeldet": 1, "verwaist": 2}
         zeilen.sort(key=lambda z: (rang[z["art"]], z["ort"]))
         return Ergebnis(
-            ["art", "ort", "text"], zeilen,
+            ["art", "ort", "text"],
+            zeilen,
             zusammenfassung="%d JS-Dateien, %d davon lädt niemand, %d Importe "
-                            "ins Leere (%d Laeufer nicht gezählt)"
-                            % (len(inventar.dateien), len(inventar.verwaist()),
-                               len(inventar.fehlende()), len(inventar.laeufer)),
+            "ins Leere (%d Laeufer nicht gezählt)"
+            % (
+                len(inventar.dateien),
+                len(inventar.verwaist()),
+                len(inventar.fehlende()),
+                len(inventar.laeufer),
+            ),
             hinweis="Laeufer (Node-Skripte, vite.config.js, Playwright-Tests) "
-                    "sind ausgenommen — sie werden ausgefuehrt, nicht von einer "
-                    "Seite geladen, und am Code erkannt (require/module.exports/"
-                    "__dirname/process.env/defineConfig), nicht am Ordner.")
+            "sind ausgenommen — sie werden ausgefuehrt, nicht von einer "
+            "Seite geladen, und am Code erkannt (require/module.exports/"
+            "__dirname/process.env/defineConfig), nicht am Ordner.",
+        )
 
     #: Ausschlussliste und Suche stehen seit dem 17.08.2026 in
     #: ``Frontendquellen`` — vorher hatte sie jedes JS-Werkzeug einzeln,

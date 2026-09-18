@@ -21,10 +21,10 @@ Aufteilung in Module bleibt Handarbeit.
 
 Aufruf:  python -m djangobase.umbau.fabrikklasse <datei> <fabrikname> <klasse>
 """
+
 import re
 import sys
 from pathlib import Path
-
 
 from .codesicht import Codesicht
 
@@ -34,55 +34,56 @@ class Fabrikumbau:
 
     def __init__(self, pfad, fabrik):
         self.pfad = Path(pfad)
-        self.quelle = self.pfad.read_text(encoding='utf-8')
+        self.quelle = self.pfad.read_text(encoding="utf-8")
         self.maske = Codesicht.maske(self.quelle)
         self.fabrik = fabrik
         self.anfang, self.ende = self._grenzen()
 
     def _grenzen(self):
-        m = re.search(r'(?m)^(?:export\s+)?function\s+%s\s*\('
-                      % re.escape(self.fabrik), self.maske)
+        m = re.search(r"(?m)^(?:export\s+)?function\s+%s\s*\(" % re.escape(self.fabrik), self.maske)
         if not m:
-            raise SystemExit('Fabrik %s nicht gefunden' % self.fabrik)
+            raise SystemExit("Fabrik %s nicht gefunden" % self.fabrik)
         tiefe, i, offen = 0, m.start(), False
         while i < len(self.maske):
-            if self.maske[i] == '{':
+            if self.maske[i] == "{":
                 tiefe += 1
                 offen = True
-            elif self.maske[i] == '}':
+            elif self.maske[i] == "}":
                 tiefe -= 1
                 if offen and tiefe == 0:
                     return m.start(), i + 1
             i += 1
-        raise SystemExit('Ende der Fabrik nicht gefunden')
+        raise SystemExit("Ende der Fabrik nicht gefunden")
 
     def _rumpfmaske(self):
-        return self.maske[self.anfang:self.ende]
+        return self.maske[self.anfang : self.ende]
 
     def felder(self):
         """Namen der Variablen, die direkt in der Fabrik deklariert sind."""
         namen = []
-        for m in re.finditer(r'(?m)^    (?:let|const|var)\s+([^;=\n]+?)(?:\s*=|;)',
-                             self._rumpfmaske()):
-            for stueck in m.group(1).split(','):
-                treffer = re.match(r'\s*([A-Za-z_$][\w$]*)', stueck)
+        for m in re.finditer(r"(?m)^    (?:let|const|var)\s+([^;=\n]+?)(?:\s*=|;)", self._rumpfmaske()):
+            for stueck in m.group(1).split(","):
+                treffer = re.match(r"\s*([A-Za-z_$][\w$]*)", stueck)
                 if treffer:
                     namen.append(treffer.group(1))
         return namen
 
     def methoden(self):
         """Namen der Funktionen, die direkt in der Fabrik stehen."""
-        return re.findall(r'(?m)^    (?:async\s+)?function\s+([A-Za-z_$][\w$]*)',
-                          self._rumpfmaske())
+        return re.findall(r"(?m)^    (?:async\s+)?function\s+([A-Za-z_$][\w$]*)", self._rumpfmaske())
 
     def bericht(self):
         f, me = self.felder(), self.methoden()
-        print('Fabrik %s: Zeilen %d-%d'
-              % (self.fabrik,
-                 self.quelle[:self.anfang].count('\n') + 1,
-                 self.quelle[:self.ende].count('\n') + 1))
-        print('  %2d Felder:   %s' % (len(f), ', '.join(f)))
-        print('  %2d Methoden: %s' % (len(me), ', '.join(me)))
+        print(
+            "Fabrik %s: Zeilen %d-%d"
+            % (
+                self.fabrik,
+                self.quelle[: self.anfang].count("\n") + 1,
+                self.quelle[: self.ende].count("\n") + 1,
+            )
+        )
+        print("  %2d Felder:   %s" % (len(f), ", ".join(f)))
+        print("  %2d Methoden: %s" % (len(me), ", ".join(me)))
         return f, me
 
 
@@ -92,5 +93,5 @@ def main():
     Fabrikumbau(sys.argv[1], sys.argv[2]).bericht()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

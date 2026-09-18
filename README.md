@@ -67,7 +67,7 @@ provided`, weil das Layout-Template über den Context kommt und ohne ihn leer
 ist. In `TEMPLATES[0]["OPTIONS"]["context_processors"]`:
 
 ```python
-"djangobase.context_processors.djangobase",
+("djangobase.context_processors.djangobase",)
 ```
 
 **2. `settings.py` — App und Konfiguration.** Ans Ende der Datei:
@@ -76,6 +76,7 @@ ist. In `TEMPLATES[0]["OPTIONS"]["context_processors"]`:
 INSTALLED_APPS += ["djangobase"]
 
 import djangobase.logging as dblog
+
 LOGGING = dblog.config(BASE_DIR / "logs")
 
 DJANGOBASE = {
@@ -84,10 +85,9 @@ DJANGOBASE = {
     "log_verzeichnis": BASE_DIR / "logs",
     "log_sources": [("django", "Django", "django.log", None)],
     "menu": [{"label": "Start", "icon": "bi-house", "url": "/"}],
-    "zugriff": "staff",          # "staff" | "login" | "none"
+    "zugriff": "staff",  # "staff" | "login" | "none"
     "test_befehle": [
-        {"slug": "alle", "name": "Alle Tests",
-         "cmd": ["python", "manage.py", "test"]},
+        {"slug": "alle", "name": "Alle Tests", "cmd": ["python", "manage.py", "test"]},
     ],
 }
 ```
@@ -95,12 +95,9 @@ DJANGOBASE = {
 **3. `urls.py`:**
 
 ```python
-from django.urls import include, path      # `include` ergänzen
+from django.urls import include, path  # `include` ergänzen
 
-urlpatterns = [
-    path("hilfe/", include("djangobase.urls")),
-    ...
-]
+urlpatterns = [path("hilfe/", include("djangobase.urls")), ...]
 ```
 
 **4. Datenbank anlegen und einen Zugang schaffen** — `zugriff: "staff"` heißt:
@@ -254,13 +251,21 @@ damit byte-identisch.
 ```python
 DJANGOBASE["menu"] = [
     {"label": "Dashboard", "icon": "bi-grid", "url": "/"},
-    {"label": "Handelssysteme", "icon": "bi-graph-up", "untermenu": [
-        {"label": "Korrelationen", "icon": "bi-diagram-3", "untermenu": [   # 3. Ebene
-            {"label": "Indikator", "icon": "bi-dot", "url": "/korr/"},
-            {"label": "Hilfe",     "icon": "bi-dot", "url": "/korr/hilfe/"},
-        ]},
-        {"label": "Wochentage", "icon": "bi-calendar", "url": "/wochentage/"},
-    ]},
+    {
+        "label": "Handelssysteme",
+        "icon": "bi-graph-up",
+        "untermenu": [
+            {
+                "label": "Korrelationen",
+                "icon": "bi-diagram-3",
+                "untermenu": [  # 3. Ebene
+                    {"label": "Indikator", "icon": "bi-dot", "url": "/korr/"},
+                    {"label": "Hilfe", "icon": "bi-dot", "url": "/korr/hilfe/"},
+                ],
+            },
+            {"label": "Wochentage", "icon": "bi-calendar", "url": "/wochentage/"},
+        ],
+    },
 ]
 ```
 
@@ -278,11 +283,13 @@ optional Buttons für „Jetzt ausführen" und Aktivieren/Deaktivieren ein.
 # AppConfig.ready():
 from djangobase import jobs
 from . import cron_runner
+
 jobs.register(
-    "intraday", "Intraday-Abruf",
-    state=cron_runner.get_state,          # Callable -> dict (beliebige Keys)
+    "intraday",
+    "Intraday-Abruf",
+    state=cron_runner.get_state,  # Callable -> dict (beliebige Keys)
     beschreibung="Holt 1-Minuten-Bars im konfigurierten Intervall.",
-    trigger=cron_runner.trigger_now,      # optional: Button „Jetzt ausführen"
+    trigger=cron_runner.trigger_now,  # optional: Button „Jetzt ausführen"
     set_enabled=cron_runner.set_enabled,  # optional: An/Aus-Buttons
 )
 ```

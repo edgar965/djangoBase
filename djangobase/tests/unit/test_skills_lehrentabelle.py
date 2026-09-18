@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Die Lehren stehen in einer Tabelle — mit eigenen, verschiebbaren Nummern.
+"""Die Lehren stehen in einer Tabelle — mit eigenen, verschiebbaren Nummern.
 
 DIE ANSAGE (Edgar, 26.08.2026)
 ==============================
@@ -19,98 +19,90 @@ DREI LISTEN, DREI ABLAGEN
 ist die Position in SEINER Liste; gemeinsam nummeriert würde das
 Verschieben einer Lehre die Nummer eines Prüfers ändern.
 """
+
 import tempfile
 from pathlib import Path
 
 from djangobase.skills import fixer, werkzeuge
 from djangobase.skills.lehren_review import LEHREN, Lehrenstand
-from djangobase.skills.rangliste import (Lehrenrangliste, fixerrangliste,
-                                         lehrenrangliste, rangliste)
+from djangobase.skills.rangliste import Lehrenrangliste, fixerrangliste, lehrenrangliste, rangliste
 from djangobase.views.skills import SkillsView
 
 from ..base import BasisTest
 
 
 class DieLehrenStehenInEinerTabelle(BasisTest):
-
     def _tabelle(self):
         return SkillsView()._lehrentabelle()
 
     def test_jede_lehre_hat_eine_zeile(self):
-        self.assertEqual(len(self._tabelle()['zeilen']), len(LEHREN))
+        self.assertEqual(len(self._tabelle()["zeilen"]), len(LEHREN))
 
     def test_die_spalten_stehen_fest(self):
-        namen = [s['label'] for s in self._tabelle()['spalten']]
-        self.assertEqual(namen[1:], ['Rang', 'Bereich', 'Lehre',
-                                     'Regel und Begründung', 'Prüfung'])
-        self.assertIn('checkbox', namen[0])
+        namen = [s["label"] for s in self._tabelle()["spalten"]]
+        self.assertEqual(namen[1:], ["Rang", "Bereich", "Lehre", "Regel und Begründung", "Prüfung"])
+        self.assertIn("checkbox", namen[0])
 
     def test_die_raenge_laufen_luekenlos_ab_eins(self):
-        raenge = [z['zellen'][1]['sort'] for z in self._tabelle()['zeilen']]
+        raenge = [z["zellen"][1]["sort"] for z in self._tabelle()["zeilen"]]
         self.assertEqual(raenge, list(range(1, len(raenge) + 1)))
 
     def test_jede_zeile_traegt_ein_verschiebefeld(self):
-        for z in self._tabelle()['zeilen']:
-            html = z['zellen'][1]['html']
+        for z in self._tabelle()["zeilen"]:
+            html = z["zellen"][1]["html"]
             self.assertIn('value="lehrenrang"', html)
             self.assertIn('name="rang_slug"', html)
 
     def test_das_haekchen_bleibt(self):
-        u"""Es bedeutet weiterhin „gilt für dieses Projekt"."""
-        for z in self._tabelle()['zeilen']:
-            self.assertIn('name="lehre"', z['zellen'][0]['html'])
+        """Es bedeutet weiterhin „gilt für dieses Projekt"."""
+        for z in self._tabelle()["zeilen"]:
+            self.assertIn('name="lehre"', z["zellen"][0]["html"])
 
     def test_der_bereich_ist_jetzt_eine_spalte(self):
-        bereiche = {z['zellen'][2]['sort'] for z in self._tabelle()['zeilen']}
-        self.assertEqual(bereiche, {l.bereich for l in LEHREN})
+        bereiche = {z["zellen"][2]["sort"] for z in self._tabelle()["zeilen"]}
+        self.assertEqual(bereiche, {lehre.bereich for lehre in LEHREN})
 
 
 class DieSpaltePruefungSagtAuchWennEsKEINEGibt(BasisTest):
-
     def test_wer_ein_werkzeug_hat_zeigt_die_nummer(self):
-        mit = [l.slug for l in LEHREN if l.werkzeuge]
+        mit = [lehre.slug for lehre in LEHREN if lehre.werkzeuge]
         self.assertTrue(mit)
-        zeilen = {z['zellen'][3]['sort']: z for z in
-                  SkillsView()._lehrentabelle()['zeilen']}
-        for l in LEHREN:
-            if l.werkzeuge:
-                with self.subTest(lehre=l.slug):
-                    self.assertIn('Nr. ', zeilen[l.titel]['zellen'][5]['html'])
+        zeilen = {z["zellen"][3]["sort"]: z for z in SkillsView()._lehrentabelle()["zeilen"]}
+        for lehre in LEHREN:
+            if lehre.werkzeuge:
+                with self.subTest(lehre=lehre.slug):
+                    self.assertIn("Nr. ", zeilen[lehre.titel]["zellen"][5]["html"])
 
     def test_ohne_werkzeug_steht_es_ausdruecklich_da(self):
-        u"""Keine Prüfung ist eine AUSSAGE, keine fehlende Angabe."""
-        ohne = [l for l in LEHREN if not l.werkzeuge]
+        """Keine Prüfung ist eine AUSSAGE, keine fehlende Angabe."""
+        ohne = [lehre for lehre in LEHREN if not lehre.werkzeuge]
         self.assertTrue(ohne)
-        zeilen = {z['zellen'][3]['sort']: z for z in
-                  SkillsView()._lehrentabelle()['zeilen']}
-        for l in ohne:
-            with self.subTest(lehre=l.slug):
-                self.assertIn('kein Werkzeug',
-                              zeilen[l.titel]['zellen'][5]['html'])
+        zeilen = {z["zellen"][3]["sort"]: z for z in SkillsView()._lehrentabelle()["zeilen"]}
+        for lehre in ohne:
+            with self.subTest(lehre=lehre.slug):
+                self.assertIn("kein Werkzeug", zeilen[lehre.titel]["zellen"][5]["html"])
 
 
 class DreiListenDreiAblagen(BasisTest):
-
     def test_alle_drei_ablagen_sind_verschieden(self):
-        pfade = {str(rangliste().pfad), str(fixerrangliste().pfad),
-                 str(lehrenrangliste().pfad)}
+        pfade = {str(rangliste().pfad), str(fixerrangliste().pfad), str(lehrenrangliste().pfad)}
         self.assertEqual(len(pfade), 3, pfade)
 
     def test_verschieben_ordnet_die_lehren_um(self):
-        ordner = Path(tempfile.mkdtemp(prefix='lrang_'))
-        r = Lehrenrangliste(ordner / 'lehren_rang.json')
+        ordner = Path(tempfile.mkdtemp(prefix="lrang_"))
+        r = Lehrenrangliste(ordner / "lehren_rang.json")
         alle = list(LEHREN)
         vorher = r.reihenfolge(alle)
         self.assertTrue(r.verschieben(vorher[-1], 1, alle))
-        nachher = Lehrenrangliste(ordner / 'lehren_rang.json').reihenfolge(alle)
+        nachher = Lehrenrangliste(ordner / "lehren_rang.json").reihenfolge(alle)
         self.assertEqual(nachher[0], vorher[-1])
         self.assertEqual(sorted(nachher), sorted(vorher))
 
     def test_pruefer_und_fixer_bleiben_unberuehrt(self):
         vorher_w = rangliste().reihenfolge(list(werkzeuge()))
         vorher_f = fixerrangliste().reihenfolge(list(fixer()))
-        ordner = Path(tempfile.mkdtemp(prefix='lrang2_'))
-        r = Lehrenrangliste(ordner / 'lehren_rang.json')
+        ordner = Path(tempfile.mkdtemp(prefix="lrang2_"))
+        r = Lehrenrangliste(ordner / "lehren_rang.json")
         alle = list(LEHREN)
         r.verschieben(r.reihenfolge(alle)[-1], 1, alle)
         self.assertEqual(rangliste().reihenfolge(list(werkzeuge())), vorher_w)
@@ -118,7 +110,7 @@ class DreiListenDreiAblagen(BasisTest):
 
 
 class DieGrundordnungIstNICHTDasAlphabet(BasisTest):
-    u"""``Rangliste.grundordnung`` sortiert nach Kennung — für Lehren falsch.
+    """``Rangliste.grundordnung`` sortiert nach Kennung — für Lehren falsch.
 
     Sie haben kein Kriterium; nach Kennung sortiert stünde
     ``aequivalenz-beweisen`` vor ``bincount-statt-add-at``, eine
@@ -126,31 +118,30 @@ class DieGrundordnungIstNICHTDasAlphabet(BasisTest):
     """
 
     def test_die_erklaerte_reihenfolge_gilt(self):
-        ordner = Path(tempfile.mkdtemp(prefix='lrang3_'))
-        r = Lehrenrangliste(ordner / 'leer.json')
-        self.assertEqual(r.reihenfolge(list(LEHREN)),
-                         [l.slug for l in LEHREN])
+        ordner = Path(tempfile.mkdtemp(prefix="lrang3_"))
+        r = Lehrenrangliste(ordner / "leer.json")
+        self.assertEqual(r.reihenfolge(list(LEHREN)), [lehre.slug for lehre in LEHREN])
 
     def test_das_alphabet_waere_etwas_anderes(self):
-        u"""Gegenprobe: Sonst prüft der Test darüber nichts."""
-        erklaert = [l.slug for l in LEHREN]
+        """Gegenprobe: Sonst prüft der Test darüber nichts."""
+        erklaert = [lehre.slug for lehre in LEHREN]
         self.assertNotEqual(erklaert, sorted(erklaert))
 
 
 class KeineListeMehrNebenDerTabelle(BasisTest):
-
     def test_die_lehre_bloecke_sind_weg(self):
         from django.template.loader import get_template
 
         from djangobase.tests.konform.test_statik import ohne_kommentare
+
         markup = ohne_kommentare(
-            Path(get_template('djangobase/hilfe/skills.html').origin.name
-                 ).read_text(encoding='utf-8'))
+            Path(get_template("djangobase/hilfe/skills.html").origin.name).read_text(encoding="utf-8")
+        )
         self.assertNotIn('class="sk-lehre"', markup)
-        self.assertIn('tabelle=lehrentabelle', markup)
+        self.assertIn("tabelle=lehrentabelle", markup)
 
     def test_der_ankreuzstand_wird_weiter_gespeichert(self):
-        u"""Die Tabelle darf das Häkchen nicht zur Zierde machen."""
-        self.assertTrue(hasattr(Lehrenstand, 'speichern'))
+        """Die Tabelle darf das Häkchen nicht zur Zierde machen."""
+        self.assertTrue(hasattr(Lehrenstand, "speichern"))
         stand = Lehrenstand.laden()
         self.assertIsInstance(stand, dict)

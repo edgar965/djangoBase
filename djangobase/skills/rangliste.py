@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Die Reihenfolge der Werkzeuge - eine eindeutige Nummer je Eintrag.
+"""Die Reihenfolge der Werkzeuge - eine eindeutige Nummer je Eintrag.
 
 DER AUFTRAG (25.08.2026, Edgar)
 ===============================
@@ -44,6 +44,7 @@ Rang ist dann die Position darin, und er ist zwangsläufig eindeutig. Werkzeuge,
 die nicht in der Liste stehen - neu hinzugekommene -, hängen sich an ihrer
 Stelle in der Grundordnung ein.
 """
+
 import json
 import logging
 import os
@@ -60,25 +61,42 @@ __all__ = ["BEREICHE", "Rangliste", "rangliste"]
 #: daraus entsteht die Grundordnung. ``warum`` steht als Erklärung über dem
 #: Abschnitt; ohne sie wäre die Reihenfolge eine Behauptung.
 BEREICHE = (
-    {"name": "Stille Fehler", "kriterien": (13, 16),
-     "warum": "Fehler, die niemand sieht: kein Absturz, keine Meldung, nur ein "
-              "falsches Ergebnis. Die teuerste Klasse, weil sie erst auffällt, "
-              "wenn jemand ihr Ergebnis glaubt."},
-    {"name": "Toter und doppelter Code", "kriterien": (5, 6, 7),
-     "warum": "Verdeckt die echten Befunde. Zwei Fassungen derselben Sache "
-              "laufen auseinander, und nichts meldet es."},
-    {"name": "Objektorientierung und Struktur", "kriterien": (1, 2, 4, 9, 10, 11, 18),
-     "warum": "Kriterium 1 und 2 des Auftrags: Funktionen in Klassen, eine "
-              "Klasse je Datei, 200-300 Zeilen."},
-    {"name": "Frontend und ES-Module", "kriterien": (3, 15),
-     "warum": "Fehler im Browser bleiben still - die Seite lädt mit 200, die "
-              "Konsole schweigt, die Funktion tut nichts."},
-    {"name": "Geschwindigkeit", "kriterien": (12,),
-     "warum": "Wichtig, aber nachrangig: Ein langsames Programm liefert "
-              "richtige Ergebnisse, ein falsches nicht."},
-    {"name": "Tests und Werkzeuge selbst", "kriterien": (17,),
-     "warum": "Was die Prüfer prüft. Nie dringend und deshalb der Bereich, der "
-              "als erster liegen bleibt."},
+    {
+        "name": "Stille Fehler",
+        "kriterien": (13, 16),
+        "warum": "Fehler, die niemand sieht: kein Absturz, keine Meldung, nur ein "
+        "falsches Ergebnis. Die teuerste Klasse, weil sie erst auffällt, "
+        "wenn jemand ihr Ergebnis glaubt.",
+    },
+    {
+        "name": "Toter und doppelter Code",
+        "kriterien": (5, 6, 7),
+        "warum": "Verdeckt die echten Befunde. Zwei Fassungen derselben Sache "
+        "laufen auseinander, und nichts meldet es.",
+    },
+    {
+        "name": "Objektorientierung und Struktur",
+        "kriterien": (1, 2, 4, 9, 10, 11, 18),
+        "warum": "Kriterium 1 und 2 des Auftrags: Funktionen in Klassen, eine "
+        "Klasse je Datei, 200-300 Zeilen.",
+    },
+    {
+        "name": "Frontend und ES-Module",
+        "kriterien": (3, 15),
+        "warum": "Fehler im Browser bleiben still - die Seite lädt mit 200, die "
+        "Konsole schweigt, die Funktion tut nichts.",
+    },
+    {
+        "name": "Geschwindigkeit",
+        "kriterien": (12,),
+        "warum": "Wichtig, aber nachrangig: Ein langsames Programm liefert "
+        "richtige Ergebnisse, ein falsches nicht.",
+    },
+    {
+        "name": "Tests und Werkzeuge selbst",
+        "kriterien": (17,),
+        "warum": "Was die Prüfer prüft. Nie dringend und deshalb der Bereich, der als erster liegen bleibt.",
+    },
     # DOKUMENTATION — DER BEREICH, DER SICH SELBST WIDERLEGEN KANN
     # ============================================================
     #     „Mach auch einen neuen Abschnitt: Dokumentation, wo auch
@@ -87,14 +105,17 @@ BEREICHE = (
     # Er steht VOR dem BDD-Bereich, nicht dahinter: Der letzte Bereich ist
     # der Auffangkorb von `bereich_von()` für unbekannte Kriterien, und das
     # soll BDD bleiben.
-    {"name": "Dokumentation", "kriterien": (20,),
-     "warum": "Nicht ob viel dokumentiert ist, sondern ob es noch stimmt. "
-              "Geprüft wird, ob es ein Klassendiagramm und Workflow-Bilder "
-              "gibt, ob jeder Kasten darin auf Code zeigt, den es wirklich "
-              "gibt, und ob die schwersten Wege des Projekts überhaupt "
-              "gezeichnet sind. Eine von Hand gemalte Zeichnung fällt hier "
-              "durch, sobald jemand eine Klasse umbenennt — genau das ist "
-              "der Zweck."},
+    {
+        "name": "Dokumentation",
+        "kriterien": (20,),
+        "warum": "Nicht ob viel dokumentiert ist, sondern ob es noch stimmt. "
+        "Geprüft wird, ob es ein Klassendiagramm und Workflow-Bilder "
+        "gibt, ob jeder Kasten darin auf Code zeigt, den es wirklich "
+        "gibt, und ob die schwersten Wege des Projekts überhaupt "
+        "gezeichnet sind. Eine von Hand gemalte Zeichnung fällt hier "
+        "durch, sobald jemand eine Klasse umbenennt — genau das ist "
+        "der Zweck.",
+    },
     # BDD OHNE GHERKIN — EIN EIGENER BEREICH (26.08.2026)
     # ==================================================
     #     „Mach auch einen neuen Abschnitt (meinetwegen BDD) der genau das
@@ -104,20 +125,23 @@ BEREICHE = (
     # dort, wo `bereich_von()` alles Unbekannte hinsortiert. Das passt: Ein
     # Werkzeug ohne Kriterium ist selbst ein Fall für diesen Bereich — es
     # sagt nicht, wozu es da ist.
-    {"name": "Abnahme und Beispiele (BDD)", "kriterien": (19,),
-     "warum": "Eine rote Prüfung soll schon durch ihren Namen sagen, was "
-              "kaputt ist — ohne dass man ihren Code liest. Geprüft wird "
-              "dreierlei: Nennt der Name das erwartete Ergebnis "
-              "(„test_person_bleibt_nach_dem_merge_erhalten\" statt "
-              "„test_merge\")? Behauptet die Prüfung überhaupt etwas, oder "
-              "läuft sie nur durch und meldet immer grün? Und führt jedes "
-              "Werkzeug einen Beispielfall mit, an dem es beweist, dass es "
-              "seinen Befund noch findet?"},
+    {
+        "name": "Abnahme und Beispiele (BDD)",
+        "kriterien": (19,),
+        "warum": "Eine rote Prüfung soll schon durch ihren Namen sagen, was "
+        "kaputt ist — ohne dass man ihren Code liest. Geprüft wird "
+        "dreierlei: Nennt der Name das erwartete Ergebnis "
+        '(„test_person_bleibt_nach_dem_merge_erhalten" statt '
+        '„test_merge")? Behauptet die Prüfung überhaupt etwas, oder '
+        "läuft sie nur durch und meldet immer grün? Und führt jedes "
+        "Werkzeug einen Beispielfall mit, an dem es beweist, dass es "
+        "seinen Befund noch findet?",
+    },
 )
 
 
 class Rangliste:
-    u"""Die Reihenfolge der Werkzeuge - lesen, verschieben, in Bereiche teilen."""
+    """Die Reihenfolge der Werkzeuge - lesen, verschieben, in Bereiche teilen."""
 
     def __init__(self, pfad):
         self.pfad = Path(pfad)
@@ -126,7 +150,7 @@ class Rangliste:
     # ------------------------------------------------------- Grundordnung
     @staticmethod
     def bereich_von(kriterium):
-        u"""Index des Bereichs, in den dieses Kriterium gehört.
+        """Index des Bereichs, in den dieses Kriterium gehört.
 
         Unbekannte und fehlende Kriterien landen im LETZTEN Bereich, nicht im
         ersten: Ein Werkzeug ohne Zuordnung soll nicht ungefragt ganz oben
@@ -139,21 +163,27 @@ class Rangliste:
 
     @classmethod
     def grundordnung(cls, werkzeuge):
-        u"""Die Reihenfolge, bevor jemand etwas verschiebt.
+        """Die Reihenfolge, bevor jemand etwas verschiebt.
 
         Bereich, dann Kriterium, dann Name - der Name zuletzt, damit zwei Läufe
         dieselbe Liste ergeben. Ohne ihn stünde die Tabelle bei jedem Neustart
         anders da, und niemand könnte sagen, ob sich etwas geändert hat.
         """
-        return [w.slug for w in sorted(
-            werkzeuge,
-            key=lambda w: (cls.bereich_von(getattr(w, "kriterium", 0) or 0),
-                           getattr(w, "kriterium", 0) or 99,
-                           getattr(w, "slug", "")))]
+        return [
+            w.slug
+            for w in sorted(
+                werkzeuge,
+                key=lambda w: (
+                    cls.bereich_von(getattr(w, "kriterium", 0) or 0),
+                    getattr(w, "kriterium", 0) or 99,
+                    getattr(w, "slug", ""),
+                ),
+            )
+        ]
 
     # ---------------------------------------------------------------- lesen
     def gespeichert(self):
-        u"""Die abgelegte Reihenfolge als Liste von Kennungen - oder leer."""
+        """Die abgelegte Reihenfolge als Liste von Kennungen - oder leer."""
         if self._zwischen is not None:
             return self._zwischen
         self._zwischen = []
@@ -166,7 +196,7 @@ class Rangliste:
         return self._zwischen
 
     def reihenfolge(self, werkzeuge):
-        u"""Die gültige Reihenfolge: Ablage, ergänzt um alles Neue.
+        """Die gültige Reihenfolge: Ablage, ergänzt um alles Neue.
 
         Drei Fälle, und alle drei kommen vor:
 
@@ -184,18 +214,18 @@ class Rangliste:
         for s in fehlend:
             # An die Stelle setzen, die es in der Grundordnung hat: hinter dem
             # letzten Nachbarn, der schon in der Liste steht.
-            vorher = [x for x in grund[:grund.index(s)] if x in aus]
+            vorher = [x for x in grund[: grund.index(s)] if x in aus]
             pos = aus.index(vorher[-1]) + 1 if vorher else 0
             aus.insert(pos, s)
         return aus
 
     def rang_von(self, slug, werkzeuge):
-        u"""Die angezeigte Nummer (ab 1) - oder 0, wenn unbekannt."""
+        """Die angezeigte Nummer (ab 1) - oder 0, wenn unbekannt."""
         folge = self.reihenfolge(werkzeuge)
         return folge.index(slug) + 1 if slug in folge else 0
 
     def grenzen(self, werkzeuge):
-        u"""Wie viele Ränge jeder Bereich umfasst - aus der GRUNDORDNUNG.
+        """Wie viele Ränge jeder Bereich umfasst - aus der GRUNDORDNUNG.
 
         Die Größe eines Bereichs steht fest: So viele Werkzeuge ordnet ihm die
         Kriterien-Zuordnung im Code zu. Verschieben ändert daran NICHTS - es
@@ -223,7 +253,7 @@ class Rangliste:
         return aus
 
     def abschnitte(self, werkzeuge):
-        u"""Die Liste in Bereiche geteilt, wie sie angezeigt wird.
+        """Die Liste in Bereiche geteilt, wie sie angezeigt wird.
 
         Der Bereich kommt aus der POSITION, nicht aus dem Kriterium: Rang 1 bis
         5 ist „Stille Fehler", egal welches Werkzeug dort steht. Erst dadurch
@@ -235,7 +265,7 @@ class Rangliste:
         da = {w.slug: w for w in werkzeuge}
         folge = self.reihenfolge(werkzeuge)
         aus = [{"bereich": b, "eintraege": []} for b in BEREICHE]
-        for n, (idx, von, bis) in enumerate(self.grenzen(werkzeuge)):
+        for _n, (idx, von, bis) in enumerate(self.grenzen(werkzeuge)):
             for rang in range(von, bis + 1):
                 if rang <= len(folge):
                     w = da.get(folge[rang - 1])
@@ -243,10 +273,9 @@ class Rangliste:
                         aus[idx]["eintraege"].append((rang, w))
         return aus
 
-
     # -------------------------------------------------------------- ändern
     def verschieben(self, slug, ziel, werkzeuge):
-        u"""Einen Eintrag auf Rang ``ziel`` setzen - die anderen rutschen.
+        """Einen Eintrag auf Rang ``ziel`` setzen - die anderen rutschen.
 
         Genau das war die Ansage: „die anderen Nummern ändern sich". Entfernen
         und an der Zielstelle wieder einsetzen; alles dazwischen verschiebt sich
@@ -270,7 +299,7 @@ class Rangliste:
         return self._schreiben(folge, werkzeuge)
 
     def _schreiben(self, folge, werkzeuge):
-        u"""Erst in eine Nebendatei, dann umbenennen.
+        """Erst in eine Nebendatei, dann umbenennen.
 
         Entspricht die Reihenfolge wieder der Grundordnung, wird die Datei
         GELÖSCHT statt geschrieben: Eine Ablage, die nur wiederholt, was der
@@ -284,9 +313,9 @@ class Rangliste:
                 self._zwischen = []
                 return True
             self.pfad.parent.mkdir(parents=True, exist_ok=True)
-            fd, tmp = tempfile.mkstemp(dir=str(self.pfad.parent),
-                                       prefix="." + self.pfad.name + ".",
-                                       suffix=".tmp")
+            fd, tmp = tempfile.mkstemp(
+                dir=str(self.pfad.parent), prefix="." + self.pfad.name + ".", suffix=".tmp"
+            )
             with os.fdopen(fd, "w", encoding="utf-8") as f:
                 json.dump(folge, f, ensure_ascii=False, indent=2)
             os.replace(tmp, str(self.pfad))
@@ -298,15 +327,15 @@ class Rangliste:
 
 
 def rangliste():
-    u"""Die Rangliste dieses Projekts (Pfad aus der Konfiguration)."""
+    """Die Rangliste dieses Projekts (Pfad aus der Konfiguration)."""
     from ..conf import conf
+
     c = conf()
-    return Rangliste(c.get("skills_rang_datei")
-                     or (c["log_verzeichnis"] / "skills_rang.json"))
+    return Rangliste(c.get("skills_rang_datei") or (c["log_verzeichnis"] / "skills_rang.json"))
 
 
 class Lehrenrangliste(Rangliste):
-    u"""Rangliste für die Lehren — mit der ERKLAERTEN Reihenfolge als Grund.
+    """Rangliste für die Lehren — mit der ERKLAERTEN Reihenfolge als Grund.
 
     `Rangliste.grundordnung` sortiert nach Bereich, Kriterium und Kennung.
     Für Werkzeuge stimmt das; für die Lehren nicht: Sie haben kein
@@ -326,7 +355,7 @@ class Lehrenrangliste(Rangliste):
 
 
 def lehrenrangliste():
-    u"""Die Rangliste der Lehren — dritte Ablage neben Pruefern und Fixern.
+    """Die Rangliste der Lehren — dritte Ablage neben Pruefern und Fixern.
 
         „mach die Lehren auch in einer veraenderbaren Tabelle mit
          veraenderbaren Nummern" (26.08.2026)
@@ -335,13 +364,13 @@ def lehrenrangliste():
     Position in SEINER Liste. Drei Listen, drei Ablagen, eine Klasse.
     """
     from ..conf import conf
+
     c = conf()
-    return Lehrenrangliste(c.get("lehren_rang_datei")
-                           or (c["log_verzeichnis"] / "lehren_rang.json"))
+    return Lehrenrangliste(c.get("lehren_rang_datei") or (c["log_verzeichnis"] / "lehren_rang.json"))
 
 
 def fixerrangliste():
-    u"""Die Rangliste der FIX-Werkzeuge — eigene Ablage, gleiche Klasse.
+    """Die Rangliste der FIX-Werkzeuge — eigene Ablage, gleiche Klasse.
 
         „ordne den Bereich Fix-Werkzeuge auch in einer tabelle, mit
          veraenderbaren nummern" (26.08.2026)
@@ -356,6 +385,6 @@ def fixerrangliste():
     Stelle.
     """
     from ..conf import conf
+
     c = conf()
-    return Rangliste(c.get("fixer_rang_datei")
-                     or (c["log_verzeichnis"] / "fixer_rang.json"))
+    return Rangliste(c.get("fixer_rang_datei") or (c["log_verzeichnis"] / "fixer_rang.json"))

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""`netzsperre.Netzsperre` — im Prüflauf geht kein Socket nach draußen.
+"""`netzsperre.Netzsperre` — im Prüflauf geht kein Socket nach draußen.
 
 DER ANLASS (gunSlinger, 18.09.2026)
 ===================================
@@ -19,19 +19,19 @@ niemand lauscht.
 
 Die Sperre ist ein Prozess-Schalter; jeder Fall räumt sie in ``tearDown`` weg.
 """
+
 import asyncio
 import socket
 
 from django.test import SimpleTestCase, override_settings
 
-from djangobase.netzsperre import Netzsperre, NetzImTestVerboten
+from djangobase.netzsperre import NetzImTestVerboten, Netzsperre
 
-DRAUSSEN = ("203.0.113.7", 80)          # TEST-NET-3, nie geroutet
+DRAUSSEN = ("203.0.113.7", 80)  # TEST-NET-3, nie geroutet
 LOKAL = ("127.0.0.1", 9)
 
 
 class _MitSperre(SimpleTestCase):
-
     def setUp(self):
         Netzsperre.aufheben()
         Netzsperre.zuruecksetzen()
@@ -40,7 +40,7 @@ class _MitSperre(SimpleTestCase):
     def tearDown(self):
         Netzsperre.aufheben()
         Netzsperre.zuruecksetzen()
-        self.assertIs(socket.socket.connect, self.vorher, 'Die Sperre muss sich spurlos zurücknehmen')
+        self.assertIs(socket.socket.connect, self.vorher, "Die Sperre muss sich spurlos zurücknehmen")
 
     @staticmethod
     def _verbinden(adresse):
@@ -53,14 +53,13 @@ class _MitSperre(SimpleTestCase):
 
 
 class EinZugriffNachDraussen(_MitSperre):
-
     def test_wird_mit_ziel_und_ausweg_gesperrt(self):
         Netzsperre.einrichten()
         with self.assertRaises(NetzImTestVerboten) as fang:
             self._verbinden(DRAUSSEN)
-        self.assertEqual(fang.exception.ziel, '203.0.113.7:80')
-        self.assertIn('Netzsperre.erlaubt()', str(fang.exception))
-        self.assertEqual(Netzsperre.gesperrt, [('203.0.113.7', 80)])
+        self.assertEqual(fang.exception.ziel, "203.0.113.7:80")
+        self.assertIn("Netzsperre.erlaubt()", str(fang.exception))
+        self.assertEqual(Netzsperre.gesperrt, [("203.0.113.7", 80)])
 
     def test_ist_kein_oserror_damit_httpx_ihn_nicht_wiederholt(self):
         self.assertFalse(issubclass(NetzImTestVerboten, OSError))
@@ -76,20 +75,19 @@ class EinZugriffNachDraussen(_MitSperre):
             asyncio.run(raus())
 
     def test_geht_ohne_sperre_normal_weiter(self):
-        u"""Die Gegenprobe: ohne `einrichten()` greift nichts ein (Timeout, kein Verbot)."""
+        """Die Gegenprobe: ohne `einrichten()` greift nichts ein (Timeout, kein Verbot)."""
         with self.assertRaises(OSError):
             self._verbinden(DRAUSSEN)
 
 
 class WasWeiterGehenMuss(_MitSperre):
-
     def test_loopback_bleibt_erlaubt(self):
-        u"""Dahinter liegt die Datenbank — ein Verbot hier hieße: kein Test läuft mehr."""
+        """Dahinter liegt die Datenbank — ein Verbot hier hieße: kein Test läuft mehr."""
         Netzsperre.einrichten()
-        for adresse in (LOKAL, ('localhost', 9)):
+        for adresse in (LOKAL, ("localhost", 9)):
             with self.assertRaises(OSError, msg=str(adresse)):
-                self._verbinden(adresse)      # abgelehnt vom OS, nicht von der Sperre
-        self.assertTrue(Netzsperre.zulaessig(('::1', 9, 0, 0)))
+                self._verbinden(adresse)  # abgelehnt vom OS, nicht von der Sperre
+        self.assertTrue(Netzsperre.zulaessig(("::1", 9, 0, 0)))
         self.assertEqual(Netzsperre.gesperrt, [])
 
     def test_im_erlaubt_block_darf_dieser_thread_hinaus(self):
@@ -97,25 +95,25 @@ class WasWeiterGehenMuss(_MitSperre):
         self.assertFalse(Netzsperre.zulaessig(DRAUSSEN))
         with Netzsperre.erlaubt():
             self.assertTrue(Netzsperre.zulaessig(DRAUSSEN))
-            with Netzsperre.erlaubt():          # verschachtelt bleibt offen …
+            with Netzsperre.erlaubt():  # verschachtelt bleibt offen …
                 self.assertTrue(Netzsperre.zulaessig(DRAUSSEN))
             self.assertTrue(Netzsperre.zulaessig(DRAUSSEN))
-        self.assertFalse(Netzsperre.zulaessig(DRAUSSEN))   # … und danach wieder zu
+        self.assertFalse(Netzsperre.zulaessig(DRAUSSEN))  # … und danach wieder zu
 
     def test_freigabe_liste_und_einstellung(self):
-        Netzsperre.einrichten(erlaubt=['203.0.113.7'])
+        Netzsperre.einrichten(erlaubt=["203.0.113.7"])
         self.assertTrue(Netzsperre.zulaessig(DRAUSSEN))
-        self.assertFalse(Netzsperre.zulaessig(('203.0.113.8', 80)))
+        self.assertFalse(Netzsperre.zulaessig(("203.0.113.8", 80)))
 
-    @override_settings(DJANGOBASE_NETZ_ERLAUBT=['203.0.113.9'])
+    @override_settings(DJANGOBASE_NETZ_ERLAUBT=["203.0.113.9"])
     def test_freigabe_aus_den_settings(self):
         Netzsperre.einrichten()
-        self.assertTrue(Netzsperre.zulaessig(('203.0.113.9', 443)))
+        self.assertTrue(Netzsperre.zulaessig(("203.0.113.9", 443)))
 
     def test_unix_und_sonderadressen_bleiben_unberuehrt(self):
         Netzsperre.einrichten()
-        self.assertTrue(Netzsperre.zulaessig('/tmp/socket'))
-        self.assertTrue(Netzsperre.zulaessig(('', 80)))
+        self.assertTrue(Netzsperre.zulaessig("/tmp/socket"))
+        self.assertTrue(Netzsperre.zulaessig(("", 80)))
 
     def test_mehrfach_einrichten_ist_harmlos(self):
         Netzsperre.einrichten()

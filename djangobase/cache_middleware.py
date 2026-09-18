@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Keine gecachten Seiten — und trotzdem gecachte Statik.
+"""Keine gecachten Seiten — und trotzdem gecachte Statik.
 
 DER AUFTRAG (Edgar, 21.08.2026)
 ==============================
@@ -85,6 +85,7 @@ AUSNAHMEN
 bewusst cachen lässt (öffentliche Landingpage), nimmt ihren Pfad über
 ``DJANGOBASE_CACHE_ERLAUBT`` aus.
 """
+
 from django.conf import settings
 
 from .middleware_basis import ZweiwegMiddleware
@@ -101,7 +102,7 @@ NACHFRAGEN = "no-cache"
 
 
 class CacheHeaderMiddleware(ZweiwegMiddleware):
-    u"""Setzt die Cache-Header — je nach Art der Antwort verschieden.
+    """Setzt die Cache-Header — je nach Art der Antwort verschieden.
 
     BEIDSEITIG SEIT DEM 11.09.2026
     ==============================
@@ -142,11 +143,10 @@ class CacheHeaderMiddleware(ZweiwegMiddleware):
         if pfad.startswith(statik):
             # NUR MIT KENNUNG (das ist der Punkt): Ohne ``?v=`` wäre ein Jahr
             # Cache eine Falle — eine geänderte Datei käme nie mehr an.
-            antwort["Cache-Control"] = (STATIK if request.GET.get("v")
-                                        else NACHFRAGEN)
+            antwort["Cache-Control"] = STATIK if request.GET.get("v") else NACHFRAGEN
             return
 
         if "text/html" in typ:
             antwort["Cache-Control"] = SEITE
-            antwort["Pragma"] = "no-cache"          # HTTP/1.0-Zwischenspeicher
+            antwort["Pragma"] = "no-cache"  # HTTP/1.0-Zwischenspeicher
             antwort["Expires"] = "0"

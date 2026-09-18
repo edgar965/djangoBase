@@ -18,6 +18,7 @@ Auslastungs-Moduls dann nur noch von djangoBase"). Vorher lag es in
 shortlongx/dashboard - dort war es an EIN Projekt gebunden, obwohl jedes
 Django-Projekt dieselbe Frage hat: rechnet die Maschine gerade, oder haengt sie?
 """
+
 import subprocess
 import sys
 import time
@@ -101,7 +102,7 @@ class SystemStats:
         reihe = cls._verlauf.setdefault(key, [])
         reihe.append(w)
         if len(reihe) > cls.FENSTER:
-            del reihe[:-cls.FENSTER]
+            del reihe[: -cls.FENSTER]
         return round(sum(reihe) / len(reihe), 1)
 
     @staticmethod
@@ -109,19 +110,28 @@ class SystemStats:
         """GPU-Werte via nvidia-smi - None, wenn keine NVIDIA-Karte da ist."""
         try:
             r = subprocess.run(
-                ["nvidia-smi",
-                 "--query-gpu=name,utilization.gpu,memory.used,memory.total,temperature.gpu",
-                 "--format=csv,noheader,nounits"],
-                capture_output=True, text=True, timeout=2, **ohne_fenster(),
+                [
+                    "nvidia-smi",
+                    "--query-gpu=name,utilization.gpu,memory.used,memory.total,temperature.gpu",
+                    "--format=csv,noheader,nounits",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=2,
+                **ohne_fenster(),
             )
             if r.returncode != 0:
                 return None
             teile = [t.strip() for t in (r.stdout or "").strip().splitlines()[0].split(",")]
             if len(teile) < 5:
                 return None
-            return {"name": teile[0], "util": int(teile[1]),
-                    "mem_used": int(teile[2]), "mem_total": int(teile[3]),
-                    "temp": int(teile[4])}
+            return {
+                "name": teile[0],
+                "util": int(teile[1]),
+                "mem_used": int(teile[2]),
+                "mem_total": int(teile[3]),
+                "temp": int(teile[4]),
+            }
         except (subprocess.TimeoutExpired, OSError, ValueError, IndexError):
             return None
 
@@ -137,16 +147,25 @@ class SystemStats:
         if _DRIVE_MAP is not None:
             return _DRIVE_MAP
         import os
+
         _DRIVE_MAP = {}
         if os.name != "nt":
             return _DRIVE_MAP
         try:
             r = subprocess.run(
-                ["powershell", "-NoProfile", "-NonInteractive", "-Command",
-                 "Get-Partition | Where-Object DriveLetter | "
-                 "Select-Object DriveLetter,DiskNumber | "
-                 "ConvertTo-Csv -NoTypeInformation"],
-                capture_output=True, text=True, timeout=8, **ohne_fenster(),
+                [
+                    "powershell",
+                    "-NoProfile",
+                    "-NonInteractive",
+                    "-Command",
+                    "Get-Partition | Where-Object DriveLetter | "
+                    "Select-Object DriveLetter,DiskNumber | "
+                    "ConvertTo-Csv -NoTypeInformation",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=8,
+                **ohne_fenster(),
             )
             if r.returncode != 0:
                 return _DRIVE_MAP
@@ -161,7 +180,7 @@ class SystemStats:
                 je_platte.setdefault(int(teile[1]), []).append(teile[0].upper())
             for nummer, buchstaben in je_platte.items():
                 _DRIVE_MAP[nummer] = sorted(buchstaben)[0] + ":"
-        except Exception:                                        # noqa: BLE001
+        except Exception:  # noqa: BLE001
             pass
         return _DRIVE_MAP
 
@@ -183,12 +202,13 @@ class SystemStats:
         nicht. Das ist die Unterscheidung, die hier gebraucht wird. Auf Windows
         (kein ``/sys``) bleibt alles wie bisher."""
         import os
+
         if os.name == "nt":
             return True
         if name.startswith(SystemStats.KEINE_PLATTE):
             return False
         if not os.path.isdir("/sys/block"):
-            return True          # kein sysfs (z.B. macOS): lieber alles als nichts
+            return True  # kein sysfs (z.B. macOS): lieber alles als nichts
         return os.path.isdir("/sys/block/%s" % name)
 
     @staticmethod
@@ -201,11 +221,11 @@ class SystemStats:
         Reihenfolge stabil (nach Namen sortiert)."""
         try:
             import psutil
+
             counters = psutil.disk_io_counters(perdisk=True) or {}
-        except Exception:                                        # noqa: BLE001
+        except Exception:  # noqa: BLE001
             return []
-        counters = {n: c for n, c in counters.items()
-                    if SystemStats._zaehlt_als_platte(n)}
+        counters = {n: c for n, c in counters.items() if SystemStats._zaehlt_als_platte(n)}
         vor = _CACHE.get("disk_vor") or {}
         vor_ts = vor.get("ts")
         vor_c = vor.get("counters") or {}
@@ -215,19 +235,15 @@ class SystemStats:
             read_mbps = write_mbps = 0.0
             if vor_ts and name in vor_c and jetzt > vor_ts:
                 dt = jetzt - vor_ts
-                read_mbps = max(0.0, round(
-                    (c.read_bytes - vor_c[name][0]) / 1e6 / dt, 1))
-                write_mbps = max(0.0, round(
-                    (c.write_bytes - vor_c[name][1]) / 1e6 / dt, 1))
+                read_mbps = max(0.0, round((c.read_bytes - vor_c[name][0]) / 1e6 / dt, 1))
+                write_mbps = max(0.0, round((c.write_bytes - vor_c[name][1]) / 1e6 / dt, 1))
             letter = ""
             if name.startswith("PhysicalDrive") and name[13:].isdigit():
                 letter = letters.get(int(name[13:]), "")
-            aus.append({"name": name, "letter": letter,
-                        "read_mbps": read_mbps, "write_mbps": write_mbps})
+            aus.append({"name": name, "letter": letter, "read_mbps": read_mbps, "write_mbps": write_mbps})
         _CACHE["disk_vor"] = {
             "ts": jetzt,
-            "counters": {n: (c.read_bytes, c.write_bytes)
-                         for n, c in counters.items()},
+            "counters": {n: (c.read_bytes, c.write_bytes) for n, c in counters.items()},
         }
         return aus
 
@@ -248,14 +264,21 @@ class SystemStats:
         """Eine echte Messung (kostet ~0,22 s) - läuft im Hintergrund-Thread."""
         jetzt = time.time()
         _gpu = cls.gpu()
-        if _gpu:                                   # Momentwert -> Fenster-Mittel
+        if _gpu:  # Momentwert -> Fenster-Mittel
             _gpu["util_roh"] = _gpu["util"]
             _gpu["util"] = int(round(cls.glaetten("gpu", _gpu["util"])))
-        daten = {"gpu": _gpu, "cpu_percent": None, "ram_percent": None,
-                 "kerne": None, "net_recv_mbps": 0.0, "net_sent_mbps": 0.0,
-                 "disks": []}
+        daten = {
+            "gpu": _gpu,
+            "cpu_percent": None,
+            "ram_percent": None,
+            "kerne": None,
+            "net_recv_mbps": 0.0,
+            "net_sent_mbps": 0.0,
+            "disks": [],
+        }
         try:
             import psutil
+
             # interval=0.15 statt 0.3 (CamTrack): die Leiste laeuft WAEHREND einer
             # Optimierung mit - jede Zehntelsekunde Blockade geht dort ab.
             daten["cpu_percent"] = cls.glaetten("cpu", psutil.cpu_percent(interval=0.15))

@@ -11,6 +11,7 @@ Zwei Sorten Gegenueber, EINE Schnittstelle:
                             und Befunde ausgibt (WerkzeugPartner) — etwa die
                             CodeRabbit-CLI
 """
+
 from .befund import Befund
 from .befund_lager import BefundLager
 from .faden import ReviewFaden
@@ -19,5 +20,16 @@ from .partner import ReviewFehler, ReviewPartner
 from .register import REGISTER, LaufRegister
 from .werkzeug_partner import WerkzeugPartner
 
-__all__ = ["Befund", "BefundLager", "ReviewFaden", "ReviewLauf", "ReviewPartner", "ReviewFehler",
-           "WerkzeugPartner", "LaufRegister", "REGISTER", "ROLLE", "NACHFASSEN"]
+__all__ = [
+    "Befund",
+    "BefundLager",
+    "ReviewFaden",
+    "ReviewLauf",
+    "ReviewPartner",
+    "ReviewFehler",
+    "WerkzeugPartner",
+    "LaufRegister",
+    "REGISTER",
+    "ROLLE",
+    "NACHFASSEN",
+]

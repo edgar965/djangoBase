@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Deutsche Zahlenformatierung als Template-Filter.
+"""Deutsche Zahlenformatierung als Template-Filter.
 
 Unabhaengig von Django-Locale-Settings, damit die Darstellung reproduzierbar ist:
 Tausender-Punkt, Dezimal-Komma. Der numerische Rohwert bleibt in der Vorlage fuer
@@ -14,6 +14,7 @@ seither auf diese Fassung durch.
     {{ wert|de:2 }}        1.234.567,89
     {{ wert|de_signed }}   +1.234   (Vorzeichen nur bei echt positivem Wert)
 """
+
 from django import template
 
 register = template.Library()
@@ -35,16 +36,16 @@ def de(value, decimals=0):
         dec = int(decimals)
     except (TypeError, ValueError):
         dec = 0
-    if round(n, dec) == 0:                   # "-0" vermeiden (z.B. -0,3 gerundet auf 0)
+    if round(n, dec) == 0:  # "-0" vermeiden (z.B. -0,3 gerundet auf 0)
         n = 0.0
-    s = f"{n:,.{dec}f}"                      # US-Format: 1,234,567.89
+    s = f"{n:,.{dec}f}"  # US-Format: 1,234,567.89
     # US -> DE: Trennzeichen tauschen ueber Platzhalter
     return s.replace(",", "\x00").replace(".", ",").replace("\x00", ".")
 
 
 @register.filter
 def sortwert(value):
-    u"""'20.9B' -> 20.9, '137M' -> 0.001*137; nicht deutbar -> leer.
+    """'20.9B' -> 20.9, '137M' -> 0.001*137; nicht deutbar -> leer.
 
     FUER ``data-sort``, NICHT fuer die Anzeige. Eine Zelle darf ihren Text
     frei waehlen ("137M", "20.9B"), aber der Sortierschluessel muss eine
@@ -65,7 +66,8 @@ def sortwert(value):
     liest deutsch: Komma trennt die Dezimalen, JEDER Punkt gilt als
     Tausenderzeichen und wird geworfen. Ein ``repr()`` mit "0.137" wuerde
     dort zu 137 - genau der Fehler, der hier behoben wird."""
-    from djangobase.ki.modellname import Modellname   # spaet: ki/ kennt Vorlagen nicht
+    from djangobase.ki.modellname import Modellname  # spaet: ki/ kennt Vorlagen nicht
+
     zahl = Modellname.mrd(value)
     if zahl is None:
         return ""
@@ -77,13 +79,12 @@ def sortwert(value):
 
 #: Ab hier wird die nächstgrössere Einheit benutzt. Nicht 1024: Bei 1000 B
 #: steht „0,98 kB", und das liest sich wie ein Rundungsfehler.
-_STUFEN = ((1024.0 ** 3, u'GB', 2), (1024.0 ** 2, u'MB', 2),
-           (1024.0, u'kB', 1))
+_STUFEN = ((1024.0**3, "GB", 2), (1024.0**2, "MB", 2), (1024.0, "kB", 1))
 
 
 @register.filter
 def groesse(value):
-    u"""Eine Dateigrösse in Bytes mit passender Einheit: ``{{ b|groesse }}``.
+    """Eine Dateigrösse in Bytes mit passender Einheit: ``{{ b|groesse }}``.
 
     WARUM NICHT IMMER MB (Edgar, 02.09.2026)
     ========================================
@@ -107,8 +108,8 @@ def groesse(value):
         return DASH
     for schwelle, einheit, stellen in _STUFEN:
         if n >= schwelle:
-            return u'%s %s' % (de(n / schwelle, stellen), einheit)
-    return u'%s B' % de(n, 0)
+            return "%s %s" % (de(n / schwelle, stellen), einheit)
+    return "%s B" % de(n, 0)
 
 
 @register.filter
@@ -124,16 +125,17 @@ def de_signed(value, decimals=0):
     except (TypeError, ValueError):
         dec = 0
     s = de(value, decimals)
-    return f"+{s}" if round(n, dec) > 0 else s   # + nur bei echt positivem (gerundetem) Wert
+    return f"+{s}" if round(n, dec) > 0 else s  # + nur bei echt positivem (gerundetem) Wert
 
 
 @register.filter
 def sortzahl(value):
-    u"""Eine Zahl fuer ``data-sort`` — mit Komma, wie die Sortierung liest.
+    """Eine Zahl fuer ``data-sort`` — mit Komma, wie die Sortierung liest.
 
     Die Regel steht in :class:`djangobase.sortierschluessel.Sortierschluessel`;
     ``testtabelle`` baut seine Attribute aus derselben Quelle. Zwei Kopien
     derselben Regel laufen auseinander, sobald eine angefasst wird.
     """
     from djangobase.sortierschluessel import Sortierschluessel
+
     return Sortierschluessel.aus(value)

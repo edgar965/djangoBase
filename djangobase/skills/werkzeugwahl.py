@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Welches Werkzeug behebt DIESEN Befund? - die Antwort am Fehlschlag.
+"""Welches Werkzeug behebt DIESEN Befund? - die Antwort am Fehlschlag.
 
 DER AUFTRAG (25.08.2026, Edgar)
 ===============================
@@ -47,21 +47,46 @@ Verzeichnis, das man aufschlagen KANN, wird nicht aufgeschlagen." Eine Liste,
 die bei jedem Lauf vollständig dasteht, wird nach dem dritten Mal überscrollt.
 Gelesen wird der rote Test.
 """
+
 import re
 
 __all__ = ["Werkzeugwahl"]
 
 #: Wörter, die in fast jedem Namen vorkommen und deshalb nichts unterscheiden.
 #: Ohne sie träfe „test_datei_groesse" auf jedes Werkzeug mit „datei" im Namen.
-FUELLWOERTER = frozenset((
-    "test", "tests", "pruefung", "pruefen", "prueft", "check", "run",
-    "djangobase", "grundtest", "konform", "js", "py", "der", "die", "das",
-    "und", "oder", "ein", "eine", "im", "in", "auf", "mit", "von", "fuer",
-))
+FUELLWOERTER = frozenset(
+    (
+        "test",
+        "tests",
+        "pruefung",
+        "pruefen",
+        "prueft",
+        "check",
+        "run",
+        "djangobase",
+        "grundtest",
+        "konform",
+        "js",
+        "py",
+        "der",
+        "die",
+        "das",
+        "und",
+        "oder",
+        "ein",
+        "eine",
+        "im",
+        "in",
+        "auf",
+        "mit",
+        "von",
+        "fuer",
+    )
+)
 
 
 class Werkzeugwahl:
-    u"""Sucht zu einem Befund die Werkzeuge, die ihn beheben."""
+    """Sucht zu einem Befund die Werkzeuge, die ihn beheben."""
 
     #: Ab so vielen gemeinsamen Wortteilen gilt ein Namenstreffer als Vermutung
     #: wert. EINS reicht nicht: „tote-importe" und „test_importe_sortiert"
@@ -69,7 +94,7 @@ class Werkzeugwahl:
     NAMENSSCHWELLE = 2
 
     def __init__(self, werkzeuge=None, fixer=None):
-        u"""Ohne Argumente holt sie sich beide Listen selbst.
+        """Ohne Argumente holt sie sich beide Listen selbst.
 
         Die Übergabe gibt es für Prüfungen dieser Klasse: Sie sollen gegen
         erfundene Werkzeuge laufen können, nicht gegen den echten Bestand -
@@ -77,7 +102,8 @@ class Werkzeugwahl:
         Bestand statt die Logik.
         """
         if werkzeuge is None or fixer is None:
-            from . import werkzeuge as _w, fixer as _f
+            from . import fixer as _f, werkzeuge as _w
+
             werkzeuge = list(_w()) if werkzeuge is None else werkzeuge
             fixer = list(_f()) if fixer is None else fixer
         self.alle = list(werkzeuge) + list(fixer)
@@ -85,7 +111,7 @@ class Werkzeugwahl:
     # ------------------------------------------------------------- Zerlegung
     @staticmethod
     def _teile(name):
-        u"""Ein Name in seine bedeutungstragenden Wortteile.
+        """Ein Name in seine bedeutungstragenden Wortteile.
 
         ``test_tote_importe`` und ``fix-importe`` sollen sich treffen, also
         wird an allem getrennt, was kein Buchstabe ist, und die Füllwörter
@@ -96,7 +122,7 @@ class Werkzeugwahl:
 
     # ---------------------------------------------------------------- Ebenen
     def _genannt(self, kennung):
-        u"""Ebene 1: Das Werkzeug nennt diesen Befund ausdrücklich."""
+        """Ebene 1: Das Werkzeug nennt diesen Befund ausdrücklich."""
         k = (kennung or "").lower()
         treffer = []
         for w in self.alle:
@@ -106,7 +132,7 @@ class Werkzeugwahl:
         return treffer
 
     def _slug_steckt_drin(self, kennung):
-        u"""Ebene 1b: Der Name enthält den Slug des Werkzeugs vollständig.
+        """Ebene 1b: Der Name enthält den Slug des Werkzeugs vollständig.
 
         ``test_tote_importe`` enthält ``tote-importe`` - nur mit Unterstrich
         statt Bindestrich. Das ist kein Raten mehr, sondern ein Treffer, und er
@@ -128,13 +154,13 @@ class Werkzeugwahl:
         return treffer
 
     def _ueber_kriterium(self, nummer):
-        u"""Ebene 2: dieselbe Nummer des Auftrags-Kriteriums."""
+        """Ebene 2: dieselbe Nummer des Auftrags-Kriteriums."""
         if not nummer:
             return []
         return [w for w in self.alle if getattr(w, "kriterium", 0) == nummer]
 
     def _ueber_namen(self, kennung, titel=""):
-        u"""Ebene 3: Namensähnlichkeit - ausdrücklich eine Vermutung.
+        """Ebene 3: Namensähnlichkeit - ausdrücklich eine Vermutung.
 
         Sortiert nach Anzahl gemeinsamer Wortteile, damit der plausibelste
         Treffer oben steht. Bei Gleichstand entscheidet der Name, damit die
@@ -155,7 +181,7 @@ class Werkzeugwahl:
 
     # ---------------------------------------------------------------- Antwort
     def fuer(self, kennung, kriterium=0, titel="", grenze=4):
-        u"""``{"sicher": [...], "vermutlich": [...]}`` - beides Werkzeug-Objekte.
+        """``{"sicher": [...], "vermutlich": [...]}`` - beides Werkzeug-Objekte.
 
         ``sicher`` sind Ebene 1 und 2, ``vermutlich`` ist Ebene 3. Die Trennung
         ist wichtig: Eine geratene Empfehlung, die wie eine gesicherte aussieht,
@@ -181,19 +207,18 @@ class Werkzeugwahl:
         # empfohlen wurden vier Nachbarn. Eine Empfehlungsliste, die das
         # Naheliegende weglaesst, ist schlimmer als keine.
         nah = {id(w): n for n, w in enumerate(self._ueber_namen(kennung, titel))}
-        geschwister = sorted(self._ueber_kriterium(kriterium),
-                             key=lambda w: (nah.get(id(w), 9999),
-                                            getattr(w, "slug", "")))
+        geschwister = sorted(
+            self._ueber_kriterium(kriterium), key=lambda w: (nah.get(id(w), 9999), getattr(w, "slug", ""))
+        )
         for w in geschwister:
             if id(w) not in gesehen:
                 sicher.append(w)
                 gesehen.add(id(w))
-        vermutlich = [w for w in self._ueber_namen(kennung, titel)
-                      if id(w) not in gesehen]
+        vermutlich = [w for w in self._ueber_namen(kennung, titel) if id(w) not in gesehen]
         return {"sicher": sicher[:grenze], "vermutlich": vermutlich[:grenze]}
 
     def zeilen(self, kennung, kriterium=0, titel="", grenze=4):
-        u"""Dasselbe als fertige Textzeilen für einen Testbericht.
+        """Dasselbe als fertige Textzeilen für einen Testbericht.
 
         Leere Liste, wenn nichts gefunden wurde - dann hängt der Aufrufer auch
         nichts an. Eine Überschrift ohne Inhalt („Passende Werkzeuge: keine")
@@ -214,7 +239,7 @@ class Werkzeugwahl:
 
     @staticmethod
     def _zeile(w):
-        u"""Ein Werkzeug in einer Zeile: Kennung, was es tut, wo man es startet.
+        """Ein Werkzeug in einer Zeile: Kennung, was es tut, wo man es startet.
 
         ``tut`` ist der Text der Fixer, ``zweck`` der der Prüfwerkzeuge - beide
         Namen abfragen, statt einen davon zu erfinden. (Beim Bau hatte ich nur
@@ -229,8 +254,7 @@ class Werkzeugwahl:
         # wer den falschen von beiden startet, bekommt nicht, was er wollte.
         # Erkannt am ``tut``: nur Fixer fuehren es, Pruefwerkzeuge ``zweck``.
         art = "behebt" if getattr(w, "tut", "") else "findet"
-        text = (getattr(w, "tut", "") or getattr(w, "zweck", "") or
-                getattr(w, "titel", "") or "")
+        text = getattr(w, "tut", "") or getattr(w, "zweck", "") or getattr(w, "titel", "") or ""
         zeile = "  %-20s [%s] %s" % (slug, art, text.strip()[:64])
         return zeile + "\n" + " " * 24 + "/hilfe/skills/?run=" + slug
 
@@ -239,7 +263,7 @@ class Werkzeugwahl:
     MUSTER = re.compile(r"^(?:FAIL|ERROR):\s+(\w+)", re.M)
 
     def zu_ausgabe(self, text, grenze=3):
-        u"""Empfehlungen zu den Fehlschlägen einer Testlauf-Ausgabe.
+        """Empfehlungen zu den Fehlschlägen einer Testlauf-Ausgabe.
 
         Liest die ``FAIL:``- und ``ERROR:``-Zeilen, sucht zu jedem Namen die
         passenden Werkzeuge und gibt einen fertigen Textblock zurück - oder
@@ -269,5 +293,4 @@ class Werkzeugwahl:
         if not bloecke:
             return ""
         strich = "=" * 70
-        return ("\n" + strich + "\nWERKZEUGE, DIE DAS BEHEBEN\n" + strich
-                + "\n" + "\n\n".join(bloecke) + "\n")
+        return "\n" + strich + "\nWERKZEUGE, DIE DAS BEHEBEN\n" + strich + "\n" + "\n\n".join(bloecke) + "\n"

@@ -30,6 +30,7 @@ Der Schluessel steht in EINER Datei ausserhalb des Projekts (Vorgabe
 ``~/.sparring_key``) — nie im Repository, nie in einer Kommandozeile (die landet
 in jedem Protokoll), nie in einer Fehlermeldung.
 """
+
 import json
 import logging
 import urllib.error
@@ -48,10 +49,10 @@ class ReviewFehler(RuntimeError):
 class ReviewPartner:
     """Ein Gespraechspartner: Modell + Verlauf + Zaehlwerk.
 
-        p = ReviewPartner(slug="nemotron", name="Nemotron", ziel="online",
-                          modell="nvidia/nemotron-3-ultra-550b-a55b", rolle=ROLLE)
-        antwort = p.fragen("Warum haengt das hier?")
-        p.verlauf   # [{'role': ..., 'content': ...}, ...]
+    p = ReviewPartner(slug="nemotron", name="Nemotron", ziel="online",
+                      modell="nvidia/nemotron-3-ultra-550b-a55b", rolle=ROLLE)
+    antwort = p.fragen("Warum haengt das hier?")
+    p.verlauf   # [{'role': ..., 'content': ...}, ...]
     """
 
     #: Kontextfenster fuer Ollama. Ein Code-Paket sind schnell 8.000 Token, die
@@ -68,12 +69,23 @@ class ReviewPartner:
     #: geaendert. Wer es anders will, uebergibt ``parameter``.
     TEMPERATUR = 0.5
 
-    def __init__(self, slug, name, ziel, modell, rolle, *, url=None,
-                 schluessel_datei=None, timeout=1800, num_ctx=None,
-                 parameter=None):
+    def __init__(
+        self,
+        slug,
+        name,
+        ziel,
+        modell,
+        rolle,
+        *,
+        url=None,
+        schluessel_datei=None,
+        timeout=1800,
+        num_ctx=None,
+        parameter=None,
+    ):
         self.slug = slug
         self.name = name or slug
-        self.ziel = ziel                      # "lokal" | "online"
+        self.ziel = ziel  # "lokal" | "online"
         self.modell = modell
         self.url = url
         self.schluessel_datei = schluessel_datei
@@ -101,15 +113,18 @@ class ReviewPartner:
         # bekommt deshalb eine Meldung; das Feld bleibt fuer Aufrufer nutzbar,
         # die ihren Verlauf selbst bauen (etwa werkzeug/gpu_nutzen.py).
         if self.parameter.system:
-            logger.warning("ReviewPartner(%s): parameter.system wird ignoriert - "
-                           "der System-Prompt dieser Klasse ist die 'rolle'.", slug)
+            logger.warning(
+                "ReviewPartner(%s): parameter.system wird ignoriert - "
+                "der System-Prompt dieser Klasse ist die 'rolle'.",
+                slug,
+            )
         self.verlauf = [{"role": "system", "content": rolle}]
         #: Je Runde: {"prompt": n, "antwort": n, "sekunden": s}
         self.verbrauch = []
 
     @classmethod
     def _aus_konfiguration(cls, modell):
-        u"""Die Einstellung fuer DIESES Modell aus ``DJANGOBASE["ki_parameter"]``.
+        """Die Einstellung fuer DIESES Modell aus ``DJANGOBASE["ki_parameter"]``.
 
         Aufbau (25.08.2026, Auftrag „Einstellungen pro KI"):
 
@@ -136,15 +151,15 @@ class ReviewPartner:
         grund = KiParameter(temperature=cls.TEMPERATUR)
         try:
             from ..conf import conf
+
             tabelle = conf().get("ki_parameter") or {}
-        except Exception:                                       # noqa: BLE001
+        except Exception:  # noqa: BLE001
             return grund
         if not tabelle:
             return grund
         satz = KiParameter.fuer_modell(modell, tabelle, grund=grund)
         if satz is grund and tabelle.get("*"):
-            satz = grund.mit(**{k: v for k, v in dict(tabelle["*"]).items()
-                                if k in KiParameter._bekannt()})
+            satz = grund.mit(**{k: v for k, v in dict(tabelle["*"]).items() if k in KiParameter._bekannt()})
         return satz
 
     # ------------------------------------------------------------------ fragen
@@ -153,9 +168,9 @@ class ReviewPartner:
         """Eine Runde: Frage anhaengen, Antwort holen, Verlauf fortschreiben."""
         self.verlauf.append({"role": "user", "content": text})
         try:
-            antwort, zahlen = (self._lokal() if self.ziel == "lokal" else self._online())
+            antwort, zahlen = self._lokal() if self.ziel == "lokal" else self._online()
         except urllib.error.URLError as e:
-            self.verlauf.pop()                # Frage nicht im Verlauf lassen
+            self.verlauf.pop()  # Frage nicht im Verlauf lassen
             raise ReviewFehler(
                 "Verbindung zu %s fehlgeschlagen: %s%s"
                 % (self.ziel, e, "  (läuft `ollama serve`?)" if self.ziel == "lokal" else "")
@@ -174,7 +189,7 @@ class ReviewPartner:
             "model": self.modell,
             "messages": self.verlauf,
             "stream": False,
-            "think": False,             # spart Zeit und haelt den Antworttext sauber
+            "think": False,  # spart Zeit und haelt den Antworttext sauber
             # Frueher fest ``{"num_ctx": ..., "temperature": 0.5}``. Jetzt aus
             # dem Parametersatz - leere Felder werden NICHT gesendet, dann
             # gilt, was das Modell selbst mitbringt (siehe ki/parameter.py).
@@ -182,9 +197,11 @@ class ReviewPartner:
         }
         a = self._senden(self.url or "http://127.0.0.1:11434/api/chat", daten)
         text = (a.get("message") or {}).get("content", "")
-        return text, {"prompt": a.get("prompt_eval_count"),
-                      "antwort": a.get("eval_count"),
-                      "fenster": self.num_ctx}
+        return text, {
+            "prompt": a.get("prompt_eval_count"),
+            "antwort": a.get("eval_count"),
+            "fenster": self.num_ctx,
+        }
 
     # ------------------------------------------------------------------ online
 
@@ -195,26 +212,27 @@ class ReviewPartner:
         # also nachweislich anders eingestellt als lokal, ohne dass das
         # irgendwo stand. ``als_openai`` laesst weg, was das Schema nicht
         # kennt (top_k, min_p, repeat_penalty), statt Wirkung vorzutaeuschen.
-        a = self._senden(self.url or "https://openrouter.ai/api/v1/chat/completions",
-                         dict({"model": self.modell, "messages": self.verlauf},
-                              **self.parameter.als_openai()), kopf)
+        a = self._senden(
+            self.url or "https://openrouter.ai/api/v1/chat/completions",
+            dict({"model": self.modell, "messages": self.verlauf}, **self.parameter.als_openai()),
+            kopf,
+        )
         if "choices" not in a:
             fehler = a.get("error") or a
-            raise ReviewFehler("Dienst meldet: %s"
-                               % json.dumps(fehler, ensure_ascii=False)[:300])
+            raise ReviewFehler("Dienst meldet: %s" % json.dumps(fehler, ensure_ascii=False)[:300])
         nutzung = a.get("usage") or {}
         return a["choices"][0]["message"]["content"], {
             "prompt": nutzung.get("prompt_tokens"),
             "antwort": nutzung.get("completion_tokens"),
-            "fenster": None}
+            "fenster": None,
+        }
 
     # ------------------------------------------------------------------ Technik
 
     def _senden(self, url, daten, kopf=None):
         kopfzeilen = {"Content-Type": "application/json"}
         kopfzeilen.update(kopf or {})
-        anfrage = urllib.request.Request(
-            url, data=json.dumps(daten).encode("utf-8"), headers=kopfzeilen)
+        anfrage = urllib.request.Request(url, data=json.dumps(daten).encode("utf-8"), headers=kopfzeilen)
         with urllib.request.urlopen(anfrage, timeout=self.timeout) as r:
             return json.loads(r.read().decode("utf-8"))
 
@@ -228,5 +246,6 @@ class ReviewPartner:
             raise ReviewFehler(
                 "Kein API-Schlüssel. Er gehört in genau eine Datei außerhalb des "
                 "Projekts: %s (eine Zeile). Über DJANGOBASE['review_schlüssel_datei'] "
-                "aenderbar." % pfad)
+                "aenderbar." % pfad
+            )
         return wert

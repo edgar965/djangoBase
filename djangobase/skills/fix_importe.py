@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""ImportFixer - tote Importe entfernen, auf der skills2-Fixer-Basis.
+"""ImportFixer - tote Importe entfernen, auf der skills2-Fixer-Basis.
 
 WARUM AUF ``skills2.fixer.Fixer``
 ================================
@@ -19,6 +19,7 @@ VIER SICHERUNGEN, DAMIT NUR EINDEUTIG TOTES FAELLT
   Teil-Entfernen aus ``import os, sys`` ist zu fehleranfaellig.
 * ``__all__``-Eintraege und ``"app.Modell"``-Strings zaehlen als Verwendung.
 """
+
 import ast
 import re
 
@@ -28,9 +29,25 @@ from .fixer import Aenderung, Fixer, Vorschau
 __all__ = ["ImportFixer"]
 
 #: Verzeichnisse, die nie eigener Projektcode sind (auch Fremd-/Datenordner).
-RAUS = ("__pycache__", "migrations", "node_modules", "venv", "pythonVENV",
-        ".venv", "site-packages", "staticfiles", ".git", "sicherung", "backup",
-        "archiv", "dist", "build", "vendor", "models", "unsloth_compiled_cache")
+RAUS = (
+    "__pycache__",
+    "migrations",
+    "node_modules",
+    "venv",
+    "pythonVENV",
+    ".venv",
+    "site-packages",
+    "staticfiles",
+    ".git",
+    "sicherung",
+    "backup",
+    "archiv",
+    "dist",
+    "build",
+    "vendor",
+    "models",
+    "unsloth_compiled_cache",
+)
 
 
 class ImportFixer(Fixer):
@@ -49,7 +66,7 @@ class ImportFixer(Fixer):
     #: Werkzeugs, das ihn meldet. Die Oberflaeche zeigt daraus die
     #: NUMMER der Pruefung in der Tabelle statt einer
     #: Kriteriums-Nummer, die dort nirgends steht.
-    behebt = 'tote-importe'
+    behebt = "tote-importe"
     titel = "Tote Importe entfernen"
     tut = "Entfernt importierte Namen, die in der Datei nirgends vorkommen."
 
@@ -57,23 +74,32 @@ class ImportFixer(Fixer):
     #: Ein Name, den es als Python-Bezeichner nicht geben kann - so kann er
     #: nie mit einem echten Import kollidieren.
     STERN = "*stern*"
-    warum = ("Tote Importe kosten Ladezeit, halten Abhängigkeiten kuenstlich am "
-             "Leben und verwischen, welches Modul wirklich wovon abhaengt.")
-    grenzen = ("Seiteneffekt-Importe (signals, admin) und __init__.py bleiben. "
-               "Mehrfach-Importe (import os, sys) bleiben, wenn nur einer tot ist.")
+    warum = (
+        "Tote Importe kosten Ladezeit, halten Abhängigkeiten kuenstlich am "
+        "Leben und verwischen, welches Modul wirklich wovon abhaengt."
+    )
+    grenzen = (
+        "Seiteneffekt-Importe (signals, admin) und __init__.py bleiben. "
+        "Mehrfach-Importe (import os, sys) bleiben, wenn nur einer tot ist."
+    )
     kriterium = 5
     dauer = "3-8 s"
 
     anlassfall = Anlassfall(
-        {"laden.py": "import json\n"
-                     "import os\n"
-                     "import sys  # noqa: F401\n"
-                     "\n\n"
-                     "def lesen(pfad):\n"
-                     "    return json.loads(open(pfad).read())\n"},
-        mindestens=1, hoechstens=1, erwartet_in="laden.py",
+        {
+            "laden.py": "import json\n"
+            "import os\n"
+            "import sys  # noqa: F401\n"
+            "\n\n"
+            "def lesen(pfad):\n"
+            "    return json.loads(open(pfad).read())\n"
+        },
+        mindestens=1,
+        hoechstens=1,
+        erwartet_in="laden.py",
         warum="`os` ist tot und fällt; `json` wird gebraucht und `sys` trägt "
-              "ein noqa — beide müssen stehenbleiben")
+        "ein noqa — beide müssen stehenbleiben",
+    )
 
     #: Modul-Endungen, deren blosser Import etwas bewirkt - nie entfernen.
     SEITENEFFEKT = {"signals", "admin", "receivers", "tasks", "checks", "apps"}
@@ -94,20 +120,19 @@ class ImportFixer(Fixer):
             # Wer sie uebergeht, entfernt Zeilen, die jemand bewusst
             # stehengelassen hat - am 22.08.2026 im assistant passiert
             # (`from .dav_schalter import suppress_dav_push  # noqa: F401`).
-            weg = {n for n in weg
-                   if 'noqa' not in zeilen[n - 1].lower()}
+            weg = {n for n in weg if "noqa" not in zeilen[n - 1].lower()}
             # FUENFTE SICHERUNG (25.08.2026): Holt jemand den Namen AUS
             # DIESER Datei? Siehe `_wird_weitergereicht`.
-            weg = {n for n in weg
-                   if not self._wird_weitergereicht(pfad, baum, n)}
+            weg = {n for n in weg if not self._wird_weitergereicht(pfad, baum, n)}
             if not weg:
                 continue
             neu = "".join(z for i, z in enumerate(zeilen, 1) if i not in weg)
-            aenderungen.append(Aenderung(
-                pfad, "%d tote Importe entfernen" % len(weg), neu))
-        return Vorschau(aenderungen,
-                        "Nur einzeilige Importe mit durchweg unbenutztem Namen; "
-                        "Seiteneffekt-Module und __init__.py bleiben aussen vor.")
+            aenderungen.append(Aenderung(pfad, "%d tote Importe entfernen" % len(weg), neu))
+        return Vorschau(
+            aenderungen,
+            "Nur einzeilige Importe mit durchweg unbenutztem Namen; "
+            "Seiteneffekt-Module und __init__.py bleiben aussen vor.",
+        )
 
     def pruefen(self, aenderung):
         """Netz: kompiliert die Datei nach dem Schnitt noch?
@@ -207,8 +232,7 @@ class ImportFixer(Fixer):
         # ``[^)]*`` laeuft ueber Zeilengrenzen (eine Zeichenklasse schliesst
         # ``\n`` ein), deshalb braucht es kein DOTALL - und weil die Klammer
         # zuerst versucht wird, gewinnt sie gegen die einzeilige Form.
-        muster = re.compile(r"^[ \t]*from\s+([\w.]+)\s+import\s+(\([^)]*\)|[^\n]+)",
-                            re.MULTILINE)
+        muster = re.compile(r"^[ \t]*from\s+([\w.]+)\s+import\s+(\([^)]*\)|[^\n]+)", re.MULTILINE)
         for pfad in self.pfade("*.py"):
             if any(t in RAUS for t in pfad.parts):
                 continue
@@ -244,8 +268,7 @@ class ImportFixer(Fixer):
                 if inhalt.strip("() \t\n") == "*":
                     raus.setdefault(modul, set()).add(self.STERN)
                     continue
-                namen = {n.strip().split(" as ")[0].strip(" ()")
-                         for n in inhalt.split(",")}
+                namen = {n.strip().split(" as ")[0].strip(" ()") for n in inhalt.split(",")}
                 raus.setdefault(modul, set()).update(n for n in namen if n)
         self._geholt = raus
         return raus
@@ -270,15 +293,14 @@ class ImportFixer(Fixer):
                     continue
                 if (k.module or "").rsplit(".", 1)[-1] in self.SEITENEFFEKT:
                     continue
-                if k.level and not k.module:        # from . import x -> Verdacht
+                if k.level and not k.module:  # from . import x -> Verdacht
                     continue
             if k.lineno != getattr(k, "end_lineno", k.lineno):
-                continue                            # mehrzeilig: nicht anfassen
+                continue  # mehrzeilig: nicht anfassen
             namen = [n for n in k.names if n.name != "*"]
             if not namen or any(n.name in self.SEITENEFFEKT for n in namen):
                 continue
-            if all(self._kurz(n) not in benutzt and self._kurz(n) not in self.ERLAUBT
-                   for n in namen):
+            if all(self._kurz(n) not in benutzt and self._kurz(n) not in self.ERLAUBT for n in namen):
                 weg.add(k.lineno)
         return weg
 
@@ -299,8 +321,7 @@ class ImportFixer(Fixer):
                 if isinstance(w, ast.Name):
                     benutzt.add(w.id)
             elif isinstance(k, ast.Constant) and isinstance(k.value, str):
-                benutzt.update(k.value.replace(".", " ").replace("[", " ")
-                               .replace("]", " ").split())
+                benutzt.update(k.value.replace(".", " ").replace("[", " ").replace("]", " ").split())
             elif isinstance(k, ast.Assign):
                 for z in k.targets:
                     if isinstance(z, ast.Name) and z.id == "__all__":

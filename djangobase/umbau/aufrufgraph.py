@@ -8,11 +8,11 @@ fehlt sie). Dieses Werkzeug zeigt vor dem ersten Schnitt, welche das sind.
 
 Aufruf:  python -m djangobase.umbau.aufrufgraph <datei> [--gemeinsam]
 """
+
 import ast
 import sys
 from collections import defaultdict
 from pathlib import Path
-
 
 from .strukturbericht import Strukturbericht
 
@@ -22,9 +22,9 @@ class Aufrufgraph:
 
     def __init__(self, pfad):
         self.pfad = Path(pfad)
-        self.quelle = self.pfad.read_text(encoding='utf-8', errors='replace')
+        self.quelle = self.pfad.read_text(encoding="utf-8", errors="replace")
         self.baum = ast.parse(self.quelle)
-        self.definiert = {}          # name -> (zeile, laenge, thema)
+        self.definiert = {}  # name -> (zeile, laenge, thema)
         self.rufe = defaultdict(set)  # rufer -> {gerufene}
         self._sammeln()
 
@@ -32,8 +32,10 @@ class Aufrufgraph:
         for k in self.baum.body:
             if isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
                 self.definiert[k.name] = (
-                    k.lineno, (k.end_lineno or k.lineno) - k.lineno,
-                    Strukturbericht.thema(k.name))
+                    k.lineno,
+                    (k.end_lineno or k.lineno) - k.lineno,
+                    Strukturbericht.thema(k.name),
+                )
         for k in self.baum.body:
             if not isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 continue
@@ -79,26 +81,26 @@ class Aufrufgraph:
         return sorted(n for n in self.definiert if n not in gerufen)
 
     def bericht(self, nur_gemeinsam=False):
-        z = ['%s: %d Definitionen' % (self.pfad.name, len(self.definiert)), '']
+        z = ["%s: %d Definitionen" % (self.pfad.name, len(self.definiert)), ""]
         gem = self.gemeinsame_helfer()
-        z.append('GEMEINSAME HELFER (von mehreren Themen gerufen): %d' % len(gem))
+        z.append("GEMEINSAME HELFER (von mehreren Themen gerufen): %d" % len(gem))
         for name, laenge, themen, rufer in gem:
-            z.append('  %-40s %4d Z.  Themen: %-32s  %d Rufer'
-                     % (name[:40], laenge, ','.join(themen), len(rufer)))
+            z.append(
+                "  %-40s %4d Z.  Themen: %-32s  %d Rufer" % (name[:40], laenge, ",".join(themen), len(rufer))
+            )
         if nur_gemeinsam:
-            return '\n'.join(z)
-        z.append('')
-        z.append('NUR INNERHALB EINES THEMAS: %d'
-                 % (len(self.rufer_von()) - len(gem)))
-        return '\n'.join(z)
+            return "\n".join(z)
+        z.append("")
+        z.append("NUR INNERHALB EINES THEMAS: %d" % (len(self.rufer_von()) - len(gem)))
+        return "\n".join(z)
 
 
 def main():
     if len(sys.argv) < 2:
         raise SystemExit(__doc__)
     g = Aufrufgraph(sys.argv[1])
-    print(g.bericht('--gemeinsam' in sys.argv))
+    print(g.bericht("--gemeinsam" in sys.argv))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

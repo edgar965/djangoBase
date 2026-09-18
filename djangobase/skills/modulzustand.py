@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""ModulZustand - veraenderliche Sammlungen auf Modulebene finden.
+"""ModulZustand - veraenderliche Sammlungen auf Modulebene finden.
 
 DER BEFUND, DER DAS WERKZEUG AUSGELOEST HAT (shortlongx, 16.08.2026)
 ====================================================================
@@ -26,6 +26,7 @@ Prozess-Pool je Server). Damit das Werkzeug sie nicht jedes Mal meldet, tragen
 sie den Vermerk ``geteilt gewollt: <Grund>`` in ihrer Nähe. Eine Ausnahmeliste
 IM WERKZEUG wäre die schlechtere Lösung: Sie raet, was der Autor gemeint hat.
 """
+
 import ast
 
 from .anlassfall import Anlassfall
@@ -35,21 +36,38 @@ from .werkzeug import Ergebnis, Werkzeug
 class ModulZustand(Werkzeug):
     slug = "modulzustand"
     titel = "Zustand auf Modulebene"
-    zweck = ("Veränderliche Sammlungen (list/dict/set) auf Modulebene, die "
-             "irgendwo mutiert werden — auch dateiübergreifend.")
-    befund = ("Eine Liste, in einer Datei gefüllt und in einer anderen geleert, "
-              "meldete Warnungen des falschen Laufs — und zwei gleichzeitige "
-              "Anfragen schrieben hinein. Django ist multithreaded.")
-    abhilfe = ("Zustand, der genau eine Anfrage lang gilt, gehört in ein Objekt "
-               "(oder threading.local). Absichtlich Geteiltes bekommt den "
-               "Vermerk „geteilt gewollt: <Grund>“ in den Code.")
+    zweck = (
+        "Veränderliche Sammlungen (list/dict/set) auf Modulebene, die "
+        "irgendwo mutiert werden — auch dateiübergreifend."
+    )
+    befund = (
+        "Eine Liste, in einer Datei gefüllt und in einer anderen geleert, "
+        "meldete Warnungen des falschen Laufs — und zwei gleichzeitige "
+        "Anfragen schrieben hinein. Django ist multithreaded."
+    )
+    abhilfe = (
+        "Zustand, der genau eine Anfrage lang gilt, gehört in ein Objekt "
+        "(oder threading.local). Absichtlich Geteiltes bekommt den "
+        "Vermerk „geteilt gewollt: <Grund>“ in den Code."
+    )
     dauer = "3–8 s"
     kriterium = 9
 
     MARKER = "geteilt gewollt"
     #: Methoden, die eine Sammlung veraendern.
-    MUTATION = {"append", "extend", "insert", "remove", "pop", "clear", "update",
-                "add", "discard", "setdefault", "popitem"}
+    MUTATION = {
+        "append",
+        "extend",
+        "insert",
+        "remove",
+        "pop",
+        "clear",
+        "update",
+        "add",
+        "discard",
+        "setdefault",
+        "popitem",
+    }
 
     #: Eine Modul-Globale, die MUTIERT wird (``append``/``update``) - eine
     #: blosse Neuzuweisung reicht nicht, und das war beim ersten Versuch der
@@ -61,7 +79,8 @@ class ModulZustand(Werkzeug):
     #: dieses Anlassfalls: ``hoechstens=1`` erwartete eine Filterung, die es
     #: hier gar nicht gibt.)
     anlassfall = Anlassfall(
-        {"speicher.py": '''_WARNUNGEN = []
+        {
+            "speicher.py": """_WARNUNGEN = []
 #: geteilt gewollt: der Zaehler laeuft absichtlich ueber alle Anfragen.
 _ZAEHLER = {}
 
@@ -76,11 +95,14 @@ def zaehlen(name):
 
 def lesen():
     return list(_WARNUNGEN)
-'''},
-        mindestens=2, hoechstens=2,
+"""
+        },
+        mindestens=2,
+        hoechstens=2,
         erwartet_in="belegt",
         warum="Modul-Globale statt übergebenem Datensatz — zwei gleichzeitige "
-              "Läufe ziehen sie sich gegenseitig weg")
+        "Läufe ziehen sie sich gegenseitig weg",
+    )
 
     def laufen(self):
         dateien = [d for d in self.dateien() if d.baum is not None]
@@ -96,8 +118,7 @@ def lesen():
                 if not treffer:
                     continue
                 stellen = [(z, a) for f, z, a in treffer if f == d.name]
-                fremd = [(f, z, a) for f, z, a in treffer
-                         if f != d.name and name not in eigen.get(f, ())]
+                fremd = [(f, z, a) for f, z, a in treffer if f != d.name and name not in eigen.get(f, ())]
                 if not stellen and not fremd:
                     # REINE NAMENSGLEICHHEIT (03.09.2026): ``treffer`` kann
                     # allein aus fremden Dateien stammen, die den Namen SELBST
@@ -118,18 +139,20 @@ def lesen():
             self._kopf(zeilen, offen, skripte, namensgleich),
             "Ein Eintrag ist erst ein Fehler, wenn der Zustand ANFRAGE-bezogen "
             "ist. Zwischenspeicher, die für alle gelten sollen, sind in Ordnung "
-            "— sie brauchen nur den Vermerk im Code.")
+            "— sie brauchen nur den Vermerk im Code.",
+        )
 
     @staticmethod
     def _kopf(zeilen, offen, skripte, namensgleich):
-        u"""AUSGENOMMENES WIRD GENANNT, nicht verschwiegen.
+        """AUSGENOMMENES WIRD GENANNT, nicht verschwiegen.
 
         Eine Pruefung, die still wegfiltert, sieht aus wie eine, die nichts
         findet - und niemand kann nachrechnen, was sie uebergangen hat."""
-        text = ("%d Sammlungen auf Modulebene, davon %d ohne Beleg"
-                % (len(zeilen), len(offen)))
-        wenn = [("%d in Skripten (ein Lauf, ein Prozess)", skripte),
-                ("%d nur namensgleich, niemand ändert sie", namensgleich)]
+        text = "%d Sammlungen auf Modulebene, davon %d ohne Beleg" % (len(zeilen), len(offen))
+        wenn = [
+            ("%d in Skripten (ein Lauf, ein Prozess)", skripte),
+            ("%d nur namensgleich, niemand ändert sie", namensgleich),
+        ]
         zusatz = ", ".join(m % n for m, n in wenn if n)
         return text + (" · " + zusatz if zusatz else "")
 
@@ -147,8 +170,8 @@ def lesen():
                 continue
             veraenderlich = isinstance(wert, (ast.List, ast.Dict, ast.Set)) or (
                 isinstance(wert, ast.Call)
-                and getattr(wert.func, "id", "") in ("list", "dict", "set",
-                                                     "defaultdict", "OrderedDict"))
+                and getattr(wert.func, "id", "") in ("list", "dict", "set", "defaultdict", "OrderedDict")
+            )
             if not veraenderlich:
                 continue
             for z in ziele:
@@ -157,7 +180,7 @@ def lesen():
         return aus
 
     def _mutationen(self, d):
-        u"""(Name, Zeile, Art) jeder Stelle, die eine Sammlung verändert.
+        """(Name, Zeile, Art) jeder Stelle, die eine Sammlung verändert.
 
         NUR MUTATIONEN IN FUNKTIONEN ZAEHLEN (17.08.2026): Was auf MODULEBENE
         verändert wird, läuft beim Import — einmal, in einem Thread, bevor die
@@ -251,8 +274,14 @@ def lesen():
         mut = ", ".join(sorted({a for _, a in stellen})[:4]) or "—"
         if fremd:
             mut += " · fremd: " + ", ".join(sorted({f for f, _, _ in fremd})[:2])
-        return {"datei": d.name, "zeile": knoten.lineno, "name": name,
-                "art": art, "mutationen": mut, "bewertung": bewertung}
+        return {
+            "datei": d.name,
+            "zeile": knoten.lineno,
+            "name": name,
+            "art": art,
+            "mutationen": mut,
+            "bewertung": bewertung,
+        }
 
     def _begruendet(self, d, zeile):
         zeilen = d.text.splitlines()

@@ -1,25 +1,48 @@
 from django.urls import path
 
-from .views import api_system_stats
+from .views import (
+    AblaufView,
+    AktuellDatenView,
+    AktuellLeerenView,
+    AktuellView,
+    AufzeichnungView,
+    BenutzerBearbeitenView,
+    BenutzerErstellenView,
+    BenutzerInlineView,
+    BenutzerListeView,
+    BenutzerLoeschenView,
+    BenutzerStatusView,
+    CacheView,
+    EinstellungenTabsView,
+    EinstellungenView,
+    JobsView,
+    KlassenmodellView,
+    LogsClearView,
+    LogsView,
+    ReviewBefundeView,
+    ReviewNachfassenView,
+    ReviewStartView,
+    ReviewStatusView,
+    ReviewView,
+    SkillsView,
+    TestDauerView,
+    TestNummerView,
+    TestStromView,
+    TestsView,
+    TestVerschiebenView,
+    TrafficView,
+    UebersetzungView,
+    VersionsView,
+    WorkflowsDatenView,
+    WorkflowsView,
+    api_system_stats,
+)
 from .views.ki_modelle import KiModelleView
-from .views.review_kontext import ReviewKontextView
 from .views.languageserver import LanguageServerView
-from .views.languageserver_status import LanguageServerStatusView
 from .views.languageserver_referenzen import LanguageServerReferenzenView
+from .views.languageserver_status import LanguageServerStatusView
+from .views.review_kontext import ReviewKontextView
 from .views.uebrige_putz import UebrigePutzView
-from .views import (AblaufView, CacheView, WorkflowsDatenView, WorkflowsView,
-                    AufzeichnungView, AktuellDatenView, AktuellLeerenView,
-                    AktuellView,
-                    BenutzerBearbeitenView, BenutzerErstellenView,
-                    BenutzerInlineView, BenutzerListeView, BenutzerLoeschenView,
-                    BenutzerStatusView, EinstellungenTabsView, EinstellungenView,
-                    JobsView, KlassenmodellView, LogsClearView, LogsView,
-                    ReviewBefundeView, ReviewNachfassenView,
-                    ReviewStartView, ReviewStatusView, ReviewView,
-                    SkillsView, TestDauerView, TestsView,
-                    TestNummerView, TestStromView,
-                    TestVerschiebenView, TrafficView,
-                    UebersetzungView, VersionsView)
 
 app_name = "djangobase"
 
@@ -37,8 +60,7 @@ urlpatterns = [
     # Testfall in eine andere Kategorie umhaengen (Combo-Box
     # „Verschieben" in jeder Testcase-Tabelle). POST, weil es eine
     # DATEI verschiebt — siehe testverschieben.py.
-    path("tests/verschieben/", TestVerschiebenView.as_view(),
-         name="tests_verschieben"),
+    path("tests/verschieben/", TestVerschiebenView.as_view(), name="tests_verschieben"),
     # LIVE-Lauf: fährt die angeforderten Ziele und streamt den Fortschritt
     # (Ansage 17.08.2026 „live fortschritt in djangoBase einbauen"). POST,
     # weil bei „Alle auswählen" hunderte Kennungen mitkommen.
@@ -51,8 +73,7 @@ urlpatterns = [
     # EIN Endpunkt fuer alle sechs Vorgaenge (start/schritte/ende/name/
     # loeschen) - sechs Pfade waeren sechs Gelegenheiten, den Zugriffsschutz
     # zu vergessen. Der haeufigste Aufruf ist „schritte" im Sekundentakt.
-    path("tests/aufzeichnung/", AufzeichnungView.as_view(),
-         name="tests_aufzeichnung"),
+    path("tests/aufzeichnung/", AufzeichnungView.as_view(), name="tests_aufzeichnung"),
     # DER Werkzeugkasten: alle Werkzeuge, alle Lehren, die Fixer und der
     # server-seitige Stapellauf mit Klartext-Bericht. Die Werkzeuge laufen im
     # Serverprozess und rufen ausschliesslich GET-Routen auf.
@@ -60,25 +81,22 @@ urlpatterns = [
     # Das Objektmodell als Bild: wer haelt wen, wer erbt von wem.
     # Gerechnet wird auf Knopfdruck (POST) — der Durchgang liest
     # jede `.py` des Projekts.
-    path("klassenmodell/", KlassenmodellView.as_view(),
-         name="klassenmodell"),
+    path("klassenmodell/", KlassenmodellView.as_view(), name="klassenmodell"),
     # Die „Uebrigen“ einer Endung loeschen (02.09.2026, auf Ansage).
     # GET = Vorschau, POST = loeschen. Aus dem Browser kommt NIE ein Pfad,
     # nur eine Endung — siehe umbau/uebrigesuche.py.
-    path("klassenmodell/uebrige/", UebrigePutzView.as_view(),
-         name="klassenmodell_uebrige"),
+    path("klassenmodell/uebrige/", UebrigePutzView.as_view(), name="klassenmodell_uebrige"),
     # Werkzeug Language Server (02.09.2026): Stapellauf im Hintergrund,
     # Status zum Abfragen, Referenzen/Umbenennen ueber die offene Sitzung.
     path("languageserver/", LanguageServerView.as_view(), name="languageserver"),
-    path("languageserver/status/", LanguageServerStatusView.as_view(),
-         name="languageserver_status"),
-    path("languageserver/referenzen/", LanguageServerReferenzenView.as_view(),
-         name="languageserver_referenzen"),
+    path("languageserver/status/", LanguageServerStatusView.as_view(), name="languageserver_status"),
+    path(
+        "languageserver/referenzen/", LanguageServerReferenzenView.as_view(), name="languageserver_referenzen"
+    ),
     path("workflows/", WorkflowsView.as_view(), name="workflows"),
     path("ablauf/", AblaufView.as_view(), name="ablauf"),
     path("cache/", CacheView.as_view(), name="cache"),
-    path("workflows/daten/", WorkflowsDatenView.as_view(),
-         name="workflows_daten"),
+    path("workflows/daten/", WorkflowsDatenView.as_view(), name="workflows_daten"),
     # Skills2 und Skills3 sind UEBERGANGSSEITEN auf dem Weg zur Abschaffung
     # (17.08.2026). Ihre Werkzeuge liegen im Master; sie bleiben nur, damit
     # Lesezeichen und fremde Links nicht ins Leere zeigen.
@@ -96,30 +114,37 @@ urlpatterns = [
     # Hintergrund (eine bis fuenf Minuten), deshalb Start/Status getrennt.
     path("review/", ReviewView.as_view(), name="review"),
     path("review/start/", ReviewStartView.as_view(), name="review_start"),
-    path("review/<str:lauf_id>/nachfassen/", ReviewNachfassenView.as_view(),
-         name="review_nachfassen"),
+    path("review/<str:lauf_id>/nachfassen/", ReviewNachfassenView.as_view(), name="review_nachfassen"),
     path("review/<str:lauf_id>/status/", ReviewStatusView.as_view(), name="review_status"),
     # DIE GESPEICHERTEN Befunde eines Pruefwerkzeugs - ohne einen Lauf zu
     # starten. ``<slug>`` ist der Partner aus der Konfiguration, NIE ein
     # Pfad: Welches Verzeichnis gelesen wird, entscheidet der Server.
-    path("review/werkzeug/<str:slug>/befunde/", ReviewBefundeView.as_view(),
-         name="review_befunde"),
+    path("review/werkzeug/<str:slug>/befunde/", ReviewBefundeView.as_view(), name="review_befunde"),
     # Kontextverbrauch einer Claude-Code-Sitzung (02.09.2026). Rechnet nur
     # auf Knopfdruck — das Protokoll ist dreistellig MB gross.
-    path("review/kontext/", ReviewKontextView.as_view(),
-         name="review_kontext"),
+    path("review/kontext/", ReviewKontextView.as_view(), name="review_kontext"),
     # Haupt-Einstellungen: Profil-Combobox + alle Gruppen als Tabs.
     path("einstellungen/", EinstellungenTabsView.as_view(), name="einstellungen"),
     # Einzelseiten je Gruppe (Rueckwaerts-Kompatibilitaet / Deep-Links).
-    path("einstellungen/djangobase/", EinstellungenView.as_view(gruppe="djangobase"), name="einstellungen_djangobase"),
+    path(
+        "einstellungen/djangobase/",
+        EinstellungenView.as_view(gruppe="djangobase"),
+        name="einstellungen_djangobase",
+    ),
     path("einstellungen/website/", EinstellungenView.as_view(gruppe="website"), name="einstellungen_website"),
     path("einstellungen/email/", EinstellungenView.as_view(gruppe="email"), name="einstellungen_email"),
     path("traffic/", TrafficView.as_view(), name="traffic"),
     path("einstellungen/uebersetzung/", UebersetzungView.as_view(), name="uebersetzung"),
     path("einstellungen/benutzer/", BenutzerListeView.as_view(), name="benutzer"),
     path("einstellungen/benutzer/neu/", BenutzerErstellenView.as_view(), name="benutzer_neu"),
-    path("einstellungen/benutzer/<int:pk>/bearbeiten/", BenutzerBearbeitenView.as_view(), name="benutzer_bearbeiten"),
+    path(
+        "einstellungen/benutzer/<int:pk>/bearbeiten/",
+        BenutzerBearbeitenView.as_view(),
+        name="benutzer_bearbeiten",
+    ),
     path("einstellungen/benutzer/<int:pk>/status/", BenutzerStatusView.as_view(), name="benutzer_status"),
     path("einstellungen/benutzer/<int:pk>/inline/", BenutzerInlineView.as_view(), name="benutzer_inline"),
-    path("einstellungen/benutzer/<int:pk>/loeschen/", BenutzerLoeschenView.as_view(), name="benutzer_loeschen"),
+    path(
+        "einstellungen/benutzer/<int:pk>/loeschen/", BenutzerLoeschenView.as_view(), name="benutzer_loeschen"
+    ),
 ]

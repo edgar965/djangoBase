@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Endpunkte der Testcase-Aufzeichnung.
+"""Endpunkte der Testcase-Aufzeichnung.
 
 Alle antworten JSON und werden von ``aufzeichnung.js`` gerufen:
 
@@ -21,6 +21,7 @@ Projekts, und der Aufrufer ist die eigene Seite - die hat das Token. Die
 IB-Endpunkte in shortlongx sind davon ausgenommen, weil sie aus Skripten
 gerufen werden; hier gibt es keinen solchen Fall.
 """
+
 import json
 import logging
 
@@ -39,10 +40,10 @@ __all__ = ["AufzeichnungView"]
 
 
 class AufzeichnungView(ZugriffMixin, View):
-    u"""Zustand lesen und die Aufzeichnung steuern."""
+    """Zustand lesen und die Aufzeichnung steuern."""
 
     def get(self, request):
-        u"""Zustand und Liste - mit ``?id=`` die SCHRITTE einer Aufzeichnung.
+        """Zustand und Liste - mit ``?id=`` die SCHRITTE einer Aufzeichnung.
 
         Die Schritte kommen nur auf ausdrückliche Anfrage: In der Liste stehen
         Dutzende Aufnahmen, und eine einzelne trägt bis zu tausend Ereignisse.
@@ -56,17 +57,17 @@ class AufzeichnungView(ZugriffMixin, View):
         if kennung:
             treffer = [a for a in bestand.alle() if a.id == kennung]
             if not treffer:
-                return JsonResponse({"ok": False, "fehler": "nicht gefunden"},
-                                    status=404)
+                return JsonResponse({"ok": False, "fehler": "nicht gefunden"}, status=404)
             a = treffer[0]
-            return JsonResponse({"ok": True, "eintrag": a.kurz(),
-                                 "schritte": a.schritte})
+            return JsonResponse({"ok": True, "eintrag": a.kurz(), "schritte": a.schritte})
         laeuft = bestand.laufende()
-        return JsonResponse({
-            "ok": True,
-            "laeuft": laeuft.kurz() if laeuft else None,
-            "liste": [a.kurz() for a in bestand.alle()],
-        })
+        return JsonResponse(
+            {
+                "ok": True,
+                "laeuft": laeuft.kurz() if laeuft else None,
+                "liste": [a.kurz() for a in bestand.alle()],
+            }
+        )
 
     def post(self, request):
         try:
@@ -76,8 +77,7 @@ class AufzeichnungView(ZugriffMixin, View):
         aktion = str(daten.get("aktion") or "")
         methode = getattr(self, "_" + aktion, None) if aktion.isalpha() else None
         if methode is None:
-            return JsonResponse({"ok": False, "fehler": "unbekannte Aktion %r" % aktion},
-                                status=400)
+            return JsonResponse({"ok": False, "fehler": "unbekannte Aktion %r" % aktion}, status=400)
         return methode(daten)
 
     # ------------------------------------------------------------- Aktionen
@@ -86,7 +86,7 @@ class AufzeichnungView(ZugriffMixin, View):
         return JsonResponse({"ok": True, "neu": neu, "laeuft": a.kurz()})
 
     def _schritte(self, d):
-        u"""Der haeufigste Aufruf - er muss billig bleiben und darf nie werfen."""
+        """Der haeufigste Aufruf - er muss billig bleiben und darf nie werfen."""
         n = Steuerung().anhaengen(str(d.get("id") or ""), d.get("schritte") or [])
         return JsonResponse({"ok": True, "uebernommen": n})
 
@@ -105,25 +105,22 @@ class AufzeichnungView(ZugriffMixin, View):
     def _name(self, d):
         a = Steuerung().umbenennen(str(d.get("id") or ""), d.get("name") or "")
         if a is None:
-            return JsonResponse({"ok": False, "fehler": "nicht gefunden oder leerer Name"},
-                                status=404)
+            return JsonResponse({"ok": False, "fehler": "nicht gefunden oder leerer Name"}, status=404)
         return JsonResponse({"ok": True, "eintrag": a.kurz()})
 
     def _testfall(self, d):
-        u"""Aus einer Aufzeichnung eine Testdatei schreiben (Ansage 21.08.2026).
+        """Aus einer Aufzeichnung eine Testdatei schreiben (Ansage 21.08.2026).
 
         Bis dahin ging das nur über ``manage.py testfall_aus_aufzeichnung``.
         Die Antwort nennt Pfad und Zahl der geprüften Abrufe - der Knopf soll
         nicht verschleiern, dass hier Quelltext im Projekt entsteht."""
         from ..aufzeichnung_ablage import TestfallAblage
+
         a = Aufzeichnungen().holen(str(d.get("id") or ""))
         if a is None:
-            return JsonResponse({"ok": False, "fehler": "nicht gefunden"},
-                                status=404)
+            return JsonResponse({"ok": False, "fehler": "nicht gefunden"}, status=404)
         if not a.schritte:
-            return JsonResponse({"ok": False,
-                                 "fehler": "Diese Aufzeichnung hat keine Schritte"},
-                                status=400)
+            return JsonResponse({"ok": False, "fehler": "Diese Aufzeichnung hat keine Schritte"}, status=400)
         pfad, meldung = TestfallAblage().ablegen(Testfall(a))
         if pfad is None:
             return JsonResponse({"ok": False, "fehler": meldung}, status=400)

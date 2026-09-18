@@ -26,6 +26,7 @@ gestopptem Server.
     manage.py aktuell --titel "SafePath: ADS-Loch geschlossen" --art fix
     ... | manage.py aktuell --titel "Testlauf" --art messung   (Text von stdin)
 """
+
 import json
 import logging
 import os
@@ -65,7 +66,7 @@ class AktuellFeed:
             return []
         eintraege = []
         try:
-            with open(self.pfad, "r", encoding="utf-8", errors="replace") as f:
+            with open(self.pfad, encoding="utf-8", errors="replace") as f:
                 for zeile in f:
                     zeile = zeile.strip()
                     if not zeile:
@@ -110,9 +111,10 @@ class AktuellFeed:
             return text
         # Sichtbar kuerzen: Ein stillschweigend abgeschnittener Text laesst den
         # Leser glauben, mehr sei nicht da gewesen.
-        return (text[:self.MAX_ZEICHEN]
-                + "\n\n[... gekuerzt: %d von %d Zeichen ...]"
-                % (self.MAX_ZEICHEN, len(text)))
+        return text[: self.MAX_ZEICHEN] + "\n\n[... gekuerzt: %d von %d Zeichen ...]" % (
+            self.MAX_ZEICHEN,
+            len(text),
+        )
 
     def _fenster_nachziehen(self):
         """Auf MAX_EINTRAEGE zurueckschneiden — ganz oder gar nicht.
@@ -134,7 +136,7 @@ class AktuellFeed:
           selten und nicht bei jedem Eintrag — und die Fenstergroesse bleibt
           eine Groessenordnung, keine Zusage auf die Zeile."""
         try:
-            with open(self.pfad, "r", encoding="utf-8", errors="replace") as f:
+            with open(self.pfad, encoding="utf-8", errors="replace") as f:
                 zeilen = f.readlines()
         except OSError:
             return
@@ -169,17 +171,21 @@ class AktuellFeed:
         dem Ersetzen kann ein weiterer Eintrag angehaengt worden sein, und der
         soll nicht verloren gehen."""
         try:
-            with open(self.pfad, "r", encoding="utf-8", errors="replace") as f:
+            with open(self.pfad, encoding="utf-8", errors="replace") as f:
                 zeilen = f.readlines()
         except OSError:
             return
-        behalten = zeilen[-self.MAX_EINTRAEGE:]
+        behalten = zeilen[-self.MAX_EINTRAEGE :]
         tmp = None
         try:
             with tempfile.NamedTemporaryFile(
-                    mode="w", encoding="utf-8", dir=str(self.pfad.parent),
-                    prefix="." + self.pfad.name + ".", suffix=".tmp",
-                    delete=False) as f:
+                mode="w",
+                encoding="utf-8",
+                dir=str(self.pfad.parent),
+                prefix="." + self.pfad.name + ".",
+                suffix=".tmp",
+                delete=False,
+            ) as f:
                 tmp = f.name
                 f.writelines(behalten)
                 f.flush()
@@ -207,5 +213,6 @@ class AktuellFeed:
 def feed():
     """Der Feed dieses Projekts (Pfad aus der Konfiguration)."""
     from .conf import conf
+
     c = conf()
     return AktuellFeed(c.get("aktuell_datei") or (c["log_verzeichnis"] / "aktuell.jsonl"))

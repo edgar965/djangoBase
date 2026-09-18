@@ -17,6 +17,7 @@ Benutzung (stdout/stderr-Timestamps):
 
 Beides ist threadsicher.
 """
+
 from __future__ import annotations
 
 import contextvars
@@ -27,11 +28,11 @@ import threading
 import time
 from contextlib import contextmanager
 
-
 # ── Job-ID-ContextVar ────────────────────────────────────────────────────────
 
 _job_id_var: contextvars.ContextVar = contextvars.ContextVar(
-    "djangobase_job_id", default=None,
+    "djangobase_job_id",
+    default=None,
 )
 
 
@@ -109,10 +110,21 @@ class TimestampedStream:
     #: „läuft". Deshalb wird hier UMGESETZT statt zu scheitern, und nur was
     #: die Liste nicht kennt, wird ersetzt.
     ERSATZ = {
-        '→': '->', '←': '<-', '—': '--', '–': '-',
-        '„': '"', '“': '"', '”': '"', '‘': "'",
-        '’': "'", '…': '...', '·': '*', '•': '*',
-        '✅': '[ok]', '❌': '[x]', '⚠': '[!]',
+        "→": "->",
+        "←": "<-",
+        "—": "--",
+        "–": "-",
+        "„": '"',
+        "“": '"',
+        "”": '"',
+        "‘": "'",
+        "’": "'",
+        "…": "...",
+        "·": "*",
+        "•": "*",
+        "✅": "[ok]",
+        "❌": "[x]",
+        "⚠": "[!]",
     }
 
     def __init__(self, wrapped):
@@ -124,12 +136,12 @@ class TimestampedStream:
         self._lock = threading.Lock()
 
     def _darstellbar(self, text):
-        u"""Text, den der umschlossene Strom auch wirklich schreiben kann.
+        """Text, den der umschlossene Strom auch wirklich schreiben kann.
 
         Auf einem UTF-8-Strom bleibt alles wie es ist — die Umsetzung
         kostet dort nur einen Versuch, der gelingt.
         """
-        kodierung = getattr(self._wrapped, 'encoding', None) or 'utf-8'
+        kodierung = getattr(self._wrapped, "encoding", None) or "utf-8"
         try:
             text.encode(kodierung)
             return text
@@ -143,8 +155,7 @@ class TimestampedStream:
         except (UnicodeEncodeError, LookupError):
             # Was die Liste nicht kennt: lieber ein Fragezeichen als ein
             # abgebrochener Bericht.
-            return text.encode(kodierung, 'replace').decode(kodierung,
-                                                            'replace')
+            return text.encode(kodierung, "replace").decode(kodierung, "replace")
 
     def write(self, s):
         if not s:
@@ -168,7 +179,7 @@ class TimestampedStream:
                 self._at_line_start = line_start
                 broke_early = True
                 break
-            chunk = s[i:j + 1]
+            chunk = s[i : j + 1]
             if line_start and chunk.strip() and not _TS_PREFIX_RE.match(chunk):
                 ts = time.strftime("%Y-%m-%d %H:%M:%S")
                 out.append(f"{ts} {chunk}")
@@ -188,8 +199,7 @@ class TimestampedStream:
             if self._buffer:
                 ts = time.strftime("%Y-%m-%d %H:%M:%S")
                 if not _TS_PREFIX_RE.match(self._buffer):
-                    self._wrapped.write(
-                        self._darstellbar(f"{ts} {self._buffer}"))
+                    self._wrapped.write(self._darstellbar(f"{ts} {self._buffer}"))
                 else:
                     self._wrapped.write(self._darstellbar(self._buffer))
                 self._buffer = ""

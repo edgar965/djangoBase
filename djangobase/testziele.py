@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Testziele - was ausgefuehrt werden DARF, an genau einer Stelle.
+"""Testziele - was ausgefuehrt werden DARF, an genau einer Stelle.
 
 Die Tests-Seite startet Laeufe auf Zuruf des Browsers. Damit ist die Frage „was
 darf in die Kommandozeile?" eine Sicherheitsfrage, und sie hatte bisher zwei
@@ -25,6 +25,7 @@ Ein Eintrag mit Leerzeichen oder einem fuehrenden ``-`` waere ein zusaetzliches
 Argument fuer ``manage.py`` — auch wenn ``subprocess`` eine Liste bekommt und
 keine Shell im Spiel ist.
 """
+
 import re
 
 __all__ = ["Testziele"]
@@ -47,10 +48,10 @@ class Testziele:
                 self.nach_slug[slug] = b
 
     def pruefen(self, kennungen):
-        u"""``(ziele, verworfen)`` - Reihenfolge erhalten, Doppelte entfernt."""
+        """``(ziele, verworfen)`` - Reihenfolge erhalten, Doppelte entfernt."""
         ziele, verworfen = [], 0
-        for kennung in (kennungen or []):
-            kennung = str(kennung)[:self.MAXLAENGE]
+        for kennung in kennungen or []:
+            kennung = str(kennung)[: self.MAXLAENGE]
             if not self.FORM.match(kennung):
                 verworfen += 1
                 continue
@@ -65,7 +66,7 @@ class Testziele:
         return list(dict.fromkeys(z for z in ziele if z)), verworfen
 
     def ganzes_projekt(self, kennungen):
-        u"""Ist ein Sammelbefehl OHNE Ziel dabei? Dann ist alles gemeint.
+        """Ist ein Sammelbefehl OHNE Ziel dabei? Dann ist alles gemeint.
 
         „Alles ausführen" traegt bewusst kein Label: ``manage.py test`` ohne Ziel
         faehrt das ganze Projekt. Die erste Fassung hat genau daraus „Keine
@@ -73,14 +74,14 @@ class Testziele:
         der Knopf tat schlicht nichts): Der Slug war bekannt, sein ``ziel`` leer,
         also blieb die Liste leer — und Leere galt als Fehler.
         """
-        for kennung in (kennungen or []):
-            befehl = self.nach_slug.get(str(kennung)[:self.MAXLAENGE])
+        for kennung in kennungen or []:
+            befehl = self.nach_slug.get(str(kennung)[: self.MAXLAENGE])
             if befehl is not None and not str(befehl.get("ziel") or "").strip():
                 return True
         return False
 
     def befehl(self, kennungen, python, extra=()):
-        u"""``(cmd, ziele, verworfen)`` - EIN ``manage.py test`` fuer alles.
+        """``(cmd, ziele, verworfen)`` - EIN ``manage.py test`` fuer alles.
 
         Ein Lauf statt einer Kette: Die Testdatenbank wird EINMAL aufgebaut. Bei
         zwanzig Haken waeren das sonst zwanzig Aufbauten fuer Sekunden Testzeit.
@@ -90,8 +91,11 @@ class Testziele:
         ziele, verworfen = self.pruefen(kennungen)
         if not ziele and self.ganzes_projekt(kennungen):
             # Ohne Label heisst: das ganze Projekt.
-            return ([str(python), "manage.py", "test", "--noinput", "-v", "2"]
-                    + [str(x) for x in extra], [], verworfen)
+            return (
+                [str(python), "manage.py", "test", "--noinput", "-v", "2"] + [str(x) for x in extra],
+                [],
+                verworfen,
+            )
         if not ziele:
             return None, [], verworfen
         cmd = [str(python), "manage.py", "test"] + ziele + ["--noinput", "-v", "2"]
@@ -104,7 +108,7 @@ class Testziele:
 
     @staticmethod
     def name(ziele, verworfen):
-        u"""Der Name, unter dem der Lauf in der Historie und im Ergebnis steht."""
+        """Der Name, unter dem der Lauf in der Historie und im Ergebnis steht."""
         if not ziele:
             return "Alles (ganzes Projekt)"
         name = "Auswahl: %d Ziel%s" % (len(ziele), "" if len(ziele) == 1 else "e")

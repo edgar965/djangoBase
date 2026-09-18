@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""`grundtests._projektdateien` — was git ignoriert, ist kein Projektcode.
+"""`grundtests._projektdateien` — was git ignoriert, ist kein Projektcode.
 
 DER ANLASS (31.08.2026)
 =======================
@@ -27,6 +27,7 @@ WAS HIER GEPRUEFT WIRD
    still geworden — die Gegenprobe).
 3. Ohne git-Antwort bleibt die Namensliste als Notbremse.
 """
+
 import subprocess
 import tempfile
 from pathlib import Path
@@ -39,18 +40,18 @@ from ..base import BasisTest
 
 
 class ProjektdateienTest(BasisTest):
-
     def setUp(self):
         super().setUp()
-        self.wurzel = Path(tempfile.mkdtemp(prefix='projektdateien_',
-                                            dir=tempfile.gettempdir()))
+        self.wurzel = Path(tempfile.mkdtemp(prefix="projektdateien_", dir=tempfile.gettempdir()))
         self.addCleanup(self._raeumen)
-        (self.wurzel / 'app' / 'static' / 'js').mkdir(parents=True)
-        (self.wurzel / 'app' / 'static' / 'js' / 'echt.js').write_text(
-            "import x from './x.js';\n", encoding='utf-8')
-        (self.wurzel / '_wegwerf' / 'static' / 'js').mkdir(parents=True)
-        (self.wurzel / '_wegwerf' / 'static' / 'js' / 'attrappe.js').write_text(
-            "import y from '../fehlt.js';\n", encoding='utf-8')
+        (self.wurzel / "app" / "static" / "js").mkdir(parents=True)
+        (self.wurzel / "app" / "static" / "js" / "echt.js").write_text(
+            "import x from './x.js';\n", encoding="utf-8"
+        )
+        (self.wurzel / "_wegwerf" / "static" / "js").mkdir(parents=True)
+        (self.wurzel / "_wegwerf" / "static" / "js" / "attrappe.js").write_text(
+            "import y from '../fehlt.js';\n", encoding="utf-8"
+        )
 
     def _raeumen(self):
         import shutil
@@ -58,35 +59,34 @@ class ProjektdateienTest(BasisTest):
         # Der GitFilter merkt sich seine Antwort je Wurzel — sonst sieht
         # der naechste Fall die Antwort von diesem.
         from djangobase.skills.gitfilter import GitFilter
+
         GitFilter._gemerkt.pop(str(self.wurzel.resolve()), None)
         shutil.rmtree(self.wurzel, ignore_errors=True)
 
-    def _repo_anlegen(self, ignoriert='_wegwerf/\n'):
-        (self.wurzel / '.gitignore').write_text(ignoriert, encoding='utf-8')
-        for befehl in (['git', 'init', '-q'],
-                       ['git', 'add', '-A'],
-                       ['git', '-c', 'user.email=t@t', '-c', 'user.name=t',
-                        'commit', '-qm', 'erst']):
-            subprocess.run(befehl, cwd=str(self.wurzel), capture_output=True,
-                           timeout=60)
+    def _repo_anlegen(self, ignoriert="_wegwerf/\n"):
+        (self.wurzel / ".gitignore").write_text(ignoriert, encoding="utf-8")
+        for befehl in (
+            ["git", "init", "-q"],
+            ["git", "add", "-A"],
+            ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "erst"],
+        ):
+            subprocess.run(befehl, cwd=str(self.wurzel), capture_output=True, timeout=60)
 
     def _gefunden(self):
         with override_settings(BASE_DIR=str(self.wurzel)):
-            return sorted(p.name for p in
-                          grundtests._projektdateien('static/**/*.js'))
+            return sorted(p.name for p in grundtests._projektdateien("static/**/*.js"))
 
     def test_was_git_ignoriert_wird_uebersprungen(self):
         self._repo_anlegen()
-        self.assertEqual(self._gefunden(), ['echt.js'],
-                         'Die Attrappe aus `_wegwerf/` gehoert nicht dazu')
+        self.assertEqual(self._gefunden(), ["echt.js"], "Die Attrappe aus `_wegwerf/` gehoert nicht dazu")
 
     def test_normale_dateien_kommen_weiterhin_durch(self):
-        u"""Die Gegenprobe: Der Pruefer ist nicht einfach still geworden."""
+        """Die Gegenprobe: Der Pruefer ist nicht einfach still geworden."""
         self._repo_anlegen()
-        self.assertIn('echt.js', self._gefunden())
+        self.assertIn("echt.js", self._gefunden())
 
     def test_ohne_git_bleibt_die_namensliste_die_notbremse(self):
-        u"""Kein Repo — dann filtert `GitFilter` nichts, und das ist richtig.
+        """Kein Repo — dann filtert `GitFilter` nichts, und das ist richtig.
 
         Ein Projekt ohne git ist kein Grund, gar nichts mehr zu pruefen.
         Die Attrappe erscheint dann wieder; dafuer ist die Namensliste da,
@@ -94,13 +94,14 @@ class ProjektdateienTest(BasisTest):
         zweiten Wahrheit werden).
         """
         gefunden = self._gefunden()
-        self.assertIn('echt.js', gefunden)
-        self.assertIn('attrappe.js', gefunden)
+        self.assertIn("echt.js", gefunden)
+        self.assertIn("attrappe.js", gefunden)
 
     def test_fremde_ordner_fallen_immer_heraus(self):
-        u"""`node_modules` & Co. — auch mit git."""
-        (self.wurzel / 'node_modules' / 'static' / 'js').mkdir(parents=True)
-        (self.wurzel / 'node_modules' / 'static' / 'js' / 'fremd.js').write_text(
-            'export default 1;\n', encoding='utf-8')
-        self._repo_anlegen(ignoriert='')
-        self.assertNotIn('fremd.js', self._gefunden())
+        """`node_modules` & Co. — auch mit git."""
+        (self.wurzel / "node_modules" / "static" / "js").mkdir(parents=True)
+        (self.wurzel / "node_modules" / "static" / "js" / "fremd.js").write_text(
+            "export default 1;\n", encoding="utf-8"
+        )
+        self._repo_anlegen(ignoriert="")
+        self.assertNotIn("fremd.js", self._gefunden())

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""`strukturtests` — die Strukturregeln als roter Test, mit Ratsche.
+"""`strukturtests` — die Strukturregeln als roter Test, mit Ratsche.
 
 DER ANLASS (gunSlinger, 18.09.2026)
 ===================================
@@ -18,11 +18,10 @@ auf Wegwerfordnern (`Wegwerfordner.ansetzen`), nie auf dem Host-Projekt —
 deshalb werden die Klassen NUR über das Modul angesprochen: Stünden sie im
 Namensraum dieser Datei, führe der Testläufer sie gegen den Host aus.
 """
+
 from django.test import SimpleTestCase
 
 from djangobase import strukturtests as st
-from djangobase.skills.dateigroesse import Dateigroesse
-from djangobase.skills.klassenjedatei import KlassenJeDatei
 
 from ..wegwerfordner import Wegwerfordner
 
@@ -30,12 +29,16 @@ GROSS = "class Riese:\n" + "".join("    def m%d(self):\n        return %d\n" % (
 KLEIN = "class Zwerg:\n    def a(self):\n        return 1\n"
 #: Zwei eigenständige Klassen UND über 300 Code-Zeilen — erst dann ist es nach
 #: der Eichung von `KlassenJeDatei` ein Verstoß (darunter: „Aufteilen schadet").
-ZWEI_GROSSE = ("class Erste:\n" + "".join("    def m%d(self):\n        return %d\n" % (i, i) for i in range(80))
-               + "\n\nclass Zweite:\n" + "".join("    def n%d(self):\n        return %d\n" % (i, i) for i in range(80)))
+ZWEI_GROSSE = (
+    "class Erste:\n"
+    + "".join("    def m%d(self):\n        return %d\n" % (i, i) for i in range(80))
+    + "\n\nclass Zweite:\n"
+    + "".join("    def n%d(self):\n        return %d\n" % (i, i) for i in range(80))
+)
 
 
 def _regeln_auf(ordner, **cfg):
-    u"""Strukturregeln, deren Werkzeuge `ordner` als Projektwurzel sehen."""
+    """Strukturregeln, deren Werkzeuge `ordner` als Projektwurzel sehen."""
 
     class _Regeln(st.Strukturregeln):
         def werkzeug(self, klasse):
@@ -45,20 +48,20 @@ def _regeln_auf(ordner, **cfg):
 
 
 def _fall(basis, ordner, **cfg):
-    u"""Eine Unterklasse des Strukturtests, die auf `ordner` mit `cfg` läuft."""
+    """Eine Unterklasse des Strukturtests, die auf `ordner` mit `cfg` läuft."""
     regeln = _regeln_auf(ordner, **cfg)
     return type("Fall", (basis,), {"regeln": classmethod(lambda cls: regeln)})
 
 
 def _laeuft(basis, ordner, methode, **cfg):
-    u"""``(ok, meldung)`` eines einzelnen Testlaufs — ohne den Läufer zu bemühen."""
+    """``(ok, meldung)`` eines einzelnen Testlaufs — ohne den Läufer zu bemühen."""
     fall = _fall(basis, ordner, **cfg)(methode)
     try:
         getattr(fall, methode)()
         return True, ""
     except AssertionError as e:
         return False, str(e)
-    except Exception as e:                         # skipTest
+    except Exception as e:  # skipTest
         return None, str(e)
 
 
@@ -107,19 +110,22 @@ class DieRatsche(SimpleTestCase):
     def test_ein_bestandseintrag_deckt_den_verstoss(self):
         ordner = _projekt({"app/riese.py": GROSS})
         bestand = {"groesse": ["app/riese.py", "app/riese.py::Riese"]}
-        self.assertEqual(_laeuft(st.StrukturtestDateigroesse, ordner, self.METHODE, bestand=bestand), (True, ""))
+        self.assertEqual(
+            _laeuft(st.StrukturtestDateigroesse, ordner, self.METHODE, bestand=bestand), (True, "")
+        )
 
     def test_ein_veralteter_eintrag_macht_rot(self):
-        u"""Die Liste darf nur schrumpfen: Wer aufräumt, streicht den Eintrag."""
+        """Die Liste darf nur schrumpfen: Wer aufräumt, streicht den Eintrag."""
         ordner = _projekt({"app/zwerg.py": KLEIN})
-        ok, meldung = _laeuft(st.StrukturtestDateigroesse, ordner, self.METHODE,
-                              bestand={"groesse": ["app/alt.py"]})
+        ok, meldung = _laeuft(
+            st.StrukturtestDateigroesse, ordner, self.METHODE, bestand={"groesse": ["app/alt.py"]}
+        )
         self.assertFalse(ok)
         self.assertIn("VERALTET", meldung)
         self.assertIn("app/alt.py", meldung)
 
     def test_bestand_gilt_je_regel(self):
-        u"""Ein Datei-Eintrag der Größenregel ist für die Klassenregel kein Eintrag."""
+        """Ein Datei-Eintrag der Größenregel ist für die Klassenregel kein Eintrag."""
         regeln = st.Strukturregeln({"bestand": {"groesse": ["a.py"]}})
         self.assertEqual(regeln.bestand("groesse"), {"a.py"})
         self.assertEqual(regeln.bestand("klassen"), set())
@@ -141,7 +147,7 @@ class DieKlassenregel(SimpleTestCase):
         self.assertIn("app/sammlung.py", meldung)
 
     def test_kleine_datentraeger_neben_der_hauptklasse_bleiben_gruen(self):
-        u"""Die Eichung des Werkzeugs gilt: kein Nachbau einer strengeren Regel."""
+        """Die Eichung des Werkzeugs gilt: kein Nachbau einer strengeren Regel."""
         ordner = _projekt({"app/dienst.py": GROSS.replace("range(160)", "range(20)") + "\n\n" + KLEIN})
         self.assertEqual(_laeuft(st.StrukturtestKlassenJeDatei, ordner, self.METHODE), (True, ""))
 
@@ -166,5 +172,6 @@ class DieTestJeKlasseRegel(SimpleTestCase):
         self.assertNotIn("apps.py", meldung, "Django-Pflichtdateien verlangen kein Testmodul")
         (ordner / "app" / "tests" / "unit").mkdir(parents=True)
         (ordner / "app" / "tests" / "unit" / "test_dienst.py").write_text("", encoding="utf-8")
-        self.assertEqual(_laeuft(st.StrukturtestTestJeKlasse, ordner, self.METHODE, test_je_klasse=True),
-                         (True, ""))
+        self.assertEqual(
+            _laeuft(st.StrukturtestTestJeKlasse, ordner, self.METHODE, test_je_klasse=True), (True, "")
+        )

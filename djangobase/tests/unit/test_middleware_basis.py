@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Eine Middleware muss beide Betriebsarten können — sonst steht der Dienst.
+"""Eine Middleware muss beide Betriebsarten können — sonst steht der Dienst.
 
 DER VORFALL (CamTrack, 11.09.2026)
 ==================================
@@ -24,6 +24,7 @@ richtigen Reihenfolge laufen, dass ``braucht_faden`` die Arbeit wirklich von
 der Ereignisschleife holt und dass ein Fehler im Haken die Antwort nicht
 kostet.
 """
+
 import asyncio
 
 from asgiref.sync import iscoroutinefunction
@@ -46,7 +47,7 @@ async def _asynchron(request):
 
 
 class Mitschrift(ZweiwegMiddleware):
-    u"""Schreibt mit, was wann läuft."""
+    """Schreibt mit, was wann läuft."""
 
     def __init__(self, get_response):
         super().__init__(get_response)
@@ -61,7 +62,7 @@ class Mitschrift(ZweiwegMiddleware):
 
 
 class BEIDE_EINSTIEGE(SimpleTestCase):
-    u"""Synchron wie bisher, asynchron ohne Rückruf."""
+    """Synchron wie bisher, asynchron ohne Rückruf."""
 
     databases = []
 
@@ -75,8 +76,9 @@ class BEIDE_EINSTIEGE(SimpleTestCase):
         mw = Mitschrift(_asynchron)
         self.assertTrue(
             iscoroutinefunction(mw),
-            u"Ohne `markcoroutinefunction` hält Django die Instanz für "
-            u"synchron und bekommt ein Coroutine-Objekt statt einer Antwort.")
+            "Ohne `markcoroutinefunction` hält Django die Instanz für "
+            "synchron und bekommt ein Coroutine-Objekt statt einer Antwort.",
+        )
 
     def test_asynchron_laeuft_alles_der_reihe_nach(self):
         mw = Mitschrift(_asynchron)
@@ -88,12 +90,13 @@ class BEIDE_EINSTIEGE(SimpleTestCase):
         self.assertTrue(ZweiwegMiddleware.sync_capable)
         self.assertTrue(
             ZweiwegMiddleware.async_capable,
-            u"Das ist die Zusage, um die es geht. Ohne sie wickelt Django "
-            u"den Rest der Kette in `async_to_sync`.")
+            "Das ist die Zusage, um die es geht. Ohne sie wickelt Django "
+            "den Rest der Kette in `async_to_sync`.",
+        )
 
 
 class DIE_DATENBANK_FALLE(SimpleTestCase):
-    u"""`braucht_faden` holt die Arbeit von der Ereignisschleife herunter."""
+    """`braucht_faden` holt die Arbeit von der Ereignisschleife herunter."""
 
     databases = []
 
@@ -118,14 +121,15 @@ class DIE_DATENBANK_FALLE(SimpleTestCase):
     def test_mit_faden_laeuft_es_daneben(self):
         self.assertFalse(
             self._laeuft_auf_der_schleife(True),
-            u"Mit `braucht_faden` muss der Haken NEBEN der Ereignisschleife "
-            u"laufen — sonst wirft jeder Datenbank-Zugriff "
-            u"`SynchronousOnlyOperation`, und der `except`-Block verschluckt "
-            u"es still.")
+            "Mit `braucht_faden` muss der Haken NEBEN der Ereignisschleife "
+            "laufen — sonst wirft jeder Datenbank-Zugriff "
+            "`SynchronousOnlyOperation`, und der `except`-Block verschluckt "
+            "es still.",
+        )
 
 
 class EIN_FEHLER_KOSTET_KEINE_SEITE(SimpleTestCase):
-    u"""Beiwerk darf nie eine Antwort kosten — aber nur, wenn es Beiwerk ist."""
+    """Beiwerk darf nie eine Antwort kosten — aber nur, wenn es Beiwerk ist."""
 
     databases = []
 
@@ -152,12 +156,11 @@ class EIN_FEHLER_KOSTET_KEINE_SEITE(SimpleTestCase):
 
 
 class DIE_VORGABE_IST_NICHTS_TUN(SimpleTestCase):
-    u"""Wer nur einen Haken braucht, soll den anderen nicht schreiben müssen."""
+    """Wer nur einen Haken braucht, soll den anderen nicht schreiben müssen."""
 
     databases = []
 
     def test_ohne_haken_geht_die_antwort_unveraendert_durch(self):
         antwort = ZweiwegMiddleware(_synchron)(_anfrage())
         self.assertEqual(antwort.content, b"ok")
-        self.assertEqual(asyncio.run(
-            ZweiwegMiddleware(_asynchron)(_anfrage())).content, b"ok")
+        self.assertEqual(asyncio.run(ZweiwegMiddleware(_asynchron)(_anfrage())).content, b"ok")

@@ -1,4 +1,5 @@
 """Unit-Tests: Multi-Profil-Store + base_template-Override (isolierte JSON)."""
+
 import json
 
 from djangobase import store
@@ -29,11 +30,11 @@ class ProfileStoreTest(StoreIsolationMixin, BasisTest):
         self.assertEqual(conf()["titel"], "A")
         slug = store.profil_anlegen("Zweit", kopie_von=store.aktiv_slug())
         store.aktiv_setzen(slug)
-        self.assertEqual(conf()["titel"], "A")          # Kopie uebernimmt Werte
+        self.assertEqual(conf()["titel"], "A")  # Kopie uebernimmt Werte
         store.speichern_gruppe("website", {"titel": "B"})
         self.assertEqual(conf()["titel"], "B")
         store.aktiv_setzen(store.STANDARD_SLUG)
-        self.assertEqual(conf()["titel"], "A")          # Standard unveraendert
+        self.assertEqual(conf()["titel"], "A")  # Standard unveraendert
 
     def test_letztes_profil_nicht_loeschbar(self):
         self.assertFalse(store.profil_loeschen(store.STANDARD_SLUG))

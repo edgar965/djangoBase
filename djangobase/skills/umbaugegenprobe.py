@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Umbaugegenprobe - was hat ein Umbau an den Funktionsruempfen wirklich geaendert?
+"""Umbaugegenprobe - was hat ein Umbau an den Funktionsruempfen wirklich geaendert?
 
 DER ANLASS (28.08.2026, Projekt assistant)
 ==========================================
@@ -46,6 +46,7 @@ Fassung noch danebenlag - dann ist jeder Rumpf „gleich" und der Vergleich
 sagt nichts. Deshalb fuehrt es die Ruempfe nach Herkunftsdatei und meldet
 diesen Fall ausdruecklich.
 """
+
 import ast
 import difflib
 import subprocess
@@ -54,19 +55,25 @@ from .werkzeug import Ergebnis, Werkzeug
 
 
 class Umbaugegenprobe(Werkzeug):
-    u"""Vergleicht die Funktionsruempfe geaenderter Dateien gegen HEAD."""
+    """Vergleicht die Funktionsruempfe geaenderter Dateien gegen HEAD."""
 
     slug = "umbau-gegenprobe"
     titel = "Umbau-Gegenprobe"
-    zweck = ("Zeigt fuer jede geaenderte Datei, welche Funktionsruempfe sich "
-             "wirklich geaendert haben - ohne Docstrings und Formatierung.")
-    befund = ("Beim Umbau freier Funktionen zu Klassen wurden zwei Ruempfe "
-              "ERFUNDEN statt gelesen (Felder, die es am Modell nicht gibt). "
-              "Ein vorhandener Test fing es; ohne Test waere es "
-              "durchgegangen.")
-    abhilfe = ("Jeden gemeldeten Unterschied lesen. Umbenennungen sind "
-               "harmlos, aber sie muessen GESEHEN werden. Verschwundene "
-               "Ruempfe zuerst pruefen.")
+    zweck = (
+        "Zeigt fuer jede geaenderte Datei, welche Funktionsruempfe sich "
+        "wirklich geaendert haben - ohne Docstrings und Formatierung."
+    )
+    befund = (
+        "Beim Umbau freier Funktionen zu Klassen wurden zwei Ruempfe "
+        "ERFUNDEN statt gelesen (Felder, die es am Modell nicht gibt). "
+        "Ein vorhandener Test fing es; ohne Test waere es "
+        "durchgegangen."
+    )
+    abhilfe = (
+        "Jeden gemeldeten Unterschied lesen. Umbenennungen sind "
+        "harmlos, aber sie muessen GESEHEN werden. Verschwundene "
+        "Ruempfe zuerst pruefen."
+    )
     dauer = "unter 3 s"
     kriterium = 0
 
@@ -76,7 +83,8 @@ class Umbaugegenprobe(Werkzeug):
     #: den man in eine Datei schreibt.
     ohne_anlassfall_weil = (
         "Braucht ein git-Repo mit Historie - im Wegwerf-Verzeichnis des "
-        "Anlassfall-Checks gibt es keinen Commit zum Vergleichen.")
+        "Anlassfall-Checks gibt es keinen Commit zum Vergleichen."
+    )
 
     #: Gegen was verglichen wird. ``HEAD`` heisst: die Aenderungen im
     #: Arbeitsbaum. ``HEAD~1`` zeigt, was der letzte Commit geaendert hat.
@@ -92,11 +100,11 @@ class Umbaugegenprobe(Werkzeug):
     # -- git ---------------------------------------------------------------
 
     def _git(self, *argumente):
-        u"""git im Projektverzeichnis; ``None``, wenn es nicht laeuft."""
+        """git im Projektverzeichnis; ``None``, wenn es nicht laeuft."""
         try:
-            ergebnis = subprocess.run(("git",) + argumente,
-                                      cwd=str(self.wurzel()),
-                                      capture_output=True, timeout=20)
+            ergebnis = subprocess.run(
+                ("git",) + argumente, cwd=str(self.wurzel()), capture_output=True, timeout=20
+            )
         except (OSError, subprocess.SubprocessError):
             return None
         if ergebnis.returncode != 0:
@@ -104,7 +112,7 @@ class Umbaugegenprobe(Werkzeug):
         return ergebnis.stdout.decode("utf-8", "replace")
 
     def _geaenderte_dateien(self):
-        u"""Geaenderte .py-Dateien - ohne die geloeschten.
+        """Geaenderte .py-Dateien - ohne die geloeschten.
 
         Eine geloeschte Datei hat keinen neuen Stand; sie gehoert in die
         Zusammenfassung, nicht in den Vergleich.
@@ -130,7 +138,7 @@ class Umbaugegenprobe(Werkzeug):
 
     @staticmethod
     def _ruempfe(quelle):
-        u"""``{Name: Zeilen des Rumpfs}``, ohne Docstring.
+        """``{Name: Zeilen des Rumpfs}``, ohne Docstring.
 
         Der Docstring fliegt raus, weil er sich bei jedem Umbau aendert -
         stuende er drin, waere jeder Rumpf verschieden und der Vergleich
@@ -145,9 +153,12 @@ class Umbaugegenprobe(Werkzeug):
             if not isinstance(knoten, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 continue
             leib = list(knoten.body)
-            if (leib and isinstance(leib[0], ast.Expr)
-                    and isinstance(leib[0].value, ast.Constant)
-                    and isinstance(leib[0].value.value, str)):
+            if (
+                leib
+                and isinstance(leib[0], ast.Expr)
+                and isinstance(leib[0].value, ast.Constant)
+                and isinstance(leib[0].value.value, str)
+            ):
                 leib = leib[1:]
             if not leib:
                 leib = [ast.Pass()]
@@ -159,7 +170,7 @@ class Umbaugegenprobe(Werkzeug):
 
     @staticmethod
     def _kurzfassung(alt, neu):
-        u"""Die erste wirklich abweichende Zeile - mehr passt in keine Spalte."""
+        """Die erste wirklich abweichende Zeile - mehr passt in keine Spalte."""
         for zeile in difflib.unified_diff(alt, neu, lineterm="", n=0):
             if zeile.startswith("+") and not zeile.startswith("+++"):
                 return zeile[1:].strip()[:120]
@@ -169,7 +180,7 @@ class Umbaugegenprobe(Werkzeug):
         return ""
 
     def _datei_vergleichen(self, pfad):
-        u"""Zeilen fuer EINE Datei."""
+        """Zeilen fuer EINE Datei."""
         alter_text = self._alter_stand(pfad)
         if alter_text is None:
             # Neu angelegt: Es gibt nichts zu vergleichen. Das ist der
@@ -185,19 +196,35 @@ class Umbaugegenprobe(Werkzeug):
         neu = self._ruempfe(neuer_text)
 
         if alt is None or neu is None:
-            return [{"Datei": pfad, "Rumpf": "-", "Art": "unlesbar",
-                     "Was": "Syntaxfehler in einer der beiden Fassungen"}]
+            return [
+                {
+                    "Datei": pfad,
+                    "Rumpf": "-",
+                    "Art": "unlesbar",
+                    "Was": "Syntaxfehler in einer der beiden Fassungen",
+                }
+            ]
 
         zeilen = []
         for name, rumpf in sorted(alt.items()):
             if name not in neu:
-                zeilen.append({
-                    "Datei": pfad, "Rumpf": name, "Art": "verschwunden",
-                    "Was": ("Gibt es nach der Aenderung nicht mehr - "
-                            "aufgegangen oder verloren?")})
+                zeilen.append(
+                    {
+                        "Datei": pfad,
+                        "Rumpf": name,
+                        "Art": "verschwunden",
+                        "Was": ("Gibt es nach der Aenderung nicht mehr - aufgegangen oder verloren?"),
+                    }
+                )
             elif neu[name] != rumpf:
-                zeilen.append({"Datei": pfad, "Rumpf": name, "Art": "geaendert",
-                               "Was": self._kurzfassung(rumpf, neu[name])})
+                zeilen.append(
+                    {
+                        "Datei": pfad,
+                        "Rumpf": name,
+                        "Art": "geaendert",
+                        "Was": self._kurzfassung(rumpf, neu[name]),
+                    }
+                )
         return zeilen
 
     # -- Lauf --------------------------------------------------------------
@@ -206,34 +233,46 @@ class Umbaugegenprobe(Werkzeug):
         geaendert, geloescht = self._geaenderte_dateien()
         if geaendert is None:
             return Ergebnis(
-                self.SPALTEN, [],
+                self.SPALTEN,
+                [],
                 zusammenfassung="git nicht verfuegbar oder kein Repo",
-                hinweis=("Dieses Werkzeug vergleicht gegen die git-Historie. "
-                         "Ohne Repo hat es nichts, wogegen es pruefen kann."))
+                hinweis=(
+                    "Dieses Werkzeug vergleicht gegen die git-Historie. "
+                    "Ohne Repo hat es nichts, wogegen es pruefen kann."
+                ),
+            )
 
         if not geaendert and not geloescht:
             return Ergebnis(
-                self.SPALTEN, [],
-                zusammenfassung=f"Keine geaenderte .py-Datei gegen "
-                                f"{self.REVISION}")
+                self.SPALTEN, [], zusammenfassung=f"Keine geaenderte .py-Datei gegen {self.REVISION}"
+            )
 
         if len(geaendert) > self.MAX_DATEIEN:
             return Ergebnis(
-                self.SPALTEN, [],
+                self.SPALTEN,
+                [],
                 zusammenfassung=f"{len(geaendert)} geaenderte Dateien - "
-                                f"zu viele fuer einen sinnvollen Vergleich",
-                hinweis=("Bei einem Massenumbau (Formatierung, projektweite "
-                         "Umbenennung) ist die Liste kein Befund mehr, "
-                         "sondern Rauschen. Erst in kleineren Schritten "
-                         "committen, dann erneut pruefen."))
+                f"zu viele fuer einen sinnvollen Vergleich",
+                hinweis=(
+                    "Bei einem Massenumbau (Formatierung, projektweite "
+                    "Umbenennung) ist die Liste kein Befund mehr, "
+                    "sondern Rauschen. Erst in kleineren Schritten "
+                    "committen, dann erneut pruefen."
+                ),
+            )
 
         zeilen = []
         for pfad in geaendert:
             zeilen.extend(self._datei_vergleichen(pfad))
         for pfad in geloescht:
-            zeilen.append({
-                "Datei": pfad, "Rumpf": "(ganze Datei)", "Art": "geloescht",
-                "Was": ("Steht ihr Inhalt jetzt woanders? Sonst ist er weg.")})
+            zeilen.append(
+                {
+                    "Datei": pfad,
+                    "Rumpf": "(ganze Datei)",
+                    "Art": "geloescht",
+                    "Was": ("Steht ihr Inhalt jetzt woanders? Sonst ist er weg."),
+                }
+            )
 
         verschwunden = sum(1 for z in zeilen if z["Art"] == "verschwunden")
         hinweis = ""
@@ -242,10 +281,12 @@ class Umbaugegenprobe(Werkzeug):
                 f"{verschwunden} Ruempfe gibt es nicht mehr. Das ist der "
                 "gefaehrliche Fall: Entweder sind sie absichtlich in einer "
                 "Klasse aufgegangen - dann stehen sie unter neuem Namen da - "
-                "oder sie sind verlorengegangen.")
+                "oder sie sind verlorengegangen."
+            )
 
         return Ergebnis(
-            self.SPALTEN, zeilen,
-            zusammenfassung=(f"{len(zeilen)} Ruempfe betroffen in "
-                             f"{len(geaendert)} Dateien"),
-            hinweis=hinweis)
+            self.SPALTEN,
+            zeilen,
+            zusammenfassung=(f"{len(zeilen)} Ruempfe betroffen in {len(geaendert)} Dateien"),
+            hinweis=hinweis,
+        )

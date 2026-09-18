@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Pfadpraefix — eine Pfadpruefung, die auf Zeichen statt auf Ordner schaut.
+"""Pfadpraefix — eine Pfadpruefung, die auf Zeichen statt auf Ordner schaut.
 
 DER FEHLER
 ==========
@@ -52,6 +52,7 @@ WAS NICHT GEMELDET WIRD
 * Die eigene Datei und ``safe_paths.py`` — dort steht der Vergleich als
   Gegenbeispiel im Docstring.
 """
+
 import ast
 import re
 
@@ -66,51 +67,63 @@ class Pfadpraefix(BefundWerkzeug):
 
     slug = "pfadpraefix"
     titel = "Pfadpruefung per Zeichenvergleich"
-    zweck = ("Findet `str(ziel).startswith(str(wurzel))` — ein Nachbarordner "
-             "mit gleichem Namensanfang besteht diese Pruefung.")
-    befund = ("Viermal in 3DTools gefunden und viermal einzeln repariert: "
-              "`media_evil` beginnt mit `media`, `poseData_evil` mit "
-              "`poseData`. Dahinter liegen Endpunkte, die schreiben, "
-              "ueberschreiben und loeschen.")
-    abhilfe = ("`Path(ziel).resolve().is_relative_to(Path(wurzel).resolve())` "
-               "— oder eine eigene Wurzelpruefung, die zusaetzlich "
-               "Geraetenamen, UNC-Pfade und NTFS-Datenstroeme abweist.")
+    zweck = (
+        "Findet `str(ziel).startswith(str(wurzel))` — ein Nachbarordner "
+        "mit gleichem Namensanfang besteht diese Pruefung."
+    )
+    befund = (
+        "Viermal in 3DTools gefunden und viermal einzeln repariert: "
+        "`media_evil` beginnt mit `media`, `poseData_evil` mit "
+        "`poseData`. Dahinter liegen Endpunkte, die schreiben, "
+        "ueberschreiben und loeschen."
+    )
+    abhilfe = (
+        "`Path(ziel).resolve().is_relative_to(Path(wurzel).resolve())` "
+        "— oder eine eigene Wurzelpruefung, die zusaetzlich "
+        "Geraetenamen, UNC-Pfade und NTFS-Datenstroeme abweist."
+    )
     dauer = "unter 1 s"
     kriterium = 0
 
     anlassfall = Anlassfall(
-        {"wache.py": (
-            "import os\n"
-            "\n"
-            "\n"
-            "def erlaubt(ziel, wurzel):\n"
-            "    return str(ziel).startswith(os.path.normpath(wurzel))\n"),
-         "adresse.py": (
-            "from django.conf import settings\n"
-            "\n"
-            "\n"
-            "def ist_medium(pfad):\n"
-            "    return pfad.startswith(str(settings.MEDIA_URL))\n"),
-         "sauber.py": (
-            "from pathlib import Path\n"
-            "\n"
-            "\n"
-            "def erlaubt(ziel, wurzel):\n"
-            "    return Path(ziel).resolve().is_relative_to(Path(wurzel))\n")},
-        mindestens=1, hoechstens=1, erwartet_in="wache.py",
+        {
+            "wache.py": (
+                "import os\n"
+                "\n"
+                "\n"
+                "def erlaubt(ziel, wurzel):\n"
+                "    return str(ziel).startswith(os.path.normpath(wurzel))\n"
+            ),
+            "adresse.py": (
+                "from django.conf import settings\n"
+                "\n"
+                "\n"
+                "def ist_medium(pfad):\n"
+                "    return pfad.startswith(str(settings.MEDIA_URL))\n"
+            ),
+            "sauber.py": (
+                "from pathlib import Path\n"
+                "\n"
+                "\n"
+                "def erlaubt(ziel, wurzel):\n"
+                "    return Path(ziel).resolve().is_relative_to(Path(wurzel))\n"
+            ),
+        },
+        mindestens=1,
+        hoechstens=1,
+        erwartet_in="wache.py",
         warum="In 3DTools viermal einzeln gefunden: `media_evil` beginnt mit "
-              "`media`, `poseData_evil` mit `poseData`. Dahinter lagen "
-              "Endpunkte, die schreiben, ueberschreiben und loeschen. "
-              "`sauber.py` und `adresse.py` stehen daneben: die richtige "
-              "Schreibweise und ein URL-Vergleich, der wie einer "
-              "aussieht und keiner ist.")
+        "`media`, `poseData_evil` mit `poseData`. Dahinter lagen "
+        "Endpunkte, die schreiben, ueberschreiben und loeschen. "
+        "`sauber.py` und `adresse.py` stehen daneben: die richtige "
+        "Schreibweise und ein URL-Vergleich, der wie einer "
+        "aussieht und keiner ist.",
+    )
 
     #: Namensenden, die auf einen Pfad deuten.
-    PFADNAMEN = re.compile(r"(pfad|path|dir|wurzel|root|ordner|ziel|datei)$",
-                           re.I)
+    PFADNAMEN = re.compile(r"(pfad|path|dir|wurzel|root|ordner|ziel|datei)$", re.I)
     #: Aufrufe, deren Ergebnis ein Pfad ist.
-    PFADRUFE = ("str", "normpath", "abspath", "realpath", "Path", "resolve",
-                "join")
+    PFADRUFE = ("str", "normpath", "abspath", "realpath", "Path", "resolve", "join")
     #: Diese Dateien beschreiben den Fehler, statt ihn zu machen.
     AUSNAHMEN = ("safe_paths.py", "pfadpraefix.py")
 
@@ -125,8 +138,10 @@ class Pfadpraefix(BefundWerkzeug):
                 continue
             dateien += 1
             befunde += self._aus_baum(baum, self.kurz(pfad))
-        kopf = ["%d Python-Dateien gelesen" % dateien,
-                "%d Pfadpruefungen per Zeichenvergleich" % len(befunde)]
+        kopf = [
+            "%d Python-Dateien gelesen" % dateien,
+            "%d Pfadpruefungen per Zeichenvergleich" % len(befunde),
+        ]
         return Befundsatz(self.titel, kopf, befunde)
 
     @staticmethod
@@ -145,17 +160,19 @@ class Pfadpraefix(BefundWerkzeug):
                 continue
             if knoten.func.attr != "startswith" or len(knoten.args) != 1:
                 continue
-            if not (self._nach_pfad(knoten.func.value)
-                    and self._nach_pfad(knoten.args[0])):
+            if not (self._nach_pfad(knoten.func.value) and self._nach_pfad(knoten.args[0])):
                 continue
             if self._ist_adresse(knoten.args[0]):
                 continue
-            raus.append(Befund(
-                "%s:%d" % (name, knoten.lineno),
-                "startswith(…) als Pfadpruefung",
-                "Ein Nachbarordner mit gleichem Namensanfang besteht sie. "
-                "`Path.is_relative_to` vergleicht Pfadteile statt Zeichen.",
-                Befund.FEHLER))
+            raus.append(
+                Befund(
+                    "%s:%d" % (name, knoten.lineno),
+                    "startswith(…) als Pfadpruefung",
+                    "Ein Nachbarordner mit gleichem Namensanfang besteht sie. "
+                    "`Path.is_relative_to` vergleicht Pfadteile statt Zeichen.",
+                    Befund.FEHLER,
+                )
+            )
         return raus
 
     def _ist_adresse(self, knoten):
@@ -180,8 +197,7 @@ class Pfadpraefix(BefundWerkzeug):
         """Sieht dieser Ausdruck nach einem Pfad aus?"""
         if isinstance(knoten, ast.Call):
             gerufen = knoten.func
-            name = (gerufen.attr if isinstance(gerufen, ast.Attribute)
-                    else getattr(gerufen, "id", ""))
+            name = gerufen.attr if isinstance(gerufen, ast.Attribute) else getattr(gerufen, "id", "")
             if name in self.PFADRUFE:
                 return True
             return any(self._nach_pfad(a) for a in knoten.args)

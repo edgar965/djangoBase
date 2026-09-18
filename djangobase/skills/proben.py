@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Proben - die Gegenproben eines Projekts, an EINER Stelle sichtbar.
+"""Proben - die Gegenproben eines Projekts, an EINER Stelle sichtbar.
 
 WOZU (28.08.2026)
 =================
@@ -53,6 +53,7 @@ Der zweite Schluessel ist noetig, wo die Proben NEBEN dem Django-Teil liegen -
 in 3DTools etwa unter ``A:/3DTools/Docu/umbau``, eine Ebene ueber dem Repo
 ``HumanBodyWeb``, weil vier Repos sich diesen Arbeitsplatz teilen.
 """
+
 import re
 from pathlib import Path
 
@@ -67,17 +68,23 @@ __all__ = ["Proben"]
 class Proben(Werkzeug):
     slug = "proben"
     titel = "Proben und Gegenproben"
-    zweck = (u"Sammelt die Prüfskripte des Projekts (Seitenproben, "
-             u"Gegenproben, Sabotagelaeufe) und zeigt Zweck und Aufruf. "
-             u"Meldet, welche davon gar nicht rot werden kann.")
-    befund = (u"3DTools: Sechs Proben lagen in `Docu/umbau/` — Seitenaufrufe, "
-              u"Cache-Header, LOGGING-Gleichheit, Szenenwerte im Browser. Auf "
-              u"keiner Seite stand, dass es sie gibt; gefunden wurden sie nur, "
-              u"weil dieselbe Sitzung sie geschrieben hatte.")
-    abhilfe = (u"Probe mit einem sprechenden Namen (`*_probe.py`, "
-               u"`*_gegenprobe.py`, `*_probe.mjs`) ablegen, im Kopf EINE Zeile "
-               u"„Start: …\" schreiben und dafür sorgen, dass sie mit einem "
-               u"Rückgabewert ungleich null endet, wenn etwas nicht stimmt.")
+    zweck = (
+        "Sammelt die Prüfskripte des Projekts (Seitenproben, "
+        "Gegenproben, Sabotagelaeufe) und zeigt Zweck und Aufruf. "
+        "Meldet, welche davon gar nicht rot werden kann."
+    )
+    befund = (
+        "3DTools: Sechs Proben lagen in `Docu/umbau/` — Seitenaufrufe, "
+        "Cache-Header, LOGGING-Gleichheit, Szenenwerte im Browser. Auf "
+        "keiner Seite stand, dass es sie gibt; gefunden wurden sie nur, "
+        "weil dieselbe Sitzung sie geschrieben hatte."
+    )
+    abhilfe = (
+        "Probe mit einem sprechenden Namen (`*_probe.py`, "
+        "`*_gegenprobe.py`, `*_probe.mjs`) ablegen, im Kopf EINE Zeile "
+        '„Start: …" schreiben und dafür sorgen, dass sie mit einem '
+        "Rückgabewert ungleich null endet, wenn etwas nicht stimmt."
+    )
     dauer = "unter 1 s (liest nur, führt nichts aus)"
     kriterium = 19
 
@@ -93,37 +100,44 @@ class Proben(Werkzeug):
     #: ``process.exit(0)`` allein zaehlt NICHT - deshalb steht im Muster ein
     #: Ausdruck statt einer festen Null. Ein ``assert`` oder ``throw`` genuegt
     #: ebenfalls: Beides beendet den Lauf mit einem Fehler.
-    ROT = (re.compile(r"process\.exit\(\s*(?!0\s*\))"),
-           re.compile(r"sys\.exit\(\s*(?!0\s*\))"),
-           re.compile(r"^\s*assert\s", re.M),
-           re.compile(r"\bthrow\s+new\s"),
-           re.compile(r"^\s*raise\s", re.M),
-           # Eine Probe als unittest-Mischklasse (``assistant/gruppenprobe.py``,
-           # 12.09.2026): ``self.assertTrue(...)`` faellt genauso wie ``assert``.
-           re.compile(r"\bself\.assert\w*\("))
+    ROT = (
+        re.compile(r"process\.exit\(\s*(?!0\s*\))"),
+        re.compile(r"sys\.exit\(\s*(?!0\s*\))"),
+        re.compile(r"^\s*assert\s", re.M),
+        re.compile(r"\bthrow\s+new\s"),
+        re.compile(r"^\s*raise\s", re.M),
+        # Eine Probe als unittest-Mischklasse (``assistant/gruppenprobe.py``,
+        # 12.09.2026): ``self.assertTrue(...)`` faellt genauso wie ``assert``.
+        re.compile(r"\bself\.assert\w*\("),
+    )
 
     #: Aus dem Kopf gelesen: „Start: <befehl>" bzw. „Aufruf: <befehl>".
-    AUFRUF = re.compile(r"^\s*(?:\*\s*)?(?:Start|Aufruf|Lauf)\s*:\s*(.+)$",
-                        re.M | re.I)
+    AUFRUF = re.compile(r"^\s*(?:\*\s*)?(?:Start|Aufruf|Lauf)\s*:\s*(.+)$", re.M | re.I)
 
     anlassfall = Anlassfall(
         dateien={
             "gute_probe.py": (
                 '"""Probe, die rot werden kann.\n\n'
                 'Start: python gute_probe.py\n"""\n'
-                'import sys\n'
-                'sys.exit(1 if kaputt() else 0)\n'),
+                "import sys\n"
+                "sys.exit(1 if kaputt() else 0)\n"
+            ),
             "stille_probe.mjs": (
                 "// Probe, die IMMER gruen meldet - genau der Fall.\n"
                 "console.log(schlecht ? 'FEHL' : 'ok');\n"
-                "process.exit(0);\n"),
+                "process.exit(0);\n"
+            ),
         },
-        mindestens=2, hoechstens=2,
-        erwartet_in=u"nein",
-        warum=(u"Beide Dateien müssen in der Liste stehen, und die stille muss "
-               u"in der Spalte „kann rot werden\" ein Nein bekommen. Faellt die "
-               u"Spalte weg, sieht die Liste vollstaendig aus und sagt nichts "
-               u"mehr."))
+        mindestens=2,
+        hoechstens=2,
+        erwartet_in="nein",
+        warum=(
+            "Beide Dateien müssen in der Liste stehen, und die stille muss "
+            'in der Spalte „kann rot werden" ein Nein bekommen. Faellt die '
+            "Spalte weg, sieht die Liste vollstaendig aus und sagt nichts "
+            "mehr."
+        ),
+    )
 
     def _einstellung(self, name):
         return list((getattr(settings, "DJANGOBASE", {}) or {}).get(name) or [])
@@ -145,14 +159,13 @@ class Proben(Werkzeug):
         # `anlass_protokoll.py` - am Namen nicht zu erkennen, am ersten Satz
         # ihres Kopfes sehr wohl.
         try:
-            kopf = Proben._kopf(pfad.read_text(encoding="utf-8",
-                                               errors="replace"))
+            kopf = Proben._kopf(pfad.read_text(encoding="utf-8", errors="replace"))
         except OSError:
             return False
         return kopf.lower().startswith(Proben.KOPFWOERTER)
 
     def _zusatzordner(self):
-        u"""Die vom Projekt genannten Ordner - auch neben dem Repo.
+        """Die vom Projekt genannten Ordner - auch neben dem Repo.
 
         Sie gehen NICHT durch ``pfade()``: Der ``.gitignore``-Filter dort haengt
         an der Projektwurzel und kann ueber einen Pfad ausserhalb nichts
@@ -187,11 +200,10 @@ class Proben(Werkzeug):
     @staticmethod
     def _gehoert_dazu(ordner, wurzel):
         """Liegt der Ordner im Projekt oder unmittelbar daneben?"""
-        return (ordner == wurzel or wurzel in ordner.parents
-                or wurzel.parent in ordner.parents)
+        return ordner == wurzel or wurzel in ordner.parents or wurzel.parent in ordner.parents
 
     def dateien_finden(self):
-        u"""Alle Probendateien, ohne Wegwerfstücke und Ausnahmen."""
+        """Alle Probendateien, ohne Wegwerfstücke und Ausnahmen."""
         raus = tuple(self._einstellung("proben_ausser"))
         wurzel = self.wurzel()
         gefunden = {}
@@ -203,8 +215,7 @@ class Proben(Werkzeug):
                 rel = pfad.relative_to(wurzel).as_posix()
             except ValueError:
                 # Liegt neben der Wurzel (vier Repos, ein Arbeitsplatz).
-                rel = pfad.as_posix().replace(
-                    wurzel.parent.as_posix() + "/", "../")
+                rel = pfad.as_posix().replace(wurzel.parent.as_posix() + "/", "../")
             if any(a in rel for a in raus):
                 continue
             gefunden[rel] = pfad
@@ -212,11 +223,10 @@ class Proben(Werkzeug):
 
     @staticmethod
     def _kopf(text):
-        u"""Die erste erklärende Zeile — Docstring oder Blockkommentar."""
+        """Die erste erklärende Zeile — Docstring oder Blockkommentar."""
         for zeile in text.splitlines()[:40]:
             nackt = zeile.strip().lstrip("#/*\" '").strip()
-            if len(nackt) > 25 and not nackt.startswith(("import", "from",
-                                                         "const", "let")):
+            if len(nackt) > 25 and not nackt.startswith(("import", "from", "const", "let")):
                 return nackt[:150]
         return ""
 
@@ -227,29 +237,42 @@ class Proben(Werkzeug):
             try:
                 text = pfad.read_text(encoding="utf-8", errors="replace")
             except OSError as fehler:
-                zeilen.append({"probe": rel, "art": "?",
-                               "kann rot werden": "?",
-                               "zweck": "nicht lesbar: %s" % fehler,
-                               "aufruf": ""})
+                zeilen.append(
+                    {
+                        "probe": rel,
+                        "art": "?",
+                        "kann rot werden": "?",
+                        "zweck": "nicht lesbar: %s" % fehler,
+                        "aufruf": "",
+                    }
+                )
                 continue
             rot = any(m.search(text) for m in Proben.ROT)
             if not rot:
                 stumm += 1
             treffer = Proben.AUFRUF.search(text)
             art = "Browser" if pfad.suffix in (".js", ".mjs") else "Server"
-            zeilen.append({
-                "probe": rel,
-                "art": art,
-                "kann rot werden": "ja" if rot else "nein",
-                "zweck": Proben._kopf(text),
-                "aufruf": (treffer.group(1).strip() if treffer
-                           else ("node %s" % rel if art == "Browser"
-                                 else "python %s" % rel)),
-            })
-        satz = u"%d Probe(n) gefunden" % len(zeilen)
+            zeilen.append(
+                {
+                    "probe": rel,
+                    "art": art,
+                    "kann rot werden": "ja" if rot else "nein",
+                    "zweck": Proben._kopf(text),
+                    "aufruf": (
+                        treffer.group(1).strip()
+                        if treffer
+                        else ("node %s" % rel if art == "Browser" else "python %s" % rel)
+                    ),
+                }
+            )
+        satz = "%d Probe(n) gefunden" % len(zeilen)
         if stumm:
-            satz += u" — %d davon kann nicht rot werden" % stumm
-        return Ergebnis(list(Proben.SPALTEN), zeilen, satz,
-                        u"Nach dem Bau einer Probe EINMAL sabotieren und "
-                        u"nachsehen, ob sie rot wird — eine Probe, die immer "
-                        u"grün meldet, deckt zu statt zu prüfen.")
+            satz += " — %d davon kann nicht rot werden" % stumm
+        return Ergebnis(
+            list(Proben.SPALTEN),
+            zeilen,
+            satz,
+            "Nach dem Bau einer Probe EINMAL sabotieren und "
+            "nachsehen, ob sie rot wird — eine Probe, die immer "
+            "grün meldet, deckt zu statt zu prüfen.",
+        )

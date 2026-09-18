@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Vorlagenblock - ein `{% block %}`, den die Elternkette nicht kennt.
+"""Vorlagenblock - ein `{% block %}`, den die Elternkette nicht kennt.
 
 DER BEFUND (3DTools, 17.08.2026)
 ================================
@@ -30,9 +30,8 @@ Nur `extra_styles` stand auf Ebene 0 und fiel damit heraus. Ohne diese
 Unterscheidung meldet die Prüfung 11 statt 1 Fundstelle, und der eine echte Fall
 geht unter.
 """
-import re
 
-from django.conf import settings
+import re
 
 from .anlassfall import Anlassfall
 from .werkzeug import Ergebnis, Werkzeug
@@ -50,13 +49,19 @@ MAX_TIEFE = 8
 class Vorlagenblock(Werkzeug):
     slug = "vorlagenblock"
     titel = "Vorlagen: Block läuft ins Leere"
-    zweck = ("Findet `{% block x %}` auf oberster Ebene, den die `extends`-Kette "
-             "nicht kennt. Django verwirft ihn still — der Inhalt erscheint nie.")
-    befund = ("3DTools: `{% block extra_styles %}` statt `extra_head` liess den "
-              "ganzen Stilblock einer Seite verschwinden. Folge: 180 "
-              "Vorschaubilder mit 0x0 Pixeln, unsichtbar, bei HTTP 200.")
-    abhilfe = ("Blocknamen an die Elternvorlage angleichen — oder den Block dort "
-               "einführen. Welche Namen es gibt, steht in der Spalte „bekannt\".")
+    zweck = (
+        "Findet `{% block x %}` auf oberster Ebene, den die `extends`-Kette "
+        "nicht kennt. Django verwirft ihn still — der Inhalt erscheint nie."
+    )
+    befund = (
+        "3DTools: `{% block extra_styles %}` statt `extra_head` liess den "
+        "ganzen Stilblock einer Seite verschwinden. Folge: 180 "
+        "Vorschaubilder mit 0x0 Pixeln, unsichtbar, bei HTTP 200."
+    )
+    abhilfe = (
+        "Blocknamen an die Elternvorlage angleichen — oder den Block dort "
+        'einführen. Welche Namen es gibt, steht in der Spalte „bekannt".'
+    )
     dauer = "unter 1 s"
     kriterium = 5
 
@@ -65,20 +70,24 @@ class Vorlagenblock(Werkzeug):
     #: unbekannt ist, aber an seiner Stelle gerendert wird und deshalb NICHT
     #: zaehlen darf. Ohne diese Unterscheidung meldete die Pruefung 11 statt 1.
     anlassfall = Anlassfall(
-        {"eltern.html": '''<html><head>{% block extra_head %}{% endblock %}</head>
+        {
+            "eltern.html": """<html><head>{% block extra_head %}{% endblock %}</head>
 <body>{% block inhalt %}{% endblock %}</body></html>
-''',
-         "kind.html": '''{% extends "eltern.html" %}
+""",
+            "kind.html": """{% extends "eltern.html" %}
 {% block extra_styles %}<style>p{color:red}</style>{% endblock %}
 {% block inhalt %}
   {% block eigene_stelle %}Text{% endblock %}
 {% endblock %}
-'''},
-        mindestens=1, hoechstens=1,
+""",
+        },
+        mindestens=1,
+        hoechstens=1,
         erwartet_in="extra_styles",
         warum="``{% block extra_styles %}`` statt ``extra_head`` ließ einen "
-              "ganzen Stilblock verschwinden — 180 Vorschaubilder 0x0, bei "
-              "HTTP 200")
+        "ganzen Stilblock verschwinden — 180 Vorschaubilder 0x0, bei "
+        "HTTP 200",
+    )
 
     def laufen(self):
         vorlagen = self._vorlagen()
@@ -92,27 +101,34 @@ class Vorlagenblock(Werkzeug):
             geprueft += 1
             bekannt, fehlend = self._kette(eltern.group(1), vorlagen)
             if fehlend:
-                zeilen.append({"art": "Elternvorlage fehlt", "vorlage": name,
-                               "block": eltern.group(1), "bekannt": ""})
+                zeilen.append(
+                    {"art": "Elternvorlage fehlt", "vorlage": name, "block": eltern.group(1), "bekannt": ""}
+                )
                 continue
             for block in self._oberste(text):
                 if block not in bekannt:
-                    zeilen.append({
-                        "art": "Block unbekannt", "vorlage": name,
-                        "block": block,
-                        "bekannt": ", ".join(sorted(bekannt)[:8])})
+                    zeilen.append(
+                        {
+                            "art": "Block unbekannt",
+                            "vorlage": name,
+                            "block": block,
+                            "bekannt": ", ".join(sorted(bekannt)[:8]),
+                        }
+                    )
         return Ergebnis(
-            ["art", "vorlage", "block", "bekannt"], zeilen,
+            ["art", "vorlage", "block", "bekannt"],
+            zeilen,
             zusammenfassung="%d Vorlagen mit `extends` geprüft, %d Bloecke "
-                            "laufen ins Leere" % (geprueft, len(zeilen)),
+            "laufen ins Leere" % (geprueft, len(zeilen)),
             hinweis="Nur Bloecke auf OBERSTER Ebene können verworfen werden. Ein "
-                    "geschachtelter Block ist eine Erweiterungsstelle und wird an "
-                    "seiner Stelle gerendert — ohne diese Unterscheidung meldet "
-                    "die Prüfung ein Vielfaches an Fehlalarmen.")
+            "geschachtelter Block ist eine Erweiterungsstelle und wird an "
+            "seiner Stelle gerendert — ohne diese Unterscheidung meldet "
+            "die Prüfung ein Vielfaches an Fehlalarmen.",
+        )
 
     # ------------------------------------------------------------------ intern
     def _vorlagen(self):
-        u"""{Pfad: Anzeigename} aller Vorlagen — Projekt UND djangoBase.
+        """{Pfad: Anzeigename} aller Vorlagen — Projekt UND djangoBase.
 
         Die Elternkette endet fast immer in einer mitgelieferten Vorlage
         (`djangobase/base.html`). Wer nur im Projekt sucht, meldet „Elternvorlage
@@ -122,23 +138,28 @@ class Vorlagenblock(Werkzeug):
         for pfad in self.dateien(".html"):
             raus[pfad] = pfad.relative_to(self.wurzel()).as_posix()
         try:
-            import djangobase
             from pathlib import Path
+
+            import djangobase
+
             eigen = Path(djangobase.__file__).resolve().parent / "templates"
             for pfad in sorted(eigen.rglob("*.html")):
                 raus.setdefault(pfad, "djangobase/" + pfad.name)
-        except Exception:                                       # noqa: BLE001
+        except Exception:  # noqa: BLE001
             pass
         return raus
 
     #: ``{% comment %}…{% endcomment %}`` und ``{# … #}`` — beides wird beim
     #: Rendern verworfen und enthaelt deshalb keine echten Bloecke.
-    KOMMENTAR = re.compile(r"\{%\s*comment\s*%\}.*?\{%\s*endcomment\s*%\}"
-                           r"|\{#.*?#\}", re.S)
+    KOMMENTAR = re.compile(
+        r"\{%\s*comment\s*%\}.*?\{%\s*endcomment\s*%\}"
+        r"|\{#.*?#\}",
+        re.S,
+    )
 
     @classmethod
     def _text(cls, pfad):
-        u"""Der Vorlagentext OHNE Kommentare.
+        """Der Vorlagentext OHNE Kommentare.
 
         EIN BLOCK-TAG IM KOMMENTAR IST KEIN BLOCK (17.08.2026): In
         ``steuer_web/.../_base_steuer.html`` erklärt der Kopfkommentar den
@@ -159,7 +180,7 @@ class Vorlagenblock(Werkzeug):
         return cls.KOMMENTAR.sub("", roh)
 
     def _finden(self, name, vorlagen):
-        u"""Vorlage zu einem `extends`-Namen — über das Pfadende."""
+        """Vorlage zu einem `extends`-Namen — über das Pfadende."""
         ziel = name.replace("\\", "/")
         for pfad in vorlagen:
             if pfad.as_posix().endswith("/" + ziel) or pfad.name == ziel:
@@ -167,7 +188,7 @@ class Vorlagenblock(Werkzeug):
         return None
 
     def _kette(self, name, vorlagen, tiefe=0):
-        u"""(bekannte Blocknamen der Elternkette, fehlender Elternname)."""
+        """(bekannte Blocknamen der Elternkette, fehlender Elternname)."""
         pfad = self._finden(name, vorlagen)
         if pfad is None:
             return set(), name
@@ -183,13 +204,12 @@ class Vorlagenblock(Werkzeug):
 
     @staticmethod
     def _oberste(text):
-        u"""Blocknamen auf Schachtelungsebene 0."""
+        """Blocknamen auf Schachtelungsebene 0."""
         raus, ebene = [], 0
         for marke in MARKE.finditer(text):
             if marke.group(1) == "block":
                 if ebene == 0:
-                    raus.append(re.search(r"block\s+([\w.]+)",
-                                          marke.group(0)).group(1))
+                    raus.append(re.search(r"block\s+([\w.]+)", marke.group(0)).group(1))
                 ebene += 1
             else:
                 ebene = max(0, ebene - 1)

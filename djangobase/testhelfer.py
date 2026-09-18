@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Webmodul - ein ES-Modul der Seite in Node laden, ohne Browser.
+"""Webmodul - ein ES-Modul der Seite in Node laden, ohne Browser.
 
 WOZU (16.08.2026)
 =================
@@ -30,6 +30,7 @@ ES WIRD NICHTS GEHEILT, WAS KAPUTT IST: Zeigt ein Import ins Leere, wirft
 `Webmodul` mit dem Pfad in der Meldung. Ein Testlaeufer, der fehlende Importe
 stillschweigend ueberspringt, meldet gruen und prueft nichts.
 """
+
 import json
 import os
 import re
@@ -57,10 +58,9 @@ class Webmodul:
     def __init__(self, pfad, wurzeln=None):
         self.pfad = Path(pfad).resolve()
         #: {'/static/': <Ordner>} - laengste Vorsilbe gewinnt beim Aufloesen.
-        self.wurzeln = {k: Path(v).resolve()
-                        for k, v in (wurzeln or {}).items()}
+        self.wurzeln = {k: Path(v).resolve() for k, v in (wurzeln or {}).items()}
         self.ordner = None
-        self.spiegel = {}          # echter Pfad -> Pfad im Wegwerf-Ordner
+        self.spiegel = {}  # echter Pfad -> Pfad im Wegwerf-Ordner
 
     # ------------------------------------------------------------- Spiegeln
 
@@ -109,9 +109,7 @@ class Webmodul:
                 # Fremdbibliotheken ueber Importkarten ('three') haben keine
                 # Endung .js und tauchen hier nicht auf; alles andere ist ein
                 # echter Fehler.
-                raise WebmodulFehler(
-                    "%s importiert '%s' - dort liegt keine Datei"
-                    % (quelle.name, angabe))
+                raise WebmodulFehler("%s importiert '%s' - dort liegt keine Datei" % (quelle.name, angabe))
             ziele.append(ziel)
         return ziele
 
@@ -121,7 +119,7 @@ class Webmodul:
             return ziel if ziel.is_file() else None
         for name, wurzel in sorted(self.wurzeln.items(), key=lambda p: -len(p[0])):
             if angabe.startswith(name):
-                ziel = (wurzel / angabe[len(name):]).resolve()
+                ziel = (wurzel / angabe[len(name) :]).resolve()
                 if ziel.is_file():
                     return ziel
         return None
@@ -141,13 +139,12 @@ class Webmodul:
                 rel = "./" + rel
             return "%s%s%s%s" % (kopf, anfuehrung, rel, anfuehrung)
 
-        return IMPORTE.sub(ersetzen,
-                           quelle.read_text(encoding="utf-8", errors="replace"))
+        return IMPORTE.sub(ersetzen, quelle.read_text(encoding="utf-8", errors="replace"))
 
     # -------------------------------------------------------------- Ausfuehren
 
     def laufen(self, skript):
-        u"""Skript in Node ausfuehren. `MODUL` darin ist der Pfad des Moduls.
+        """Skript in Node ausfuehren. `MODUL` darin ist der Pfad des Moduls.
 
         Erwartet, dass das Skript EINE JSON-Zeile ausgibt; die wird geparst
         zurueckgegeben.
@@ -156,12 +153,14 @@ class Webmodul:
             raise WebmodulFehler("node ist nicht im PATH")
         einstieg = self.aufbauen()
         try:
-            vollstaendig = ("const MODUL = %s;\n%s"
-                            % (json.dumps(einstieg.as_uri()), skript))
+            vollstaendig = "const MODUL = %s;\n%s" % (json.dumps(einstieg.as_uri()), skript)
             lauf = subprocess.run(
                 ["node", "--input-type=module", "-e", vollstaendig],
-                capture_output=True, text=True, encoding="utf-8",
-                timeout=Webmodul.ZEITGRENZE_S)
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                timeout=Webmodul.ZEITGRENZE_S,
+            )
             if lauf.returncode != 0:
                 raise WebmodulFehler("node-Lauf gescheitert: %s" % lauf.stderr)
             letzte = (lauf.stdout or "").strip().splitlines()
@@ -176,8 +175,11 @@ class Webmodul:
                 # den Fehler im Modul statt im Testskript.
                 raise WebmodulFehler(
                     "letzte Zeile ist kein JSON (%s): %r%s"
-                    % (fehler, letzte[-1],
-                       "" if len(letzte) == 1
-                       else " — davor %d weitere Zeile(n)" % (len(letzte) - 1)))
+                    % (
+                        fehler,
+                        letzte[-1],
+                        "" if len(letzte) == 1 else " — davor %d weitere Zeile(n)" % (len(letzte) - 1),
+                    )
+                ) from fehler
         finally:
             self.wegwerfen()

@@ -20,7 +20,7 @@ class Codesicht:
     """Der Codeanteil einer Quelldatei — Texte sind geleert, Kommentare weg."""
 
     #: Nach diesen Zeichen beginnt ein `/` einen regulaeren Ausdruck, keine Division.
-    VOR_REGEX = set('(,=:[!&|?{};+-*%~^<>') | {'\n', 'return', 'typeof'}
+    VOR_REGEX = set("(,=:[!&|?{};+-*%~^<>") | {"\n", "return", "typeof"}
 
     def __init__(self, quelle):
         self.quelle = quelle
@@ -39,9 +39,9 @@ class Codesicht:
         aus = list(s)
         for anfang, ende, _art in cls._teile(s):
             for i in range(anfang, ende):
-                if aus[i] != '\n':
-                    aus[i] = ' '
-        return ''.join(aus)
+                if aus[i] != "\n":
+                    aus[i] = " "
+        return "".join(aus)
 
     @classmethod
     def _durchlauf(cls, s):
@@ -53,11 +53,10 @@ class Codesicht:
         aus, zuletzt = [], 0
         for anfang, ende, art in cls._teile(s):
             aus.append(s[zuletzt:anfang])
-            aus.append(cls.PLATZHALTER.get(art, ' ')
-                       if art != 'text' else s[anfang] * 2)
+            aus.append(cls.PLATZHALTER.get(art, " ") if art != "text" else s[anfang] * 2)
             zuletzt = ende
         aus.append(s[zuletzt:])
-        return ''.join(aus)
+        return "".join(aus)
 
     #: Was im verdichteten Text an die Stelle eines Nichtcode-Bereichs tritt.
     #:
@@ -67,8 +66,7 @@ class Codesicht:
     #: danach nicht zusammenkleben. Bei `text` steht das Anfuehrungszeichen
     #: doppelt (siehe `_durchlauf`) — die Werkzeuge sollen sehen, DASS dort
     #: eine Zeichenkette war.
-    PLATZHALTER = {'zeilenkommentar': '', 'blockkommentar': ' ',
-                   'regex': ' ', 'vorlagentext': ' '}
+    PLATZHALTER = {"zeilenkommentar": "", "blockkommentar": " ", "regex": " ", "vorlagentext": " "}
 
     # ------------------------------------------------------------- Scanner
 
@@ -89,7 +87,7 @@ class Codesicht:
         """
         bereiche = []
         i, n = 0, len(s)
-        letztes = '\n'
+        letztes = "\n"
         #: Je offene Vorlage: [Beginn des laufenden Textstuecks, Klammertiefe].
         #: Tiefe 0 heisst „im Text", groesser 0 „in einer Einsetzung".
         vorlagen = []
@@ -99,16 +97,16 @@ class Codesicht:
 
             # ---- im TEXTTEIL einer Vorlage
             if vorlagen and vorlagen[-1][1] == 0:
-                if c == '\\':
+                if c == "\\":
                     i += 2
                     continue
-                if c == '`':
-                    bereiche.append((vorlagen.pop()[0], i + 1, 'vorlagentext'))
-                    letztes = ')'
+                if c == "`":
+                    bereiche.append((vorlagen.pop()[0], i + 1, "vorlagentext"))
+                    letztes = ")"
                     i += 1
                     continue
-                if c == '$' and i + 1 < n and s[i + 1] == '{':
-                    bereiche.append((vorlagen[-1][0], i + 2, 'vorlagentext'))
+                if c == "$" and i + 1 < n and s[i + 1] == "{":
+                    bereiche.append((vorlagen[-1][0], i + 2, "vorlagentext"))
                     vorlagen[-1][1] = 1
                     i += 2
                     continue
@@ -116,67 +114,67 @@ class Codesicht:
                 continue
 
             # ---- Kommentare
-            if c == '/' and i + 1 < n and s[i + 1] == '/':
-                j = s.find('\n', i)
+            if c == "/" and i + 1 < n and s[i + 1] == "/":
+                j = s.find("\n", i)
                 j = n if j < 0 else j
-                bereiche.append((i, j, 'zeilenkommentar'))
+                bereiche.append((i, j, "zeilenkommentar"))
                 i = j
                 continue
-            if c == '/' and i + 1 < n and s[i + 1] == '*':
-                j = s.find('*/', i + 2)
+            if c == "/" and i + 1 < n and s[i + 1] == "*":
+                j = s.find("*/", i + 2)
                 j = n if j < 0 else j + 2
-                bereiche.append((i, j, 'blockkommentar'))
+                bereiche.append((i, j, "blockkommentar"))
                 i = j
                 continue
 
             # ---- regulaerer Ausdruck (nur, wenn davor kein Wert steht)
-            if c == '/' and letztes in cls.VOR_REGEX:
+            if c == "/" and letztes in cls.VOR_REGEX:
                 j = cls._regexende(s, i)
                 if j > 0:
-                    bereiche.append((i, j, 'regex'))
+                    bereiche.append((i, j, "regex"))
                     i = j
-                    letztes = ')'
+                    letztes = ")"
                     continue
 
             # ---- Zeichenketten
-            if c in '"\'':
+            if c in "\"'":
                 j = i + 1
                 while j < n and s[j] != c:
-                    j += 2 if s[j] == '\\' else 1
-                bereiche.append((i, min(j + 1, n), 'text'))
+                    j += 2 if s[j] == "\\" else 1
+                bereiche.append((i, min(j + 1, n), "text"))
                 i = j + 1
-                letztes = ')'
+                letztes = ")"
                 continue
 
             # ---- Vorlage beginnt
-            if c == '`':
+            if c == "`":
                 vorlagen.append([i, 0])
                 i += 1
                 continue
 
             # ---- Klammern innerhalb einer Einsetzung mitzaehlen
             if vorlagen:
-                if c == '{':
+                if c == "{":
                     vorlagen[-1][1] += 1
-                elif c == '}':
+                elif c == "}":
                     vorlagen[-1][1] -= 1
                     if vorlagen[-1][1] == 0:
                         # Die schliessende Klammer zaehlt zum naechsten
                         # Textstueck — so stand es schon in der alten Fassung.
                         vorlagen[-1][0] = i
-                        letztes = ')'
+                        letztes = ")"
                         i += 1
                         continue
 
             if not c.isspace():
                 letztes = c
-            elif c == '\n':
-                letztes = '\n'
+            elif c == "\n":
+                letztes = "\n"
             i += 1
 
         # Eine nicht geschlossene Vorlage: der Rest ist Text.
         while vorlagen:
-            bereiche.append((vorlagen.pop()[0], n, 'vorlagentext'))
+            bereiche.append((vorlagen.pop()[0], n, "vorlagentext"))
         return bereiche
 
     @classmethod
@@ -184,20 +182,19 @@ class Codesicht:
         """Position hinter dem regulaeren Ausdruck, oder -1."""
         j, in_klasse, n = i + 1, False, len(s)
         while j < n:
-            if s[j] == '\\':
+            if s[j] == "\\":
                 j += 2
                 continue
-            if s[j] == '[':
+            if s[j] == "[":
                 in_klasse = True
-            elif s[j] == ']':
+            elif s[j] == "]":
                 in_klasse = False
-            elif s[j] == '/' and not in_klasse:
+            elif s[j] == "/" and not in_klasse:
                 j += 1
                 while j < n and s[j].isalpha():
                     j += 1
                 return j
-            elif s[j] == '\n':
+            elif s[j] == "\n":
                 return -1
             j += 1
         return -1
-

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Ein Routenziel, das eine Klassenmethode ist, muss seine Klasse behalten.
+"""Ein Routenziel, das eine Klassenmethode ist, muss seine Klasse behalten.
 
 DER ANLASS (02.09.2026, Projekt 3DTools)
 ========================================
@@ -25,44 +25,40 @@ mit klassenbasierten Views (``X.as_view()``) muessen unveraendert
 bleiben. Unterschieden wird an der Grossschreibung — derselben Regel,
 nach der der ``as_view``-Zweig schon vorher gearbeitet hat.
 """
+
 from django.test import SimpleTestCase
 
 from ...umbau.einstiege import Einstiegssucher
 
 
 class EineKlassenmethodeBehaeltIhreKlasse(SimpleTestCase):
-    u"""Der Fall, an dem 88 Routen hingen."""
+    """Der Fall, an dem 88 Routen hingen."""
 
     def test_die_klasse_bleibt_vor_dem_methodennamen(self):
-        self.assertEqual(Einstiegssucher._kurzziel('views.Webseiten.start'),
-                         'Webseiten.start')
+        self.assertEqual(Einstiegssucher._kurzziel("views.Webseiten.start"), "Webseiten.start")
 
     def test_auch_bei_langem_modulpfad(self):
         self.assertEqual(
-            Einstiegssucher._kurzziel(
-                'core.views.api.Auftragsendpunkte.starten_formular'),
-            'Auftragsendpunkte.starten_formular')
+            Einstiegssucher._kurzziel("core.views.api.Auftragsendpunkte.starten_formular"),
+            "Auftragsendpunkte.starten_formular",
+        )
 
     def test_ohne_modul_bleibt_es_wie_es_ist(self):
-        self.assertEqual(Einstiegssucher._kurzziel('Webseiten.start'),
-                         'Webseiten.start')
+        self.assertEqual(Einstiegssucher._kurzziel("Webseiten.start"), "Webseiten.start")
 
 
 class EineModulfunktionBleibtEinNackterName(SimpleTestCase):
-    u"""Die Gegenprobe: Was vorher richtig war, bleibt richtig.
+    """Die Gegenprobe: Was vorher richtig war, bleibt richtig.
 
     Ohne sie koennte die Regel auch jedes Modul mitschleppen — dann
     faende `_start` in den anderen Projekten nichts mehr.
     """
 
     def test_ein_kleingeschriebenes_modul_faellt_weg(self):
-        self.assertEqual(Einstiegssucher._kurzziel('views.dashboard'),
-                         'dashboard')
+        self.assertEqual(Einstiegssucher._kurzziel("views.dashboard"), "dashboard")
 
     def test_auch_ein_zwischenmodul_faellt_weg(self):
-        self.assertEqual(
-            Einstiegssucher._kurzziel('views.admin_views.export_csv'),
-            'export_csv')
+        self.assertEqual(Einstiegssucher._kurzziel("views.admin_views.export_csv"), "export_csv")
 
     def test_ein_nackter_name_bleibt_nackt(self):
-        self.assertEqual(Einstiegssucher._kurzziel('dashboard'), 'dashboard')
+        self.assertEqual(Einstiegssucher._kurzziel("dashboard"), "dashboard")

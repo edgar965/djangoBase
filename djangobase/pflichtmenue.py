@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Menue-Eintraege, die JEDES djangoBase-Projekt haben soll.
+"""Menue-Eintraege, die JEDES djangoBase-Projekt haben soll.
 
 DIE VORGABE (16.08.2026)
 ========================
@@ -37,6 +37,7 @@ sie ueberall, ohne dass ein Projekt etwas aendern muss.
 Reine Daten, kein Django-Import ausser ``reverse_lazy`` - die Eintraege werden
 beim Aufbau des Menues ausgewertet, nicht beim Import.
 """
+
 from django.urls import reverse_lazy
 
 __all__ = ["PflichtEintrag", "pflicht_eintraege", "PFLICHTSEITEN"]
@@ -103,53 +104,83 @@ class PflichtEintrag:
 #: das ist hilfreicher als ein fehlender Menüpunkt, den niemand sucht.
 PFLICHTSEITEN = (
     PflichtEintrag(
-        "Cache", "bi-hdd-network", "cache",
+        "Cache",
+        "bi-hdd-network",
+        "cache",
         "Das Cache-Konzept: Seiten nie aus dem Zwischenspeicher, Statik mit "
         "Fassung, ES-Module über den Fassungspfad — Regeln, Vorgeschichte, "
-        "Zustand dieses Projekts und die Befunde"),
+        "Zustand dieses Projekts und die Befunde",
+    ),
     PflichtEintrag(
-        "Werkzeug Code Review", "bi-tools", "skills",
+        "Werkzeug Code Review",
+        "bi-tools",
+        "skills",
         "Der Werkzeugkasten: alle Prüfungen und Fixer, Stapellauf mit Bericht "
         "zum Mitnehmen, Sicherung und Netz, dazu die Lehren aus den "
-        "Code-Reviews als Ankreuzliste"),
+        "Code-Reviews als Ankreuzliste",
+    ),
     PflichtEintrag(
-        "Werkzeug Klassenmodell", "bi-diagram-3", "klassenmodell",
+        "Werkzeug Klassenmodell",
+        "bi-diagram-3",
+        "klassenmodell",
         "Das Objektmodell als Bild: wer hält wen, wer erbt von wem — auf "
-        "Knopfdruck aus dem Quelltext gezeichnet"),
+        "Knopfdruck aus dem Quelltext gezeichnet",
+    ),
     PflichtEintrag(
-        "Werkzeug Language Server", "bi-braces", "languageserver",
+        "Werkzeug Language Server",
+        "bi-braces",
+        "languageserver",
         "Ein Language Server (basedpyright oder pyright) über das Projekt: "
         "undefinierte Namen, falsche Aufrufe, tote Importe — auf Knopfdruck "
         "im Hintergrund; dazu Referenzen, Definition und Umbenennen über "
-        "alle Dateien"),
+        "alle Dateien",
+    ),
     PflichtEintrag(
-        "Werkzeug Workflows", "bi-signpost-split", "workflows",
+        "Werkzeug Workflows",
+        "bi-signpost-split",
+        "workflows",
         "Die Wege des Projekts als Bild: was von einer Seite, einem Befehl "
         "oder einem Faden aus tatsächlich gerufen wird — aus dem Quelltext "
-        "gelesen, sortiert nach Anzahl der beteiligten Klassen"),
+        "gelesen, sortiert nach Anzahl der beteiligten Klassen",
+    ),
     PflichtEintrag(
-        "Ablauf", "bi-diagram-2", "ablauf",
+        "Ablauf",
+        "bi-diagram-2",
+        "ablauf",
         "Was passiert in welcher Reihenfolge? Ein Aktivitätsdiagramm je "
         "Einstieg — mit Entscheidungen als Rauten und lesbaren Sätzen "
-        "statt Quelltext"),
+        "statt Quelltext",
+    ),
     PflichtEintrag(
-        "Review", "bi-chat-left-text", "review",
+        "Review",
+        "bi-chat-left-text",
+        "review",
         "Code-Review im Gespräch mit einem zweiten Modell — die Runden "
-        "laufen im Hintergrund, eine bis fünf Minuten"),
+        "laufen im Hintergrund, eine bis fünf Minuten",
+    ),
     PflichtEintrag(
-        "Aktuell", "bi-broadcast", "aktuell",
+        "Aktuell",
+        "bi-broadcast",
+        "aktuell",
         "Rollierendes Fenster mit den Ergebnissen der Claude-CLI; "
-        "geschrieben wird ausschließlich über `manage.py aktuell`"),
+        "geschrieben wird ausschließlich über `manage.py aktuell`",
+    ),
     PflichtEintrag(
-        "KI-Modelle", "bi-cpu", "ki_modelle",
+        "KI-Modelle",
+        "bi-cpu",
+        "ki_modelle",
         "Welches Modell taugt als Sparringspartner? Katalog live von "
-        "OpenRouter und aus `ollama list`, Bewertung aus eigener Messung"),
+        "OpenRouter und aus `ollama list`, Bewertung aus eigener Messung",
+    ),
     PflichtEintrag(
-        "Traffic", "bi-graph-up", "traffic",
-        "Zugriffsstatistik: welche Seiten wie oft aufgerufen wurden"),
+        "Traffic", "bi-graph-up", "traffic", "Zugriffsstatistik: welche Seiten wie oft aufgerufen wurden"
+    ),
     PflichtEintrag(
-        "Übersetzung", "bi-translate", "uebersetzung",
-        "Oberflächentexte in andere Sprachen übersetzen (deep_translator)"),
+        "Übersetzung",
+        "bi-translate",
+        "uebersetzung",
+        "Oberflächentexte in andere Sprachen übersetzen (deep_translator)",
+    ),
 )
 
 

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""TestDauerView - Laufzeit eines im BROWSER gefahrenen Tests entgegennehmen.
+"""TestDauerView - Laufzeit eines im BROWSER gefahrenen Tests entgegennehmen.
 
 WARUM ES DIESEN EINEN SCHREIB-ENDPUNKT GIBT
 ===========================================
@@ -20,6 +20,7 @@ WAS ER NICHT ANNIMMT
   ``HOECHSTENS`` verschiedene UI-Kennungen in der Datei. Ohne diese Grenzen
   könnte ein Aufruf in einer Schleife die Datei beliebig groß machen.
 """
+
 import json
 import logging
 import time
@@ -48,24 +49,22 @@ class TestDauerView(ZugriffMixin, View):
         kennung = str(daten.get("id") or "")[:200]
         if not kennung.startswith(self.PRAEFIX):
             return JsonResponse(
-                {"ok": False, "error": "nur Kennungen mit Präfix '%s'"
-                                       % self.PRAEFIX}, status=400)
+                {"ok": False, "error": "nur Kennungen mit Präfix '%s'" % self.PRAEFIX}, status=400
+            )
         try:
             dauer = float(daten.get("dauer"))
         except (TypeError, ValueError):
             return JsonResponse({"ok": False, "error": "dauer fehlt"}, status=400)
         if not 0 <= dauer <= 3600:
-            return JsonResponse({"ok": False, "error": "dauer unplausibel"},
-                                status=400)
+            return JsonResponse({"ok": False, "error": "dauer unplausibel"}, status=400)
 
         historie = Testhistorie()
-        vorhanden = [k for k in historie.daten["tests"]
-                     if k.startswith(self.PRAEFIX)]
+        vorhanden = [k for k in historie.daten["tests"] if k.startswith(self.PRAEFIX)]
         if kennung not in vorhanden and len(vorhanden) >= self.HOECHSTENS:
-            log.warning("Testhistorie: %d UI-Kennungen erreicht, %r nicht "
-                        "aufgenommen", self.HOECHSTENS, kennung)
-            return JsonResponse({"ok": False, "error": "zu viele Kennungen"},
-                                status=429)
+            log.warning(
+                "Testhistorie: %d UI-Kennungen erreicht, %r nicht aufgenommen", self.HOECHSTENS, kennung
+            )
+            return JsonResponse({"ok": False, "error": "zu viele Kennungen"}, status=429)
         historie.merken(time.strftime("%d.%m.%Y %H:%M:%S"), {kennung: dauer})
         # Dictionary gewollt: geht unveraendert als JSON zurueck an die Seite.
         return JsonResponse({"ok": True, "laeufe": historie.laeufe(kennung)})

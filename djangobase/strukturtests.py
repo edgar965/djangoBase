@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Strukturtests — die Strukturregeln als Test, nicht als Text.
+"""Strukturtests — die Strukturregeln als Test, nicht als Text.
 
 DER UNTERSCHIED (gunSlinger, 18.09.2026)
 ========================================
@@ -51,6 +51,7 @@ Einstellungen in ``DJANGOBASE["struktur"]`` (alles optional)::
 Schlüssel im Bestand: ``pfad`` für eine Datei, ``pfad::Name`` für Klasse
 oder Funktion — so, wie der Test sie in der Fehlermeldung ausgibt.
 """
+
 import ast
 
 from django.conf import settings
@@ -60,15 +61,26 @@ from .skills.befund import Befund
 from .skills.dateigroesse import Dateigroesse
 from .skills.klassenjedatei import KlassenJeDatei
 
-__all__ = ["Strukturregeln", "StrukturtestDateigroesse", "StrukturtestKlassenJeDatei",
-           "StrukturtestTestJeKlasse"]
+__all__ = [
+    "Strukturregeln",
+    "StrukturtestDateigroesse",
+    "StrukturtestKlassenJeDatei",
+    "StrukturtestTestJeKlasse",
+]
 
 
 class Strukturregeln:
-    u"""Liest ``DJANGOBASE["struktur"]``, baut die Werkzeuge, führt die Ratsche."""
+    """Liest ``DJANGOBASE["struktur"]``, baut die Werkzeuge, führt die Ratsche."""
 
-    VORGABE = {"datei": 300, "klasse": 300, "js": 300, "funktion": 0,
-               "klassen_je_datei": True, "test_je_klasse": False, "bestand": {}}
+    VORGABE = {
+        "datei": 300,
+        "klasse": 300,
+        "js": 300,
+        "funktion": 0,
+        "klassen_je_datei": True,
+        "test_je_klasse": False,
+        "bestand": {},
+    }
 
     #: Module, für die kein Testmodul verlangt wird: Django findet sie selbst,
     #: oder sie sind Prüfcode.
@@ -80,16 +92,16 @@ class Strukturregeln:
         self.cfg = dict(self.VORGABE, **cfg)
 
     def bestand(self, regel):
-        u"""Die Bestandsliste EINER Regel (``groesse``, ``klassen``, ``tests``)."""
+        """Die Bestandsliste EINER Regel (``groesse``, ``klassen``, ``tests``)."""
         eintraege = (self.cfg["bestand"] or {}).get(regel) or []
         return {str(x).replace("\\", "/") for x in eintraege}
 
     def werkzeug(self, klasse):
-        u"""Ein eingerichtetes Werkzeug — Tests setzen es auf einen Wegwerfordner."""
+        """Ein eingerichtetes Werkzeug — Tests setzen es auf einen Wegwerfordner."""
         return klasse()
 
     def ratsche(self, regel, verstoesse):
-        u"""``(neu, veraltet)``: Verstöße ohne Bestandseintrag, Einträge ohne Verstoß.
+        """``(neu, veraltet)``: Verstöße ohne Bestandseintrag, Einträge ohne Verstoß.
 
         ``verstoesse``: ``{schluessel: beschreibung}`` oder eine Liste von Schlüsseln.
         """
@@ -125,7 +137,7 @@ class _Strukturtest(SimpleTestCase):
 
 
 class StrukturtestDateigroesse(_Strukturtest):
-    u"""Dateien, Klassen (und auf Wunsch Funktionen) über der Code-Zeilen-Grenze."""
+    """Dateien, Klassen (und auf Wunsch Funktionen) über der Code-Zeilen-Grenze."""
 
     def test_nichts_ueber_der_groessengrenze(self):
         regeln = self.regeln()
@@ -133,22 +145,26 @@ class StrukturtestDateigroesse(_Strukturtest):
         werkzeug.GRENZE_DATEI = int(regeln.cfg["datei"])
         werkzeug.GRENZE_KLASSE = int(regeln.cfg["klasse"])
         werkzeug.GRENZE_JS = int(regeln.cfg["js"])
-        werkzeug.GRENZE_FUNKTION = int(regeln.cfg["funktion"]) or 10 ** 9
+        werkzeug.GRENZE_FUNKTION = int(regeln.cfg["funktion"]) or 10**9
         verstoesse = {}
-        for zeile in werkzeug.laufen().zeilen:       # "datei" ist der Pfad relativ zur Wurzel
+        for zeile in werkzeug.laufen().zeilen:  # "datei" ist der Pfad relativ zur Wurzel
             pfad = str(zeile["datei"]).replace("\\", "/")
             if zeile["art"] in ("Datei", "JS-Modul"):
                 schluessel, art = pfad, zeile["art"]
             else:
                 schluessel, art = "%s::%s" % (pfad, zeile["name"]), zeile["art"]
             verstoesse[schluessel] = "%s (%s, %d Code-Zeilen > %d)" % (
-                schluessel, art, zeile["code"], zeile["grenze"])
+                schluessel,
+                art,
+                zeile["code"],
+                zeile["grenze"],
+            )
         grenzen = {k: regeln.cfg[k] for k in ("datei", "klasse", "js", "funktion")}
         self.pruefe_ratsche("groesse", "Zu große Dateien/Klassen (Grenzen: %s)" % grenzen, verstoesse)
 
 
 class StrukturtestKlassenJeDatei(_Strukturtest):
-    u"""Mehr als eine eigenständige Klasse in einer Datei — nach der Eichung des Werkzeugs."""
+    """Mehr als eine eigenständige Klasse in einer Datei — nach der Eichung des Werkzeugs."""
 
     def test_eine_eigenstaendige_klasse_je_datei(self):
         regeln = self.regeln()
@@ -160,7 +176,7 @@ class StrukturtestKlassenJeDatei(_Strukturtest):
 
 
 class StrukturtestTestJeKlasse(_Strukturtest):
-    u"""Jede Klasse hat ein ``test_<modul>.py`` — die gunSlinger-Regel, hier auf Wunsch."""
+    """Jede Klasse hat ein ``test_<modul>.py`` — die gunSlinger-Regel, hier auf Wunsch."""
 
     def test_jede_klasse_hat_ein_testmodul(self):
         regeln = self.regeln()

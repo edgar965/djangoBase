@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Dauern - die Laufzeit je Testcase aus der Ausgabe von ``manage.py test`` lesen.
+"""Dauern - die Laufzeit je Testcase aus der Ausgabe von ``manage.py test`` lesen.
 
 WOHER DIE ZAHLEN KOMMEN
 =======================
@@ -31,6 +31,7 @@ Im Projekt assistant traegt JEDE stdout-Zeile einen Zeitstempel
 festnagelt, findet dort nichts. Deshalb wird die Zeile ohne Ankerung gelesen
 - gesucht wird das Paar „Sekunden + Test-ID in Klammern", egal was davor steht.
 """
+
 import re
 import subprocess
 
@@ -50,14 +51,16 @@ class Dauern:
 
     @classmethod
     def unterstuetzt(cls, python):
-        u"""Kennt dieser Interpreter ``--durations``? (Python 3.12 und neuer)"""
+        """Kennt dieser Interpreter ``--durations``? (Python 3.12 und neuer)"""
         schluessel = str(python)
         if schluessel not in cls._kann:
             try:
                 r = subprocess.run(
-                    [schluessel, "-c",
-                     "import sys; print(1 if sys.version_info >= (3, 12) else 0)"],
-                    capture_output=True, text=True, timeout=20)
+                    [schluessel, "-c", "import sys; print(1 if sys.version_info >= (3, 12) else 0)"],
+                    capture_output=True,
+                    text=True,
+                    timeout=20,
+                )
                 cls._kann[schluessel] = (r.stdout or "").strip() == "1"
             except Exception:
                 # Laesst sich der Interpreter nicht befragen, wird die Option
@@ -68,7 +71,7 @@ class Dauern:
 
     @classmethod
     def option_setzen(cls, cmd):
-        u"""``--durations 0`` ergaenzen, wenn es geht - sonst das Kommando lassen.
+        """``--durations 0`` ergaenzen, wenn es geht - sonst das Kommando lassen.
 
         Das Kommando kommt aus ``DJANGOBASE["test_befehle"]`` und gehoert dem
         Projekt; angefasst wird nur eine KOPIE, und nur wenn dort noch keine
@@ -83,7 +86,7 @@ class Dauern:
 
     @classmethod
     def lesen(cls, text):
-        u"""``{test_id: sekunden}`` aus der Ausgabe - leer, wenn es keinen Block gibt.
+        """``{test_id: sekunden}`` aus der Ausgabe - leer, wenn es keinen Block gibt.
 
         Gelesen wird ab dem Kopf „Slowest test durations"; Zeilen davor koennen
         dieselbe Form haben (etwa in einer Fehlermeldung) und wuerden sonst als

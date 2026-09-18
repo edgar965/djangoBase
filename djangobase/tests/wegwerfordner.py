@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Wegwerfordner - Prüfverzeichnisse, die nicht auf C: liegenbleiben.
+"""Wegwerfordner - Prüfverzeichnisse, die nicht auf C: liegenbleiben.
 
 DER BEFUND (31.08.2026, Projekt 3DTools)
 ========================================
@@ -35,6 +35,7 @@ WAS DIESE KLASSE ANDERS MACHT
    räumt der erste Aufruf jedes Laufs auf, was vorher liegengeblieben ist.
 3. **`atexit`** zusätzlich, damit der Normalfall sofort sauber ist.
 """
+
 import atexit
 import os
 import shutil
@@ -43,7 +44,7 @@ from pathlib import Path
 
 
 class Wegwerfordner:
-    u"""Prüfverzeichnisse unter dem Projekt, die sich selbst aufräumen."""
+    """Prüfverzeichnisse unter dem Projekt, die sich selbst aufräumen."""
 
     #: Unterhalb von BASE_DIR - alles hier drin ist Wegwerfware.
     #:
@@ -74,7 +75,7 @@ class Wegwerfordner:
 
     @classmethod
     def wurzel(cls):
-        u"""``BASE_DIR/_wegwerf/pruef`` - angelegt, falls es fehlt."""
+        """``BASE_DIR/_wegwerf/pruef`` - angelegt, falls es fehlt."""
         from django.conf import settings
 
         # JE PROZESS EIN EIGENER ORDNER (Befund CodeRabbit, 31.08.2026):
@@ -82,14 +83,13 @@ class Wegwerfordner:
         # gemeinsamen Wurzel. Laeuft daneben ein zweiter Testprozess, ist das
         # sein Arbeitsordner — ``ignore_errors=True`` verhindert den Verlust
         # nicht, es verschweigt ihn nur.
-        pfad = (Path(getattr(settings, "BASE_DIR", ".")).joinpath(*cls.UNTER)
-                / ("p%d" % os.getpid()))
+        pfad = Path(getattr(settings, "BASE_DIR", ".")).joinpath(*cls.UNTER) / ("p%d" % os.getpid())
         pfad.mkdir(parents=True, exist_ok=True)
         return pfad
 
     @classmethod
     def neu(cls, praefix="pruef_"):
-        u"""Ein leeres Verzeichnis für diesen Prüffall.
+        """Ein leeres Verzeichnis für diesen Prüffall.
 
         @param praefix Namensanfang - er soll sagen, WER ihn angelegt hat
         @returns {Path} das Verzeichnis
@@ -105,14 +105,14 @@ class Wegwerfordner:
 
     @classmethod
     def aufraeumen(cls):
-        u"""Alles wegräumen, was dieser Lauf angelegt hat."""
+        """Alles wegräumen, was dieser Lauf angelegt hat."""
         for ordner in cls._angelegt:
             shutil.rmtree(ordner, ignore_errors=True)
         cls._angelegt = []
 
     @classmethod
     def werkzeug(cls, name, dateien, praefix=None):
-        u"""Ein Werkzeug auf einen frischen Wegwerfordner ansetzen.
+        """Ein Werkzeug auf einen frischen Wegwerfordner ansetzen.
 
         Legt den Ordner an, schreibt die Dateien hinein und uebergibt an
         `ansetzen` — dort steht, warum beide Siebe aufgehen muessen.
@@ -133,7 +133,7 @@ class Wegwerfordner:
 
     @classmethod
     def ansetzen(cls, werkzeug, ordner):
-        u"""Ein Werkzeug auf `ordner` als Projektwurzel ansetzen.
+        """Ein Werkzeug auf `ordner` als Projektwurzel ansetzen.
 
         BEIDE SIEBE MÜSSEN AUF: `Werkzeug.pfade` filtert über die
         Ausschlussliste UND über `.gitignore`. Für den Prüflauf ist der
@@ -161,7 +161,7 @@ class Wegwerfordner:
 
     @staticmethod
     def _reste_raeumen(wurzel):
-        u"""Was ein früherer Lauf hinterlassen hat.
+        """Was ein früherer Lauf hinterlassen hat.
 
         NUR UNTERHALB DER EIGENEN WURZEL, und nur Verzeichnisse: Ein
         Aufräumer, der auch Dateien oder Elternpfade anfasst, ist die
@@ -174,7 +174,7 @@ class Wegwerfordner:
 
 
 class _AllesErlaubt:
-    u"""Gitfilter-Ersatz für den Wegwerfordner: Er ist kein Projektbaum."""
+    """Gitfilter-Ersatz für den Wegwerfordner: Er ist kein Projektbaum."""
 
     @staticmethod
     def erlaubt(_pfad):

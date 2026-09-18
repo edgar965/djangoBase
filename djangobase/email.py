@@ -6,6 +6,7 @@ zurück. In settings.py:
 
     EMAIL_BACKEND = "djangobase.email.StoreSMTPBackend"
 """
+
 from django.core.mail.backends.smtp import EmailBackend
 
 from .conf import conf

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Arten - Reihenfolge und Anzeigenamen der KATEGORIEN.
+"""Arten - Reihenfolge und Anzeigenamen der KATEGORIEN.
 
     „auch die reihenfolge ist änderbar" (Edgar, 17.08.2026)
 
@@ -18,6 +18,7 @@ Warum keine freien Kategorien: Ein Name ohne Ordner waere eine Kategorie, in die
 man verschieben kann, ohne dass ein Sammellauf sie je faende — genau die stille
 Luege, die :mod:`.testverschieben` vermeidet.
 """
+
 from .testbefehle import Testbefehle
 
 __all__ = ["Arten"]
@@ -39,7 +40,7 @@ class Arten:
     def _lesen(self, angabe):
         if isinstance(angabe, str):
             angabe = angabe.splitlines()
-        for e in (angabe or []):
+        for e in angabe or []:
             if isinstance(e, dict):
                 slug, name = str(e.get("slug") or ""), str(e.get("name") or "")
             else:
@@ -60,21 +61,24 @@ class Arten:
 
     @classmethod
     def als_zeilen(cls, angabe):
-        u"""Angabe -> Zeilenformat der Oberflaeche („unit | Unit")."""
+        """Angabe -> Zeilenformat der Oberflaeche („unit | Unit")."""
         if isinstance(angabe, str):
             return angabe.splitlines()
         gelesen = cls(angabe)
         # NUR die ausdruecklich genannten: `liste()` haengt alle uebrigen an,
         # und die haetten im Formular ausgesehen wie eine Vorgabe, die jemand
         # eingetragen hat.
-        return ["%s | %s" % (slug, gelesen.name_von(slug))
-                for slug in gelesen.folge if slug in gelesen.namen
-                or (angabe and slug in [str(x).split("|")[0].strip()
-                                        for x in angabe if isinstance(x, str)])]
+        return [
+            "%s | %s" % (slug, gelesen.name_von(slug))
+            for slug in gelesen.folge
+            if slug in gelesen.namen
+            or (angabe and slug in [str(x).split("|")[0].strip() for x in angabe if isinstance(x, str)])
+        ]
 
     @classmethod
     def aus_einstellungen(cls):
         from .conf import conf
+
         return cls(conf().get("test_kategorien"))
 
     # ---------------------------------------------------------------- Abfragen
@@ -90,5 +94,5 @@ class Arten:
         return self.namen.get(slug) or self.NAMEN.get(slug, slug)
 
     def lang_von(self, slug):
-        u"""Der lange Name („Alle …"-Knoepfe). Eigener Name schlaegt ihn."""
+        """Der lange Name („Alle …"-Knoepfe). Eigener Name schlaegt ihn."""
         return self.namen.get(slug) or self.LANG.get(slug, slug)

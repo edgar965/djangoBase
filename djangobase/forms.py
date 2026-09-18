@@ -3,10 +3,11 @@
 Rolle = Klasse: 'teilnehmer' -> Teilnehmer, 'anbieter' -> Provider (MTI).
 Beim Bearbeiten ist das Passwort optional (leer = unverändert).
 """
+
 from django import forms
 from django.contrib.auth import get_user_model
 
-from .models import Provider, Teilnehmer, als_provider, als_teilnehmer
+from .models import Teilnehmer, als_provider, als_teilnehmer
 
 User = get_user_model()
 
@@ -17,8 +18,12 @@ class BenutzerForm(forms.Form):
     vorname = forms.CharField(label="Vorname", max_length=150, required=False)
     name = forms.CharField(label="Name", max_length=150, required=False)
     email = forms.EmailField(label="E-Mail")
-    passwort = forms.CharField(label="Passwort", required=False, widget=forms.PasswordInput,
-                               help_text="Beim Bearbeiten leer lassen = unverändert.")
+    passwort = forms.CharField(
+        label="Passwort",
+        required=False,
+        widget=forms.PasswordInput,
+        help_text="Beim Bearbeiten leer lassen = unverändert.",
+    )
     rolle = forms.ChoiceField(label="Rolle", choices=ROLLEN, initial="teilnehmer")
     sprache = forms.ChoiceField(label="Sprache", choices=Teilnehmer.SPRACHEN, initial="de")
     telefon = forms.CharField(label="Telefon", max_length=60, required=False)
@@ -97,6 +102,7 @@ class RollenSignupForm(forms.Form):
     Users `signup(request, user)` auf. Nutzer -> Teilnehmer (vom Signal),
     Provider -> Beförderung zu Provider via als_provider().
     """
+
     SIGNUP_ROLLEN = [
         ("nutzer", "Nutzer – Konto für Besucher"),
         ("anbieter", "Provider – eigene Einträge/Angebote anbieten"),
@@ -105,23 +111,29 @@ class RollenSignupForm(forms.Form):
     vorname = forms.CharField(label="Vorname", max_length=150, required=False)
     name = forms.CharField(label="Name", max_length=150, required=False)
     rolle = forms.ChoiceField(
-        label="Ich registriere mich als …", choices=SIGNUP_ROLLEN,
-        initial="nutzer", widget=forms.RadioSelect,
+        label="Ich registriere mich als …",
+        choices=SIGNUP_ROLLEN,
+        initial="nutzer",
+        widget=forms.RadioSelect,
     )
     anbietername = forms.CharField(
-        label="Anbieter-Name (nur als Provider)", max_length=200, required=False,
+        label="Anbieter-Name (nur als Provider)",
+        max_length=200,
+        required=False,
     )
 
     def signup(self, request, user):
         from .conf import conf
+
         user.first_name = self.cleaned_data.get("vorname", "")
         user.last_name = self.cleaned_data.get("name", "")
         # Konten-Freigabe (Gating): muss dieses Konto erst freigegeben werden,
         # bleibt es bis zur Admin-Freigabe inaktiv (kann sich nicht anmelden).
         c = conf()
         rolle = self.cleaned_data.get("rolle")
-        if ((rolle == "anbieter" and c.get("freigabe_provider_noetig"))
-                or (rolle != "anbieter" and c.get("freigabe_nutzer_noetig"))):
+        if (rolle == "anbieter" and c.get("freigabe_provider_noetig")) or (
+            rolle != "anbieter" and c.get("freigabe_nutzer_noetig")
+        ):
             user.is_active = False
         user.save()
         # Das djangoBase-Signal hat bereits ein Teilnehmer-Profil angelegt.

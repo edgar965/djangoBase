@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""`Codesicht.maske`: JavaScript ohne Zeichenketten, Kommentare und Regexe.
+"""`Codesicht.maske`: JavaScript ohne Zeichenketten, Kommentare und Regexe.
 
 WOZU DIESE MASKE
 ================
@@ -54,6 +54,7 @@ DIE FÄLLE, DIE WEHTUN
 * **Die Zeilenzahl muss stimmen.** Ein Werkzeug meldet `datei.js:42`; wenn
   die Maske Zeilen schluckt, zeigt jeder Befund auf die falsche Stelle.
 """
+
 from django.test import SimpleTestCase
 
 from djangobase.umbau.codesicht import Codesicht
@@ -65,85 +66,78 @@ EIN = chr(36) + chr(123)
 
 
 class MaskeTest(SimpleTestCase):
-
     def test_zeilenzahl_bleibt(self):
-        u"""Ohne das zeigt jeder Befund auf die falsche Zeile."""
-        quelle = ('const a = 1;\n'
-                  '// ein Kommentar\n'
-                  '/* mehrzeilig\n'
-                  '   geht weiter */\n'
-                  'const b = "text";\n')
-        self.assertEqual(Codesicht.maske(quelle).count('\n'),
-                         quelle.count('\n'))
+        """Ohne das zeigt jeder Befund auf die falsche Zeile."""
+        quelle = 'const a = 1;\n// ein Kommentar\n/* mehrzeilig\n   geht weiter */\nconst b = "text";\n'
+        self.assertEqual(Codesicht.maske(quelle).count("\n"), quelle.count("\n"))
 
     def test_zeichenkette_verschwindet(self):
         maske = Codesicht.maske('const a = "fn.geheim = 1";\n')
-        self.assertNotIn('geheim', maske)
-        self.assertIn('const a =', maske)
+        self.assertNotIn("geheim", maske)
+        self.assertIn("const a =", maske)
 
     def test_escape_beendet_die_zeichenkette_nicht(self):
-        u"""`'a\\'b'` endet nicht am mittleren Anführungszeichen."""
+        """`'a\\'b'` endet nicht am mittleren Anführungszeichen."""
         maske = Codesicht.maske("const a = 'x\\'geheim';\nconst b = 2;\n")
-        self.assertNotIn('geheim', maske)
-        self.assertIn('const b = 2;', maske)
+        self.assertNotIn("geheim", maske)
+        self.assertIn("const b = 2;", maske)
 
     def test_zeilenkommentar_verschwindet(self):
-        maske = Codesicht.maske('const a = 1; // fn.geheim = 1\n')
-        self.assertNotIn('geheim', maske)
-        self.assertIn('const a = 1;', maske)
+        maske = Codesicht.maske("const a = 1; // fn.geheim = 1\n")
+        self.assertNotIn("geheim", maske)
+        self.assertIn("const a = 1;", maske)
 
     def test_blockkommentar_verschwindet(self):
-        maske = Codesicht.maske('/* fn.geheim = 1 */\nconst a = 1;\n')
-        self.assertNotIn('geheim', maske)
-        self.assertIn('const a = 1;', maske)
+        maske = Codesicht.maske("/* fn.geheim = 1 */\nconst a = 1;\n")
+        self.assertNotIn("geheim", maske)
+        self.assertIn("const a = 1;", maske)
 
     def test_regex_verschwindet(self):
-        u"""Ein regulärer Ausdruck kann wie Code aussehen."""
-        maske = Codesicht.maske('const r = /fn\\.geheim/g;\nconst a = 1;\n')
-        self.assertNotIn('geheim', maske)
-        self.assertIn('const a = 1;', maske)
+        """Ein regulärer Ausdruck kann wie Code aussehen."""
+        maske = Codesicht.maske("const r = /fn\\.geheim/g;\nconst a = 1;\n")
+        self.assertNotIn("geheim", maske)
+        self.assertIn("const a = 1;", maske)
 
     def test_division_ist_kein_regex(self):
-        u"""DIE zweideutige Stelle: `(a+b) / 2` ist eine Division. Wer sie
+        """DIE zweideutige Stelle: `(a+b) / 2` ist eine Division. Wer sie
         für einen Regex hält, frisst den Rest der Zeile."""
-        maske = Codesicht.maske('const m = (a + b) / 2;\nfn.sichtbar = 1;\n')
-        self.assertIn('fn.sichtbar = 1;', maske)
+        maske = Codesicht.maske("const m = (a + b) / 2;\nfn.sichtbar = 1;\n")
+        self.assertIn("fn.sichtbar = 1;", maske)
 
     def test_vorlage_behaelt_ihre_einsetzungen(self):
-        u"""In `${…}` steht echter Code — den sollen die Werkzeuge sehen."""
-        maske = Codesicht.maske('const s = `Text ${fn.sichtbar} Ende`;\n')
-        self.assertIn('fn.sichtbar', maske)
-        self.assertNotIn('Ende', maske)
+        """In `${…}` steht echter Code — den sollen die Werkzeuge sehen."""
+        maske = Codesicht.maske("const s = `Text ${fn.sichtbar} Ende`;\n")
+        self.assertIn("fn.sichtbar", maske)
+        self.assertNotIn("Ende", maske)
 
     def test_zeichenkette_in_einer_einsetzung_verschwindet_auch(self):
-        u"""DER Widerspruch, an dem die Zusammenlegung haengt: Bis zum
+        """DER Widerspruch, an dem die Zusammenlegung haengt: Bis zum
         29.08.2026 liess `maske` genau diese Zeichenkette stehen, waehrend
         `.code` sie leerte. Ein Werkzeug, das hier nach `fn.X` sucht, fand
         einen Treffer, den es nicht gibt."""
         quelle = "const s = `Wert: ${an ? 'fn.geheim' : 'Aus'} Ende`;\n"
         maske = Codesicht.maske(quelle)
-        self.assertNotIn('geheim', maske)
-        self.assertIn('an ?', maske)          # der Code drumherum bleibt
-        self.assertNotIn('geheim', Codesicht(quelle).code)
+        self.assertNotIn("geheim", maske)
+        self.assertIn("an ?", maske)  # der Code drumherum bleibt
+        self.assertNotIn("geheim", Codesicht(quelle).code)
 
     def test_zeichenkette_mit_schraegstrich(self):
         maske = Codesicht.maske('const p = "/api/geheim/";\nconst a = 1;\n')
-        self.assertNotIn('geheim', maske)
-        self.assertIn('const a = 1;', maske)
+        self.assertNotIn("geheim", maske)
+        self.assertIn("const a = 1;", maske)
 
     def test_kommentarzeichen_in_einer_zeichenkette(self):
-        u"""`"// kein Kommentar"` ist Text, kein Kommentar — und der Code
+        """`"// kein Kommentar"` ist Text, kein Kommentar — und der Code
         dahinter muss stehen bleiben."""
-        maske = Codesicht.maske('const s = "// kein Kommentar";\n'
-                                'fn.sichtbar = 1;\n')
-        self.assertIn('fn.sichtbar = 1;', maske)
+        maske = Codesicht.maske('const s = "// kein Kommentar";\nfn.sichtbar = 1;\n')
+        self.assertIn("fn.sichtbar = 1;", maske)
 
     def test_leere_quelle(self):
-        self.assertEqual(Codesicht.maske(''), '')
+        self.assertEqual(Codesicht.maske(""), "")
 
 
 class CodeTest(SimpleTestCase):
-    u"""Derselbe Stoff über `Codesicht(quelle).code` — die zweite SICHT.
+    """Derselbe Stoff über `Codesicht(quelle).code` — die zweite SICHT.
 
     Sie verdichtet, statt zu leeren: Eine Zeichenkette wird zu ihren beiden
     Anführungszeichen, ein Zeilenkommentar verschwindet ganz. Die Länge
@@ -158,50 +152,48 @@ class CodeTest(SimpleTestCase):
         return Codesicht(quelle).code
 
     def test_zeichenkette_wird_zu_zwei_zeichen(self):
-        self.assertEqual(self._code('const a = "geheim";\n'),
-                         'const a = "";\n')
+        self.assertEqual(self._code('const a = "geheim";\n'), 'const a = "";\n')
 
     def test_escape_beendet_die_zeichenkette_nicht(self):
         code = self._code("const a = 'x\\'geheim';\nconst b = 2;\n")
-        self.assertNotIn('geheim', code)
-        self.assertIn('const b = 2;', code)
+        self.assertNotIn("geheim", code)
+        self.assertIn("const b = 2;", code)
 
     def test_zeilenkommentar_verschwindet(self):
-        u"""DIE Stelle, an der die Reihenfolge der Fresser zählt: Wer den
+        """DIE Stelle, an der die Reihenfolge der Fresser zählt: Wer den
         Regex-Fresser zuerst fragt, frisst `//` als leeren Ausdruck und
         lässt den Kommentartext als Code stehen."""
-        code = self._code('const a = 1; // fn.geheim = 1\nconst b = 2;\n')
-        self.assertNotIn('geheim', code)
-        self.assertIn('const b = 2;', code)
+        code = self._code("const a = 1; // fn.geheim = 1\nconst b = 2;\n")
+        self.assertNotIn("geheim", code)
+        self.assertIn("const b = 2;", code)
 
     def test_blockkommentar_verschwindet(self):
-        code = self._code('/* fn.geheim = 1 */\nconst a = 1;\n')
-        self.assertNotIn('geheim', code)
-        self.assertIn('const a = 1;', code)
+        code = self._code("/* fn.geheim = 1 */\nconst a = 1;\n")
+        self.assertNotIn("geheim", code)
+        self.assertIn("const a = 1;", code)
 
     def test_regex_verschwindet(self):
-        code = self._code('const r = /fn\\.geheim/g;\nconst a = 1;\n')
-        self.assertNotIn('geheim', code)
-        self.assertIn('const a = 1;', code)
+        code = self._code("const r = /fn\\.geheim/g;\nconst a = 1;\n")
+        self.assertNotIn("geheim", code)
+        self.assertIn("const a = 1;", code)
 
     def test_division_ist_kein_regex(self):
-        u"""`a / b / c` — ohne die Wache am letzten Zeichen frisst der
+        """`a / b / c` — ohne die Wache am letzten Zeichen frisst der
         Scanner `b` als regulären Ausdruck."""
-        code = self._code('const m = a / bbb / c;\n')
-        self.assertIn('bbb', code)
+        code = self._code("const m = a / bbb / c;\n")
+        self.assertIn("bbb", code)
 
     def test_vorlage_behaelt_ihre_einsetzungen(self):
-        code = self._code('const s = `Text ${fn.sichtbar} Ende`;\n')
-        self.assertIn('fn.sichtbar', code)
-        self.assertNotIn('Ende', code)
+        code = self._code("const s = `Text ${fn.sichtbar} Ende`;\n")
+        self.assertIn("fn.sichtbar", code)
+        self.assertNotIn("Ende", code)
 
     def test_kommentarzeichen_in_einer_zeichenkette(self):
-        code = self._code('const s = "// kein Kommentar";\n'
-                          'fn.sichtbar = 1;\n')
-        self.assertIn('fn.sichtbar = 1;', code)
+        code = self._code('const s = "// kein Kommentar";\nfn.sichtbar = 1;\n')
+        self.assertIn("fn.sichtbar = 1;", code)
 
     def test_die_platzhalter_stehen_fest(self):
-        u"""Die genaue Form ist Vertrag, nicht Geschmack.
+        """Die genaue Form ist Vertrag, nicht Geschmack.
 
         Zwei Werkzeuge lesen `.code` mit regulären Ausdrücken
         (`exportlisten`, `unbekanntenamen`). Ob an der Stelle eines
@@ -210,13 +202,10 @@ class CodeTest(SimpleTestCase):
         daran unbemerkt — nachgestellt am 29.08.2026: Platzhalter vertauscht,
         alle anderen Fälle blieben grün.
         """
-        self.assertEqual(self._code('a = 1; // weg' + NL + 'b = 2;' + NL),
-                         'a = 1; ' + NL + 'b = 2;' + NL)
-        self.assertEqual(self._code('a = /* weg */ 1;' + NL),
-                         'a =   1;' + NL)
-        self.assertEqual(self._code('a = /re/g;' + NL), 'a =  ;' + NL)
-        self.assertEqual(self._code('a = `x' + EIN + 'b}y`;' + NL),
-                         'a =  b ;' + NL)
+        self.assertEqual(self._code("a = 1; // weg" + NL + "b = 2;" + NL), "a = 1; " + NL + "b = 2;" + NL)
+        self.assertEqual(self._code("a = /* weg */ 1;" + NL), "a =   1;" + NL)
+        self.assertEqual(self._code("a = /re/g;" + NL), "a =  ;" + NL)
+        self.assertEqual(self._code("a = `x" + EIN + "b}y`;" + NL), "a =  b ;" + NL)
 
     def test_leere_quelle(self):
-        self.assertEqual(self._code(''), '')
+        self.assertEqual(self._code(""), "")

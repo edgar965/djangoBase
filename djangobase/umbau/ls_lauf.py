@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Der Lauf im Hintergrund — einer je Prozess, mit Zustand zum Abfragen.
+"""Der Lauf im Hintergrund — einer je Prozess, mit Zustand zum Abfragen.
 
 WARUM NICHT IM REQUEST (Edgar, 02.09.2026: „Hintergrund thread")
 ==================================================================
@@ -13,6 +13,7 @@ Deshalb: EIN Thread ``ls-lauf``, der Zustand liegt hier, die Seite fragt ihn
 Das Ergebnis geht über ``danach`` in die Ablage — dieser Baustein kennt keinen
 Speicher und kein Django.
 """
+
 import logging
 import threading
 import time
@@ -23,12 +24,12 @@ __all__ = ["LsLauf", "LAUF"]
 
 
 class LsLauf:
-    u"""Zustand und Steuerung des einen Hintergrund-Laufs."""
+    """Zustand und Steuerung des einen Hintergrund-Laufs."""
 
     def __init__(self):
         self._lock = threading.Lock()
         self._thread = None
-        self.status = "wartet"            # wartet | laeuft | fertig | fehler
+        self.status = "wartet"  # wartet | laeuft | fertig | fehler
         self.begonnen = None
         self.beendet = None
         self.werkzeug = ""
@@ -40,7 +41,7 @@ class LsLauf:
         return self._thread is not None and self._thread.is_alive()
 
     def starten(self, server, danach):
-        u"""``True``, wenn gestartet; ``False``, wenn schon einer läuft.
+        """``True``, wenn gestartet; ``False``, wenn schon einer läuft.
 
         ``server`` ist ein ``LanguageServer`` (hat ``laufen()``), ``danach``
         bekommt das ``LsErgebnis`` und legt es ab."""
@@ -51,8 +52,9 @@ class LsLauf:
             self.begonnen, self.beendet = time.time(), None
             self.werkzeug = server.konfig.werkzeug
             self.abdruck = server.konfig.abdruck()
-            self._thread = threading.Thread(target=self._arbeit, args=(server, danach),
-                                            name="ls-lauf", daemon=True)
+            self._thread = threading.Thread(
+                target=self._arbeit, args=(server, danach), name="ls-lauf", daemon=True
+            )
             self._thread.start()
             return True
 
@@ -66,12 +68,16 @@ class LsLauf:
                 self.status = "fertig"
             self.befunde = len(ergebnis.befunde)
             danach(ergebnis)
-            logger.info("Language Server %s: %d Befunde in %.1f s%s", ergebnis.werkzeug,
-                        len(ergebnis.befunde), ergebnis.dauer_s,
-                        u" — " + ergebnis.fehlt if ergebnis.fehlt else "")
-        except Exception as e:                            # noqa: BLE001
+            logger.info(
+                "Language Server %s: %d Befunde in %.1f s%s",
+                ergebnis.werkzeug,
+                len(ergebnis.befunde),
+                ergebnis.dauer_s,
+                " — " + ergebnis.fehlt if ergebnis.fehlt else "",
+            )
+        except Exception as e:  # noqa: BLE001
             logger.exception("Language-Server-Lauf gescheitert")
-            self.status, self.fehler = "fehler", u"%s: %s" % (type(e).__name__, e)
+            self.status, self.fehler = "fehler", "%s: %s" % (type(e).__name__, e)
         finally:
             self.beendet = time.time()
 

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Jeden Lauf eines Management-Commands mitschreiben.
+"""Jeden Lauf eines Management-Commands mitschreiben.
 
 Angelegt am 26.08.2026. Die Uebersicht soll zeigen, "welcher Job wann
 zuletzt lief, wie lange er brauchte und ob er Fehler warf" - dazu muss
@@ -30,32 +30,33 @@ ABSCHALTEN
 ==========
 ``DJANGOBASE_JOBAUFZEICHNUNG = False`` in der ``settings.py``.
 """
+
 import logging
 import threading
 import time
 
 logger = logging.getLogger(__name__)
 
-__all__ = ['Jobaufzeichnung']
+__all__ = ["Jobaufzeichnung"]
 
 
-class Jobaufzeichnung(object):
-    u"""Legt sich um ``BaseCommand.execute`` und schreibt in den Verlauf."""
+class Jobaufzeichnung:
+    """Legt sich um ``BaseCommand.execute`` und schreibt in den Verlauf."""
 
     #: Merker am Original, damit ein zweiter Aufruf nichts doppelt legt.
-    MERKER = '_djangobase_aufgezeichnet'
+    MERKER = "_djangobase_aufgezeichnet"
 
     @classmethod
     def einschalten(cls):
-        u"""``True``, wenn die Aufzeichnung jetzt (oder schon) haengt."""
+        """``True``, wenn die Aufzeichnung jetzt (oder schon) haengt."""
         from django.conf import settings
 
-        if not getattr(settings, 'DJANGOBASE_JOBAUFZEICHNUNG', True):
+        if not getattr(settings, "DJANGOBASE_JOBAUFZEICHNUNG", True):
             return False
         try:
             from django.core.management.base import BaseCommand
         except Exception:
-            logger.exception('Jobaufzeichnung: BaseCommand nicht importierbar')
+            logger.exception("Jobaufzeichnung: BaseCommand nicht importierbar")
             return False
 
         if getattr(BaseCommand.execute, cls.MERKER, False):
@@ -85,12 +86,25 @@ class Jobaufzeichnung(object):
             except BaseException as fehler:
                 # Auch Abbruch per Strg+C gehoert in den Verlauf - sonst
                 # steht der Lauf fuer immer als "laeuft noch" da.
-                cls._notieren(kennung, time.monotonic() - begonnen, False,
-                              '%s: %s' % (type(fehler).__name__, fehler),
-                              cls._cpu() - cpu_vorher, argumente, eigenstaendig)
+                cls._notieren(
+                    kennung,
+                    time.monotonic() - begonnen,
+                    False,
+                    "%s: %s" % (type(fehler).__name__, fehler),
+                    cls._cpu() - cpu_vorher,
+                    argumente,
+                    eigenstaendig,
+                )
                 raise
-            cls._notieren(kennung, time.monotonic() - begonnen, True, '',
-                          cls._cpu() - cpu_vorher, argumente, eigenstaendig)
+            cls._notieren(
+                kennung,
+                time.monotonic() - begonnen,
+                True,
+                "",
+                cls._cpu() - cpu_vorher,
+                argumente,
+                eigenstaendig,
+            )
             return ergebnis
 
         setattr(gemessen, cls.MERKER, True)
@@ -99,7 +113,7 @@ class Jobaufzeichnung(object):
     # ------------------------------------------------------------ Innerei
     @staticmethod
     def _cpu():
-        u"""Verbrauchte CPU-Sekunden - des Prozesses oder nur dieses Threads.
+        """Verbrauchte CPU-Sekunden - des Prozesses oder nur dieses Threads.
 
         CPU NEBEN DER DAUER (02.09.2026, shortlongx: „evaluiere, was mich
         diese Jobs an CPU Performance kosten"). Die Wanduhr-Dauer sagt
@@ -118,13 +132,23 @@ class Jobaufzeichnung(object):
 
     #: Optionen, die jeder Django-Befehl traegt - sie sagen nichts ueber den
     #: Lauf und bleiben deshalb draussen.
-    STANDARD_OPTIONEN = frozenset((
-        'verbosity', 'settings', 'pythonpath', 'traceback', 'no_color',
-        'force_color', 'skip_checks', 'stdout', 'stderr'))
+    STANDARD_OPTIONEN = frozenset(
+        (
+            "verbosity",
+            "settings",
+            "pythonpath",
+            "traceback",
+            "no_color",
+            "force_color",
+            "skip_checks",
+            "stdout",
+            "stderr",
+        )
+    )
 
     @classmethod
     def _argumente(cls, optionen):
-        u"""Die Optionen, die diesen Lauf von einem anderen unterscheiden.
+        """Die Optionen, die diesen Lauf von einem anderen unterscheiden.
 
         ``duka_history --reihe ESTX50`` und ``duka_history`` ohne Reihe sind
         zwei verschiedene Jobs derselben Kennung; ``ib_history_fdax`` laeuft
@@ -135,24 +159,24 @@ class Jobaufzeichnung(object):
         raus = {}
         try:
             for name, wert in (optionen or {}).items():
-                if name in cls.STANDARD_OPTIONEN or wert in (None, False, '', [], ()):
+                if name in cls.STANDARD_OPTIONEN or wert in (None, False, "", [], ()):
                     continue
                 raus[name] = str(wert)[:40]
         except Exception:
-            logger.debug('Jobaufzeichnung._argumente: uebersprungen', exc_info=True)
+            logger.debug("Jobaufzeichnung._argumente: uebersprungen", exc_info=True)
         return raus
 
     @staticmethod
     def _kennung(befehl):
-        u"""Der Befehlsname, oder ``''`` wenn dieser Lauf nicht zaehlt.
+        """Der Befehlsname, oder ``''`` wenn dieser Lauf nicht zaehlt.
 
         Der Name steht nicht am Objekt - Django leitet ihn aus dem Modul
         ab (``mail.management.commands.mail_sync`` -> ``mail_sync``).
         """
-        modul = getattr(type(befehl), '__module__', '') or ''
-        name = modul.rsplit('.', 1)[-1]
-        if not name or name.startswith('_'):
-            return ''
+        modul = getattr(type(befehl), "__module__", "") or ""
+        name = modul.rsplit(".", 1)[-1]
+        if not name or name.startswith("_"):
+            return ""
         try:
             from .joberkennung import Joberkennung
 
@@ -166,22 +190,26 @@ class Jobaufzeichnung(object):
             #
             # Die App steht im Modulpfad davor:
             #   djangobase.management.commands.aktuell -> djangobase
-            app = modul.split('.management.commands.')[0]
+            app = modul.split(".management.commands.")[0]
             if not Joberkennung().ist_job(name, app):
-                return ''
+                return ""
         except Exception:
-            logger.debug('Jobaufzeichnung._kennung: Ausschluss ungeprueft',
-                         exc_info=True)
+            logger.debug("Jobaufzeichnung._kennung: Ausschluss ungeprueft", exc_info=True)
         return name
 
     @staticmethod
-    def _notieren(kennung, dauer_s, erfolg, fehler, cpu_s=None, argumente=None,
-                  eigenstaendig=True):
+    def _notieren(kennung, dauer_s, erfolg, fehler, cpu_s=None, argumente=None, eigenstaendig=True):
         try:
             from .jobverlauf import Jobverlauf
 
-            Jobverlauf().notieren(kennung, dauer_s, erfolg, fehler,
-                                  cpu_s=cpu_s, argumente=argumente,
-                                  eigenstaendig=eigenstaendig)
+            Jobverlauf().notieren(
+                kennung,
+                dauer_s,
+                erfolg,
+                fehler,
+                cpu_s=cpu_s,
+                argumente=argumente,
+                eigenstaendig=eigenstaendig,
+            )
         except Exception:
-            logger.exception('Jobaufzeichnung._notieren: Exception gefangen')
+            logger.exception("Jobaufzeichnung._notieren: Exception gefangen")

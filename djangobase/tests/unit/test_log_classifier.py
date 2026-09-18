@@ -4,6 +4,7 @@ Decken die Faelle ab, die die alten Substring-Checks NICHT erkannt haben:
 benannte/Custom-Exceptions ohne [ERROR]-Prefix, Traceback-Frames ohne
 Header im Fenster, und die kontextsensitive Continuation-Erkennung.
 """
+
 from django.test import SimpleTestCase
 
 from djangobase.log_classifier import LogClassifier as LC
@@ -53,12 +54,8 @@ class SeverityTests(SimpleTestCase):
         Wer eine Stufe ausdrücklich hinschreibt, meint sie. Ein wirklich
         protokollierter Fehler kommt über logger.exception/error und trägt
         [ERROR] — das wird davor abgefangen."""
-        self.assertEqual(
-            LC.severity("2026-08-15 [WARNING] core: Caught ValueError: invalid input"),
-            "warn")
-        self.assertEqual(
-            LC.severity("2026-08-15 [INFO] core: Handling KeyError: missing gracefully"),
-            "info")
+        self.assertEqual(LC.severity("2026-08-15 [WARNING] core: Caught ValueError: invalid input"), "warn")
+        self.assertEqual(LC.severity("2026-08-15 [INFO] core: Handling KeyError: missing gracefully"), "info")
         # Und die Gegenprobe: OHNE Stufenmarker bleibt der Name ausschlaggebend.
         self.assertEqual(LC.severity("ValueError: invalid input"), "err")
         self.assertEqual(LC.severity("2026-08-15 [ERROR] core: ValueError: x"), "err")
@@ -66,8 +63,7 @@ class SeverityTests(SimpleTestCase):
     def test_abgefangener_fehler_nicht_im_ausnahmen_reiter(self):
         """Dieselbe Regel in `is_exception_line` — sonst färbt die Zeile richtig
         und erscheint trotzdem in der Ausnahmen-Ansicht."""
-        self.assertFalse(LC.is_exception_line(
-            "2026-08-15 [WARNING] core: Caught ValueError: invalid input"))
+        self.assertFalse(LC.is_exception_line("2026-08-15 [WARNING] core: Caught ValueError: invalid input"))
         self.assertTrue(LC.is_exception_line("2026-08-15 [ERROR] core: kaputt"))
         self.assertTrue(LC.is_exception_line("ValueError: invalid input"))
 
@@ -83,12 +79,15 @@ class IterExceptionsTests(SimpleTestCase):
             "[INFO] nächster job",
         ]
         got = list(LC.iter_exceptions(lines))
-        self.assertEqual(got, [
-            "Traceback (most recent call last):",
-            '  File "a.py", line 10, in run',
-            "    do_it()",
-            "ValueError: nope",
-        ])
+        self.assertEqual(
+            got,
+            [
+                "Traceback (most recent call last):",
+                '  File "a.py", line 10, in run',
+                "    do_it()",
+                "ValueError: nope",
+            ],
+        )
 
     def test_json_block_not_swallowed_as_trace(self):
         # Ein indentierter JSON-Block nach einer Info-Zeile darf NICHT als

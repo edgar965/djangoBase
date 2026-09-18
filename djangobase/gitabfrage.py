@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Gitabfrage - `git` aufrufen, aber nicht bei jedem Seitenaufruf neu.
+"""Gitabfrage - `git` aufrufen, aber nicht bei jedem Seitenaufruf neu.
 
 DER BEFUND (3DTools, 17.08.2026, im Ablauf gemessen)
 ===================================================
@@ -37,6 +37,7 @@ HALTBARKEIT: `DJANGOBASE["git_cache_sekunden"]`, Vorgabe 20 s. Wer gerade
 committet hat, sieht die Anzahl der offenen Aenderungen also bis zu 20 s lang
 noch alt. Das ist der Preis, er steht hier.
 """
+
 import logging
 import subprocess
 import threading
@@ -55,7 +56,7 @@ VORGABE_HALTBARKEIT = 20.0
 
 
 class Gitabfrage:
-    u"""Ruft `git` in einem Repo auf und behaelt die Antwort kurz.
+    """Ruft `git` in einem Repo auf und behaelt die Antwort kurz.
 
     Bewusst KEIN Klassenzustand pro Instanz: Der Cache ist prozessweit, denn
     zwei Anfragen nacheinander sollen sich den Aufruf teilen.
@@ -66,13 +67,12 @@ class Gitabfrage:
 
     @staticmethod
     def haltbarkeit():
-        eigen = (getattr(settings, "DJANGOBASE", {}) or {}).get(
-            "git_cache_sekunden")
+        eigen = (getattr(settings, "DJANGOBASE", {}) or {}).get("git_cache_sekunden")
         return float(eigen) if eigen is not None else VORGABE_HALTBARKEIT
 
     @classmethod
     def lauf(cls, repo, *args, timeout=5):
-        u"""Ausgabe von `git -C <repo> <args>`; Leerstring bei jedem Fehler.
+        """Ausgabe von `git -C <repo> <args>`; Leerstring bei jedem Fehler.
 
         Ein leerer Rueckgabewert bei Fehlern ist Absicht und aelter als dieser
         Cache: Die Versionen-Seite soll auch dann stehen, wenn `git` fehlt, das
@@ -91,13 +91,13 @@ class Gitabfrage:
 
     @classmethod
     def leeren(cls):
-        u"""Cache verwerfen - für Tests und nach einem Commit aus der App."""
+        """Cache verwerfen - für Tests und nach einem Commit aus der App."""
         with cls._schloss:
             cls._werte.clear()
 
     @staticmethod
     def _roh(repo, args, timeout):
-        u"""Ein `git`-Aufruf. Leerstring bei jedem Fehler — aber NICHT still.
+        """Ein `git`-Aufruf. Leerstring bei jedem Fehler — aber NICHT still.
 
         DER BEFUND (CamTrack, 11.09.2026)
         =================================
@@ -140,14 +140,23 @@ class Gitabfrage:
                 # `safe.directory=*` deckt auch die Repos ab, die neben
                 # diesem liegen; der Aufruf liest ausschliesslich.
                 ["git", "-c", "safe.directory=*", "-C", str(repo), *args],
-                capture_output=True, text=True,
-                timeout=timeout, encoding="utf-8", errors="replace",
-                creationflags=_KEIN_FENSTER)
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                encoding="utf-8",
+                errors="replace",
+                creationflags=_KEIN_FENSTER,
+            )
         except (OSError, subprocess.TimeoutExpired) as fehler:
             _log.warning("git %s in %s: %s", " ".join(args), repo, fehler)
             return ""
         if lauf.returncode != 0:
-            _log.warning("git %s in %s: rc=%s %s", " ".join(args), repo,
-                         lauf.returncode, (lauf.stderr or "").strip()[:200])
+            _log.warning(
+                "git %s in %s: rc=%s %s",
+                " ".join(args),
+                repo,
+                lauf.returncode,
+                (lauf.stderr or "").strip()[:200],
+            )
             return ""
         return lauf.stdout

@@ -6,6 +6,7 @@ Tag (30 Tage) / Woche (12 Wochen) / Monat (12 Monate); alle Blöcke
 (Kennzahlen, Länder, Seiten, Referrer, Geräte, MB) beziehen sich auf
 dasselbe Zeitfenster. Bots werden überall ausgeblendet.
 """
+
 import json
 from datetime import timedelta
 
@@ -30,12 +31,29 @@ GRANULARITAETEN = {
 }
 
 LAENDER_NAMEN = {
-    "DE": "Deutschland", "AT": "Österreich", "CH": "Schweiz", "US": "USA",
-    "GB": "Großbritannien", "FR": "Frankreich", "NL": "Niederlande",
-    "PL": "Polen", "IT": "Italien", "ES": "Spanien", "DK": "Dänemark",
-    "SE": "Schweden", "CZ": "Tschechien", "BE": "Belgien", "TR": "Türkei",
-    "RU": "Russland", "UA": "Ukraine", "CN": "China", "JP": "Japan",
-    "IN": "Indien", "BR": "Brasilien", "CA": "Kanada", "AU": "Australien",
+    "DE": "Deutschland",
+    "AT": "Österreich",
+    "CH": "Schweiz",
+    "US": "USA",
+    "GB": "Großbritannien",
+    "FR": "Frankreich",
+    "NL": "Niederlande",
+    "PL": "Polen",
+    "IT": "Italien",
+    "ES": "Spanien",
+    "DK": "Dänemark",
+    "SE": "Schweden",
+    "CZ": "Tschechien",
+    "BE": "Belgien",
+    "TR": "Türkei",
+    "RU": "Russland",
+    "UA": "Ukraine",
+    "CN": "China",
+    "JP": "Japan",
+    "IN": "Indien",
+    "BR": "Brasilien",
+    "CA": "Kanada",
+    "AU": "Australien",
 }
 
 
@@ -54,8 +72,7 @@ def _mb(byte_anzahl):
 # liefert (z. B. Cross-Origin ohne Timing-Allow-Origin → transferSize 0).
 KACHEL_BYTES = 22 * 1024
 
-ROUTING_MODI = {"auto": ("🚗", "Auto"), "bicycle": ("🚲", "Fahrrad"),
-                "pedestrian": ("🥾", "Zu Fuß")}
+ROUTING_MODI = {"auto": ("🚗", "Auto"), "bicycle": ("🚲", "Fahrrad"), "pedestrian": ("🥾", "Zu Fuß")}
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -70,8 +87,7 @@ class VerbrauchBeaconView(View):
         except (ValueError, UnicodeDecodeError):
             return HttpResponse(status=204)
         if d.get("typ") == "tile":
-            verbrauch_buchen("tile", anzahl=d.get("anzahl", 0),
-                             bytes=d.get("bytes", 0), detail="karte")
+            verbrauch_buchen("tile", anzahl=d.get("anzahl", 0), bytes=d.get("bytes", 0), detail="karte")
         return HttpResponse(status=204)
 
 
@@ -98,32 +114,35 @@ class TrafficView(ZugriffMixin, View):
         qs = Seitenaufruf.objects.filter(zeit__gte=start, bot=False)
         seiten_qs = qs.filter(typ="html")
 
-        labels, aufrufe, besucher, mbs = self._zeitreihe(
-            qs, trunc, g, heute, perioden)
+        labels, aufrufe, besucher, mbs = self._zeitreihe(qs, trunc, g, heute, perioden)
         kpi = self._kennzahlen(jetzt, start, mbs)
         laender, laender_roh = self._laender(seiten_qs)
         gesamt = sum(r["n"] for r in laender_roh) or 1
         kpi["laender_anzahl"] = len([r for r in laender_roh if r["land"]])
 
-        return render(request, "djangobase/hilfe/traffic.html", {
-            "aktiv": "traffic",
-            "verbrauch": self._dienste(start),
-            "g": g,
-            "fenster_label": fenster_label,
-            "granularitaeten": [("tag", "Tag"), ("woche", "Woche"),
-                                ("monat", "Monat")],
-            "kpi": kpi,
-            "chart_daten": {
-                "labels": labels, "aufrufe": aufrufe,
-                "besucher": besucher, "mb": mbs,
-                "geraete": self._geraete(seiten_qs),
+        return render(
+            request,
+            "djangobase/hilfe/traffic.html",
+            {
+                "aktiv": "traffic",
+                "verbrauch": self._dienste(start),
+                "g": g,
+                "fenster_label": fenster_label,
+                "granularitaeten": [("tag", "Tag"), ("woche", "Woche"), ("monat", "Monat")],
+                "kpi": kpi,
+                "chart_daten": {
+                    "labels": labels,
+                    "aufrufe": aufrufe,
+                    "besucher": besucher,
+                    "mb": mbs,
+                    "geraete": self._geraete(seiten_qs),
+                },
+                "laender": laender,
+                "seiten": self._seiten(seiten_qs, gesamt),
+                "referrer": self._referrer(seiten_qs),
+                "erfasst_seit": Seitenaufruf.objects.order_by("zeit").values_list("zeit", flat=True).first(),
             },
-            "laender": laender,
-            "seiten": self._seiten(seiten_qs, gesamt),
-            "referrer": self._referrer(seiten_qs),
-            "erfasst_seit": Seitenaufruf.objects.order_by("zeit")
-                            .values_list("zeit", flat=True).first(),
-        })
+        )
 
     # ------------------------------------------------------------ Zeitreihe
 
@@ -140,12 +159,16 @@ class TrafficView(ZugriffMixin, View):
         beides wird auf `date` gebracht, sonst findet der Nachschlag nichts.
         """
         reihe = {}
-        for r in (qs.annotate(p=trunc("zeit")).values("p")
-                    .annotate(aufrufe=Count("id", filter=Q(typ="html")),
-                              besucher=Count("besucher", distinct=True,
-                                             filter=Q(typ="html")),
-                              bytes=Sum("groesse"))
-                    .order_by("p")):
+        for r in (
+            qs.annotate(p=trunc("zeit"))
+            .values("p")
+            .annotate(
+                aufrufe=Count("id", filter=Q(typ="html")),
+                besucher=Count("besucher", distinct=True, filter=Q(typ="html")),
+                bytes=Sum("groesse"),
+            )
+            .order_by("p")
+        ):
             p = r["p"]
             reihe[p.date() if hasattr(p, "date") else p] = r
 
@@ -184,22 +207,23 @@ class TrafficView(ZugriffMixin, View):
     @staticmethod
     def _kennzahlen(jetzt, start, mbs):
         """Heute, sieben Tage, dreissig Tage — Aufrufe und Besucher."""
+
         def zahlen(von):
-            s = Seitenaufruf.objects.filter(zeit__gte=von, bot=False,
-                                            typ="html")
+            s = Seitenaufruf.objects.filter(zeit__gte=von, bot=False, typ="html")
             return (s.count(), s.values("besucher").distinct().count())
 
-        heute_aufrufe, heute_besucher = zahlen(
-            jetzt.replace(hour=0, minute=0, second=0, microsecond=0))
+        heute_aufrufe, heute_besucher = zahlen(jetzt.replace(hour=0, minute=0, second=0, microsecond=0))
         w7_aufrufe, w7_besucher = zahlen(jetzt - timedelta(days=7))
         w30_aufrufe, w30_besucher = zahlen(jetzt - timedelta(days=30))
         return {
-            "heute_aufrufe": heute_aufrufe, "heute_besucher": heute_besucher,
-            "w7_aufrufe": w7_aufrufe, "w7_besucher": w7_besucher,
-            "w30_aufrufe": w30_aufrufe, "w30_besucher": w30_besucher,
+            "heute_aufrufe": heute_aufrufe,
+            "heute_besucher": heute_besucher,
+            "w7_aufrufe": w7_aufrufe,
+            "w7_besucher": w7_besucher,
+            "w30_aufrufe": w30_aufrufe,
+            "w30_besucher": w30_besucher,
             "mb_fenster": round(sum(mbs), 1),
-            "bot_anzahl": Seitenaufruf.objects.filter(zeit__gte=start,
-                                                      bot=True).count(),
+            "bot_anzahl": Seitenaufruf.objects.filter(zeit__gte=start, bot=True).count(),
         }
 
     # --------------------------------------------------------------- Tabellen
@@ -212,44 +236,55 @@ class TrafficView(ZugriffMixin, View):
         die Gesamtzahl (Nenner der Prozente) und „wie viele Laender ueberhaupt".
         Sie zweimal abzufragen waere eine zweite Abfrage fuer dieselbe Zeile.
         """
-        roh = list(seiten_qs.values("land")
-                   .annotate(n=Count("id"),
-                             besucher=Count("besucher", distinct=True))
-                   .order_by("-n"))
+        roh = list(
+            seiten_qs.values("land")
+            .annotate(n=Count("id"), besucher=Count("besucher", distinct=True))
+            .order_by("-n")
+        )
         gesamt = sum(r["n"] for r in roh) or 1
-        laender = [{
-            "iso": r["land"] or "?",
-            "flagge": _flagge(r["land"] or ""),
-            "name": LAENDER_NAMEN.get(r["land"], r["land"] or "Unbekannt"),
-            "n": r["n"], "besucher": r["besucher"],
-            "prozent": round(100 * r["n"] / gesamt, 1),
-        } for r in roh[:12]]
+        laender = [
+            {
+                "iso": r["land"] or "?",
+                "flagge": _flagge(r["land"] or ""),
+                "name": LAENDER_NAMEN.get(r["land"], r["land"] or "Unbekannt"),
+                "n": r["n"],
+                "besucher": r["besucher"],
+                "prozent": round(100 * r["n"] / gesamt, 1),
+            }
+            for r in roh[:12]
+        ]
         return laender, roh
 
     @staticmethod
     def _seiten(seiten_qs, gesamt):
         """Die 25 meistbesuchten Seiten, mit Balkenlaenge."""
-        roh = (seiten_qs.values("pfad")
-               .annotate(n=Count("id"),
-                         besucher=Count("besucher", distinct=True),
-                         bytes=Sum("groesse"))
-               .order_by("-n")[:25])
+        roh = (
+            seiten_qs.values("pfad")
+            .annotate(n=Count("id"), besucher=Count("besucher", distinct=True), bytes=Sum("groesse"))
+            .order_by("-n")[:25]
+        )
         groesste = max((r["n"] for r in roh), default=1)
-        return [{
-            "pfad": r["pfad"], "n": r["n"], "besucher": r["besucher"],
-            "mb": _mb(r["bytes"]),
-            "balken": round(100 * r["n"] / groesste),
-            "prozent": round(100 * r["n"] / gesamt, 1),
-        } for r in roh]
+        return [
+            {
+                "pfad": r["pfad"],
+                "n": r["n"],
+                "besucher": r["besucher"],
+                "mb": _mb(r["bytes"]),
+                "balken": round(100 * r["n"] / groesste),
+                "prozent": round(100 * r["n"] / gesamt, 1),
+            }
+            for r in roh
+        ]
 
     @staticmethod
     def _referrer(seiten_qs):
         """Die fuenfzehn haeufigsten Verweise von aussen."""
-        return list(seiten_qs.exclude(referrer="")
-                    .values("referrer")
-                    .annotate(n=Count("id"),
-                              besucher=Count("besucher", distinct=True))
-                    .order_by("-n")[:15])
+        return list(
+            seiten_qs.exclude(referrer="")
+            .values("referrer")
+            .annotate(n=Count("id"), besucher=Count("besucher", distinct=True))
+            .order_by("-n")[:15]
+        )
 
     @staticmethod
     def _geraete(seiten_qs):
@@ -259,12 +294,9 @@ class TrafficView(ZugriffMixin, View):
         Datenbank: Ein Diagramm, dessen Balken die Plaetze tauschen, sobald
         eine Art einmal fehlt, ist nicht lesbar.
         """
-        roh = dict(seiten_qs.values_list("geraet")
-                   .annotate(n=Count("id")).order_by())
-        paare = [(label, roh.get(key, 0))
-                 for key, label in Seitenaufruf.GERAETE]
-        return {"labels": [l for l, _ in paare],
-                "werte": [n for _, n in paare]}
+        roh = dict(seiten_qs.values_list("geraet").annotate(n=Count("id")).order_by())
+        paare = [(label, roh.get(key, 0)) for key, label in Seitenaufruf.GERAETE]
+        return {"labels": [label for label, _ in paare], "werte": [n for _, n in paare]}
 
     # ------------------------------------------------------ Externe Dienste
 
@@ -272,28 +304,29 @@ class TrafficView(ZugriffMixin, View):
     def _dienste(start):
         """Kartenkacheln und Navigation — Anzahl und geschaetzte Menge."""
         vb = Verbrauch.objects.filter(zeit__gte=start)
-        kacheln = vb.filter(typ="tile").aggregate(n=Sum("anzahl"),
-                                                  b=Sum("bytes"))
+        kacheln = vb.filter(typ="tile").aggregate(n=Sum("anzahl"), b=Sum("bytes"))
         kachel_n = kacheln["n"] or 0
         kachel_b = kacheln["b"] or 0
         # Cache-Treffer liefern transferSize 0 → für die nicht gemessenen
         # Kacheln den Schätzwert ergänzen, damit die MB realistisch bleiben.
-        gemessen = vb.filter(typ="tile", bytes__gt=0).aggregate(
-            n=Sum("anzahl"))["n"] or 0
+        gemessen = vb.filter(typ="tile", bytes__gt=0).aggregate(n=Sum("anzahl"))["n"] or 0
         kachel_mb = _mb(kachel_b + max(0, kachel_n - gemessen) * KACHEL_BYTES)
 
-        roh = (vb.filter(typ="route").values("detail")
-               .annotate(n=Sum("anzahl"), b=Sum("bytes")).order_by("-n"))
+        roh = vb.filter(typ="route").values("detail").annotate(n=Sum("anzahl"), b=Sum("bytes")).order_by("-n")
         route_n = sum(r["n"] or 0 for r in roh)
         route_b = sum(r["b"] or 0 for r in roh)
         return {
-            "kachel_n": kachel_n, "kachel_mb": kachel_mb,
-            "route_n": route_n, "route_mb": _mb(route_b),
-            "routing": [{
-                "modus": ROUTING_MODI.get(r["detail"],
-                                          ("🧭", r["detail"] or "—"))[1],
-                "icon": ROUTING_MODI.get(r["detail"], ("🧭", ""))[0],
-                "n": r["n"] or 0,
-            } for r in roh],
+            "kachel_n": kachel_n,
+            "kachel_mb": kachel_mb,
+            "route_n": route_n,
+            "route_mb": _mb(route_b),
+            "routing": [
+                {
+                    "modus": ROUTING_MODI.get(r["detail"], ("🧭", r["detail"] or "—"))[1],
+                    "icon": ROUTING_MODI.get(r["detail"], ("🧭", ""))[0],
+                    "n": r["n"] or 0,
+                }
+                for r in roh
+            ],
             "hat_daten": bool(kachel_n or route_n),
         }

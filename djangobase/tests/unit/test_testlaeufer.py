@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-u"""`testlaeufer.Testlaeufer` — der Läufer richtet die Sperren ein, nicht die Basisklasse.
+"""`testlaeufer.Testlaeufer` — der Läufer richtet die Sperren ein, nicht die Basisklasse.
 
 Geprüft wird nur die Verdrahtung: Nach ``setup_test_environment`` steht die
 Netzsperre, nach ``teardown_test_environment`` ist sie weg, und der Schalter
 ``DJANGOBASE_NETZSPERRE = False`` lässt sie aus. Was die Sperre tut, steht in
 `test_netzsperre.py`.
 """
+
 import socket
 from unittest import mock
 
@@ -17,7 +18,6 @@ from djangobase.testlaeufer import Testlaeufer
 
 
 class DerLaeufer(SimpleTestCase):
-
     def setUp(self):
         Netzsperre.aufheben()
         self.connect_vorher = socket.socket.connect
@@ -26,12 +26,14 @@ class DerLaeufer(SimpleTestCase):
         Netzsperre.aufheben()
 
     def _fahren(self):
-        u"""Djangos eigenes ``setup_test_environment`` läuft hier schon — es darf
+        """Djangos eigenes ``setup_test_environment`` läuft hier schon — es darf
         nicht ein zweites Mal aufgerufen werden, deshalb wird der Elternteil
         stillgelegt. Geprüft wird, was DIESER Läufer hinzufügt."""
         laeufer = Testlaeufer(verbosity=0)
-        with mock.patch.object(DiscoverRunner, 'setup_test_environment'), \
-                mock.patch.object(DiscoverRunner, 'teardown_test_environment'):
+        with (
+            mock.patch.object(DiscoverRunner, "setup_test_environment"),
+            mock.patch.object(DiscoverRunner, "teardown_test_environment"),
+        ):
             laeufer.setup_test_environment()
             aktiv = Netzsperre.aktiv()
             laeufer.teardown_test_environment()

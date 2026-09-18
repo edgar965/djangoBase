@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Was auf Modulebene steht — und welche Seite welches Skript zieht.
+"""Was auf Modulebene steht — und welche Seite welches Skript zieht.
 
 DIE ANSAGE (Edgar, 24.08.2026)
 ==============================
@@ -23,6 +23,7 @@ Eine Vorlage zieht Skripte (``{% static "…/x.js" %}``), und diese Skripte
 ziehen weitere (``import { y } from './z.js'``). Damit steht neben jeder
 Seite, welcher Code sie wirklich ausfuehrt — und wie tief das geht.
 """
+
 import ast
 import re
 from pathlib import Path
@@ -42,7 +43,7 @@ from pathlib import Path
 from .klassenmodell import AUS, ausser
 
 #: Namen, die zwar Listen sind, aber keinen Zustand tragen.
-AUSFUHRLISTEN = {'__all__'}
+AUSFUHRLISTEN = {"__all__"}
 
 #: ``{% static 'app/js/x.js' %}`` — so binden Django-Vorlagen Skripte ein.
 STATIC = re.compile(r"""\{%\s*static\s+['"]([^'"]+\.js)['"]""")
@@ -55,11 +56,11 @@ VORLAGE = re.compile(r"""\{%\s*(?:extends|include)\s+['"]([^'"]+)['"]""")
 
 
 class Eintrag:
-    u"""Ein Fund auf Modulebene: Name, Ort, Kurzbeschreibung."""
+    """Ein Fund auf Modulebene: Name, Ort, Kurzbeschreibung."""
 
-    __slots__ = ('name', 'datei', 'zeile', 'zusatz')
+    __slots__ = ("name", "datei", "zeile", "zusatz")
 
-    def __init__(self, name, datei, zeile, zusatz=''):
+    def __init__(self, name, datei, zeile, zusatz=""):
         self.name = name
         self.datei = datei
         self.zeile = zeile
@@ -67,9 +68,9 @@ class Eintrag:
 
 
 class Seite:
-    u"""Eine HTML-Vorlage mit dem Code, den sie zieht."""
+    """Eine HTML-Vorlage mit dem Code, den sie zieht."""
 
-    __slots__ = ('pfad', 'skripte', 'eingebunden', 'zeilen')
+    __slots__ = ("pfad", "skripte", "eingebunden", "zeilen")
 
     def __init__(self, pfad, skripte, eingebunden, zeilen):
         self.pfad = pfad
@@ -84,7 +85,7 @@ class Seite:
 
 
 class Globalbestand:
-    u"""Liest einen Bereich und sortiert, was auf Modulebene steht."""
+    """Liest einen Bereich und sortiert, was auf Modulebene steht."""
 
     def __init__(self, wurzel):
         self.wurzel = Path(wurzel)
@@ -94,12 +95,12 @@ class Globalbestand:
         self.seiten = []
 
     def lesen(self):
-        raus = ausser()      # samt der virtuellen Umgebungen des Projekts
-        for pfad in sorted(self.wurzel.rglob('*.py')):
+        raus = ausser()  # samt der virtuellen Umgebungen des Projekts
+        for pfad in sorted(self.wurzel.rglob("*.py")):
             if any(teil in pfad.parts for teil in raus):
                 continue
             self._modul(pfad)
-        for pfad in sorted(self.wurzel.rglob('*.html')):
+        for pfad in sorted(self.wurzel.rglob("*.html")):
             if any(teil in pfad.parts for teil in raus):
                 continue
             self._seite(pfad)
@@ -112,32 +113,28 @@ class Globalbestand:
     # ── Python ──────────────────────────────────────────────────
     def _modul(self, pfad):
         try:
-            baum = ast.parse(pfad.read_text(encoding='utf-8',
-                                            errors='replace'))
+            baum = ast.parse(pfad.read_text(encoding="utf-8", errors="replace"))
         except (SyntaxError, OSError, ValueError):
             return
         kurz = self._kurz(pfad)
         for knoten in baum.body:
             if isinstance(knoten, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                stellen = ', '.join(a.arg for a in knoten.args.args) or '—'
-                self.funktionen.append(
-                    Eintrag(knoten.name, kurz, knoten.lineno, stellen))
+                stellen = ", ".join(a.arg for a in knoten.args.args) or "—"
+                self.funktionen.append(Eintrag(knoten.name, kurz, knoten.lineno, stellen))
             elif isinstance(knoten, ast.ClassDef):
-                basen = ', '.join(self._name(b) for b in knoten.bases)
-                self.klassen.append(
-                    Eintrag(knoten.name, kurz, knoten.lineno, basen))
+                basen = ", ".join(self._name(b) for b in knoten.bases)
+                self.klassen.append(Eintrag(knoten.name, kurz, knoten.lineno, basen))
             elif isinstance(knoten, (ast.Assign, ast.AnnAssign)):
                 self._variable(knoten, kurz)
 
     def _variable(self, knoten, kurz):
-        u"""Nur VERAENDERLICHE zaehlen — eine Konstante ist keine Last.
+        """Nur VERAENDERLICHE zaehlen — eine Konstante ist keine Last.
 
         ``MAX = 5`` ist eine Vorgabe und gehoert auf Modulebene. ``_cache =
         {}`` ist Zustand, der jeden Aufruf ueberlebt und niemandem gehoert
         — das ist der Fund.
         """
-        ziele = knoten.targets if isinstance(knoten, ast.Assign) \
-            else [knoten.target]
+        ziele = knoten.targets if isinstance(knoten, ast.Assign) else [knoten.target]
         for ziel in ziele:
             if not isinstance(ziel, ast.Name):
                 continue
@@ -147,35 +144,33 @@ class Globalbestand:
                 # beim Import einmal gelesen und nie geaendert. Ohne diese
                 # Ausnahme stellte sie ein Viertel aller „veraenderlichen"
                 # Modulvariablen und machte die Zahl wertlos.
-                self.variablen.append(Eintrag(ziel.id, kurz, knoten.lineno,
-                                              'Ausfuhrliste'))
+                self.variablen.append(Eintrag(ziel.id, kurz, knoten.lineno, "Ausfuhrliste"))
                 continue
             veraenderlich = isinstance(wert, (ast.Dict, ast.List, ast.Set)) or (
                 isinstance(wert, ast.Call)
-                and self._name(wert.func) in
-                ('dict', 'list', 'set', 'defaultdict', 'OrderedDict',
-                 'deque', 'Counter'))
-            self.variablen.append(Eintrag(
-                ziel.id, kurz, knoten.lineno,
-                'veränderlich' if veraenderlich else 'Konstante'))
+                and self._name(wert.func)
+                in ("dict", "list", "set", "defaultdict", "OrderedDict", "deque", "Counter")
+            )
+            self.variablen.append(
+                Eintrag(ziel.id, kurz, knoten.lineno, "veränderlich" if veraenderlich else "Konstante")
+            )
 
     # ── Vorlagen und Skripte ────────────────────────────────────
     def _seite(self, pfad):
         try:
-            text = pfad.read_text(encoding='utf-8', errors='replace')
+            text = pfad.read_text(encoding="utf-8", errors="replace")
         except OSError:
             return
         namen = sorted(set(STATIC.findall(text)) | set(SRC.findall(text)))
         if not namen and not VORLAGE.search(text):
             return
         skripte = [(n, self._abhaengig(n)) for n in namen]
-        self.seiten.append(Seite(
-            self._kurz(pfad), skripte,
-            sorted(set(VORLAGE.findall(text))),
-            text.count('\n') + 1))
+        self.seiten.append(
+            Seite(self._kurz(pfad), skripte, sorted(set(VORLAGE.findall(text))), text.count("\n") + 1)
+        )
 
     def _abhaengig(self, js_pfad):
-        u"""Was dieses Skript selbst zieht — eine Stufe tief.
+        """Was dieses Skript selbst zieht — eine Stufe tief.
 
         Zwei Stufen waeren schon ein Netz, kein Baum: `live_view.js` zieht
         neun Module, die zusammen wieder dreissig ziehen. Wer das sehen
@@ -185,29 +180,29 @@ class Globalbestand:
         if datei is None:
             return []
         try:
-            text = datei.read_text(encoding='utf-8', errors='replace')
+            text = datei.read_text(encoding="utf-8", errors="replace")
         except OSError:
             return []
-        return sorted({p.rsplit('/', 1)[-1] for p in IMPORT.findall(text)})
+        return sorted({p.rsplit("/", 1)[-1] for p in IMPORT.findall(text)})
 
     def _finden(self, js_pfad):
-        u"""Die Datei zu einem Skript-Pfad — der Name genuegt.
+        """Die Datei zu einem Skript-Pfad — der Name genuegt.
 
         Der Pfad in der Vorlage (`app/js/modules/live/x.js`) und der auf der
         Platte (`app/static/app/js/modules/live/x.js`) sind nicht dieselben.
         Gesucht wird deshalb ueber den Dateinamen; bei Gleichnamigkeit
         gewinnt der erste Treffer.
         """
-        name = js_pfad.rsplit('/', 1)[-1]
+        name = js_pfad.rsplit("/", 1)[-1]
         for gefunden in self.wurzel.rglob(name):
-            if '__pycache__' not in gefunden.parts:
+            if "__pycache__" not in gefunden.parts:
                 return gefunden
         return None
 
     # ── Hilfen ──────────────────────────────────────────────────
     def _kurz(self, pfad):
         try:
-            return str(pfad.relative_to(self.wurzel)).replace('\\', '/')
+            return str(pfad.relative_to(self.wurzel)).replace("\\", "/")
         except ValueError:
             return pfad.name
 
@@ -217,22 +212,21 @@ class Globalbestand:
             return knoten.id
         if isinstance(knoten, ast.Attribute):
             return knoten.attr
-        return ''
+        return ""
 
     def kennzahlen(self):
         return {
-            'funktionen': len(self.funktionen),
-            'klassen': len(self.klassen),
-            'variablen': len(self.variablen),
-            'veraenderlich': sum(1 for v in self.variablen
-                                 if v.zusatz == 'veränderlich'),
-            'seiten': len(self.seiten),
-            'skripte': sum(len(s.skripte) for s in self.seiten),
+            "funktionen": len(self.funktionen),
+            "klassen": len(self.klassen),
+            "variablen": len(self.variablen),
+            "veraenderlich": sum(1 for v in self.variablen if v.zusatz == "veränderlich"),
+            "seiten": len(self.seiten),
+            "skripte": sum(len(s.skripte) for s in self.seiten),
         }
 
 
 def hauptaeste(wurzel):
-    u"""Die Hauptaeste eines Projekts — je eine Quelle zur Auswahl.
+    """Die Hauptaeste eines Projekts — je eine Quelle zur Auswahl.
 
         „mach evtl. mehrere Bereiche, je einen pro Hauptast des Projektes"
 
@@ -256,10 +250,10 @@ def hauptaeste(wurzel):
     # Samt der virtuellen Umgebungen: `pythonVENV` stand am 02.09.2026 im
     # Auswahlfeld und liess sich als Quelle waehlen — ein Klassenbild des
     # Interpreters statt des Projekts.
-    ohne = ausser(('media', 'logs', 'db'))
+    ohne = ausser(("media", "logs", "db"))
     raus = []
     for eintrag in sorted(basis.iterdir()):
-        if not eintrag.is_dir() or eintrag.name.startswith('.'):
+        if not eintrag.is_dir() or eintrag.name.startswith("."):
             continue
         if eintrag.name in ohne:
             continue
@@ -271,20 +265,18 @@ def hauptaeste(wurzel):
         # darunter „1004". Wer zwei Zahlen fuer dieselbe Sache sieht,
         # glaubt keiner von beiden.
         namen = set()
-        for datei in eintrag.rglob('*.py'):
+        for datei in eintrag.rglob("*.py"):
             if any(t in datei.parts for t in AUS):
                 continue
             try:
-                baum = _ast.parse(datei.read_text(encoding='utf-8',
-                                                  errors='replace'))
+                baum = _ast.parse(datei.read_text(encoding="utf-8", errors="replace"))
             except (SyntaxError, OSError, ValueError):
                 continue
-            namen.update(k.name for k in _ast.walk(baum)
-                         if isinstance(k, _ast.ClassDef))
+            namen.update(k.name for k in _ast.walk(baum) if isinstance(k, _ast.ClassDef))
         if namen:
-            raus.append({'name': eintrag.name, 'klassen': len(namen)})
-    raus.sort(key=lambda e: -e['klassen'])
+            raus.append({"name": eintrag.name, "klassen": len(namen)})
+    raus.sort(key=lambda e: -e["klassen"])
     return raus
 
 
-__all__ = ['Globalbestand', 'Eintrag', 'Seite', 'hauptaeste']
+__all__ = ["Globalbestand", "Eintrag", "Seite", "hauptaeste"]

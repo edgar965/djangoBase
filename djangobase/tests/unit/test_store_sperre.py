@@ -18,6 +18,7 @@ Das betrifft alle Projekte, die djangoBase einbinden; zwei offene
 Einstellungs-Tabs genügen. Deshalb steht der Fall hier als Test und nicht nur
 als Notiz.
 """
+
 import tempfile
 import threading
 from pathlib import Path
@@ -29,13 +30,12 @@ from djangobase.pause import Pause
 
 
 class StoreSperreTest(SimpleTestCase):
-
     def setUp(self):
-        self.datei = Path(tempfile.mkdtemp(prefix='store-test-')) / 'einstellungen.json'
+        self.datei = Path(tempfile.mkdtemp(prefix="store-test-")) / "einstellungen.json"
         self._echt = store._pfad
         store._pfad = lambda: self.datei
         self.addCleanup(self._wiederherstellen)
-        store.speichern({'titel': 'Anfangswert', 'sidebar_default': 250})
+        store.speichern({"titel": "Anfangswert", "sidebar_default": 250})
 
     def _wiederherstellen(self):
         store._pfad = self._echt
@@ -47,15 +47,15 @@ class StoreSperreTest(SimpleTestCase):
 
         def speichern(gruppe, werte):
             try:
-                start.wait(timeout=5)          # beide so gleichzeitig wie möglich
-                for _ in range(15):            # mehrfach, um das Fenster zu treffen
+                start.wait(timeout=5)  # beide so gleichzeitig wie möglich
+                for _ in range(15):  # mehrfach, um das Fenster zu treffen
                     store.speichern_gruppe(gruppe, werte)
-            except Exception as e:             # noqa: BLE001
+            except Exception as e:  # noqa: BLE001
                 fehler.append(repr(e))
 
         faeden = [
-            threading.Thread(target=speichern, args=('website', {'titel': 'von A'})),
-            threading.Thread(target=speichern, args=('djangobase', {'sidebar_default': 999})),
+            threading.Thread(target=speichern, args=("website", {"titel": "von A"})),
+            threading.Thread(target=speichern, args=("djangobase", {"sidebar_default": 999})),
         ]
         for f in faeden:
             f.start()
@@ -64,10 +64,12 @@ class StoreSperreTest(SimpleTestCase):
 
         self.assertEqual(fehler, [])
         werte = store.laden()
-        self.assertEqual(werte.get('titel'), 'von A',
-                         'die Änderung der Gruppe "website" ist verloren gegangen')
-        self.assertEqual(werte.get('sidebar_default'), 999,
-                         'die Änderung der Gruppe "djangobase" ist verloren gegangen')
+        self.assertEqual(
+            werte.get("titel"), "von A", 'die Änderung der Gruppe "website" ist verloren gegangen'
+        )
+        self.assertEqual(
+            werte.get("sidebar_default"), 999, 'die Änderung der Gruppe "djangobase" ist verloren gegangen'
+        )
 
     def test_verschachtelter_aufruf_blockiert_nicht(self):
         """`speichern_gruppe` ruft intern `laden()` und `speichern()` auf.
@@ -75,16 +77,16 @@ class StoreSperreTest(SimpleTestCase):
         Mit einer einfachen (nicht wiedereintrittsfähigen) Sperre wäre das ein
         Selbstblock — der Test würde hier hängen bleiben statt fehlzuschlagen,
         deshalb steht er ausdrücklich hier."""
-        store.speichern_gruppe('website', {'titel': 'verschachtelt'})
-        self.assertEqual(store.laden().get('titel'), 'verschachtelt')
+        store.speichern_gruppe("website", {"titel": "verschachtelt"})
+        self.assertEqual(store.laden().get("titel"), "verschachtelt")
 
     def test_liegengebliebene_sperrdatei_blockiert_nicht_dauerhaft(self):
         """Stirbt ein Prozess mit gehaltener Sperre, darf niemand aussperrt sein.
 
         Nach kurzem Warten wird trotzdem gespeichert — ein verlorenes Speichern
         wäre schlimmer als ein unwahrscheinliches Wettrennen."""
-        sperre = self.datei.with_suffix(self.datei.suffix + '.lock')
-        sperre.write_text('', encoding='utf-8')
+        sperre = self.datei.with_suffix(self.datei.suffix + ".lock")
+        sperre.write_text("", encoding="utf-8")
         # Bis zum 18.09.2026 drehte dieser Test VERSUCHE auf 2 herunter, damit
         # er nicht 20 x 0,05 s wartet — und prüfte damit einen anderen Ablauf
         # als den echten. Mit ``Pause.sofort()`` läuft der ECHTE Ablauf (alle
@@ -93,10 +95,13 @@ class StoreSperreTest(SimpleTestCase):
         pause, alt = Pause.sofort(), store.PAUSE
         store.PAUSE = pause
         try:
-            store.speichern_gruppe('website', {'titel': 'trotz Sperre'})
-            self.assertEqual(store.laden().get('titel'), 'trotz Sperre')
+            store.speichern_gruppe("website", {"titel": "trotz Sperre"})
+            self.assertEqual(store.laden().get("titel"), "trotz Sperre")
         finally:
             store.PAUSE = alt
             sperre.unlink()
-        self.assertEqual(pause.gewartet, [store._Sperre.PAUSE_S] * store._Sperre.VERSUCHE,
-                         'Alle Versuche müssen gelaufen sein, jeder mit der vollen Pause')
+        self.assertEqual(
+            pause.gewartet,
+            [store._Sperre.PAUSE_S] * store._Sperre.VERSUCHE,
+            "Alle Versuche müssen gelaufen sein, jeder mit der vollen Pause",
+        )

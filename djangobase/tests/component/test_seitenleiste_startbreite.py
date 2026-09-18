@@ -40,6 +40,7 @@ Zug. Das ist genau der Fall, vor dem ``test_hilfe_views`` warnt: Ein
 Test, dessen Ergebnis von den Einstellungen des Wirts abhaengt, prueft
 nicht djangoBase.
 """
+
 import re
 from unittest import mock
 
@@ -52,33 +53,32 @@ from ..base import BasisTest
 SETZER = re.compile(r"setProperty\('--sidebar-width'")
 
 #: Was der Wirt gespeichert hat, geht diese Pruefung nichts an.
-OHNE_SPEICHER = 'djangobase.store.laden'
+OHNE_SPEICHER = "djangobase.store.laden"
 
 
 class _Startbreite(BasisTest):
-
     def setUp(self):
         self.client = self.staff_client()
 
     def _kopf(self):
         with mock.patch(OHNE_SPEICHER, return_value={}):
-            antwort = self.client.get(reverse('djangobase:versionen'))
+            antwort = self.client.get(reverse("djangobase:versionen"))
         self.assertEqual(antwort.status_code, 200)
-        return antwort.content.decode('utf-8').split('</head>', 1)[0]
+        return antwort.content.decode("utf-8").split("</head>", 1)[0]
 
 
-@override_settings(DJANGOBASE={'resizable_sidebar': True,
-                               'sidebar_default': 200,
-                               'sidebar_min': 140,
-                               'sidebar_max': 480})
+@override_settings(
+    DJANGOBASE={"resizable_sidebar": True, "sidebar_default": 200, "sidebar_min": 140, "sidebar_max": 480}
+)
 class DieStartbreiteStehtImHtml(_Startbreite):
-
     def test_der_setzer_steht_im_kopf(self):
         self.assertRegex(
-            self._kopf(), SETZER,
-            'Ohne diesen Setzer malt der Browser erst die Breite aus dem '
-            'Stilblatt und rueckt danach auf die eingestellte — sichtbar '
-            'als Sprung des ganzen Inhalts.')
+            self._kopf(),
+            SETZER,
+            "Ohne diesen Setzer malt der Browser erst die Breite aus dem "
+            "Stilblatt und rueckt danach auf die eingestellte — sichtbar "
+            "als Sprung des ganzen Inhalts.",
+        )
 
     def test_die_eingestellte_vorgabe_steht_darin(self):
         """Nicht irgendein Wert, sondern der aus den Einstellungen.
@@ -87,20 +87,21 @@ class DieStartbreiteStehtImHtml(_Startbreite):
         ein gespeicherter Wert da war. Ohne den galt das Stilblatt — und
         das kennt ``sidebar_default`` nicht.
         """
-        hinter_dem_setzer = self._kopf().split(
-            "setProperty('--sidebar-width'")[-1][:400]
+        hinter_dem_setzer = self._kopf().split("setProperty('--sidebar-width'")[-1][:400]
         self.assertIn(
-            '200', hinter_dem_setzer,
+            "200",
+            hinter_dem_setzer,
             'Die Vorgabe aus DJANGOBASE["sidebar_default"] muss im Kopf '
-            'landen, sonst wirkt sie erst nach dem ersten Bildaufbau.')
+            "landen, sonst wirkt sie erst nach dem ersten Bildaufbau.",
+        )
 
     def test_die_grenzen_stehen_ebenfalls_darin(self):
         """Sonst kann der Setzer einen gespeicherten Ausreisser nicht kappen."""
         kopf = self._kopf()
-        self.assertIn('var min=140, max=480;', kopf)
+        self.assertIn("var min=140, max=480;", kopf)
 
 
-@override_settings(DJANGOBASE={'resizable_sidebar': False})
+@override_settings(DJANGOBASE={"resizable_sidebar": False})
 class OhneVerstellbareLeisteGibtEsIhnNicht(_Startbreite):
     """Wer die Leiste nicht verstellen laesst, braucht auch den Setzer
     nicht — dann gilt schlicht das Stilblatt, und es gibt nichts, was

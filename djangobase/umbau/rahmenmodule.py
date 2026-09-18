@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Rahmenmodule: Dateien, deren ``__all__`` erst zur Laufzeit entsteht.
+"""Rahmenmodule: Dateien, deren ``__all__`` erst zur Laufzeit entsteht.
 
 DER ANLASS (Edgar, 02.09.2026: „warum sind noch Funde da?")
 ===========================================================
@@ -68,6 +68,7 @@ von 1.271, mit Regex-Vorfilter unter einer Zehntelsekunde.
 
 Django-frei; ohne diese Datei ändert sich nichts (der Filter ist abschaltbar).
 """
+
 import ast
 import re
 from pathlib import Path
@@ -87,7 +88,7 @@ VORFILTER = re.compile(r"__all__|import\s+\*")
 
 
 class Rahmenmodule:
-    u"""Erkennt Rahmen und ihre Stern-Importeure — je Projektwurzel gemerkt."""
+    """Erkennt Rahmen und ihre Stern-Importeure — je Projektwurzel gemerkt."""
 
     #: ``pfad -> (mtime, groesse, (dynamisch, ziele))``. Ein Lauf fragt jede
     #: Datei mehrfach (``roh()`` steckt in vier Sichten), und zwischen zwei
@@ -104,7 +105,7 @@ class Rahmenmodule:
 
     # ── Abfrage ──────────────────────────────────────────────────────────
     def einlesen(self, dateien):
-        u"""Die Dateien mit Befund ansehen — und die Ziele ihrer Stern-Importe.
+        """Die Dateien mit Befund ansehen — und die Ziele ihrer Stern-Importe.
 
         Zwei Runden, weil ein Rahmen selbst keinen Befund haben muss: Erst die
         gemeldeten Dateien, dann die Module, aus denen sie per ``*`` holen."""
@@ -134,11 +135,11 @@ class Rahmenmodule:
         return self._konsumenten
 
     def reexporte(self):
-        u"""``{datei: {zeilen}}`` — die als Weitergabe markierten Import-Zeilen."""
+        """``{datei: {zeilen}}`` — die als Weitergabe markierten Import-Zeilen."""
         return self._reexport
 
     def stumm(self, befund):
-        u"""Sagt dieser Befund etwas über den Code — oder über die Konstruktion?"""
+        """Sagt dieser Befund etwas über den Code — oder über die Konstruktion?"""
         datei, regel = befund.get("datei", ""), befund.get("regel", "")
         if regel in RAHMEN_REGELN and datei in self._rahmen:
             return True
@@ -148,7 +149,7 @@ class Rahmenmodule:
 
     # ── Quelltext ────────────────────────────────────────────────────────
     def _ist_rahmen(self, pfad):
-        u"""Ein Ziel eines Stern-Imports — hat es ein Laufzeit-``__all__``?"""
+        """Ein Ziel eines Stern-Imports — hat es ein Laufzeit-``__all__``?"""
         if pfad is None:
             return False
         rel = self._relativ(pfad)
@@ -164,7 +165,7 @@ class Rahmenmodule:
         return dynamisch
 
     def _ansehen(self, pfad):
-        u"""``(dynamisches __all__, [Sternziele], {Re-Export-Zeilen})`` — mit Merker."""
+        """``(dynamisches __all__, [Sternziele], {Re-Export-Zeilen})`` — mit Merker."""
         try:
             stat = pfad.stat()
         except OSError:
@@ -178,14 +179,17 @@ class Rahmenmodule:
         except (OSError, SyntaxError, ValueError):
             antwort = (False, [], set())
         else:
-            antwort = (self._dynamisch(baum), self._sternziele(baum, pfad),
-                       Reexporte.zeilen(baum, text.splitlines()))
+            antwort = (
+                self._dynamisch(baum),
+                self._sternziele(baum, pfad),
+                Reexporte.zeilen(baum, text.splitlines()),
+            )
         self._gelesen[str(pfad)] = (stat.st_mtime, stat.st_size, antwort)
         return antwort
 
     @staticmethod
     def _dynamisch(baum):
-        u"""``__all__`` aus einem Ausdruck statt aus Zeichenketten-Literalen.
+        """``__all__`` aus einem Ausdruck statt aus Zeichenketten-Literalen.
 
         ``__all__ = ["a", "b"]`` ist statisch — pyright liest es und meldet
         danach zu Recht. ``__all__ = [_n for _n in globals()]``, ``__all__ =
@@ -200,13 +204,12 @@ class Rahmenmodule:
                 continue
             if not isinstance(wert, (ast.List, ast.Tuple)):
                 return True
-            if not all(isinstance(e, ast.Constant) and isinstance(e.value, str)
-                       for e in wert.elts):
+            if not all(isinstance(e, ast.Constant) and isinstance(e.value, str) for e in wert.elts):
                 return True
         return False
 
     def _sternziele(self, baum, pfad):
-        u"""Die Dateien, aus denen diese Datei per ``from … import *`` holt."""
+        """Die Dateien, aus denen diese Datei per ``from … import *`` holt."""
         raus = []
         for knoten in baum.body:
             if not isinstance(knoten, ast.ImportFrom):
@@ -219,7 +222,7 @@ class Rahmenmodule:
         return raus
 
     def _aufloesen(self, knoten, pfad):
-        u"""``from .x import *`` → Datei. Relativ sicher, absolut nach Versuch.
+        """``from .x import *`` → Datei. Relativ sicher, absolut nach Versuch.
 
         Ein absoluter Import (``from dashboard.views.basis import *``) hängt an
         ``sys.path``, den dieses Modul nicht kennt. Probiert werden die Wurzel
@@ -244,11 +247,10 @@ class Rahmenmodule:
         return None
 
     def _hauptaeste(self):
-        u"""Die Verzeichnisse direkt unter der Wurzel — mögliche Import-Wurzeln."""
+        """Die Verzeichnisse direkt unter der Wurzel — mögliche Import-Wurzeln."""
         if not hasattr(self, "_aeste"):
             try:
-                self._aeste = [p for p in self.wurzel.iterdir()
-                               if p.is_dir() and not p.name.startswith(".")]
+                self._aeste = [p for p in self.wurzel.iterdir() if p.is_dir() and not p.name.startswith(".")]
             except OSError:
                 self._aeste = []
         return self._aeste

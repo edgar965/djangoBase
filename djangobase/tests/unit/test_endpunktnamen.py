@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Welchen Namen darf ein View in der Endpunkt-Tabelle tragen?
+"""Welchen Namen darf ein View in der Endpunkt-Tabelle tragen?
 
 DER ANLASS (28.08.2026)
 =======================
@@ -44,6 +44,7 @@ BDD - GEGEBEN / DANN
     EineVertauschteRoute    ... faellt weiter auf
     EinModulOhneDenNamen    ... ebenfalls
 """
+
 import sys
 import types
 import unittest
@@ -52,7 +53,7 @@ from djangobase.endpunkttests import EndpunktProbe
 
 
 def _modul(name, **inhalt):
-    u"""Ein Modul zum Anfassen, in ``sys.modules`` eingehaengt.
+    """Ein Modul zum Anfassen, in ``sys.modules`` eingehaengt.
 
     Ohne den Eintrag findet ``_heisst_so`` das Modul nicht — es sucht
     ueber ``funktion.__module__``.
@@ -70,27 +71,28 @@ class _Lage(unittest.TestCase):
 
 
 class EineFreieFunktion(_Lage):
-    u"""Gegeben: Der Normalfall — ein View als Funktion auf Modulebene."""
+    """Gegeben: Der Normalfall — ein View als Funktion auf Modulebene."""
 
     def setUp(self):
         def midi_serve_file(request):
             return None
-        midi_serve_file.__module__ = 'probe_frei'
-        _modul('probe_frei', midi_serve_file=midi_serve_file)
+
+        midi_serve_file.__module__ = "probe_frei"
+        _modul("probe_frei", midi_serve_file=midi_serve_file)
         self.f = midi_serve_file
 
     def tearDown(self):
-        sys.modules.pop('probe_frei', None)
+        sys.modules.pop("probe_frei", None)
 
     def test_sie_traegt_ihren_namen(self):
-        self.assertTrue(self.pruefen(self.f, 'midi_serve_file'))
+        self.assertTrue(self.pruefen(self.f, "midi_serve_file"))
 
     def test_ein_anderer_name_gilt_nicht(self):
-        self.assertFalse(self.pruefen(self.f, 'music_serve_file'))
+        self.assertFalse(self.pruefen(self.f, "music_serve_file"))
 
 
 class EineGebuendelteMethode(_Lage):
-    u"""Gegeben: Der Bereich ist zu einer Klasse gebuendelt.
+    """Gegeben: Der Bereich ist zu einer Klasse gebuendelt.
 
     Die Methode heisst kurz, das Modul haelt den alten Namen als
     Zuweisung — sonst fände urls.py sie nicht mehr.
@@ -106,33 +108,35 @@ class EineGebuendelteMethode(_Lage):
             def stop(request):
                 return None
 
-        MidiSeiten.__module__ = 'probe_klasse'
-        MidiSeiten.serve_file.__module__ = 'probe_klasse'
-        MidiSeiten.stop.__module__ = 'probe_klasse'
-        _modul('probe_klasse',
-               MidiSeiten=MidiSeiten,
-               midi_serve_file=MidiSeiten.serve_file,
-               midi_stop=MidiSeiten.stop)
+        MidiSeiten.__module__ = "probe_klasse"
+        MidiSeiten.serve_file.__module__ = "probe_klasse"
+        MidiSeiten.stop.__module__ = "probe_klasse"
+        _modul(
+            "probe_klasse",
+            MidiSeiten=MidiSeiten,
+            midi_serve_file=MidiSeiten.serve_file,
+            midi_stop=MidiSeiten.stop,
+        )
         self.K = MidiSeiten
 
     def tearDown(self):
-        sys.modules.pop('probe_klasse', None)
+        sys.modules.pop("probe_klasse", None)
 
     def test_der_modulname_gilt(self):
-        u"""DER FALL, DER SIEBEN ENDPUNKTE ALS KAPUTT MELDETE."""
-        self.assertTrue(self.pruefen(self.K.serve_file, 'midi_serve_file'))
+        """DER FALL, DER SIEBEN ENDPUNKTE ALS KAPUTT MELDETE."""
+        self.assertTrue(self.pruefen(self.K.serve_file, "midi_serve_file"))
 
     def test_der_methodenname_auch(self):
-        self.assertTrue(self.pruefen(self.K.serve_file, 'serve_file'))
+        self.assertTrue(self.pruefen(self.K.serve_file, "serve_file"))
 
     def test_jede_methode_nur_ihr_eigener_name(self):
-        u"""``midi_stop`` zeigt auf ``stop``, nicht auf ``serve_file``."""
-        self.assertTrue(self.pruefen(self.K.stop, 'midi_stop'))
-        self.assertFalse(self.pruefen(self.K.stop, 'midi_serve_file'))
+        """``midi_stop`` zeigt auf ``stop``, nicht auf ``serve_file``."""
+        self.assertTrue(self.pruefen(self.K.stop, "midi_stop"))
+        self.assertFalse(self.pruefen(self.K.stop, "midi_serve_file"))
 
 
 class EineVertauschteRoute(_Lage):
-    u"""Gegeben: Die Route zeigt auf den falschen View.
+    """Gegeben: Die Route zeigt auf den falschen View.
 
     DAS IST DER GRUND FÜR DIE GANZE PRÜFUNG. Sie darf nicht deshalb
     grün werden, weil zwei Namen ähnlich aussehen.
@@ -143,59 +147,62 @@ class EineVertauschteRoute(_Lage):
             @staticmethod
             def serve_file(request):
                 return None
-        MidiSeiten.serve_file.__module__ = 'probe_midi'
-        _modul('probe_midi', MidiSeiten=MidiSeiten,
-               midi_serve_file=MidiSeiten.serve_file)
+
+        MidiSeiten.serve_file.__module__ = "probe_midi"
+        _modul("probe_midi", MidiSeiten=MidiSeiten, midi_serve_file=MidiSeiten.serve_file)
 
         def music_serve_file(request):
             return None
-        music_serve_file.__module__ = 'probe_musik'
-        _modul('probe_musik', music_serve_file=music_serve_file)
+
+        music_serve_file.__module__ = "probe_musik"
+        _modul("probe_musik", music_serve_file=music_serve_file)
 
         self.midi = MidiSeiten.serve_file
         self.musik = music_serve_file
 
     def tearDown(self):
-        for n in ('probe_midi', 'probe_musik'):
+        for n in ("probe_midi", "probe_musik"):
             sys.modules.pop(n, None)
 
     def test_aehnliche_namen_gelten_nicht(self):
-        u"""Beide enden auf ``_serve_file``. Ein Vergleich über die
+        """Beide enden auf ``_serve_file``. Ein Vergleich über die
         Endung hätte das durchgelassen — und eine vertauschte Route
         wäre ein grüner Test geworden."""
-        self.assertFalse(self.pruefen(self.midi, 'music_serve_file'))
-        self.assertFalse(self.pruefen(self.musik, 'midi_serve_file'))
+        self.assertFalse(self.pruefen(self.midi, "music_serve_file"))
+        self.assertFalse(self.pruefen(self.musik, "midi_serve_file"))
 
     def test_der_kurze_name_gilt_nicht_quer(self):
-        u"""``serve_file`` ist der Methodenname der EINEN Klasse — die
+        """``serve_file`` ist der Methodenname der EINEN Klasse — die
         freie Funktion des anderen Bereichs heisst nicht so."""
-        self.assertFalse(self.pruefen(self.musik, 'serve_file'))
+        self.assertFalse(self.pruefen(self.musik, "serve_file"))
 
 
 class EinModulOhneDenNamen(_Lage):
-    u"""Gegeben: Die Zuweisung fehlt (oder heisst anders)."""
+    """Gegeben: Die Zuweisung fehlt (oder heisst anders)."""
 
     def setUp(self):
         class Seiten:
             @staticmethod
             def serve_file(request):
                 return None
-        Seiten.serve_file.__module__ = 'probe_leer'
-        _modul('probe_leer', Seiten=Seiten)     # KEINE Zuweisung
+
+        Seiten.serve_file.__module__ = "probe_leer"
+        _modul("probe_leer", Seiten=Seiten)  # KEINE Zuweisung
         self.f = Seiten.serve_file
 
     def tearDown(self):
-        sys.modules.pop('probe_leer', None)
+        sys.modules.pop("probe_leer", None)
 
     def test_der_modulname_gilt_dann_nicht(self):
-        u"""Ohne Zuweisung fände urls.py den Namen auch nicht."""
-        self.assertFalse(self.pruefen(self.f, 'midi_serve_file'))
+        """Ohne Zuweisung fände urls.py den Namen auch nicht."""
+        self.assertFalse(self.pruefen(self.f, "midi_serve_file"))
 
     def test_der_methodenname_weiterhin_schon(self):
-        self.assertTrue(self.pruefen(self.f, 'serve_file'))
+        self.assertTrue(self.pruefen(self.f, "serve_file"))
 
     def test_ein_unbekanntes_modul_wirft_nicht(self):
         def irgendwas(request):
             return None
-        irgendwas.__module__ = 'gibt_es_nicht'
-        self.assertFalse(self.pruefen(irgendwas, 'egal'))
+
+        irgendwas.__module__ = "gibt_es_nicht"
+        self.assertFalse(self.pruefen(irgendwas, "egal"))

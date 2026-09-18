@@ -1,4 +1,5 @@
 """Unit-Tests: Übersetzungs-Katalog (ohne externe Übersetzungs-API)."""
+
 from djangobase import uebersetzung as ue
 from djangobase.models import TextQuelle
 

@@ -13,6 +13,7 @@ Die Rolle ergibt sich aus der KLASSE: existiert ein Provider-Datensatz zum
 Nutzer, ist er Provider, sonst Teilnehmer. Diese Modelle gehören djangoBase und
 stehen daher in jedem Projekt zur Verfügung (einmalig `migrate djangobase`).
 """
+
 import re
 
 from django.conf import settings
@@ -21,13 +22,18 @@ from django.db import models
 
 class BasisProfil(models.Model):
     """Abstrakte Basis: gemeinsame Stammdaten jedes Nutzers."""
+
     SPRACHEN = [
-        ("de", "Deutsch"), ("en", "English"), ("fr", "Français"),
-        ("es", "Español"), ("it", "Italiano"),
+        ("de", "Deutsch"),
+        ("en", "English"),
+        ("fr", "Français"),
+        ("es", "Español"),
+        ("it", "Italiano"),
     ]
 
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
-                                related_name="profil", verbose_name="Benutzer")
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profil", verbose_name="Benutzer"
+    )
     avatar = models.ImageField("Avatar-Bild", upload_to="avatare/", blank=True)
     avatar_emoji = models.CharField("Avatar (Emoji)", max_length=8, blank=True)
     sprache = models.CharField("Sprache", max_length=5, choices=SPRACHEN, default="de")
@@ -84,6 +90,7 @@ class Teilnehmer(BasisProfil):
 class Provider(Teilnehmer):
     """Anbieter von Events/Touren. Erbt per MTI von Teilnehmer
     („Provider ist ein Teilnehmer")."""
+
     anbietername = models.CharField("Anbieter-Name", max_length=200, blank=True)
     logo = models.ImageField("Logo", upload_to="anbieter/", blank=True)
     beschreibung = models.TextField("Beschreibung", blank=True)
@@ -103,6 +110,7 @@ class Seitenaufruf(models.Model):
     Besucher-Hash (IP + User-Agent + Tagessalz + SECRET_KEY). Damit lassen
     sich eindeutige Besucher pro Tag zählen, ohne dass jemand identifizierbar
     oder über Tage hinweg verfolgbar wäre."""
+
     TYPEN = [("html", "Seite"), ("json", "JSON/API"), ("andere", "Andere")]
     GERAETE = [("desktop", "Desktop"), ("mobile", "Mobil"), ("tablet", "Tablet")]
 
@@ -111,11 +119,15 @@ class Seitenaufruf(models.Model):
     typ = models.CharField("Typ", max_length=8, choices=TYPEN, default="html")
     land = models.CharField("Land (ISO)", max_length=2, blank=True)
     besucher = models.CharField("Besucher-Hash", max_length=16, db_index=True)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
-                             on_delete=models.SET_NULL, related_name="+",
-                             verbose_name="Benutzer")
-    geraet = models.CharField("Gerät", max_length=8, choices=GERAETE,
-                              default="desktop")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="+",
+        verbose_name="Benutzer",
+    )
+    geraet = models.CharField("Gerät", max_length=8, choices=GERAETE, default="desktop")
     referrer = models.CharField("Referrer-Domain", max_length=120, blank=True)
     bot = models.BooleanField("Bot", default=False)
     # Unkomprimierte Antwortgröße; /static/ & /media/ liefert nginx direkt
@@ -134,9 +146,15 @@ class LoginSitzung(models.Model):
     """Eine Login-Sitzung (von–bis) für den Audit-Trail. `benutzer` als
     Snapshot-Text, damit die Historie eine spätere Konto-Löschung überlebt
     (user wird dann auf NULL gesetzt, der Name bleibt)."""
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
-                             on_delete=models.SET_NULL, related_name="login_sitzungen",
-                             verbose_name="Benutzer")
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="login_sitzungen",
+        verbose_name="Benutzer",
+    )
     benutzer = models.CharField("Benutzer (Snapshot)", max_length=200)
     beginn = models.DateTimeField("Login", db_index=True)
     ende = models.DateTimeField("Logout", null=True, blank=True)
@@ -160,6 +178,7 @@ class Verbrauch(models.Model):
     `anzahl` = Stück (Kacheln bzw. Routing-Anfragen), `bytes` = übertragene
     Datenmenge (bei Kacheln aus der Resource-Timing-API des Browsers, 0 bei
     Cache-Treffern), `detail` = Quelle/Modus (z. B. "auto"/"pedestrian")."""
+
     TYPEN = [("tile", "Kartenkacheln"), ("route", "Navigation/Routing")]
 
     zeit = models.DateTimeField("Zeit", auto_now_add=True, db_index=True)
@@ -183,6 +202,7 @@ class TextQuelle(models.Model):
     registriert (djangobase.uebersetzung). Der Schlüssel ist bei {% t %} der
     md5-Hash des Texts (Textänderung = neuer Eintrag), bei {% tblock %} ein
     fester Name (Textänderung = Übersetzung „veraltet")."""
+
     schluessel = models.CharField("Schlüssel", max_length=64, unique=True)
     quelle = models.TextField("Deutscher Text")
     zuletzt_gesehen = models.DateTimeField("Zuletzt gesehen", auto_now=True)
@@ -199,8 +219,10 @@ class Uebersetzung(models.Model):
     """Maschinelle (Google-)Übersetzung einer TextQuelle in eine Zielsprache.
     quelle_hash hält fest, welcher deutsche Stand übersetzt wurde – weicht er
     vom aktuellen Quelltext ab, gilt die Übersetzung als veraltet."""
-    quelle = models.ForeignKey(TextQuelle, on_delete=models.CASCADE,
-                               related_name="uebersetzungen", verbose_name="Quelle")
+
+    quelle = models.ForeignKey(
+        TextQuelle, on_delete=models.CASCADE, related_name="uebersetzungen", verbose_name="Quelle"
+    )
     sprache = models.CharField("Sprache", max_length=8)
     text = models.TextField("Übersetzung")
     quelle_hash = models.CharField("Quell-Hash", max_length=32)
@@ -209,8 +231,9 @@ class Uebersetzung(models.Model):
     class Meta:
         verbose_name = "Übersetzung"
         verbose_name_plural = "Übersetzungen"
-        constraints = [models.UniqueConstraint(fields=["quelle", "sprache"],
-                                               name="uebersetzung_quelle_sprache")]
+        constraints = [
+            models.UniqueConstraint(fields=["quelle", "sprache"], name="uebersetzung_quelle_sprache")
+        ]
 
     def __str__(self):
         return f"{self.sprache}: {self.text[:50]}"

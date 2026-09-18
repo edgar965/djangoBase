@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Was im NAMEN eines Modells steht - Parameterzahl und was daraus folgt.
+"""Was im NAMEN eines Modells steht - Parameterzahl und was daraus folgt.
 
 Reines Lesen von Zeichenketten, kein Netz, keine Datei. Herausgeloest aus
 ``modelle.py`` (30.08.2026), weil dort inzwischen drei Dinge nebeneinander
@@ -14,6 +14,7 @@ Schaetzung. Ein Modell ohne Zahl im Namen gilt hier deshalb als geschlossen;
 das ist eine Faustregel, keine Garantie (``llama-4-scout`` ist offen und traegt
 trotzdem keine Zahl).
 """
+
 import re
 
 #: Plattenbedarf je Mrd. Parameter in der ueblichen 4-Bit-Quantisierung (Q4_K_M).
@@ -25,7 +26,7 @@ GB_JE_MRD = 0.63
 
 
 class Modellname:
-    u"""Liest Parameterzahl, Plattenbedarf und Sortiergroesse aus einer Kennung."""
+    """Liest Parameterzahl, Plattenbedarf und Sortiergroesse aus einer Kennung."""
 
     #: ``550b-a55b`` = 550 Mrd. Parameter gesamt, davon 55 Mrd. je Token aktiv.
     #: Fuer Tempo und Speicherbedarf zaehlt die zweite Zahl, fuer die Faehigkeiten
@@ -37,7 +38,7 @@ class Modellname:
 
     @classmethod
     def parameter(cls, kennung):
-        u"""('550B', '55B') aus einem Modellnamen - oder (None, None).
+        """('550B', '55B') aus einem Modellnamen - oder (None, None).
 
         Die zweite Zahl ist nur bei MoE-Modellen gesetzt (aktive Parameter)."""
         name = (kennung or "").lower()
@@ -51,7 +52,7 @@ class Modellname:
 
     @classmethod
     def gb(cls, param):
-        u"""Geschaetzter Plattenbedarf in GB aus '27B' - oder None."""
+        """Geschaetzter Plattenbedarf in GB aus '27B' - oder None."""
         mrd = cls.mrd(param)
         return None if mrd is None else round(mrd * GB_JE_MRD, 1)
 
@@ -62,7 +63,7 @@ class Modellname:
 
     @staticmethod
     def mrd(param):
-        u"""'550B' -> 550.0, '20.9B' -> 20.9, '137M' -> 0.137; sonst None.
+        """'550B' -> 550.0, '20.9B' -> 20.9, '137M' -> 0.137; sonst None.
 
         BEFUND 01.09.2026 - die Einheit fehlte, und zwar an zwei Stellen:
         Hier warf ``float("137M")`` still ein ValueError (Ergebnis None), und

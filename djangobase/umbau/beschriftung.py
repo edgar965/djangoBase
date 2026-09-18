@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Aus einem Aufruf einen lesbaren Satz machen — ohne zu erfinden.
+"""Aus einem Aufruf einen lesbaren Satz machen — ohne zu erfinden.
 
 DIE ANSAGE (Edgar, 27.08.2026)
 ==============================
@@ -39,28 +39,29 @@ waere eine Erfindung: Es behauptet, ``prepare`` bedeute hier
 Das Bild sagt darum lieber „was der Entwickler geschrieben hat, in
 lesbar" als „was ich glaube, dass er gemeint hat".
 """
+
 import ast
 import re
 
 #: Wortanfaenge, die im Namen keine eigene Trennung verdienen.
-ZUSAMMEN = ('Js', 'Ui', 'Db', 'Api', 'Id', 'Ip', 'Url')
+ZUSAMMEN = ("Js", "Ui", "Db", "Api", "Id", "Ip", "Url")
 
 #: Vorsaetze, die nichts ueber die Handlung sagen.
-VORSATZ = ('_', 'do_', 'get_', 'set_')
+VORSATZ = ("_", "do_", "get_", "set_")
 
 #: Hoechstlaenge eines Kastentextes.
 BREIT = 46
 
 
 class Beschriftung:
-    u"""Der Satz zu EINEM Aufruf.
+    """Der Satz zu EINEM Aufruf.
 
-        >>> Beschriftung('_install_signal_handlers').satz()
-        'install signal handlers'
+    >>> Beschriftung('_install_signal_handlers').satz()
+    'install signal handlers'
     """
 
-    def __init__(self, name, bezug=None, empfaenger='', merkmal=''):
-        self.name = name or ''
+    def __init__(self, name, bezug=None, empfaenger="", merkmal=""):
+        self.name = name or ""
         #: Die gerufene Definition — fuer den Docstring. Darf fehlen.
         self.bezug = bezug
         #: ``self.service`` -> ``service``; steht als Gegenstand davor.
@@ -70,32 +71,34 @@ class Beschriftung:
 
     @classmethod
     def fuer(cls, knoten, verzeichnis=None):
-        u"""Der Satz zu EINEM Ablauf-Knoten.
+        """Der Satz zu EINEM Ablauf-Knoten.
 
         Die Zuordnung gehoert hierher und nicht in die Ansicht: Sonst
         beschriftet jede Seite anders, und zwei Bilder desselben Ablaufs
         sagen Verschiedenes.
         """
-        art = getattr(knoten, 'art', '')
-        if art == 'frage':
-            return u'%s?' % cls(knoten.text)._kuerzen(knoten.text)
-        if art in ('schleife', 'block', 'absicherung'):
+        art = getattr(knoten, "art", "")
+        if art == "frage":
+            return "%s?" % cls(knoten.text)._kuerzen(knoten.text)
+        if art in ("schleife", "block", "absicherung"):
             return cls(knoten.text)._kuerzen(knoten.text)
-        if art == 'ende':
+        if art == "ende":
             return cls(knoten.text)._kuerzen(knoten.text)
         bezug = None
-        ziel = getattr(knoten, 'ziel', '')
+        ziel = getattr(knoten, "ziel", "")
         if ziel and verzeichnis is not None:
-            klasse, _punkt, name = ziel.rpartition('.')
-            bezug = (verzeichnis.in_klasse(klasse, name) if klasse
-                     else verzeichnis.funktionen.get(name))
-        return cls(getattr(knoten, 'aufruf', '') or knoten.text, bezug,
-                   getattr(knoten, 'empfaenger', ''),
-                   getattr(knoten, 'merkmal', '')).satz()
+            klasse, _punkt, name = ziel.rpartition(".")
+            bezug = verzeichnis.in_klasse(klasse, name) if klasse else verzeichnis.funktionen.get(name)
+        return cls(
+            getattr(knoten, "aufruf", "") or knoten.text,
+            bezug,
+            getattr(knoten, "empfaenger", ""),
+            getattr(knoten, "merkmal", ""),
+        ).satz()
 
     @classmethod
     def herkunft(cls, knoten, verzeichnis=None):
-        u"""Woher dieser Kasten kommt — Klasse, Methode, Modul, Zeile.
+        """Woher dieser Kasten kommt — Klasse, Methode, Modul, Zeile.
 
         DIE ANSAGE (Edgar, 27.08.2026)
         ==============================
@@ -115,18 +118,18 @@ class Beschriftung:
         zweite.
         """
         angaben = {
-            'quelle': getattr(knoten, 'text', ''),
-            'zeile': getattr(knoten, 'zeile', 0),
-            'art': getattr(knoten, 'art', ''),
+            "quelle": getattr(knoten, "text", ""),
+            "zeile": getattr(knoten, "zeile", 0),
+            "art": getattr(knoten, "art", ""),
         }
-        ziel = getattr(knoten, 'ziel', '')
+        ziel = getattr(knoten, "ziel", "")
         if not ziel or verzeichnis is None:
             return angaben
-        klasse, _punkt, name = ziel.rpartition('.')
+        klasse, _punkt, name = ziel.rpartition(".")
         if klasse:
             bezug = verzeichnis.in_klasse(klasse, name)
-            angaben['klasse'] = klasse
-            angaben['methode'] = name
+            angaben["klasse"] = klasse
+            angaben["methode"] = name
         elif name in verzeichnis.klassen:
             # ERZEUGEN IST KEIN METHODENAUFRUF (27.08.2026)
             # `self.service = RecordingService(...)` stand als
@@ -134,25 +137,25 @@ class Beschriftung:
             # KLASSE gebaut; wer das verwechselt, sucht die Methode im
             # falschen Modul.
             bezug = verzeichnis.klassen[name]
-            angaben['klasse'] = name
-            angaben['erzeugt'] = 'ja'
+            angaben["klasse"] = name
+            angaben["erzeugt"] = "ja"
         else:
             bezug = verzeichnis.funktionen.get(name)
-            angaben['funktion'] = name
+            angaben["funktion"] = name
         if bezug is not None:
-            angaben['modul'] = bezug.modul
-            angaben['zielzeile'] = bezug.zeile
-            angaben['doku'] = cls('', bezug).aus_doku()
-            angaben['voll'] = cls._voll(bezug)
+            angaben["modul"] = bezug.modul
+            angaben["zielzeile"] = bezug.zeile
+            angaben["doku"] = cls("", bezug).aus_doku()
+            angaben["voll"] = cls._voll(bezug)
             rufer = cls._ruferliste(bezug, verzeichnis)
             if rufer:
-                angaben['gerufenvon'] = '|'.join(rufer)
-                angaben['ruferzahl'] = len(rufer)
+                angaben["gerufenvon"] = "|".join(rufer)
+                angaben["ruferzahl"] = len(rufer)
         return angaben
 
     @staticmethod
     def _voll(bezug):
-        u"""Die Kennung, wie man sie nennt: ``Klasse.methode``.
+        """Die Kennung, wie man sie nennt: ``Klasse.methode``.
 
         OBEN STEHT, WORUM ES GEHT (27.08.2026, auf Ansage)
         =================================================
@@ -163,17 +166,17 @@ class Beschriftung:
         .get_trt_cache_dir``. Der ganze Modulpfad waere zu lang fuer eine
         Ueberschrift und steht ohnehin darunter.
         """
-        if getattr(bezug, 'klasse', ''):
-            return '%s.%s' % (bezug.klasse, bezug.name)
-        letzter = str(getattr(bezug, 'modul', '')).rsplit('.', 1)[-1]
-        return '%s.%s' % (letzter, bezug.name) if letzter else bezug.name
+        if getattr(bezug, "klasse", ""):
+            return "%s.%s" % (bezug.klasse, bezug.name)
+        letzter = str(getattr(bezug, "modul", "")).rsplit(".", 1)[-1]
+        return "%s.%s" % (letzter, bezug.name) if letzter else bezug.name
 
     #: So viele Rufer nennt das Fenster; darüber wird nur gezählt.
     RUFER = 6
 
     @classmethod
     def _ruferliste(cls, bezug, verzeichnis):
-        u"""Wer ruft diese Stelle sonst noch? — als LISTE, nicht als Satz.
+        """Wer ruft diese Stelle sonst noch? — als LISTE, nicht als Satz.
 
             „auch von wem die aufgerufen wird … darunter, ebenfalls
              Klasse.Methode" (Edgar, 27.08.2026)
@@ -198,48 +201,47 @@ class Beschriftung:
         namen = sorted({r.anzeige for r in rufer})
         if len(namen) <= cls.RUFER:
             return namen
-        return namen[:cls.RUFER] + [u'… und %d weitere'
-                                    % (len(namen) - cls.RUFER)]
+        return namen[: cls.RUFER] + ["… und %d weitere" % (len(namen) - cls.RUFER)]
 
     # ── Der Satz ────────────────────────────────────────────────
 
     def satz(self):
-        u"""Docstring, sonst der Name als Woerter."""
+        """Docstring, sonst der Name als Woerter."""
         aus = self.aus_doku() or self.aus_namen()
         return self._kuerzen(aus)
 
     def aus_doku(self):
-        u"""Die erste Zeile des Docstrings — wenn es eine gibt.
+        """Die erste Zeile des Docstrings — wenn es eine gibt.
 
         Nur die ERSTE Zeile, und nur wenn sie ein Satz ist: Ein Docstring,
         der mit ``>>>`` oder einer Ueberschrift anfaengt, beschreibt nicht
         die Handlung.
         """
         if self.bezug is None:
-            return ''
+            return ""
         try:
             doku = ast.get_docstring(self.bezug.knoten)
         except (TypeError, AttributeError):
-            return ''
+            return ""
         if not doku:
-            return ''
+            return ""
         erste = doku.strip().splitlines()[0].strip()
-        if not erste or erste.startswith(('>>>', '=', '-', '#')):
-            return ''
-        return erste.rstrip('.')
+        if not erste or erste.startswith((">>>", "=", "-", "#")):
+            return ""
+        return erste.rstrip(".")
 
     def aus_namen(self):
-        u"""``_install_signal_handlers`` -> ``install signal handlers``."""
+        """``_install_signal_handlers`` -> ``install signal handlers``."""
         name = self.name
         for vor in VORSATZ:
             if name.startswith(vor) and len(name) > len(vor):
-                name = name[len(vor):]
+                name = name[len(vor) :]
                 break
         woerter = self._trennen(name)
         if not woerter:
             return self.name
-        satz = ' '.join(woerter)
-        if self.empfaenger and self.empfaenger not in ('self', 'cls'):
+        satz = " ".join(woerter)
+        if self.empfaenger and self.empfaenger not in ("self", "cls"):
             gegenstand = self._gegenstand()
             # KEIN STOTTERN (27.08.2026, auf Ansage „zweimal signal:signal")
             # ================================================================
@@ -252,36 +254,34 @@ class Beschriftung:
             # nichts. Dann traegt das erste Argument die Unterscheidung.
             if gegenstand.lower() == satz.lower():
                 if self.merkmal:
-                    return '%s: %s' % (satz, self._klarname(self.merkmal))
+                    return "%s: %s" % (satz, self._klarname(self.merkmal))
                 return satz
-            return '%s: %s' % (gegenstand, satz)
+            return "%s: %s" % (gegenstand, satz)
         if self.merkmal and len(woerter) == 1:
             # Auch ohne Empfaenger kann ein Aufruf nichtssagend sein:
             # `sleep(0.5)` gegen `sleep(interval)`.
-            return '%s: %s' % (satz, self._klarname(self.merkmal))
+            return "%s: %s" % (satz, self._klarname(self.merkmal))
         return satz
 
     def _klarname(self, wert):
-        u"""Das Argument lesbar, aber unveraendert: ``SIGINT`` bleibt."""
-        return ' '.join(self._trennen(wert)) if '_' in str(wert) else str(wert)
+        """Das Argument lesbar, aber unveraendert: ``SIGINT`` bleibt."""
+        return " ".join(self._trennen(wert)) if "_" in str(wert) else str(wert)
 
     def _gegenstand(self):
-        return ' '.join(self._trennen(self.empfaenger))
+        return " ".join(self._trennen(self.empfaenger))
 
     # ── Kleinteile ──────────────────────────────────────────────
 
     @staticmethod
     def _trennen(name):
-        u"""Unterstriche UND Binnengrossschreibung — beides kommt vor."""
+        """Unterstriche UND Binnengrossschreibung — beides kommt vor."""
         roh = []
-        for teil in str(name).split('_'):
+        for teil in str(name).split("_"):
             if not teil:
                 continue
             # `[A-Z]+(?![a-z])` haelt Abkuerzungen zusammen: Ohne das
             # wurde aus `SUCCESS` ein „S U C C E S S".
-            roh.extend(re.findall(
-                r'[A-Z]+(?![a-z])|[A-Z][a-z0-9]*|[a-z0-9]+', teil)
-                or [teil])
+            roh.extend(re.findall(r"[A-Z]+(?![a-z])|[A-Z][a-z0-9]*|[a-z0-9]+", teil) or [teil])
         aus = []
         for wort in roh:
             if aus and aus[-1] in ZUSAMMEN:
@@ -292,9 +292,9 @@ class Beschriftung:
 
     @staticmethod
     def _kuerzen(text):
-        text = ' '.join(str(text).split())
+        text = " ".join(str(text).split())
         if len(text) <= BREIT:
             return text
         # An einer Wortgrenze kuerzen — mitten im Wort liest sich schlechter.
-        schnitt = text.rfind(' ', 0, BREIT - 1)
-        return text[:schnitt if schnitt > BREIT // 2 else BREIT - 1] + u'…'
+        schnitt = text.rfind(" ", 0, BREIT - 1)
+        return text[: schnitt if schnitt > BREIT // 2 else BREIT - 1] + "…"

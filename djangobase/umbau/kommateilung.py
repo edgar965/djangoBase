@@ -18,8 +18,8 @@ Hier wird nur geteilt, wo die Klammerbilanz null ist.
 class Kommateilung:
     """Teilt Text an Kommas, die nicht in Klammern stehen."""
 
-    AUF = '([{'
-    ZU = ')]}'
+    AUF = "([{"
+    ZU = ")]}"
 
     @staticmethod
     def teile(text):
@@ -29,7 +29,7 @@ class Kommateilung:
                 tiefe += 1
             elif c in Kommateilung.ZU:
                 tiefe -= 1
-            elif c == ',' and tiefe == 0:
+            elif c == "," and tiefe == 0:
                 abschnitte.append(text[letzte:i])
                 letzte = i + 1
         abschnitte.append(text[letzte:])

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""`Zirkelkarte` gegen die naive Rechnung — Trennlinie für Trennlinie.
+"""`Zirkelkarte` gegen die naive Rechnung — Trennlinie für Trennlinie.
 
 WARUM DIESE TESTS (29.08.2026)
 ==============================
@@ -21,6 +21,7 @@ DIE NAIVE FASSUNG STEHT HIER MIT DRIN
 offensichtlich richtig und offensichtlich langsam — und damit der Maßstab. Die
 Fälle rechnen beide gegeneinander, unter anderem auf dem echten Anlassfall.
 """
+
 import re
 
 from djangobase.skills.jsschnitt import JsSchnitt
@@ -33,8 +34,7 @@ NL = chr(10)
 #: Dieselbe Schreibweise, die `Zirkelkarte` kennt — hier absichtlich noch
 #: einmal ausgeschrieben: Ein Test, der die Konstante des Prüflings benutzt,
 #: prüft die Regel nicht mehr, sondern nur sich selbst.
-_DEF = re.compile(r"^(?:export )?(?:async )?(?:function|class|const) (\w+)",
-                  re.M)
+_DEF = re.compile(r"^(?:export )?(?:async )?(?:function|class|const) (\w+)", re.M)
 
 
 def _naiv(zeilen, bei):
@@ -43,8 +43,7 @@ def _naiv(zeilen, bei):
     unten = NL.join(zeilen[bei:])
 
     def benutzt(wo, namen):
-        return {n for n in namen
-                if re.search(r"(?<![.\w])%s\b" % re.escape(n), wo)}
+        return {n for n in namen if re.search(r"(?<![.\w])%s\b" % re.escape(n), wo)}
 
     unten_braucht_oben = benutzt(unten, set(_DEF.findall(oben)))
     oben_braucht_unten = benutzt(oben, set(_DEF.findall(unten)))
@@ -55,33 +54,41 @@ class GrundlagenTest(BasisTest):
     """Die Aussage selbst, an Fällen, die man von Hand nachrechnen kann."""
 
     def test_zwei_unabhaengige_haelften_haben_keinen_zirkel(self):
-        zeilen = ["const A = 1;",
-                  "export function oben() { return A; }",
-                  "const B = 2;",
-                  "export function unten() { return B; }"]
+        zeilen = [
+            "const A = 1;",
+            "export function oben() { return A; }",
+            "const B = 2;",
+            "export function unten() { return B; }",
+        ]
         karte = Zirkelkarte(zeilen)
         self.assertFalse(karte.zirkel(2))
         self.assertEqual("keine", karte.richtung(2))
 
     def test_unten_ruft_oben(self):
-        zeilen = ["const A = 1;",
-                  "export function hilfe() { return A; }",
-                  "export function unten() { return hilfe(); }"]
+        zeilen = [
+            "const A = 1;",
+            "export function hilfe() { return A; }",
+            "export function unten() { return hilfe(); }",
+        ]
         karte = Zirkelkarte(zeilen)
         self.assertFalse(karte.zirkel(2))
         self.assertEqual("unten←oben", karte.richtung(2))
 
     def test_beide_richtungen_sind_ein_zirkel(self):
-        zeilen = ["export function oben() { return unten(); }",
-                  "const X = 1;",
-                  "export function unten() { return X + oben(); }"]
+        zeilen = [
+            "export function oben() { return unten(); }",
+            "const X = 1;",
+            "export function unten() { return X + oben(); }",
+        ]
         self.assertTrue(Zirkelkarte(zeilen).zirkel(2))
 
     def test_feldzugriff_zaehlt_nicht_als_aufruf(self):
-        u"""`fn.hilfe()` ist NICHT die freie Funktion `hilfe` — sonst hinge
+        """`fn.hilfe()` ist NICHT die freie Funktion `hilfe` — sonst hinge
         jede Datei an jeder, die ein gleichnamiges Feld benutzt."""
-        zeilen = ["export function hilfe() { return 1; }",
-                  "export function unten() { const A = 2; return fn.hilfe() + A; }"]
+        zeilen = [
+            "export function hilfe() { return 1; }",
+            "export function unten() { const A = 2; return fn.hilfe() + A; }",
+        ]
         karte = Zirkelkarte(zeilen)
         self.assertFalse(karte.zirkel(1))
         self.assertEqual("keine", karte.richtung(1))
@@ -90,13 +97,11 @@ class GrundlagenTest(BasisTest):
         self.assertEqual("unten←oben", Zirkelkarte(ohne_punkt).richtung(1))
 
     def test_doppelte_definition_zaehlt_auf_beiden_seiten(self):
-        u"""`function x(){}` darf in JS zweimal auf Modulebene stehen.
+        """`function x(){}` darf in JS zweimal auf Modulebene stehen.
 
         Mit nur EINER Definitionszeile je Name wäre die Antwort hier eine
         andere — deshalb merkt sich die Karte die erste UND die letzte."""
-        zeilen = ["export function x() { return 1; }",
-                  "const A = x();",
-                  "export function x() { return A; }"]
+        zeilen = ["export function x() { return 1; }", "const A = x();", "export function x() { return A; }"]
         self.assertEqual(_naiv(zeilen, 2), Zirkelkarte(zeilen).zirkel(2))
 
 
@@ -110,13 +115,13 @@ class GegenrechnungTest(BasisTest):
                 self.assertEqual(_naiv(zeilen, bei), karte.zirkel(bei))
 
     def test_am_eigenen_anlassfall_des_werkzeugs(self):
-        u"""603 Zeilen, jede Trennlinie — der Fall, an dem es geklemmt hat."""
+        """603 Zeilen, jede Trennlinie — der Fall, an dem es geklemmt hat."""
         text = list(JsSchnitt.anlassfall.dateien.values())[0]
         zeilen = text.split(NL)
         karte = Zirkelkarte(zeilen)
-        grenzen = [i for i, z in enumerate(zeilen)
-                   if re.match(r"^(?:export )?(?:async )?(?:function|class) \w+",
-                               z)]
+        grenzen = [
+            i for i, z in enumerate(zeilen) if re.match(r"^(?:export )?(?:async )?(?:function|class) \w+", z)
+        ]
         pruefstellen = [b for b in grenzen if 40 < b < len(zeilen) - 40]
         self.assertGreater(len(pruefstellen), 400, "der Fall ist geschrumpft")
         # Nicht alle 521 — die naive Fassung braucht dafuer Minuten. Jede
@@ -126,12 +131,12 @@ class GegenrechnungTest(BasisTest):
                 self.assertEqual(_naiv(zeilen, bei), karte.zirkel(bei))
 
     def test_gemischte_datei_mit_klassen_und_konstanten(self):
-        zeilen = (["const OBEN = 1;", "class Erste { tu() { return OBEN; } }"]
-                  + ["export function a%d() { return OBEN; }" % i
-                     for i in range(6)]
-                  + ["const UNTEN = 2;", "class Zweite { tu() { return a3(); } }"]
-                  + ["export function b%d() { return UNTEN; }" % i
-                     for i in range(6)])
+        zeilen = (
+            ["const OBEN = 1;", "class Erste { tu() { return OBEN; } }"]
+            + ["export function a%d() { return OBEN; }" % i for i in range(6)]
+            + ["const UNTEN = 2;", "class Zweite { tu() { return a3(); } }"]
+            + ["export function b%d() { return UNTEN; }" % i for i in range(6)]
+        )
         self._vergleichen(zeilen)
 
     def test_datei_ganz_ohne_definitionen(self):
@@ -147,9 +152,11 @@ class SabotageTest(BasisTest):
     """
 
     def test_eine_verdrehte_karte_faellt_auf(self):
-        zeilen = ["export function oben() { return unten(); }",
-                  "const X = 1;",
-                  "export function unten() { return X + oben(); }"]
+        zeilen = [
+            "export function oben() { return unten(); }",
+            "const X = 1;",
+            "export function unten() { return X + oben(); }",
+        ]
         karte = Zirkelkarte(zeilen)
         self.assertTrue(karte.zirkel(2))
         # Sabotage: eine der beiden Richtungen ausschalten.

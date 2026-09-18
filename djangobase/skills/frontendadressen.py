@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Frontendadressen - ruft das Frontend eine Adresse, die es nicht gibt?
+"""Frontendadressen - ruft das Frontend eine Adresse, die es nicht gibt?
 
 DER BEFUND (3DTools, 17.08.2026)
 ================================
@@ -35,6 +35,7 @@ PLATZHALTER: ``${id}`` und ``{{ x }}`` werden mit mehreren Kandidaten probiert
 (Zahl, UUID, Wort) — passt einer, gilt die Adresse als bekannt. Ohne das
 meldete jede Route mit ``<uuid:...>`` einen Fehlalarm.
 """
+
 import re
 
 from django.urls import Resolver404, resolve
@@ -47,7 +48,8 @@ __all__ = ["Frontendadressen"]
 #: Aufrufe, deren erstes Argument eine Adresse ist.
 ABRUF = re.compile(
     r"""(?:fetch|\.json|\.senden|\.holen|\.text|axios\.\w+|\$\.\w+)"""
-    r"""\s*\(\s*['"`](/[^'"`\s]*)['"`]""")
+    r"""\s*\(\s*['"`](/[^'"`\s]*)['"`]"""
+)
 #: Platzhalter, die zur Laufzeit gefuellt werden.
 PLATZ = re.compile(r"\$\{[^}]*\}|\{\{[^}]*\}\}|\{%[^%]*%\}")
 #: Werte, mit denen ein Platzhalter probiert wird - einer muss passen.
@@ -74,16 +76,21 @@ FENSTER = 200
 class Frontendadressen(Werkzeug):
     slug = "frontendadressen"
     titel = "Frontend: Adresse ohne Route"
-    zweck = ("Vergleicht jede Adresse, die direkt in einem `fetch`/`Serverabruf` "
-             "steht, mit Djangos URL-Konfiguration.")
-    befund = ("3DTools: `/api/character/garment/manage/` gab es nicht — acht "
-              "Aufrufstellen, vier tote Menuepunkte in zwei Listen, ohne "
-              "Hinweis für den Benutzer. Die Seite lud mit 200.")
-    abhilfe = ("Route ergänzen oder die Adresse im Frontend berichtigen. Die "
-               "Spalte „Stellen\" zeigt, wie viele Aufrufe daran hängen.")
+    zweck = (
+        "Vergleicht jede Adresse, die direkt in einem `fetch`/`Serverabruf` "
+        "steht, mit Djangos URL-Konfiguration."
+    )
+    befund = (
+        "3DTools: `/api/character/garment/manage/` gab es nicht — acht "
+        "Aufrufstellen, vier tote Menuepunkte in zwei Listen, ohne "
+        "Hinweis für den Benutzer. Die Seite lud mit 200."
+    )
+    abhilfe = (
+        "Route ergänzen oder die Adresse im Frontend berichtigen. Die "
+        'Spalte „Stellen" zeigt, wie viele Aufrufe daran hängen.'
+    )
     dauer = "1-3 s"
     kriterium = 5
-
 
     #: Eine Adresse, die keine URLconf kennt - und daneben die drei Formen, die
     #: NICHT zaehlen duerfen: ein Praefix in einer Konstanten, eine Adresse, die
@@ -94,18 +101,22 @@ class Frontendadressen(Werkzeug):
     #: das jeweilige Projekt - ein ``/api/status/`` waere hier richtig und in der
     #: naechsten App ein Fehlalarm.
     anlassfall = Anlassfall(
-        {"menue.js": '''const API = '/api/character';
+        {
+            "menue.js": """const API = '/api/character';
 
 /** Ruft z.B. '/api/character-test/' auf. */
 export async function umbenennen(name) {
   await fetch('/api/gibt-es-nicht-xyz/');
   await fetch(API + '/' + encodeURIComponent(name) + '/');
 }
-'''},
-        mindestens=1, hoechstens=1,
+"""
+        },
+        mindestens=1,
+        hoechstens=1,
         erwartet_in="gibt-es-nicht-xyz",
         warum="3DTools: ``/api/character/garment/manage/`` gab es nicht — acht "
-              "Aufrufstellen, vier tote Menüpunkte, Seite lud mit 200")
+        "Aufrufstellen, vier tote Menüpunkte, Seite lud mit 200",
+    )
 
     def laufen(self):
         gefunden = {}
@@ -116,40 +127,38 @@ export async function umbenennen(name) {
                 nummer = text.count("\n", 0, treffer.start())
                 if KOMMENTAR.match(zeilen[nummer]):
                     continue
-                if WEITER.match(text[treffer.end():treffer.end() + FENSTER]):
-                    continue        # nur der Anfang, der Rest wird angehaengt
+                if WEITER.match(text[treffer.end() : treffer.end() + FENSTER]):
+                    continue  # nur der Anfang, der Rest wird angehaengt
                 adresse = treffer.group(1).split("?")[0].split("#")[0]
-                gefunden.setdefault(adresse, []).append(
-                    "%s:%d" % (kurz, nummer + 1))
+                gefunden.setdefault(adresse, []).append("%s:%d" % (kurz, nummer + 1))
 
         zeilen_aus = []
         for adresse, stellen in sorted(gefunden.items()):
             if self._bekannt(adresse):
                 continue
-            zeilen_aus.append({"adresse": adresse, "stellen": len(stellen),
-                               "wo": ", ".join(stellen[:3])})
+            zeilen_aus.append({"adresse": adresse, "stellen": len(stellen), "wo": ", ".join(stellen[:3])})
         zeilen_aus.sort(key=lambda z: -z["stellen"])
         return Ergebnis(
-            ["adresse", "stellen", "wo"], zeilen_aus,
+            ["adresse", "stellen", "wo"],
+            zeilen_aus,
             zusammenfassung="%d Adressen im Frontend, %d kennt die "
-                            "URL-Konfiguration nicht"
-                            % (len(gefunden), len(zeilen_aus)),
+            "URL-Konfiguration nicht" % (len(gefunden), len(zeilen_aus)),
             hinweis="Gezaehlt wird nur, was DIREKT als erstes Argument eines "
-                    "Abrufs steht. Eine Adresse, die als Konstante liegt und "
-                    "später zusammengesetzt wird, ist kein vollstaendiger Weg "
-                    "— sie zu melden wäre ein Fehlalarm.")
+            "Abrufs steht. Eine Adresse, die als Konstante liegt und "
+            "später zusammengesetzt wird, ist kein vollstaendiger Weg "
+            "— sie zu melden wäre ein Fehlalarm.",
+        )
 
     @staticmethod
     def _bekannt(adresse):
-        u"""Loest die Adresse auf - mit mehreren Platzhalter-Werten probiert."""
-        rohformen = ([PLATZ.sub(k, adresse) for k in KANDIDATEN]
-                     if PLATZ.search(adresse) else [adresse])
+        """Loest die Adresse auf - mit mehreren Platzhalter-Werten probiert."""
+        rohformen = [PLATZ.sub(k, adresse) for k in KANDIDATEN] if PLATZ.search(adresse) else [adresse]
         for weg in rohformen:
             for kandidat in {weg, weg if weg.endswith("/") else weg + "/"}:
                 try:
                     resolve(kandidat)
                     return True
-                except (Resolver404, Exception):     # noqa: BLE001
+                except (Resolver404, Exception):  # noqa: BLE001
                     continue
         return False
 

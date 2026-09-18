@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Eine Sperrklinke für Befunde — damit „grün" auch das Projekt meint.
+"""Eine Sperrklinke für Befunde — damit „grün" auch das Projekt meint.
 
 DIE FRAGE (Edgar, 26.08.2026)
 ============================
@@ -49,20 +49,21 @@ Der Wert ist entweder eine Zahl (Obergrenze für ALLE Befunde) oder ein
 Wörterbuch je Gewicht. Ohne Eintrag prüft diese Datei nichts und sagt es —
 gelb, nicht grün.
 """
+
 from django.test import SimpleTestCase
 
 from .conf import conf
 
 
 def _zahl(werkzeug):
-    u"""Wie viele Befunde meldet dieses Werkzeug — und welchen Gewichts?
+    """Wie viele Befunde meldet dieses Werkzeug — und welchen Gewichts?
 
     Beide Bauarten: ``BefundWerkzeug`` liefert einen ``Befundsatz`` über
     ``pruefen()``, die älteren ein ``Ergebnis`` über ``laufen()``. Dieselbe
     Verwechslung hat schon den Läufer im Wirtsprojekt abstürzen lassen und
     den Anlassfall-Sammellauf an den Fixern vorbeigehen lassen.
     """
-    if hasattr(werkzeug, 'pruefen'):
+    if hasattr(werkzeug, "pruefen"):
         satz = werkzeug.pruefen()
         je_gewicht = {}
         for befund in satz.befunde:
@@ -73,47 +74,46 @@ def _zahl(werkzeug):
 
 
 class GrundtestBefundgrenzen(SimpleTestCase):
-    u"""Kein Werkzeug darf mehr melden als beim letzten Festschreiben."""
+    """Kein Werkzeug darf mehr melden als beim letzten Festschreiben."""
 
     def test_kein_werkzeug_ueberschreitet_seine_grenze(self):
         from .skills import werkzeug_finden
 
-        grenzen = conf().get('befundgrenzen') or {}
+        grenzen = conf().get("befundgrenzen") or {}
         if not grenzen:
             self.skipTest(
-                'Keine Befundgrenzen gesetzt. Ohne DJANGOBASE'
+                "Keine Befundgrenzen gesetzt. Ohne DJANGOBASE"
                 '["befundgrenzen"] sagt ein gruener Lauf nur, dass die '
-                'Werkzeuge laufen — nicht, dass das Projekt sauber ist.')
+                "Werkzeuge laufen — nicht, dass das Projekt sauber ist."
+            )
 
         ueber, gelaufen = [], []
         for slug, grenze in sorted(grenzen.items()):
             werkzeug = werkzeug_finden(slug)
             if werkzeug is None:
-                ueber.append('%s: gibt es nicht (mehr)' % slug)
+                ueber.append("%s: gibt es nicht (mehr)" % slug)
                 continue
             gesamt, je_gewicht = _zahl(werkzeug)
-            gelaufen.append('%-22s %4d' % (slug, gesamt))
+            gelaufen.append("%-22s %4d" % (slug, gesamt))
             if isinstance(grenze, dict):
                 for gewicht, hoechstens in sorted(grenze.items()):
                     ist = je_gewicht.get(gewicht, 0)
                     if ist > hoechstens:
-                        ueber.append('%s: %d %s, erlaubt %d'
-                                     % (slug, ist, gewicht, hoechstens))
+                        ueber.append("%s: %d %s, erlaubt %d" % (slug, ist, gewicht, hoechstens))
             elif gesamt > int(grenze):
-                ueber.append('%s: %d Befunde, erlaubt %d'
-                             % (slug, gesamt, int(grenze)))
+                ueber.append("%s: %d Befunde, erlaubt %d" % (slug, gesamt, int(grenze)))
 
         # Immer drucken, auch wenn alles passt: Eine Zahl, die nur im
         # Fehlerfall sichtbar wird, kann man nicht kleiner werden sehen.
-        print('\nBefundgrenzen:\n  ' + '\n  '.join(gelaufen))
+        print("\nBefundgrenzen:\n  " + "\n  ".join(gelaufen))
 
         if ueber:
             self.fail(
-                '%d Werkzeug(e) melden mehr als festgeschrieben:\n  %s\n\n'
-                'Entweder beheben — oder die Grenze in DJANGOBASE'
+                "%d Werkzeug(e) melden mehr als festgeschrieben:\n  %s\n\n"
+                "Entweder beheben — oder die Grenze in DJANGOBASE"
                 '["befundgrenzen"] bewusst hochsetzen. Stillschweigend '
-                'wachsen soll sie nicht.'
-                % (len(ueber), '\n  '.join(ueber)))
+                "wachsen soll sie nicht." % (len(ueber), "\n  ".join(ueber))
+            )
 
 
-__all__ = ['GrundtestBefundgrenzen']
+__all__ = ["GrundtestBefundgrenzen"]

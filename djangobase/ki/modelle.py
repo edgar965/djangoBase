@@ -24,6 +24,7 @@ ueber 300 Zeilen lang. Getrennt ist jetzt, was getrennte Fehlerbilder hat:
     ``ollama.py``      die lokale Installation - ein Dienst auf Port 11434
     ``modellname.py``  die Namensdeutung - reine Zeichenketten, kein Zugriff
 """
+
 import json
 import os
 import time
@@ -52,8 +53,8 @@ class ModellKatalog:
         self.cache_verzeichnis = cache_verzeichnis
         self.cache_stunden = cache_stunden
         self.timeout = timeout
-        self.quelle = "unbekannt"      #: "netz", "cache" oder "cache (Netz-Fehler)"
-        self.stand = None              #: Unix-Zeit der gezeigten Daten
+        self.quelle = "unbekannt"  #: "netz", "cache" oder "cache (Netz-Fehler)"
+        self.stand = None  #: Unix-Zeit der gezeigten Daten
         #: Die lokale Seite. Eigenes Objekt, eigene Merker - siehe ``ollama.py``.
         self.ollama = OllamaModelle(timeout=timeout)
         #: Je Katalog EIN Zugriff auf die Datei. Siehe ``online_roh``:
@@ -117,7 +118,7 @@ class ModellKatalog:
             self.quelle, self.stand = "netz", time.time()
             self._roh_cache = frisch
             return frisch
-        except Exception:                                        # noqa: BLE001
+        except Exception:  # noqa: BLE001
             if daten:
                 self.quelle, self.stand = "cache (Netz-Fehler)", alter
                 self._roh_cache = daten
@@ -141,19 +142,22 @@ class ModellKatalog:
         preise = m.get("pricing") or {}
         ein = float(preise.get("prompt") or 0) * 1e6
         aus = float(preise.get("completion") or 0) * 1e6
-        # Dictionary gewollt: Tabellenzeile der Modell-Übersicht; die zehn Leser stehen in derselben Datei (geprüft mit werkzeug/dict_wege.py).
+        # Dictionary gewollt: Tabellenzeile der Modell-Übersicht; die zehn Leser
+        # stehen in derselben Datei (geprüft mit werkzeug/dict_wege.py).
         return {
             "kennung": m["id"],
             "anbieter": m["id"].split("/")[0],
             "kontext": m.get("context_length") or 0,
-            "param_gesamt": ges, "param_aktiv": aktiv,
+            "param_gesamt": ges,
+            "param_aktiv": aktiv,
             # AUS DEN GESAMT-PARAMETERN, nicht aus den aktiven (Fehler beim ersten
             # Bau): Bei einem MoE-Modell muessen ALLE Experten geladen sein, nur
             # gerechnet wird mit den aktiven. Beleg aus einem echten Download:
             # gemma4 26B-a4B belegt 16 GB - das sind 0,62 je Mrd. GESAMT, waehrend
             # 16 GB fuer 4 Mrd. aktive Parameter (4,0 je Mrd.) unsinnig waere.
             "gb": Modellname.gb(ges),
-            "preis_ein": ein, "preis_aus": aus,
+            "preis_ein": ein,
+            "preis_aus": aus,
             # Ein Modell mit Parameterzahl im Namen hat in aller Regel offene
             # Gewichte - nur dann ist der Plattenbedarf ueberhaupt eine Frage.
             "offen": bool(ges),
@@ -187,7 +191,6 @@ class ModellKatalog:
                 frei.append(z)
             else:
                 bezahlt.append(z)
-        frei.sort(key=lambda z: (-(Modellname.mrd(z["param_gesamt"]) or 0),
-                                 z["kennung"]))
+        frei.sort(key=lambda z: (-(Modellname.mrd(z["param_gesamt"]) or 0), z["kennung"]))
         bezahlt.sort(key=lambda z: (z["preis_ein"], z["preis_aus"]))
         return frei, bezahlt

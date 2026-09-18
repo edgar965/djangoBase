@@ -4,8 +4,8 @@ import ast
 import re
 from collections import defaultdict
 
-from .befund import Befund, Befundsatz, BefundWerkzeug
 from .anlassfall import Anlassfall
+from .befund import Befund, Befundsatz, BefundWerkzeug
 from .rahmenvorschrift import Rahmenvorschrift
 
 #: Wortpaare, die im selben Projekt dieselbe Sache meinen — GETRENNT NACH
@@ -25,53 +25,58 @@ from .rahmenvorschrift import Rahmenvorschrift
 #: ``pose_load``.
 GLEICHBEDEUTEND = [
     # Englisch
-    ('get', 'load', 'fetch', 'read'),
-    ('save', 'write', 'store'),
-    ('delete', 'remove'),
-    ('list', 'all'),
-    ('create', 'new', 'build'),
-    ('update', 'set'),
-    ('check', 'validate'),
-    ('name', 'label', 'title'),
-    ('count', 'num'),
-    ('path', 'file'),
+    ("get", "load", "fetch", "read"),
+    ("save", "write", "store"),
+    ("delete", "remove"),
+    ("list", "all"),
+    ("create", "new", "build"),
+    ("update", "set"),
+    ("check", "validate"),
+    ("name", "label", "title"),
+    ("count", "num"),
+    ("path", "file"),
     # Deutsch
-    ('hole', 'lade', 'lesen'),
-    ('speichern', 'schreiben'),
-    ('loeschen', 'entfernen'),
-    ('liste', 'alle'),
-    ('anlegen', 'neu', 'bauen'),
-    ('aendern', 'setzen'),
-    ('pruefen', 'testen'),
-    ('bezeichnung', 'titel'),
-    ('anzahl', 'zahl'),
-    ('pfad', 'datei'),
+    ("hole", "lade", "lesen"),
+    ("speichern", "schreiben"),
+    ("loeschen", "entfernen"),
+    ("liste", "alle"),
+    ("anlegen", "neu", "bauen"),
+    ("aendern", "setzen"),
+    ("pruefen", "testen"),
+    ("bezeichnung", "titel"),
+    ("anzahl", "zahl"),
+    ("pfad", "datei"),
 ]
 
 
 class Namensdubletten(BefundWerkzeug):
-
-    slug = 'namens-dubletten'
+    slug = "namens-dubletten"
 
     #: Auftrags-Kriterium (kam bis 18.08.2026 aus der
 
     #: Tabelle ALT_KRITERIUM neben der Registrierung).
 
     kriterium = 7
-    titel = 'Namens-Dubletten'
-    zweck = ('Findet gleichnamige Klassen und Modulfunktionen an mehreren '
-             'Stellen, gleichnamige Moduldateien in verschiedenen Ordnern und '
-             'Paare wie get_/hole_, die dasselbe meinen. METHODEN sind '
-             'ausgenommen — dass zwei Klassen ein `anzahl()` haben, ist der '
-             'Sinn der Sache und keine Dublette.')
-    abhilfe = ('Wenn ein Projekt aus mehreren Umbauten gewachsen ist. Zwei Namen '
-            'für dieselbe Sache kosten bei jeder Suche Zeit und erzeugen '
-            'stille Fehler, sobald jemand den falschen benutzt.')
-    befund = ('Genau dieser Fall kostete im Ursprungsprojekt vier Monate: Eine '
-             'Vorlage las `unique_videos`, die Ansicht lieferte `upload_files` '
-             '— Django rendert dafür kommentarlos nichts, also fiel es keinem '
-             'auf.')
-    dauer = 'Sekunden'
+    titel = "Namens-Dubletten"
+    zweck = (
+        "Findet gleichnamige Klassen und Modulfunktionen an mehreren "
+        "Stellen, gleichnamige Moduldateien in verschiedenen Ordnern und "
+        "Paare wie get_/hole_, die dasselbe meinen. METHODEN sind "
+        "ausgenommen — dass zwei Klassen ein `anzahl()` haben, ist der "
+        "Sinn der Sache und keine Dublette."
+    )
+    abhilfe = (
+        "Wenn ein Projekt aus mehreren Umbauten gewachsen ist. Zwei Namen "
+        "für dieselbe Sache kosten bei jeder Suche Zeit und erzeugen "
+        "stille Fehler, sobald jemand den falschen benutzt."
+    )
+    befund = (
+        "Genau dieser Fall kostete im Ursprungsprojekt vier Monate: Eine "
+        "Vorlage las `unique_videos`, die Ansicht lieferte `upload_files` "
+        "— Django rendert dafür kommentarlos nichts, also fiel es keinem "
+        "auf."
+    )
+    dauer = "Sekunden"
 
     #: Namen, die absichtlich ueberall gleich heissen.
     #:
@@ -82,17 +87,44 @@ class Namensdubletten(BefundWerkzeug):
     #: Dieselbe Klasse Fehlalarm wie ``Meta`` und ``Migration``, die schon
     #: hier standen (``~/.claude/rules/analysewerkzeuge.md``, Punkt 1).
     ERLAUBT = {
-        'main', 'setUp', 'setUpClass', 'tearDown', 'tearDownClass', 'handle',
-        'ready', 'get', 'post', 'save', 'clean', '__init__', 'Meta', 'Migration',
-        'Command', 'Config', 'apps', 'models', 'views', 'urls', 'admin',
-        'tests', 'forms', 'utils', 'conf', 'signals', 'setUpTestData',
-        'get_context_data', 'get_queryset', 'form_valid', 'dispatch',
-        '__str__', 'pruefen',
+        "main",
+        "setUp",
+        "setUpClass",
+        "tearDown",
+        "tearDownClass",
+        "handle",
+        "ready",
+        "get",
+        "post",
+        "save",
+        "clean",
+        "__init__",
+        "Meta",
+        "Migration",
+        "Command",
+        "Config",
+        "apps",
+        "models",
+        "views",
+        "urls",
+        "admin",
+        "tests",
+        "forms",
+        "utils",
+        "conf",
+        "signals",
+        "setUpTestData",
+        "get_context_data",
+        "get_queryset",
+        "form_valid",
+        "dispatch",
+        "__str__",
+        "pruefen",
     }
 
     @staticmethod
     def _rahmennamen():
-        u"""Was das PROJEKT als Rahmen-Namen angibt, ist nie ein Duplikat.
+        """Was das PROJEKT als Rahmen-Namen angibt, ist nie ein Duplikat.
 
         `HumanBodyBlender` hat `register`/`unregister` elfmal — je einmal
         im Einstieg und in zehn Teilmodulen. Blenders Addon-Protokoll ruft
@@ -104,11 +136,15 @@ class Namensdubletten(BefundWerkzeug):
         return Rahmenvorschrift.namen()
 
     anlassfall = Anlassfall(
-        {"laden.py": "def kunde_laden(kennung):\n    return kennung\n",
-         "dienst.py": "def kunde_laden(kennung):\n    return {'id': kennung}\n"},
-        mindestens=1, erwartet_in="kunde_laden",
+        {
+            "laden.py": "def kunde_laden(kennung):\n    return kennung\n",
+            "dienst.py": "def kunde_laden(kennung):\n    return {'id': kennung}\n",
+        },
+        mindestens=1,
+        erwartet_in="kunde_laden",
         warum="Derselbe Funktionsname in zwei Modulen — man ruft den einen auf "
-              "und meint den anderen, und im Zweifel importiert man beide")
+        "und meint den anderen, und im Zweifel importiert man beide",
+    )
 
     def pruefen(self, **_argumente):
         klassen = defaultdict(list)
@@ -117,10 +153,10 @@ class Namensdubletten(BefundWerkzeug):
         moduldateien = defaultdict(list)
         wortverwendung = defaultdict(set)
 
-        for datei in self.projektdateien('.py'):
+        for datei in self.projektdateien(".py"):
             moduldateien[datei.name].append(self.kurz(datei))
             try:
-                baum = ast.parse(datei.read_text(encoding='utf-8', errors='replace'))
+                baum = ast.parse(datei.read_text(encoding="utf-8", errors="replace"))
             except (SyntaxError, OSError):
                 continue
             # NUR Modulebene (`baum.body`), nicht `ast.walk`: Methoden zaehlen
@@ -136,8 +172,8 @@ class Namensdubletten(BefundWerkzeug):
                     continue
                 if knoten.name in self.ERLAUBT | self._rahmennamen():
                     continue
-                ort = '%s:%d' % (self.kurz(datei), knoten.lineno)
-                if knoten.name.startswith('_'):
+                ort = "%s:%d" % (self.kurz(datei), knoten.lineno)
+                if knoten.name.startswith("_"):
                     # PRIVATE NAMEN: nicht mehr blind ueberspringen, siehe
                     # `_privat_mit_zwei_gesichtern`. Gesammelt wird hier nur;
                     # gemeldet wird spaeter und nur bei abweichender Signatur.
@@ -146,27 +182,36 @@ class Namensdubletten(BefundWerkzeug):
                     privat[knoten.name].append((self._signatur(knoten), ort))
                     continue
                 ziel[knoten.name].append(ort)
-                for wort in re.split(r'[_\W]+', knoten.name.lower()):
+                for wort in re.split(r"[_\W]+", knoten.name.lower()):
                     if wort:
                         wortverwendung[wort].add(knoten.name)
 
         befunde = []
-        befunde.extend(self._doppelt(klassen, 'Klasse'))
-        befunde.extend(self._doppelt(funktionen, 'Funktion'))
+        befunde.extend(self._doppelt(klassen, "Klasse"))
+        befunde.extend(self._doppelt(funktionen, "Funktion"))
         befunde.extend(self._privat_mit_zwei_gesichtern(privat))
         for dateiname, orte in sorted(moduldateien.items()):
-            if len(orte) > 1 and dateiname not in ('__init__.py', 'apps.py',
-                                                   'models.py', 'views.py',
-                                                   'urls.py', 'admin.py',
-                                                   'tests.py', 'forms.py'):
-                befunde.append(Befund(
-                    orte[0], 'Dateiname %s liegt %dx im Projekt'
-                             % (dateiname, len(orte)),
-                    'auch: ' + ', '.join(orte[1:5]), Befund.HINWEIS))
+            if len(orte) > 1 and dateiname not in (
+                "__init__.py",
+                "apps.py",
+                "models.py",
+                "views.py",
+                "urls.py",
+                "admin.py",
+                "tests.py",
+                "forms.py",
+            ):
+                befunde.append(
+                    Befund(
+                        orte[0],
+                        "Dateiname %s liegt %dx im Projekt" % (dateiname, len(orte)),
+                        "auch: " + ", ".join(orte[1:5]),
+                        Befund.HINWEIS,
+                    )
+                )
         befunde.extend(self._synonyme(wortverwendung))
 
-        kopf = ['%d Klassennamen, %d Funktionsnamen geprüft'
-                % (len(klassen), len(funktionen))]
+        kopf = ["%d Klassennamen, %d Funktionsnamen geprüft" % (len(klassen), len(funktionen))]
         return Befundsatz(self.titel, kopf, befunde)
 
     def _doppelt(self, namen, art):
@@ -174,24 +219,27 @@ class Namensdubletten(BefundWerkzeug):
         for name, orte in sorted(namen.items()):
             if len(orte) < 2:
                 continue
-            befunde.append(Befund(
-                orte[0], '%s %s existiert %dx' % (art, name, len(orte)),
-                'auch: ' + ', '.join(orte[1:6]),
-                Befund.WARNUNG if len(orte) > 2 else Befund.HINWEIS))
+            befunde.append(
+                Befund(
+                    orte[0],
+                    "%s %s existiert %dx" % (art, name, len(orte)),
+                    "auch: " + ", ".join(orte[1:6]),
+                    Befund.WARNUNG if len(orte) > 2 else Befund.HINWEIS,
+                )
+            )
         return befunde
 
     @staticmethod
     def _signatur(knoten):
         """Die Parameterliste als Zeichenkette — ohne Vorgabewerte."""
         argumente = knoten.args
-        namen = [a.arg for a in (list(getattr(argumente, 'posonlyargs', []))
-                                 + list(argumente.args))]
+        namen = [a.arg for a in (list(getattr(argumente, "posonlyargs", [])) + list(argumente.args))]
         if argumente.vararg:
-            namen.append('*' + argumente.vararg.arg)
+            namen.append("*" + argumente.vararg.arg)
         namen += [a.arg for a in argumente.kwonlyargs]
         if argumente.kwarg:
-            namen.append('**' + argumente.kwarg.arg)
-        return ', '.join(namen)
+            namen.append("**" + argumente.kwarg.arg)
+        return ", ".join(namen)
 
     def _privat_mit_zwei_gesichtern(self, privat):
         """Ein privater Name, der in zwei Dateien VERSCHIEDENES bedeutet.
@@ -235,15 +283,17 @@ class Namensdubletten(BefundWerkzeug):
             if len(signaturen) < 2:
                 continue
             orte = [orte[0] for orte in signaturen.values()]
-            beschreibung = '; '.join(
-                '(%s)' % signatur if signatur else '()'
-                for signatur in list(signaturen)[:3])
-            befunde.append(Befund(
-                orte[0],
-                'Privatname %s bedeutet %dx Verschiedenes'
-                % (name, len(signaturen)),
-                '%s — auch: %s' % (beschreibung, ', '.join(orte[1:5])),
-                Befund.WARNUNG))
+            beschreibung = "; ".join(
+                "(%s)" % signatur if signatur else "()" for signatur in list(signaturen)[:3]
+            )
+            befunde.append(
+                Befund(
+                    orte[0],
+                    "Privatname %s bedeutet %dx Verschiedenes" % (name, len(signaturen)),
+                    "%s — auch: %s" % (beschreibung, ", ".join(orte[1:5])),
+                    Befund.WARNUNG,
+                )
+            )
         return befunde
 
     @staticmethod
@@ -257,9 +307,13 @@ class Namensdubletten(BefundWerkzeug):
             beispiele = []
             for wort in benutzt:
                 erste = sorted(wortverwendung[wort])[:2]
-                beispiele.append('%s (%s)' % (wort, ', '.join(erste)))
-            befunde.append(Befund(
-                ' / '.join(benutzt),
-                '%d Schreibweisen für dieselbe Sache' % len(benutzt),
-                '; '.join(beispiele), Befund.HINWEIS))
+                beispiele.append("%s (%s)" % (wort, ", ".join(erste)))
+            befunde.append(
+                Befund(
+                    " / ".join(benutzt),
+                    "%d Schreibweisen für dieselbe Sache" % len(benutzt),
+                    "; ".join(beispiele),
+                    Befund.HINWEIS,
+                )
+            )
         return befunde

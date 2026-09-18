@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Vorlagentags - ein ``{% … %}`` ueber zwei Zeilen ist KEIN Tag.
+"""Vorlagentags - ein ``{% … %}`` ueber zwei Zeilen ist KEIN Tag.
 
 DER FALL, GEMESSEN (28.08.2026, 3DTools)
 ========================================
@@ -29,6 +29,7 @@ WAS NICHT GEMELDET WIRD
 WIE MAN ES RICHTIG MACHT: Das Tag in EINE Zeile. Wird sie zu lang, gehoert der
 Inhalt in den Baustein statt in den Aufruf.
 """
+
 import re
 
 from .anlassfall import Anlassfall
@@ -39,15 +40,21 @@ __all__ = ["Vorlagentags"]
 
 class Vorlagentags(BefundWerkzeug):
     slug = "vorlagen-tags"
-    titel = u"Vorlagen: Tags über zwei Zeilen"
-    zweck = (u"Sucht ``{% … %}``, die über eine Zeilengrenze gehen. Django "
-             u"liest sie als Text, nicht als Tag — die Vorlage rendert dann "
-             u"still das Falsche.")
-    befund = (u"3DTools: Ein umbrochenes ``{% include %}`` liess das Auswahlfeld "
-              u"für die Standard-Animation auf FÜNF Einstellungsseiten "
-              u"verschwinden. Status 200, keine Ausnahme, kein Logeintrag.")
-    abhilfe = (u"Das Tag in eine Zeile schreiben. Wird sie zu lang, gehört der "
-               u"Inhalt in den Baustein statt in den Aufruf.")
+    titel = "Vorlagen: Tags über zwei Zeilen"
+    zweck = (
+        "Sucht ``{% … %}``, die über eine Zeilengrenze gehen. Django "
+        "liest sie als Text, nicht als Tag — die Vorlage rendert dann "
+        "still das Falsche."
+    )
+    befund = (
+        "3DTools: Ein umbrochenes ``{% include %}`` liess das Auswahlfeld "
+        "für die Standard-Animation auf FÜNF Einstellungsseiten "
+        "verschwinden. Status 200, keine Ausnahme, kein Logeintrag."
+    )
+    abhilfe = (
+        "Das Tag in eine Zeile schreiben. Wird sie zu lang, gehört der "
+        "Inhalt in den Baustein statt in den Aufruf."
+    )
     dauer = "unter 1 s"
     kriterium = 12
 
@@ -60,42 +67,48 @@ class Vorlagentags(BefundWerkzeug):
     #: Anleitung, wie man den Baustein aufruft.
     GESCHUETZT = re.compile(
         r"\{%\s*comment\s*%\}.*?\{%\s*endcomment\s*%\}"
-        r"|\{%\s*verbatim\s*%\}.*?\{%\s*endverbatim\s*%\}", re.S)
+        r"|\{%\s*verbatim\s*%\}.*?\{%\s*endverbatim\s*%\}",
+        re.S,
+    )
 
     anlassfall = Anlassfall(
         dateien={
             "seite.html": (
                 '{% include "teil.html" with feld="a"\n'
-                '   wert=b %}\n'
-                '{% include "teil.html" with feld="c" wert=d %}\n'),
+                "   wert=b %}\n"
+                '{% include "teil.html" with feld="c" wert=d %}\n'
+            ),
             "anleitung.html": (
                 "{% comment %}\nSo wird es aufgerufen:\n\n"
                 '  {% include "teil.html" with feld="a"\n'
-                "     wert=b %}\n{% endcomment %}\n"),
+                "     wert=b %}\n{% endcomment %}\n"
+            ),
         },
-        mindestens=1, hoechstens=1,
+        mindestens=1,
+        hoechstens=1,
         erwartet_in="seite.html",
-        warum=(u"Der echte Fall und die Anleitung sehen gleich aus. Wer den "
-               u"Kommentarblock nicht ausnimmt, meldet jede gut dokumentierte "
-               u"Vorlage — und wird nach dem dritten Fehlalarm ignoriert."))
+        warum=(
+            "Der echte Fall und die Anleitung sehen gleich aus. Wer den "
+            "Kommentarblock nicht ausnimmt, meldet jede gut dokumentierte "
+            "Vorlage — und wird nach dem dritten Fehlalarm ignoriert."
+        ),
+    )
 
     def pruefen(self, **argumente):
         befunde = []
         dateien = self.pfade("*.html")
         for pfad in dateien:
             text = pfad.read_text(encoding="utf-8", errors="replace")
-            frei = Vorlagentags.GESCHUETZT.sub(
-                lambda m: re.sub(r"[^\n]", " ", m.group(0)), text)
+            frei = Vorlagentags.GESCHUETZT.sub(lambda m: re.sub(r"[^\n]", " ", m.group(0)), text)
             for treffer in Vorlagentags.MEHRZEILIG.finditer(frei):
                 zeile = frei.count("\n", 0, treffer.start()) + 1
-                anfang = " ".join(text[treffer.start():
-                                       treffer.end()].split())[:70]
-                befunde.append(Befund(
-                    "%s:%d" % (self.kurz(pfad), zeile),
-                    u"Tag über zwei Zeilen: %s" % anfang,
-                    u"Django liest das als Text — die Vorlage rendert es "
-                    u"woertlich statt es auszufuehren",
-                    Befund.FEHLER))
-        return Befundsatz(self.titel,
-                          kopf=["%d Vorlagen geprüft" % len(dateien)],
-                          befunde=befunde)
+                anfang = " ".join(text[treffer.start() : treffer.end()].split())[:70]
+                befunde.append(
+                    Befund(
+                        "%s:%d" % (self.kurz(pfad), zeile),
+                        "Tag über zwei Zeilen: %s" % anfang,
+                        "Django liest das als Text — die Vorlage rendert es woertlich statt es auszufuehren",
+                        Befund.FEHLER,
+                    )
+                )
+        return Befundsatz(self.titel, kopf=["%d Vorlagen geprüft" % len(dateien)], befunde=befunde)

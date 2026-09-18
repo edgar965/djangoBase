@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""EigenesWerkzeug - Werkzeug mit den Ausschluessen, die jedes Projekt braucht.
+"""EigenesWerkzeug - Werkzeug mit den Ausschluessen, die jedes Projekt braucht.
 
 WARUM DIESE ERGAENZUNG (belegt beim ersten Lauf, 17.08.2026)
 ============================================================
@@ -15,6 +15,7 @@ die echten Befunde, statt nur danebenzuliegen.
 Ergaenzbar bleibt es je Projekt über ``DJANGOBASE["skills2_ignorieren"]`` - die
 Liste hier ist nur die Grundausstattung.
 """
+
 from .werkzeug import Werkzeug
 
 __all__ = ["EigenesWerkzeug", "ZUSATZ_RAUS"]

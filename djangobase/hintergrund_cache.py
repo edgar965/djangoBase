@@ -27,6 +27,7 @@ Der Preis ist eine Anzeige, die um bis zu eine Haltbarkeitsdauer hinterherlaeuft
 Fuer eine Auslastungs-Leiste und eine Kurs-Uebersicht ist das genau richtig; fuer
 Zahlen, die auf die Sekunde stimmen muessen, waere es das nicht.
 """
+
 from __future__ import annotations
 
 import logging
@@ -74,8 +75,7 @@ class HintergrundCache:
             # Nach langer Ruhe (Tab im Hintergrund, Nacht) waere der gespeicherte
             # Wert Stunden alt. So weit hinterherzulaufen sagt der Modul-Text NICHT
             # zu - ab STALE_FAKTOR x Haltbarkeit wird deshalb synchron gemessen.
-            _zu_alt = (self._wert is not None
-                       and (time.time() - self._ts) >= alter_ttl * self.STALE_FAKTOR)
+            _zu_alt = self._wert is not None and (time.time() - self._ts) >= alter_ttl * self.STALE_FAKTOR
         if _zu_alt:
             # NUR EINER rechnet, die anderen bekommen den alten Wert (Review
             # 15.08.2026): Vorher lief `_bauen_jetzt()` hier ausserhalb jeder
@@ -93,8 +93,7 @@ class HintergrundCache:
             wert, ts, laeuft = self._wert, self._ts, self._laeuft
             if wert is not None and (time.time() - ts) >= alter_ttl and not laeuft:
                 self._laeuft = True
-                threading.Thread(target=self._bauen_thread,
-                                 name=f"cache-{self.name}", daemon=True).start()
+                threading.Thread(target=self._bauen_thread, name=f"cache-{self.name}", daemon=True).start()
         # Allererster Abruf: es gibt nichts anzuzeigen, also HIER rechnen. Zwei
         # gleichzeitige erste Abrufe rechnen doppelt - das ist einmal je Serverstart
         # und deutlich harmloser als eine Seite, die beim ersten Aufruf leer bleibt.
@@ -109,9 +108,14 @@ class HintergrundCache:
     def zustand(self) -> dict:
         """Für Diagnose/Tests: Alter, Zahl der Neuberechnungen, letzter Fehler."""
         with self._lock:
-            return {"name": self.name, "hat_wert": self._wert is not None,
-                    "alter_s": round(time.time() - self._ts, 2) if self._ts else None,
-                    "laeuft": self._laeuft, "n_bau": self._n_bau, "fehler": self._fehler}
+            return {
+                "name": self.name,
+                "hat_wert": self._wert is not None,
+                "alter_s": round(time.time() - self._ts, 2) if self._ts else None,
+                "laeuft": self._laeuft,
+                "n_bau": self._n_bau,
+                "fehler": self._fehler,
+            }
 
     # ----------------------------------------------------------------- bauen
     def _bauen_jetzt(self, im_thread: bool = False):
@@ -125,7 +129,7 @@ class HintergrundCache:
         t0 = time.time()
         try:
             wert = self._bauen()
-        except Exception as e:                                    # noqa: BLE001
+        except Exception as e:  # noqa: BLE001
             with self._lock:
                 if im_thread:
                     self._laeuft = False
@@ -134,7 +138,7 @@ class HintergrundCache:
         with self._lock:
             if im_thread:
                 self._laeuft = False
-            if t0 >= self._ts:            # nur uebernehmen, wenn nicht ueberholt
+            if t0 >= self._ts:  # nur uebernehmen, wenn nicht ueberholt
                 self._wert, self._ts = wert, time.time()
                 self._fehler = None
             self._n_bau += 1
@@ -143,7 +147,7 @@ class HintergrundCache:
     def _bauen_thread(self) -> None:
         try:
             self._bauen_jetzt(im_thread=True)
-        except Exception as e:                                    # noqa: BLE001
+        except Exception as e:  # noqa: BLE001
             # Nicht laut werden: der alte Wert bleibt stehen und wird weiter
             # ausgeliefert - genau dafuer gibt es diesen Zwischenspeicher.
             logger.warning("Hintergrund-Aktualisierung '%s' fehlgeschlagen: %s", self.name, e)
@@ -151,6 +155,7 @@ class HintergrundCache:
             if self.django_db:
                 try:
                     from django.db import connection
+
                     connection.close()
-                except Exception:                                 # noqa: BLE001
+                except Exception:  # noqa: BLE001
                     pass

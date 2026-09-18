@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""ReviewBefunde — die Mitschriften der Review-Seite lesbar machen.
+"""ReviewBefunde — die Mitschriften der Review-Seite lesbar machen.
 
 DER ANLASS (28.08.2026, 3DTools)
 ================================
@@ -43,11 +43,10 @@ logger = logging.getLogger("djangobase")
 
 
 class Mitschrift:
-    u"""Eine Datei aus dem Ablageordner — ein Bereich, ein Modell, N Befunde."""
+    """Eine Datei aus dem Ablageordner — ein Bereich, ein Modell, N Befunde."""
 
     #: ``## Runde 1 — Bereich (modell, 12 s)``
-    KOPF = re.compile(r"^##\s+Runde\s+(\d+)\s+[—-]\s+(.+?)\s*\((.+?),\s*(\d+)\s*s\)",
-                      re.M)
+    KOPF = re.compile(r"^##\s+Runde\s+(\d+)\s+[—-]\s+(.+?)\s*\((.+?),\s*(\d+)\s*s\)", re.M)
 
     #: Was das Modell geantwortet hat — davor steht nur die Frage.
     ANTWORT = "### Geantwortet"
@@ -73,7 +72,7 @@ class Mitschrift:
 
     @property
     def attrappe(self):
-        u"""Eine Mitschrift aus einem TESTLAUF, kein echter Durchgang.
+        """Eine Mitschrift aus einem TESTLAUF, kein echter Durchgang.
 
         In 3DTools lagen 33 davon: Partner ``attrappe``, Antwort ``ok``,
         114 Bytes. Sie entstanden, weil eine Pruefung in den Produktivordner
@@ -92,13 +91,13 @@ class Mitschrift:
     MINDESTANTWORT = 200
 
     def antworten(self):
-        u"""Nur die Antwortteile — die Frage enthaelt den Quelltext selbst."""
+        """Nur die Antwortteile — die Frage enthaelt den Quelltext selbst."""
         stuecke = self.text.split(self.ANTWORT)[1:]
         return [s.split("\n## ")[0] for s in stuecke]
 
 
 class Reviewbefund:
-    u"""Ein einzelner Befund aus einer Mitschrift."""
+    """Ein einzelner Befund aus einer Mitschrift."""
 
     #: ``### 3. Titel`` — die uebliche Gliederung der Antworten.
     NUMMER = re.compile(r"^###\s+(\d+)[.)]\s+(.+?)\s*$", re.M)
@@ -121,8 +120,7 @@ class Reviewbefund:
     #:
     #: Nennt ein Befund eine Funktion, muss sie in der gefundenen Datei auch
     #: stehen — sonst ist es Namensgleichheit, keine Fundstelle.
-    FUNKTIONSNAME = re.compile(
-        r"(?:FUNKTION|Funktion|function|Methode)\s*:?\s*`([\w.]+)`")
+    FUNKTIONSNAME = re.compile(r"(?:FUNKTION|Funktion|function|Methode)\s*:?\s*`([\w.]+)`")
 
     def __init__(self, mitschrift, titel, text):
         self.mitschrift = mitschrift
@@ -149,7 +147,7 @@ class Reviewbefund:
 
     @staticmethod
     def aus(mitschrift):
-        u"""Alle Befunde einer Mitschrift.
+        """Alle Befunde einer Mitschrift.
 
         Zwei Gliederungen kommen vor: nummerierte Ueberschriften und
         ``**Datei: …**``-Bloecke. Gesucht wird erst nach der ersten; findet
@@ -161,11 +159,9 @@ class Reviewbefund:
             if not stellen:
                 stellen = list(Reviewbefund.DATEIKOPF.finditer(antwort))
             for nr, stelle in enumerate(stellen):
-                ende = (stellen[nr + 1].start() if nr + 1 < len(stellen)
-                        else len(antwort))
+                ende = stellen[nr + 1].start() if nr + 1 < len(stellen) else len(antwort)
                 titel = stelle.group(stelle.re.groups)
-                aus.append(Reviewbefund(mitschrift, titel,
-                                        antwort[stelle.start():ende]))
+                aus.append(Reviewbefund(mitschrift, titel, antwort[stelle.start() : ende]))
         return aus
 
     #: Ein Titel, der einen ZURUECKGENOMMENEN Befund ankuendigt.
@@ -178,18 +174,21 @@ class Reviewbefund:
     #: Keine Aussage, sondern eine BITTE um Code. Das Modell sagt es
     #: ausdruecklich („Code fehlt“, „brauche exakt“) — wer daraus einen Befund
     #: macht, stellt eine Frage in die Liste der Antworten.
-    RUECKFRAGE = re.compile(r"code fehlt|brauche (exakt|die|den)|"
-                            r"nicht (einsehbar|vorhanden|mitgeliefert)", re.I)
+    RUECKFRAGE = re.compile(
+        r"code fehlt|brauche (exakt|die|den)|"
+        r"nicht (einsehbar|vorhanden|mitgeliefert)",
+        re.I,
+    )
 
     @property
     def taugt(self):
-        u"""Ist das ueberhaupt ein Befund?"""
+        """Ist das ueberhaupt ein Befund?"""
         if self.ZURUECKGEZOGEN.search(self.titel):
             return False
         return not self.RUECKFRAGE.search(self.titel + self.text[:400])
 
     def gewicht(self, vorhanden):
-        u"""Warnung nur, wenn eine genannte Datei es heute noch gibt."""
+        """Warnung nur, wenn eine genannte Datei es heute noch gibt."""
         if not self.dateien:
             return Befund.HINWEIS
         return Befund.WARNUNG if vorhanden else Befund.HINWEIS
@@ -197,28 +196,32 @@ class Reviewbefund:
     def hinweis(self, vorhanden):
         wo = ", ".join(self.dateien[:3]) if self.dateien else "keine Datei genannt"
         if not self.dateien:
-            return u"Allgemeine Anmerkung — %s" % wo
+            return "Allgemeine Anmerkung — %s" % wo
         if vorhanden:
-            return u"Betrifft: %s" % wo
-        return (u"%s — die Datei(en) gibt es nicht mehr; der Umbau ist "
-                u"darueber hinweggegangen" % wo)
+            return "Betrifft: %s" % wo
+        return "%s — die Datei(en) gibt es nicht mehr; der Umbau ist darueber hinweggegangen" % wo
 
 
 class ReviewBefunde(BefundWerkzeug):
-
     slug = "review-befunde"
     kriterium = 0
-    titel = u"Review-Mitschriften"
-    zweck = (u"Zieht die Befunde aus den Mitschriften der Review-Seite heraus "
-             u"und prueft, ob die genannten Dateien es heute noch gibt.")
-    abhilfe = (u"Nach jedem Review-Durchgang. Eine Mitschrift ist ein "
-               u"Gespraech — die Befunde stehen darin verstreut, und nach der "
-               u"dritten liest sie niemand mehr durch.")
-    befund = (u"Im Ursprungsprojekt lagen 51 Mitschriften mit 1,8 MB und "
-              u"38.000 Zeilen im Ablageordner. Zwanzig Lehren waren von Hand "
-              u"daraus uebernommen worden, der Rest war unauffindbar.")
-    dauer = u"Sekunden"
-    eingabe = ("bereich", u"Nur EIN Bereich (leer = alle)", "")
+    titel = "Review-Mitschriften"
+    zweck = (
+        "Zieht die Befunde aus den Mitschriften der Review-Seite heraus "
+        "und prueft, ob die genannten Dateien es heute noch gibt."
+    )
+    abhilfe = (
+        "Nach jedem Review-Durchgang. Eine Mitschrift ist ein "
+        "Gespraech — die Befunde stehen darin verstreut, und nach der "
+        "dritten liest sie niemand mehr durch."
+    )
+    befund = (
+        "Im Ursprungsprojekt lagen 51 Mitschriften mit 1,8 MB und "
+        "38.000 Zeilen im Ablageordner. Zwanzig Lehren waren von Hand "
+        "daraus uebernommen worden, der Rest war unauffindbar."
+    )
+    dauer = "Sekunden"
+    eingabe = ("bereich", "Nur EIN Bereich (leer = alle)", "")
 
     #: Wo die Mitschriften liegen koennen, relativ zur Projektwurzel.
     ORTE = ("logs/review", "review")
@@ -227,18 +230,21 @@ class ReviewBefunde(BefundWerkzeug):
     ENDUNGEN = (".py", ".js", ".html", ".css", ".mjs")
 
     anlassfall = Anlassfall(
-        {"logs/review/review_aaaa_probe.md":
-            u"\n## Runde 1 — Probebereich (grossmodell, 12 s)\n\n"
-            u"### Gefragt\n\n# Codebereich\n\n### Geantwortet\n\n"
-            u"### 1. Ungepruefter Rueckgabewert\n\n"
-            u"**Datei: `dienst.py`, Funktion `holen`**\n\n"
-            u"Der Aufrufer bekommt `None` und merkt es nicht.\n\n---\n\n"
-            u"### 2. Pfadpruefung per Zeichenvergleich\n\n"
-            u"In `dienst.py` wird `startswith` benutzt.\n",
-         "dienst.py": "def holen():\n    return None\n"},
-        mindestens=2, erwartet_in="review_aaaa_probe.md",
-        warum=u"Zwei Befunde in einer Mitschrift, beide mit Dateiangabe — "
-              u"genau das, was im Fliesstext untergeht")
+        {
+            "logs/review/review_aaaa_probe.md": "\n## Runde 1 — Probebereich (grossmodell, 12 s)\n\n"
+            "### Gefragt\n\n# Codebereich\n\n### Geantwortet\n\n"
+            "### 1. Ungepruefter Rueckgabewert\n\n"
+            "**Datei: `dienst.py`, Funktion `holen`**\n\n"
+            "Der Aufrufer bekommt `None` und merkt es nicht.\n\n---\n\n"
+            "### 2. Pfadpruefung per Zeichenvergleich\n\n"
+            "In `dienst.py` wird `startswith` benutzt.\n",
+            "dienst.py": "def holen():\n    return None\n",
+        },
+        mindestens=2,
+        erwartet_in="review_aaaa_probe.md",
+        warum="Zwei Befunde in einer Mitschrift, beide mit Dateiangabe — "
+        "genau das, was im Fliesstext untergeht",
+    )
 
     def pruefen(self, bereich="", **_argumente):
         gesucht = str(bereich or "").strip().lower()
@@ -259,47 +265,52 @@ class ReviewBefunde(BefundWerkzeug):
                 urteil = self._pruefbuch().get(treffer.titel[:60])
                 if urteil:
                     geprueft += 1
-                    befunde.append(Befund(
-                        ort, u"%s — nachgeprüft %s"
-                        % (m.pfad.name, urteil.get("am", "")),
-                        urteil.get("urteil", ""), Befund.HINWEIS))
+                    befunde.append(
+                        Befund(
+                            ort,
+                            "%s — nachgeprüft %s" % (m.pfad.name, urteil.get("am", "")),
+                            urteil.get("urteil", ""),
+                            Befund.HINWEIS,
+                        )
+                    )
                     continue
                 da = self._gibt_es_noch(treffer, vorhandene)
                 if treffer.dateien and not da:
                     erledigt += 1
-                befunde.append(Befund(
-                    ort, u"%s (%s)" % (m.pfad.name, m.modell or u"unbekannt"),
-                    treffer.hinweis(da), treffer.gewicht(da)))
+                befunde.append(
+                    Befund(
+                        ort,
+                        "%s (%s)" % (m.pfad.name, m.modell or "unbekannt"),
+                        treffer.hinweis(da),
+                        treffer.gewicht(da),
+                    )
+                )
 
         rang = {Befund.WARNUNG: 0, Befund.HINWEIS: 1}
         befunde.sort(key=lambda b: (rang.get(b.gewicht, 2), b.ort))
-        return Befundsatz(self.titel,
-                          self._kopf(echte, attrappen, befunde, erledigt,
-                                     keine_aussage, geprueft), befunde)
+        return Befundsatz(
+            self.titel, self._kopf(echte, attrappen, befunde, erledigt, keine_aussage, geprueft), befunde
+        )
 
     # ------------------------------------------------------------- Bausteine
 
-    def _kopf(self, echte, attrappen, befunde, erledigt,
-              keine_aussage=0, geprueft=0):
+    def _kopf(self, echte, attrappen, befunde, erledigt, keine_aussage=0, geprueft=0):
         offen = sum(1 for b in befunde if b.gewicht == Befund.WARNUNG)
-        kopf = [u"%d Mitschriften, %d Befunde" % (len(echte), len(befunde)),
-                u"%d betreffen Dateien, die es noch gibt" % offen]
+        kopf = [
+            "%d Mitschriften, %d Befunde" % (len(echte), len(befunde)),
+            "%d betreffen Dateien, die es noch gibt" % offen,
+        ]
         if erledigt:
-            kopf.append(u"%d nennen Dateien, die der Umbau entfernt hat — "
-                        u"erledigt, nicht falsch" % erledigt)
+            kopf.append("%d nennen Dateien, die der Umbau entfernt hat — erledigt, nicht falsch" % erledigt)
         if geprueft:
-            kopf.append(u"%d im Pruefbuch abgehakt (%s)"
-                        % (geprueft, self.PRUEFBUCH))
+            kopf.append("%d im Pruefbuch abgehakt (%s)" % (geprueft, self.PRUEFBUCH))
         if keine_aussage:
-            kopf.append(u"%d Rueckfragen und zurueckgezogene Punkte — keine "
-                        u"Befunde" % keine_aussage)
+            kopf.append("%d Rueckfragen und zurueckgezogene Punkte — keine Befunde" % keine_aussage)
         if attrappen:
             # Nie verschweigen, was uebergangen wurde.
-            kopf.append(u"%d Attrappen aus Testlaeufen uebergangen"
-                        % len(attrappen))
+            kopf.append("%d Attrappen aus Testlaeufen uebergangen" % len(attrappen))
         if not echte:
-            kopf.append(u"Keine Mitschriften gefunden — gesucht in: %s"
-                        % ", ".join(self.ORTE))
+            kopf.append("Keine Mitschriften gefunden — gesucht in: %s" % ", ".join(self.ORTE))
         return kopf
 
     #: Neben den Mitschriften: Welcher Befund schon nachgeprueft wurde.
@@ -325,7 +336,7 @@ class ReviewBefunde(BefundWerkzeug):
     _buch = None
 
     def _pruefbuch(self):
-        u"""Das Pruefbuch — einmal je Lauf gelesen."""
+        """Das Pruefbuch — einmal je Lauf gelesen."""
         if self._buch is not None:
             return self._buch
         self._buch = {}
@@ -334,17 +345,15 @@ class ReviewBefunde(BefundWerkzeug):
             if not pfad.is_file():
                 continue
             try:
-                self._buch.update(
-                    json.loads(pfad.read_text(encoding="utf-8")))
+                self._buch.update(json.loads(pfad.read_text(encoding="utf-8")))
             except (OSError, ValueError):
                 # Ein kaputtes Pruefbuch darf den Lauf nicht kosten — dann
                 # gilt eben nichts als geprueft, und das faellt sofort auf.
-                logger.warning("Pruefbuch %s nicht lesbar", pfad,
-                               exc_info=True)
+                logger.warning("Pruefbuch %s nicht lesbar", pfad, exc_info=True)
         return self._buch
 
     def _mitschriften(self):
-        u"""Alle ``.md`` in den bekannten Ablageorten."""
+        """Alle ``.md`` in den bekannten Ablageorten."""
         wurzel = Path(self.wurzel())
         aus = []
         for ort in self.ORTE:
@@ -354,7 +363,7 @@ class ReviewBefunde(BefundWerkzeug):
         return aus
 
     def _projektdateien(self):
-        u"""Endstueck -> Pfade. Eine Mitschrift schreibt mal `retarget.py`,
+        """Endstueck -> Pfade. Eine Mitschrift schreibt mal `retarget.py`,
         mal `core/api/retarget.py` — beides muss treffen."""
         namen = {}
         # `projektdateien` nimmt EINE Endung — die Mitschriften nennen aber
@@ -367,7 +376,7 @@ class ReviewBefunde(BefundWerkzeug):
         return namen
 
     def _gibt_es_noch(self, befund, vorhandene):
-        u"""Gibt es die genannte Stelle heute noch — Datei UND Funktion?
+        """Gibt es die genannte Stelle heute noch — Datei UND Funktion?
 
         Der Dateiname allein reicht nicht: `retarget.py` gibt es in fast
         jedem Projekt zweimal. Nennt der Befund eine Funktion, muss sie in
@@ -375,8 +384,7 @@ class ReviewBefunde(BefundWerkzeug):
         """
         treffer = []
         for name in befund.dateien:
-            treffer.extend(vorhandene.get(name)
-                           or vorhandene.get(name.split("/")[-1]) or [])
+            treffer.extend(vorhandene.get(name) or vorhandene.get(name.split("/")[-1]) or [])
         if not treffer:
             return False
         if not befund.funktionen:
@@ -385,12 +393,14 @@ class ReviewBefunde(BefundWerkzeug):
 
     @staticmethod
     def _enthaelt(pfad, namen):
-        u"""Steht einer der Namen als Definition in dieser Datei?"""
+        """Steht einer der Namen als Definition in dieser Datei?"""
         try:
             text = Path(str(pfad)).read_text(encoding="utf-8", errors="replace")
         except OSError:
             # Unlesbar heisst „keine Aussage" — dann lieber melden als
             # stillschweigend abtun.
             return True
-        return any(re.search(r"\b(?:def|function|class)\s+%s\b" % re.escape(n),
-                             text) or ("%s(" % n) in text for n in namen)
+        return any(
+            re.search(r"\b(?:def|function|class)\s+%s\b" % re.escape(n), text) or ("%s(" % n) in text
+            for n in namen
+        )

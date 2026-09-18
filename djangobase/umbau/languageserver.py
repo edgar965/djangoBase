@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Der Stapellauf: ein Language Server über das Projekt, Befunde als Liste.
+"""Der Stapellauf: ein Language Server über das Projekt, Befunde als Liste.
 
 BEIDE WERKZEUGE (Edgar, 02.09.2026: „mache beide, die man umschalten kann")
 ===========================================================================
@@ -20,6 +20,7 @@ Nichts im Request rechnen (das macht ``ls_lauf.LsLauf`` im Thread) und nichts
 merken (das macht der ``Speicher`` in der Ansicht). Sie startet einen Prozess,
 wartet mit Zeitlimit und liest die Ausgabe.
 """
+
 import json
 import os
 import shutil
@@ -34,11 +35,24 @@ __all__ = ["LanguageServer", "LsErgebnis"]
 
 
 class LsErgebnis:
-    u"""Was ein Lauf hinterlässt — auch ein gescheiterter."""
+    """Was ein Lauf hinterlässt — auch ein gescheiterter."""
 
-    __slots__ = ("werkzeug", "version", "befunde", "dateien", "dauer_s", "fehlt",
-                 "abgebrochen", "ausgabe", "wann", "abdruck", "modus",
-                 "js_dauer_s", "js_fehlt", "js_befunde")
+    __slots__ = (
+        "werkzeug",
+        "version",
+        "befunde",
+        "dateien",
+        "dauer_s",
+        "fehlt",
+        "abgebrochen",
+        "ausgabe",
+        "wann",
+        "abdruck",
+        "modus",
+        "js_dauer_s",
+        "js_fehlt",
+        "js_befunde",
+    )
 
     def __init__(self, werkzeug="", abdruck="", modus=""):
         self.werkzeug = werkzeug
@@ -62,7 +76,7 @@ class LsErgebnis:
 
 
 class LanguageServer:
-    u"""Findet das Programm, schreibt die Konfiguration, fährt den Lauf."""
+    """Findet das Programm, schreibt die Konfiguration, fährt den Lauf."""
 
     NAMEN = ("basedpyright", "pyright")
 
@@ -77,7 +91,7 @@ class LanguageServer:
 
     # ── finden ───────────────────────────────────────────────────────────
     def finden(self):
-        u"""``{name, cli, server, fehlt}`` — welches Programm läuft.
+        """``{name, cli, server, fehlt}`` — welches Programm läuft.
 
         Reihenfolge bei ``auto``: basedpyright, dann pyright. Gesucht wird
         neben dem Interpreter (``Scripts/`` bzw. ``bin/``), im PATH und im
@@ -87,21 +101,23 @@ class LanguageServer:
         for name in namen:
             cli = self._programm(name)
             if cli:
-                return {"name": name, "cli": cli,
-                        "server": self._programm(name + "-langserver"), "fehlt": ""}
-        return {"name": wunsch, "cli": None, "server": None,
-                "fehlt": (u"%s ist nicht installiert. Abhilfe: "
-                          u"pip install %s  (im venv des Projekts)"
-                          % (u" und ".join(namen), u" ".join(namen)))}
+                return {"name": name, "cli": cli, "server": self._programm(name + "-langserver"), "fehlt": ""}
+        return {
+            "name": wunsch,
+            "cli": None,
+            "server": None,
+            "fehlt": (
+                "%s ist nicht installiert. Abhilfe: "
+                "pip install %s  (im venv des Projekts)" % (" und ".join(namen), " ".join(namen))
+            ),
+        }
 
     def _programm(self, name):
         python = Path(self.konfig.python or sys.executable)
-        kandidaten = [python.parent / name, python.parent / (name + ".exe"),
-                      python.parent / (name + ".cmd")]
+        kandidaten = [python.parent / name, python.parent / (name + ".exe"), python.parent / (name + ".cmd")]
         npm = os.environ.get("APPDATA")
         if npm:
-            kandidaten += [Path(npm) / "npm" / (name + ".cmd"),
-                           Path(npm) / "npm" / name]
+            kandidaten += [Path(npm) / "npm" / (name + ".cmd"), Path(npm) / "npm" / name]
         for k in kandidaten:
             if k.is_file():
                 return str(k)
@@ -116,7 +132,7 @@ class LanguageServer:
         return pfad
 
     def umgebung(self):
-        u"""Die pyright-Hülle lädt npm-Pakete in einen Zwischenspeicher —
+        """Die pyright-Hülle lädt npm-Pakete in einen Zwischenspeicher —
         hierhin, nicht nach C:."""
         env = dict(os.environ)
         env["PYRIGHT_PYTHON_CACHE_DIR"] = str(self.ordner / "pyright-python")
@@ -138,39 +154,41 @@ class LanguageServer:
         except subprocess.TimeoutExpired:
             ergebnis.abgebrochen = True
             ergebnis.dauer_s = round(time.monotonic() - start, 1)
-            ergebnis.fehlt = (u"Zeitlimit von %d s überschritten — Lauf abgebrochen"
-                              % self.konfig.zeitlimit)
+            ergebnis.fehlt = "Zeitlimit von %d s überschritten — Lauf abgebrochen" % self.konfig.zeitlimit
             return ergebnis
         except OSError as e:
-            ergebnis.fehlt = u"Programm nicht startbar: %s" % e
+            ergebnis.fehlt = "Programm nicht startbar: %s" % e
             return ergebnis
         ergebnis.dauer_s = round(time.monotonic() - start, 1)
         ergebnis.ausgabe = (fehler or "")[-2000:]
         try:
             befunde, dateien, version = self._parsen(aus, self.wurzel)
         except ValueError:
-            ergebnis.fehlt = (u"Ausgabe nicht lesbar (Ende-Code %s): %s"
-                              % (code, (aus or fehler or "")[-400:]))
+            ergebnis.fehlt = "Ausgabe nicht lesbar (Ende-Code %s): %s" % (code, (aus or fehler or "")[-400:])
             return ergebnis
         ergebnis.befunde, ergebnis.dateien, ergebnis.version = befunde, dateien, version
         self._javascript(ergebnis)
         return ergebnis
 
     def _javascript(self, ergebnis):
-        u"""JavaScript im selben Lauf, wenn eingeschaltet - Befunde dazu."""
+        """JavaScript im selben Lauf, wenn eingeschaltet - Befunde dazu."""
         if not getattr(self.konfig, "javascript", False):
             return
-        pruefer = JsPruefer(self.wurzel, self.ordner, self.konfig.pfade,
-                            self.konfig.zeitlimit,
-                            zusatz=getattr(self.konfig, "zusatz", ()),
-                            static_wurzeln=self.static_wurzeln)
+        pruefer = JsPruefer(
+            self.wurzel,
+            self.ordner,
+            self.konfig.pfade,
+            self.konfig.zeitlimit,
+            zusatz=getattr(self.konfig, "zusatz", ()),
+            static_wurzeln=self.static_wurzeln,
+        )
         befunde, dauer, fehlt = pruefer.laufen()
         ergebnis.js_dauer_s, ergebnis.js_fehlt, ergebnis.js_befunde = dauer, fehlt, len(befunde)
         ergebnis.befunde.extend(befunde)
         ergebnis.dauer_s = round(ergebnis.dauer_s + dauer, 1)
 
     def _ausfuehren(self, befehl, zeitlimit):
-        u"""``(code, stdout, stderr)`` — beim Zeitlimit stirbt der GANZE Baum.
+        """``(code, stdout, stderr)`` — beim Zeitlimit stirbt der GANZE Baum.
 
         DER WINDOWS-KLASSIKER (02.09.2026, erster Lauf auf shortlongx): Mit
         ``subprocess.run(timeout=…)`` lief der Lauf nach 430 s noch. Das
@@ -178,21 +196,20 @@ class LanguageServer:
         die Pipes offen und rechnete weiter (513 CPU-Sekunden), und
         ``communicate()`` wartete auf ihn. Deshalb ``taskkill /T`` auf die
         Prozess-ID — der Baum, nicht das Blatt."""
-        prozess = subprocess.Popen(befehl, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                   cwd=str(self.wurzel), env=self.umgebung())
+        prozess = subprocess.Popen(
+            befehl, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=str(self.wurzel), env=self.umgebung()
+        )
         try:
             aus, fehler = prozess.communicate(timeout=zeitlimit)
         except subprocess.TimeoutExpired:
             self._baum_beenden(prozess)
             raise
-        return (prozess.returncode, aus.decode("utf-8", "replace"),
-                fehler.decode("utf-8", "replace"))
+        return (prozess.returncode, aus.decode("utf-8", "replace"), fehler.decode("utf-8", "replace"))
 
     @staticmethod
     def _baum_beenden(prozess):
         if os.name == "nt":
-            subprocess.run(["taskkill", "/T", "/F", "/PID", str(prozess.pid)],
-                           capture_output=True)
+            subprocess.run(["taskkill", "/T", "/F", "/PID", str(prozess.pid)], capture_output=True)
         else:
             prozess.kill()
         try:
@@ -202,7 +219,7 @@ class LanguageServer:
 
     @staticmethod
     def _parsen(text, wurzel):
-        u"""``(befunde, dateien, version)`` aus der JSON-Ausgabe.
+        """``(befunde, dateien, version)`` aus der JSON-Ausgabe.
 
         Ein Befund: ``{datei, zeile, spalte, stufe, regel, text}`` — ``datei``
         relativ zur Wurzel, ``zeile`` 1-basiert (die Ausgabe zählt ab 0)."""
@@ -219,13 +236,15 @@ class LanguageServer:
             except ValueError:
                 rel = str(pfad)
             start = (d.get("range") or {}).get("start") or {}
-            befunde.append({
-                "datei": rel.replace("\\", "/"),
-                "zeile": int(start.get("line", 0)) + 1,
-                "spalte": int(start.get("character", 0)) + 1,
-                "stufe": d.get("severity") or "information",
-                "regel": d.get("rule") or "",
-                "text": (d.get("message") or "").strip(),
-            })
+            befunde.append(
+                {
+                    "datei": rel.replace("\\", "/"),
+                    "zeile": int(start.get("line", 0)) + 1,
+                    "spalte": int(start.get("character", 0)) + 1,
+                    "stufe": d.get("severity") or "information",
+                    "regel": d.get("rule") or "",
+                    "text": (d.get("message") or "").strip(),
+                }
+            )
         zusammen = daten.get("summary") or {}
         return befunde, int(zusammen.get("filesAnalyzed") or 0), str(daten.get("version") or "")

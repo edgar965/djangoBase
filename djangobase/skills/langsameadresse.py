@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Langsame Adresse — ``localhost`` in einer Adresse kostet unter Windows Sekunden.
+"""Langsame Adresse — ``localhost`` in einer Adresse kostet unter Windows Sekunden.
 
 DER FEHLER
 ==========
@@ -69,6 +69,7 @@ WAS NICHT GEMELDET WIRD
 * **``0.0.0.0``**: die Adresse, auf der ein Server LAUSCHT — die ist
   richtig so und hat mit der Aufloesung nichts zu tun.
 """
+
 import ast
 import re
 
@@ -79,49 +80,61 @@ __all__ = ["LangsameAdresse"]
 
 
 class LangsameAdresse(BefundWerkzeug):
-    u"""``localhost`` als Verbindungsziel — zwei Sekunden je Verbindung."""
+    """``localhost`` als Verbindungsziel — zwei Sekunden je Verbindung."""
 
     slug = "langsame-adresse"
     titel = "localhost als Verbindungsziel"
-    zweck = ("Findet `http://localhost:…` im Code. Unter Windows loest das "
-             "zuerst auf `::1` auf; lauscht der Dienst nur auf IPv4, kostet "
-             "jede Verbindung rund zwei Sekunden.")
-    befund = ("Gemessen am 28.08.2026 gegen Ollama: 2.923 ms ueber "
-              "`localhost`, 840 ms ueber `127.0.0.1` — dreizehn Stellen im "
-              "Projekt, jede mit eigenem Client, also jede mit vollem "
-              "Aufschlag.")
-    abhilfe = ("`127.0.0.1` schreiben. Der Aufschlag steht in keinem Log und "
-               "wirft nichts — er sieht nach Last aus.")
+    zweck = (
+        "Findet `http://localhost:…` im Code. Unter Windows loest das "
+        "zuerst auf `::1` auf; lauscht der Dienst nur auf IPv4, kostet "
+        "jede Verbindung rund zwei Sekunden."
+    )
+    befund = (
+        "Gemessen am 28.08.2026 gegen Ollama: 2.923 ms ueber "
+        "`localhost`, 840 ms ueber `127.0.0.1` — dreizehn Stellen im "
+        "Projekt, jede mit eigenem Client, also jede mit vollem "
+        "Aufschlag."
+    )
+    abhilfe = (
+        "`127.0.0.1` schreiben. Der Aufschlag steht in keinem Log und wirft nichts — er sieht nach Last aus."
+    )
     dauer = "unter 1 s"
     kriterium = 0
 
     anlassfall = Anlassfall(
-        {"klient.py": (
-            "import httpx\n"
-            "\n"
-            "BASIS = 'http://localhost:11434'\n"
-            "\n"
-            "\n"
-            "def holen():\n"
-            "    return httpx.get(BASIS + '/api/tags')\n"),
-         "sauber.py": (
-            u'u"""Hier stand frueher http://localhost:11434 — jetzt nicht.\n'
-            u'"""\n'
-            "import httpx\n"
-            "\n"
-            "# Nicht http://localhost: das loest zuerst auf ::1 auf.\n"
-            "BASIS = 'http://127.0.0.1:11434'\n"
-            "ALLOWED_HOSTS = ['localhost', '127.0.0.1']\n"
-            "\n"
-            "\n"
-            "def holen():\n"
-            "    return httpx.get(BASIS + '/api/tags')\n")},
-        mindestens=1, hoechstens=1, erwartet_in="klient.py",
+        {
+            "klient.py": (
+                "import httpx\n"
+                "\n"
+                "BASIS = 'http://localhost:11434'\n"
+                "\n"
+                "\n"
+                "def holen():\n"
+                "    return httpx.get(BASIS + '/api/tags')\n"
+            ),
+            "sauber.py": (
+                'u"""Hier stand frueher http://localhost:11434 — jetzt nicht.\n'
+                '"""\n'
+                "import httpx\n"
+                "\n"
+                "# Nicht http://localhost: das loest zuerst auf ::1 auf.\n"
+                "BASIS = 'http://127.0.0.1:11434'\n"
+                "ALLOWED_HOSTS = ['localhost', '127.0.0.1']\n"
+                "\n"
+                "\n"
+                "def holen():\n"
+                "    return httpx.get(BASIS + '/api/tags')\n"
+            ),
+        },
+        mindestens=1,
+        hoechstens=1,
+        erwartet_in="klient.py",
         warum="Zwei Sekunden je Verbindung, gemessen. `sauber.py` steht "
-              "daneben, weil die drei Ausnahmen sonst unbemerkt wegfallen "
-              "koennten: der Docstring, der den Fall beschreibt, der "
-              "Kommentar daneben, und `ALLOWED_HOSTS` — eine Namensliste "
-              "fuer EINGEHENDE Anfragen, wo nichts aufgeloest wird.")
+        "daneben, weil die drei Ausnahmen sonst unbemerkt wegfallen "
+        "koennten: der Docstring, der den Fall beschreibt, der "
+        "Kommentar daneben, und `ALLOWED_HOSTS` — eine Namensliste "
+        "fuer EINGEHENDE Anfragen, wo nichts aufgeloest wird.",
+    )
 
     #: ``//localhost`` mit beliebigem Schema davor. Das ``//`` ist der
     #: Unterschied zwischen einem Verbindungsziel und einem blossen Namen
@@ -155,16 +168,13 @@ class LangsameAdresse(BefundWerkzeug):
             if self._ist_test(pfad):
                 continue
             dateien += 1
-            befunde += self._aus_text(pfad.read_text(encoding="utf-8",
-                                                     errors="replace"),
-                                      self.kurz(pfad))
-        kopf = ["%d Dateien gelesen" % dateien,
-                "%d Verbindungsziele auf `localhost`" % len(befunde)]
+            befunde += self._aus_text(pfad.read_text(encoding="utf-8", errors="replace"), self.kurz(pfad))
+        kopf = ["%d Dateien gelesen" % dateien, "%d Verbindungsziele auf `localhost`" % len(befunde)]
         return Befundsatz(self.titel, kopf, befunde)
 
     @staticmethod
     def _ist_test(pfad):
-        u"""Eine Pruefung darf die Adresse nennen, die sie abweist.
+        """Eine Pruefung darf die Adresse nennen, die sie abweist.
 
         Der Anlass: ``test_meyer_features`` prueft, dass
         ``http://localhost/`` als Ziel ABGELEHNT wird (Schutz gegen
@@ -177,9 +187,7 @@ class LangsameAdresse(BefundWerkzeug):
         bei der Gegenprobe: die erste Haelfte liess sich entfernen, alle
         Faelle blieben gruen.
         """
-        return (pfad.name.startswith("test_")
-                or "tests" in pfad.parts
-                or "test" in pfad.parts)
+        return pfad.name.startswith("test_") or "tests" in pfad.parts or "test" in pfad.parts
 
     @staticmethod
     def _baum(pfad):
@@ -189,7 +197,7 @@ class LangsameAdresse(BefundWerkzeug):
             return None
 
     def _aus_baum(self, baum, name):
-        u"""Jede Zeichenkette ausser den Docstrings.
+        """Jede Zeichenkette ausser den Docstrings.
 
         Kommentare stehen ohnehin nicht im Syntaxbaum — sie fallen also
         von selbst weg.
@@ -206,13 +214,12 @@ class LangsameAdresse(BefundWerkzeug):
                 continue
             if not self.ZIEL.search(knoten.value):
                 continue
-            raus.append(self._befund("%s:%d" % (name, knoten.lineno),
-                                     knoten.value))
+            raus.append(self._befund("%s:%d" % (name, knoten.lineno), knoten.value))
         return raus
 
     @staticmethod
     def _docstrings(baum):
-        u"""Die Zeichenketten, die als Beschreibung dastehen.
+        """Die Zeichenketten, die als Beschreibung dastehen.
 
         Einmal je Baum gesammelt und gemerkt: ``ast.walk`` laeuft sonst
         fuer jede Zeichenkette erneut ueber den ganzen Baum.
@@ -221,22 +228,23 @@ class LangsameAdresse(BefundWerkzeug):
         if gemerkt is not None:
             return gemerkt
         gemerkt = set()
-        traeger = (ast.Module, ast.ClassDef, ast.FunctionDef,
-                   ast.AsyncFunctionDef)
+        traeger = (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)
         for knoten in ast.walk(baum):
             if not isinstance(knoten, traeger):
                 continue
             erste = (knoten.body or [None])[0]
-            if (isinstance(erste, ast.Expr)
-                    and isinstance(erste.value, ast.Constant)
-                    and isinstance(erste.value.value, str)):
+            if (
+                isinstance(erste, ast.Expr)
+                and isinstance(erste.value, ast.Constant)
+                and isinstance(erste.value.value, str)
+            ):
                 gemerkt.add(erste.value)
         baum._docstringknoten = gemerkt
         return gemerkt
 
     @classmethod
     def _eingehend(cls, baum):
-        u"""Zeichenketten in ``ALLOWED_HOSTS`` und Verwandten.
+        """Zeichenketten in ``ALLOWED_HOSTS`` und Verwandten.
 
         Django vergleicht sie gegen den Kopf einer EINGEHENDEN Anfrage —
         aufgeloest wird dabei nichts. ``CSRF_TRUSTED_ORIGINS`` traegt
@@ -253,14 +261,13 @@ class LangsameAdresse(BefundWerkzeug):
             if not any(cls.EINGEHEND.match(n) for n in namen):
                 continue
             for teil in ast.walk(knoten.value):
-                if isinstance(teil, ast.Constant) and isinstance(teil.value,
-                                                                 str):
+                if isinstance(teil, ast.Constant) and isinstance(teil.value, str):
                     gemerkt.add(teil)
         baum._eingehendknoten = gemerkt
         return gemerkt
 
     def _aus_text(self, text, name):
-        u"""Zeilenweise fuer JavaScript — ohne Zeilenkommentare.
+        """Zeilenweise fuer JavaScript — ohne Zeilenkommentare.
 
         Grob, aber in die richtige Richtung: Eine echte Adresse in einem
         Kommentar wird uebersehen, ein Kommentar aber nie faelschlich
@@ -283,4 +290,5 @@ class LangsameAdresse(BefundWerkzeug):
             "Unter Windows zuerst `::1`. Lauscht der Dienst nur auf IPv4, "
             "kostet jede Verbindung rund zwei Sekunden — ohne Log, ohne "
             "Fehler, es sieht nach Last aus.",
-            Befund.WARNUNG)
+            Befund.WARNUNG,
+        )

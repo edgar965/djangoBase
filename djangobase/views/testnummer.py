@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""TestNummerView - den Platz eines Testfalls in der Tabelle ändern.
+"""TestNummerView - den Platz eines Testfalls in der Tabelle ändern.
 
     „Die enthält zahlen, aufsteigend, die man ändern kann, dann verschieben sich
     die tests in der Tabelle." (Edgar, 17.08.2026)
@@ -23,6 +23,7 @@ Nur bekannte Test-IDs (Discovery) kommen in die Ablage. Sonst könnte eine
 Anfrage die Datei mit beliebigen Schlüsseln füllen; harmlos in der Wirkung,
 aber es wäre Muell, den niemand mehr los wird.
 """
+
 import json
 import logging
 
@@ -50,31 +51,35 @@ class TestNummerView(ZugriffMixin, View):
         test_id = str(daten.get("id") or "")[:300]
         gruppe = daten.get("gruppe") or []
         if not test_id or not isinstance(gruppe, list):
-            return JsonResponse({"ok": False, "error": "id und gruppe nötig"},
-                                status=400)
-        gruppe = [str(g)[:300] for g in gruppe[:self.MAX_GRUPPE]]
+            return JsonResponse({"ok": False, "error": "id und gruppe nötig"}, status=400)
+        gruppe = [str(g)[:300] for g in gruppe[: self.MAX_GRUPPE]]
 
         bekannte = self._bekannte()
         if bekannte and test_id not in bekannte:
-            return JsonResponse({"ok": False, "error": "unbekannter Testfall"},
-                                status=409)
+            return JsonResponse({"ok": False, "error": "unbekannter Testfall"}, status=409)
         gefiltert = [g for g in gruppe if not bekannte or g in bekannte]
         reihe = Reihenfolge().setzen(test_id, daten.get("nummer"), gefiltert)
         if not reihe:
             return JsonResponse(
-                {"ok": False, "error": "Nummer nicht anwendbar — der Fall steht "
-                                       "nicht in der übergebenen Gruppe."},
-                status=409)
-        log.info("Test-Reihenfolge: %s auf Platz %s durch %s (%d in der Gruppe)",
-                 test_id, daten.get("nummer"),
-                 getattr(getattr(request, "user", None), "username", "?"),
-                 len(reihe))
+                {
+                    "ok": False,
+                    "error": "Nummer nicht anwendbar — der Fall steht nicht in der übergebenen Gruppe.",
+                },
+                status=409,
+            )
+        log.info(
+            "Test-Reihenfolge: %s auf Platz %s durch %s (%d in der Gruppe)",
+            test_id,
+            daten.get("nummer"),
+            getattr(getattr(request, "user", None), "username", "?"),
+            len(reihe),
+        )
         # Dictionary gewollt: geht unveraendert als JSON an die Seite.
         return JsonResponse({"ok": True, "reihe": reihe})
 
     @staticmethod
     def _bekannte():
-        u"""Alle entdeckten Test-IDs - leer, wenn die Discovery nichts liefert.
+        """Alle entdeckten Test-IDs - leer, wenn die Discovery nichts liefert.
 
         Leer heißt „nicht prüfbar", nicht „nichts erlaubt": In einem Projekt
         ohne Discovery wäre die Spalte sonst tot.
@@ -82,12 +87,12 @@ class TestNummerView(ZugriffMixin, View):
         from ..conf import conf
         from ..testkategorien import Kategorien
         from .tests import TestsView
+
         try:
             c = conf()
             befehle = c.get("test_befehle") or TestsView._befehle_abgeleitet()
             discover = c.get("test_discover") or Kategorien(befehle).discover()
-            _kategorien, bekannte = TestsView._einzeltests(discover,
-                                                           mit_djangobase=True)
+            _kategorien, bekannte = TestsView._einzeltests(discover, mit_djangobase=True)
             return bekannte
         except Exception:  # noqa: BLE001
             log.exception("Test-IDs für die Nummern-Prüfung nicht ermittelbar")

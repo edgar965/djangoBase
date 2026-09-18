@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Werkzeug/Ergebnis - das Grundgeruest ALLER Pruefwerkzeuge.
+"""Werkzeug/Ergebnis - das Grundgeruest ALLER Pruefwerkzeuge.
 
 Skills2 sammelt die Pruefwerkzeuge und die Lehren aus dem grossen Review- und
 Umbaudurchgang in shortlongx (August 2026). Sie liegen hier in djangoBase, weil
@@ -15,12 +15,14 @@ Ein Werkzeug ist eine Klasse mit ``slug``, ``titel``, ``zweck``, ``befund`` und
 ``laufen()``. ``laufen()`` gibt ein :class:`Ergebnis` zurueck - nie einen
 formatierten Text: Die Seite entscheidet ueber die Darstellung.
 """
+
 import ast
-import tokenize
 import io
+import tokenize
 from pathlib import Path
 
 from django.conf import settings
+
 from .pfadteile import Pfadteile
 
 __all__ = ["Werkzeug", "Ergebnis", "Quelldatei"]
@@ -32,70 +34,104 @@ __all__ = ["Werkzeug", "Ergebnis", "Quelldatei"]
 #: (der Stand vor dem letzten Umbau, aus dem 53 Werkzeuge lesen). Ohne den
 #: Ausschluss meldete die Duplikat-Suche 1.426 Gruppen statt 329 - lauter
 #: „Duplikate", die genau dafuer da sind, Kopien zu sein.
-AUSGESCHLOSSEN = {".git", "__pycache__", "node_modules", "venv", "pythonVENV",
-                  ".venv", "env", "site-packages", "migrations", "staticfiles",
-                  ".mypy_cache", ".pytest_cache", "dist", "build",
-                  "sicherung", "backup", "archiv", "alt", "_alt", "old",
-                  # Der Wegwerf-Ordner des Anlassfall-Checks. Ohne ihn faenden
-                  # die Werkzeuge im normalen Lauf ihre eigenen Testdateien -
-                  # und meldeten absichtlich kaputten Code als Befund.
-                  "_anlassfall",
-                  # Pruefverzeichnisse aus `tests/wegwerfordner.py` —
-                  # im NORMALEN Lauf unsichtbar, im Prueflauf sieht der
-                  # Helfer selbst hin (er erleichtert die Liste).
-                  "_wegwerf",
-                  # FREMDER CODE, der in gewachsenen Projekten NEBEN dem
-                  # Quelltext liegt (belegt am 17.08.2026 im Projekt assistant:
-                  # 34 % ALLER Befunde kamen von dort).
-                  #
-                  # * ``virensuche_quarantine`` - 585 MB, in die der eigene
-                  #   Virenscanner Fundstuecke schiebt. Dort meldete ``jssyntax``
-                  #   drei „kaputte ES-Module": verseuchte Dateien, die genau
-                  #   deshalb dort liegen. Ein Werkzeug, das Schadcode zum
-                  #   Aufraeumen vorschlaegt, ist schlimmer als keins.
-                  # * ``chrome-profile`` / ``Extensions`` - ein abgelegtes
-                  #   Browser-Profil, 437 JS-Dateien aus fremden Erweiterungen
-                  #   (minifizierte webpack-Buendel). Daher kamen alle 16
-                  #   Befunde von ``js-vererbung`` und die Haelfte von
-                  #   ``jsregistrierung``.
-                  # * ``var`` - Laufzeitablage (Protokolle, Bilder, Profile)
-                  #   neben ``logs`` und ``media``, kein Quelltext.
-                  "virensuche_quarantine", "quarantine", "quarantaene",
-                  "chrome-profile", "Extensions", "var",
-                  # EINE GRENZE FUER ALLE WERKZEUGE (17.08.2026)
-                  # ==========================================
-                  # Diese Namen standen bis dahin nur in
-                  # ``basis.EigenesWerkzeug.ZUSATZ_RAUS`` — und die gilt fuer
-                  # genau DREI Werkzeuge. Die anderen achtundzwanzig erben von
-                  # ``Werkzeug`` und durchsuchten weiter alles.
-                  #
-                  # Gemessen am Projekt assistant: 40 % aller Befunde kamen aus
-                  # fremdem Code. Bei ``doppelcode`` 39 von 40 gezeigten Zeilen,
-                  # bei ``rueckgabetupel`` 38, bei ``doppelrumpf`` und
-                  # ``dateigroesse`` 37. Der Spitzenbefund von ``dateigroesse``
-                  # war eine 4.741-Zeilen-Datei in ``unsloth_compiled_cache`` —
-                  # erzeugter Zwischenstand, den niemand aufteilt.
-                  #
-                  # Drei Listen fuer dieselbe Frage laufen auseinander; deshalb
-                  # steht sie jetzt hier, an der Wurzel.
-                  # `models` STAND HIER und ist am 29.08.2026 entfallen.
-                  # Gedacht war es fuer Ordner mit ML-Gewichten; getroffen hat
-                  # es Django-Modellpakete. In 3DTools verschwanden so
-                  # `core/models/` mit vierzehn Dateien aus JEDER Pruefung —
-                  # und zwar genau, weil das Projekt der Regel folgt, eine zu
-                  # grosse `models.py` in ein Paket aufzuteilen.
-                  #
-                  # Ein Gewichte-Ordner enthaelt keine `.py`, `.js` oder
-                  # `.html`; die Werkzeuge lesen nur diese drei. Der Ausschluss
-                  # brachte dort also nichts und kostete hier alles. Wer ihn
-                  # doch braucht: `DJANGOBASE["skills_ignorieren"]`.
-                  "vendor", "tmp", "temp", "unsloth_compiled_cache",
-                  "media", "logs", "output", "Output", "Datenbank", "fixtures",
-                  ".claude", "docs", "htmlcov", ".idea", ".vscode",
-                  # Eigenstaendige Programme im Projektbaum, die der
-                  # Django-Testlaeufer nie faehrt (bei assistant: ein
-                  # Windows-Diktiergeraet mit eigener venv).
-                  "diktator"}
+AUSGESCHLOSSEN = {
+    ".git",
+    "__pycache__",
+    "node_modules",
+    "venv",
+    "pythonVENV",
+    ".venv",
+    "env",
+    "site-packages",
+    "migrations",
+    "staticfiles",
+    ".mypy_cache",
+    ".pytest_cache",
+    "dist",
+    "build",
+    "sicherung",
+    "backup",
+    "archiv",
+    "alt",
+    "_alt",
+    "old",
+    # Der Wegwerf-Ordner des Anlassfall-Checks. Ohne ihn faenden
+    # die Werkzeuge im normalen Lauf ihre eigenen Testdateien -
+    # und meldeten absichtlich kaputten Code als Befund.
+    "_anlassfall",
+    # Pruefverzeichnisse aus `tests/wegwerfordner.py` —
+    # im NORMALEN Lauf unsichtbar, im Prueflauf sieht der
+    # Helfer selbst hin (er erleichtert die Liste).
+    "_wegwerf",
+    # FREMDER CODE, der in gewachsenen Projekten NEBEN dem
+    # Quelltext liegt (belegt am 17.08.2026 im Projekt assistant:
+    # 34 % ALLER Befunde kamen von dort).
+    #
+    # * ``virensuche_quarantine`` - 585 MB, in die der eigene
+    #   Virenscanner Fundstuecke schiebt. Dort meldete ``jssyntax``
+    #   drei „kaputte ES-Module": verseuchte Dateien, die genau
+    #   deshalb dort liegen. Ein Werkzeug, das Schadcode zum
+    #   Aufraeumen vorschlaegt, ist schlimmer als keins.
+    # * ``chrome-profile`` / ``Extensions`` - ein abgelegtes
+    #   Browser-Profil, 437 JS-Dateien aus fremden Erweiterungen
+    #   (minifizierte webpack-Buendel). Daher kamen alle 16
+    #   Befunde von ``js-vererbung`` und die Haelfte von
+    #   ``jsregistrierung``.
+    # * ``var`` - Laufzeitablage (Protokolle, Bilder, Profile)
+    #   neben ``logs`` und ``media``, kein Quelltext.
+    "virensuche_quarantine",
+    "quarantine",
+    "quarantaene",
+    "chrome-profile",
+    "Extensions",
+    "var",
+    # EINE GRENZE FUER ALLE WERKZEUGE (17.08.2026)
+    # ==========================================
+    # Diese Namen standen bis dahin nur in
+    # ``basis.EigenesWerkzeug.ZUSATZ_RAUS`` — und die gilt fuer
+    # genau DREI Werkzeuge. Die anderen achtundzwanzig erben von
+    # ``Werkzeug`` und durchsuchten weiter alles.
+    #
+    # Gemessen am Projekt assistant: 40 % aller Befunde kamen aus
+    # fremdem Code. Bei ``doppelcode`` 39 von 40 gezeigten Zeilen,
+    # bei ``rueckgabetupel`` 38, bei ``doppelrumpf`` und
+    # ``dateigroesse`` 37. Der Spitzenbefund von ``dateigroesse``
+    # war eine 4.741-Zeilen-Datei in ``unsloth_compiled_cache`` —
+    # erzeugter Zwischenstand, den niemand aufteilt.
+    #
+    # Drei Listen fuer dieselbe Frage laufen auseinander; deshalb
+    # steht sie jetzt hier, an der Wurzel.
+    # `models` STAND HIER und ist am 29.08.2026 entfallen.
+    # Gedacht war es fuer Ordner mit ML-Gewichten; getroffen hat
+    # es Django-Modellpakete. In 3DTools verschwanden so
+    # `core/models/` mit vierzehn Dateien aus JEDER Pruefung —
+    # und zwar genau, weil das Projekt der Regel folgt, eine zu
+    # grosse `models.py` in ein Paket aufzuteilen.
+    #
+    # Ein Gewichte-Ordner enthaelt keine `.py`, `.js` oder
+    # `.html`; die Werkzeuge lesen nur diese drei. Der Ausschluss
+    # brachte dort also nichts und kostete hier alles. Wer ihn
+    # doch braucht: `DJANGOBASE["skills_ignorieren"]`.
+    "vendor",
+    "tmp",
+    "temp",
+    "unsloth_compiled_cache",
+    "media",
+    "logs",
+    "output",
+    "Output",
+    "Datenbank",
+    "fixtures",
+    ".claude",
+    "docs",
+    "htmlcov",
+    ".idea",
+    ".vscode",
+    # Eigenstaendige Programme im Projektbaum, die der
+    # Django-Testlaeufer nie faehrt (bei assistant: ein
+    # Windows-Diktiergeraet mit eigener venv).
+    "diktator",
+}
 
 
 class Quelldatei:
@@ -134,7 +170,7 @@ class Quelldatei:
 
     @property
     def codezeilen(self):
-        u"""Zeilen OHNE Leerzeilen, Kommentare und Docstrings.
+        """Zeilen OHNE Leerzeilen, Kommentare und Docstrings.
 
         WOZU DIE ZWEITE ZAHL (03.09.2026)
         =================================
@@ -154,11 +190,11 @@ class Quelldatei:
         return len(self._codezeilen_menge())
 
     def codezeilen_zwischen(self, von, bis):
-        u"""Code-Zeilen in einem Bereich - fuer Klassen und Funktionen."""
+        """Code-Zeilen in einem Bereich - fuer Klassen und Funktionen."""
         return sum(1 for n in self._codezeilen_menge() if von <= n <= bis)
 
     def _codezeilen_menge(self):
-        u"""Die Nummern aller Zeilen, auf denen wirklich Code steht."""
+        """Die Nummern aller Zeilen, auf denen wirklich Code steht."""
         if self._codezeilen is None:
             self._codezeilen = self._codezeilen_bauen()
         return self._codezeilen
@@ -174,7 +210,7 @@ class Quelldatei:
 
     @staticmethod
     def _kommentarzeilen(text):
-        u"""Zeilen, auf denen NUR ein Kommentar steht.
+        """Zeilen, auf denen NUR ein Kommentar steht.
 
         Ein Kommentar hinter Code laesst die Zeile Code bleiben - deshalb
         zaehlt nur, wo vor dem Kommentar nichts als Leerraum steht."""
@@ -192,7 +228,7 @@ class Quelldatei:
         return aus
 
     def _docstringzeilen(self):
-        u"""Zeilen, die zu einem Docstring gehoeren - aus dem Syntaxbaum.
+        """Zeilen, die zu einem Docstring gehoeren - aus dem Syntaxbaum.
 
         Ein String-Literal, das ALLEIN als Anweisung steht, ist Dokumentation:
         der Docstring von Modul, Klasse und Funktion und die Erklaerbloecke
@@ -202,8 +238,11 @@ class Quelldatei:
             return set()
         aus = set()
         for k in ast.walk(self.baum):
-            if (isinstance(k, ast.Expr) and isinstance(k.value, ast.Constant)
-                    and isinstance(k.value.value, str)):
+            if (
+                isinstance(k, ast.Expr)
+                and isinstance(k.value, ast.Constant)
+                and isinstance(k.value.value, str)
+            ):
                 ende = getattr(k, "end_lineno", None) or k.lineno
                 aus.update(range(k.lineno, ende + 1))
         return aus
@@ -229,9 +268,13 @@ class Ergebnis:
         self.hinweis = hinweis
 
     def als_dict(self):
-        return {"spalten": self.spalten, "zeilen": self.zeilen,
-                "anzahl": len(self.zeilen),
-                "zusammenfassung": self.zusammenfassung, "hinweis": self.hinweis}
+        return {
+            "spalten": self.spalten,
+            "zeilen": self.zeilen,
+            "anzahl": len(self.zeilen),
+            "zusammenfassung": self.zusammenfassung,
+            "hinweis": self.hinweis,
+        }
 
 
 class Werkzeug:
@@ -303,11 +346,12 @@ class Werkzeug:
         # Verzeichnisnamen, Glob-Muster koennte der Aufrufer nicht deuten.
         # Fehlt die Datei, ist die Liste leer und nichts aendert sich.
         from ..umbau.ausschlussliste import Ausschlussliste
+
         eigen += Ausschlussliste(self.wurzel()).namen()
         return AUSGESCHLOSSEN | {str(x) for x in eigen}
 
     def gitfilter(self):
-        u"""Was in der ``.gitignore`` steht, ist nicht der Code des Projekts.
+        """Was in der ``.gitignore`` steht, ist nicht der Code des Projekts.
 
         Anlass (18.08.2026): ``jswaisen`` meldete in shortlongx 21 „verwaiste"
         Dateien, die alle ignoriert sind - der Arbeitsordner des JS-Testlaeufers
@@ -315,6 +359,7 @@ class Werkzeug:
         ohne git stehen im Kopf von ``gitfilter.py``.
         """
         from .gitfilter import GitFilter
+
         if not hasattr(self, "_gitfilter"):
             self._gitfilter = GitFilter(self.wurzel())
         return self._gitfilter
@@ -328,11 +373,11 @@ class Werkzeug:
         gehören, und jede Zahl bezog sich auf eine andere Menge.
         """
         from .frontendquellen import Frontendquellen
-        return Frontendquellen(self.wurzel(), self.ausgeschlossen(),
-                               gitfilter=self.gitfilter())
+
+        return Frontendquellen(self.wurzel(), self.ausgeschlossen(), gitfilter=self.gitfilter())
 
     def pfade(self, muster="*.py", unter=None):
-        u"""Alle Dateien zu einem glob-Muster — die Menge „gehört zum Projekt".
+        """Alle Dateien zu einem glob-Muster — die Menge „gehört zum Projekt".
 
         DER EINE WEG INS DATEISYSTEM (18.08.2026)
         =========================================
@@ -353,20 +398,28 @@ class Werkzeug:
         wurzel = self.wurzel()
         raus = self.ausgeschlossen()
         git = self.gitfilter()
-        return [p for p in sorted(Path(unter or wurzel).rglob(muster))
-                if not Pfadteile.trifft(p, wurzel, raus) and git.erlaubt(p)]
+        return [
+            p
+            for p in sorted(Path(unter or wurzel).rglob(muster))
+            if not Pfadteile.trifft(p, wurzel, raus) and git.erlaubt(p)
+        ]
 
     def dateien(self, endung=".py"):
         """Alle Quelldateien des Projekts - ohne venv, Migrationen, Fremdcode."""
         wurzel = self.wurzel()
-        return [Quelldatei(p, wurzel) if endung == ".py" else p
-                for p in self.pfade("*" + endung)]
+        return [Quelldatei(p, wurzel) if endung == ".py" else p for p in self.pfade("*" + endung)]
 
-    def laufen(self):                       # pragma: no cover - Schnittstelle
+    def laufen(self):  # pragma: no cover - Schnittstelle
         raise NotImplementedError
 
     def als_dict(self):
         # Dictionary gewollt: geht unveraendert in die Vorlage bzw. als JSON hinaus.
-        return {"slug": self.slug, "titel": self.titel, "zweck": self.zweck,
-                "befund": self.befund, "abhilfe": self.abhilfe,
-                "dauer": self.dauer, "kriterium": self.kriterium}
+        return {
+            "slug": self.slug,
+            "titel": self.titel,
+            "zweck": self.zweck,
+            "befund": self.befund,
+            "abhilfe": self.abhilfe,
+            "dauer": self.dauer,
+            "kriterium": self.kriterium,
+        }

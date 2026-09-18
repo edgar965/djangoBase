@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Sammelzustand — Zustand, der EINER Entitaet gehoert, aber gesammelt liegt.
+"""Sammelzustand — Zustand, der EINER Entitaet gehoert, aber gesammelt liegt.
 
 DER VORFALL (CamTrack, 23.08.2026)
 ==================================
@@ -91,13 +91,11 @@ from .befund import Befund, Befundsatz, BefundWerkzeug
 
 
 class Sammelfund:
-    u"""Ein flaches Feld in einer Klasse, die mehrere Entitäten bedient."""
+    """Ein flaches Feld in einer Klasse, die mehrere Entitäten bedient."""
 
-    __slots__ = ('pfad', 'klasse', 'name', 'zeile', 'art', 'methode',
-                 'zusammen', 'schluessel')
+    __slots__ = ("pfad", "klasse", "name", "zeile", "art", "methode", "zusammen", "schluessel")
 
-    def __init__(self, pfad, klasse, name, zeile, art, methode, zusammen,
-                 schluessel):
+    def __init__(self, pfad, klasse, name, zeile, art, methode, zusammen, schluessel):
         self.pfad = pfad
         self.klasse = klasse
         #: Der Name des flachen Feldes — das, was umziehen muss.
@@ -120,49 +118,111 @@ class Sammelfund:
 
 
 class Sammelzustand(BefundWerkzeug):
-
-    slug = 'sammelzustand'
+    slug = "sammelzustand"
     kriterium = 18
-    titel = 'Zustand je Entität, gesammelt gehalten'
-    zweck = ('Findet Klassen, die nachweislich mehrere Entitäten bedienen '
-             '(Verzeichnis mit variablem Schlüssel) und daneben flache '
-             'Zähler oder eine geteilte Unterinstanz für alle halten.')
-    abhilfe = ('Je Entität eine eigene Instanz: eine kleine Klasse mit diesen '
-               'Feldern, gehalten im vorhandenen Verzeichnis '
-               '(``self._je_x[schluessel].zaehler``). Ist die Summe wirklich '
-               'gewollt, Vermerk „# geteilt gewollt: <Grund>" setzen.')
-    befund = ('Eine Stillstands-Wache für elf Kameras: Jede funktionierende '
-              'Kamera setzte den Zähler der blind gewordenen zurück. Vier '
-              'Kameras waren zehn Stunden blind, die Wache schlug nie an.')
-    dauer = 'Sekunden'
+    titel = "Zustand je Entität, gesammelt gehalten"
+    zweck = (
+        "Findet Klassen, die nachweislich mehrere Entitäten bedienen "
+        "(Verzeichnis mit variablem Schlüssel) und daneben flache "
+        "Zähler oder eine geteilte Unterinstanz für alle halten."
+    )
+    abhilfe = (
+        "Je Entität eine eigene Instanz: eine kleine Klasse mit diesen "
+        "Feldern, gehalten im vorhandenen Verzeichnis "
+        "(``self._je_x[schluessel].zaehler``). Ist die Summe wirklich "
+        'gewollt, Vermerk „# geteilt gewollt: <Grund>" setzen.'
+    )
+    befund = (
+        "Eine Stillstands-Wache für elf Kameras: Jede funktionierende "
+        "Kamera setzte den Zähler der blind gewordenen zurück. Vier "
+        "Kameras waren zehn Stunden blind, die Wache schlug nie an."
+    )
+    dauer = "Sekunden"
 
     #: Vermerk fuer den gewollten Fall — dieselbe Bauform wie „Dictionary
     #: gewollt" bei ``anzeigeformat``: Die Ausnahme steht AM CODE, nicht als
     #: Pfadliste im Pruefer.
-    MARKER = 'geteilt gewollt'
+    MARKER = "geteilt gewollt"
 
     #: Was dem Dienst SELBST gehoert und nicht seinen Entitaeten. Verglichen
     #: wird tokenweise (``_stop_event`` -> ``stop``, ``event``), nicht als
     #: Teilzeichenkette: ``log`` als Teilstueck haette ``logik`` verschluckt.
-    EIGEN = frozenset({
-        'lock', 'locks', 'sperre', 'sperren', 'mutex', 'semaphore',
-        'event', 'events', 'thread', 'threads', 'faden', 'worker',
-        'proc', 'procs', 'process', 'prozess', 'pid',
-        'queue', 'queues', 'warteschlange', 'logger', 'log',
-        'running', 'laeuft', 'stop', 'stopped', 'stopping', 'start',
-        'started', 'active', 'aktiv', 'closed', 'geschlossen', 'offen',
-        'session', 'client', 'conn', 'connection', 'pool', 'executor',
-        'timer', 'takt', 'settings', 'config', 'konfiguration',
-    })
+    EIGEN = frozenset(
+        {
+            "lock",
+            "locks",
+            "sperre",
+            "sperren",
+            "mutex",
+            "semaphore",
+            "event",
+            "events",
+            "thread",
+            "threads",
+            "faden",
+            "worker",
+            "proc",
+            "procs",
+            "process",
+            "prozess",
+            "pid",
+            "queue",
+            "queues",
+            "warteschlange",
+            "logger",
+            "log",
+            "running",
+            "laeuft",
+            "stop",
+            "stopped",
+            "stopping",
+            "start",
+            "started",
+            "active",
+            "aktiv",
+            "closed",
+            "geschlossen",
+            "offen",
+            "session",
+            "client",
+            "conn",
+            "connection",
+            "pool",
+            "executor",
+            "timer",
+            "takt",
+            "settings",
+            "config",
+            "konfiguration",
+        }
+    )
 
     #: Schluesselnamen, die eine Entitaet benennen. NICHT die Bedingung — das
     #: ist der variable Schluessel — sondern nur der Beleg in der Meldung.
-    ENTITAET = frozenset({'slug', 'cam', 'camera', 'kamera', 'key', 'schluessel',
-                          'name', 'id', 'pk', 'user', 'benutzer', 'kunde',
-                          'kanal', 'channel', 'host', 'geraet', 'device'})
+    ENTITAET = frozenset(
+        {
+            "slug",
+            "cam",
+            "camera",
+            "kamera",
+            "key",
+            "schluessel",
+            "name",
+            "id",
+            "pk",
+            "user",
+            "benutzer",
+            "kunde",
+            "kanal",
+            "channel",
+            "host",
+            "geraet",
+            "device",
+        }
+    )
 
     #: Aufrufe, die ein Verzeichnis mit einem Schluessel aufschlagen.
-    NACHSCHLAGEN = frozenset({'get', 'setdefault', 'pop', 'popitem'})
+    NACHSCHLAGEN = frozenset({"get", "setdefault", "pop", "popitem"})
 
     #: Womit ein Verzeichnis je Entitaet angelegt wird. NICHT ``Counter`` und
     #: nicht ``list``/``ndarray``: Ein ``Counter`` zaehlt INNERHALB einer
@@ -171,52 +231,76 @@ class Sammelzustand(BefundWerkzeug):
     #: (``self.points[self.count]`` in ``TrackCenters``). Beides sieht im
     #: Syntaxbaum genauso aus wie eine Verteilung — beides ist keine. Aus
     #: diesem Loch kamen zwei der acht Warnungen im zweiten Lauf.
-    VERZEICHNIS = frozenset({'dict', 'defaultdict', 'OrderedDict', 'WeakValueDictionary'})
+    VERZEICHNIS = frozenset({"dict", "defaultdict", "OrderedDict", "WeakValueDictionary"})
 
     #: Namen, die eine LAUFENDE NUMMER fuehren. Eine Kennungsfolge ist
     #: absichtlich gemeinsam — je Entitaet gefuehrt vergaebe sie doppelte
     #: Kennungen. Beleg: ``LocalIdentityPool.next_id`` (CamTrack).
-    FOLGE = frozenset({'next', 'seq', 'sequence', 'laufnummer', 'nummer',
-                       'uid', 'uuid'})
+    FOLGE = frozenset({"next", "seq", "sequence", "laufnummer", "nummer", "uid", "uuid"})
 
     #: Aufrufe, deren Ergebnis kein eigenes Objekt mit Zustand ist.
-    KEIN_OBJEKT = frozenset({'dict', 'list', 'set', 'tuple', 'frozenset',
-                             'int', 'float', 'str', 'bool', 'bytes',
-                             'defaultdict', 'OrderedDict', 'Counter',
-                             'deque', 'getLogger', 'Lock', 'RLock', 'Event',
-                             'Queue', 'Semaphore', 'Condition'})
+    KEIN_OBJEKT = frozenset(
+        {
+            "dict",
+            "list",
+            "set",
+            "tuple",
+            "frozenset",
+            "int",
+            "float",
+            "str",
+            "bool",
+            "bytes",
+            "defaultdict",
+            "OrderedDict",
+            "Counter",
+            "deque",
+            "getLogger",
+            "Lock",
+            "RLock",
+            "Event",
+            "Queue",
+            "Semaphore",
+            "Condition",
+        }
+    )
 
-    DATEIEN_AUS = ('settings.py', 'conf.py', 'urls.py', 'apps.py', 'wsgi.py',
-                   'asgi.py', 'manage.py')
+    DATEIEN_AUS = ("settings.py", "conf.py", "urls.py", "apps.py", "wsgi.py", "asgi.py", "manage.py")
 
     #: Testdateien. Ein ``setUp`` legt je Pruefung ein Objekt an und ein
     #: Verzeichnis daneben — das SIEHT aus wie der Befund und ist der
     #: Normalfall. Drei der zwoelf Warnungen im ersten Lauf kamen von dort.
-    TESTS_AUS = ('tests', 'test', 'testing')
+    TESTS_AUS = ("tests", "test", "testing")
 
     anlassfall = Anlassfall(
-        {"wache.py": (
-            "class Ueberwachung:\n"
-            "    def __init__(self):\n"
-            "        self._je_kamera = {}\n"
-            "        self.fehler = 0\n"
-            "        self.gesamt = 0\n"
-            "        self._sperre = None\n\n"
-            "    def bild(self, slug, gesehen):\n"
-            "        stand = self._je_kamera.get(slug)\n"
-            "        self.fehler += 1\n"
-            "        self.gesamt += 1     # geteilt gewollt: Summe fuer die Seite\n"
-            "        return stand\n")},
-        mindestens=1, hoechstens=1, erwartet_in="fehler",
+        {
+            "wache.py": (
+                "class Ueberwachung:\n"
+                "    def __init__(self):\n"
+                "        self._je_kamera = {}\n"
+                "        self.fehler = 0\n"
+                "        self.gesamt = 0\n"
+                "        self._sperre = None\n\n"
+                "    def bild(self, slug, gesehen):\n"
+                "        stand = self._je_kamera.get(slug)\n"
+                "        self.fehler += 1\n"
+                "        self.gesamt += 1     # geteilt gewollt: Summe fuer die Seite\n"
+                "        return stand\n"
+            )
+        },
+        mindestens=1,
+        hoechstens=1,
+        erwartet_in="fehler",
         warum="Eine Wache für elf Kameras (CamTrack, 09.05.2026): je Kamera "
-              "nachgesehen, gesammelt gezählt — jede laufende Kamera setzte "
-              "den Zähler der blinden zurück. `gesamt` trägt den Vermerk "
-              "und darf NICHT mitgemeldet werden")
+        "nachgesehen, gesammelt gezählt — jede laufende Kamera setzte "
+        "den Zähler der blinden zurück. `gesamt` trägt den Vermerk "
+        "und darf NICHT mitgemeldet werden",
+    )
 
     # ---------------------------------------------------------------- Ablauf
     def pruefen(self, **_argumente):
         funde, klassen, bedienende = [], 0, 0
-        for pfad in self.projektdateien('.py'):
+        for pfad in self.projektdateien(".py"):
             if pfad.name in self.DATEIEN_AUS or self._ist_test(pfad):
                 continue
             baum, zeilen = self._lesen(pfad)
@@ -234,33 +318,29 @@ class Sammelzustand(BefundWerkzeug):
 
         funde.sort(key=lambda f: (f.gewicht != Befund.WARNUNG, f.pfad, f.zeile))
         kopf = [
-            '%d Klassen geprüft, %d bedienen mehrere Entitäten' % (klassen,
-                                                                     bedienende),
-            '%d gesammelt gehaltene Felder, davon %d in derselben Methode wie '
-            'der Zugriff je Entität'
-            % (len(funde), sum(1 for f in funde if f.zusammen)),
+            "%d Klassen geprüft, %d bedienen mehrere Entitäten" % (klassen, bedienende),
+            "%d gesammelt gehaltene Felder, davon %d in derselben Methode wie "
+            "der Zugriff je Entität" % (len(funde), sum(1 for f in funde if f.zusammen)),
         ]
-        return Befundsatz(self.titel, kopf,
-                          [self._befund(f) for f in funde])
+        return Befundsatz(self.titel, kopf, [self._befund(f) for f in funde])
 
     def _lesen(self, pfad):
         try:
-            text = pfad.read_text(encoding='utf-8', errors='replace')
+            text = pfad.read_text(encoding="utf-8", errors="replace")
             return ast.parse(text), text.splitlines()
         except (SyntaxError, OSError):
             return None, []
 
     # ----------------------------------------------------------- Eine Klasse
     def _klasse(self, kurz, knoten, zeilen):
-        u"""Die Befunde EINER Klasse — oder ``None``, wenn sie keine ist.
+        """Die Befunde EINER Klasse — oder ``None``, wenn sie keine ist.
 
         Erst wird gefragt, ob die Klasse ueberhaupt mehrere Entitäten bedient.
         Ohne diesen Beweis wird nichts gemeldet: Ein Zähler in einer Klasse,
         von der es je Kamera eine gibt, ist genau richtig aufgehoben — das ist
         der Normalfall und darf nie im Bericht auftauchen.
         """
-        methoden = [k for k in knoten.body
-                    if isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef))]
+        methoden = [k for k in knoten.body if isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef))]
         if not methoden:
             return None
 
@@ -280,19 +360,20 @@ class Sammelzustand(BefundWerkzeug):
         objekte = self._unterobjekte(methoden)
         funde = []
         for methode in methoden:
-            if methode.name == '__init__':
+            if methode.name == "__init__":
                 continue
             hier = self._je_entitaet([methode])[0] & verzeichnisse
             for name, zeile, art in self._flach(methode, verzeichnisse, objekte):
                 if self._vermerkt(zeilen, zeile):
                     continue
-                funde.append(Sammelfund(kurz, knoten.name, name, zeile, art,
-                                        methode.name, bool(hier), schluessel))
+                funde.append(
+                    Sammelfund(kurz, knoten.name, name, zeile, art, methode.name, bool(hier), schluessel)
+                )
         return self._je_name(funde)
 
     @staticmethod
     def _je_name(funde):
-        u"""Ein Befund je Feld, nicht je Fundstelle.
+        """Ein Befund je Feld, nicht je Fundstelle.
 
         Ein Zähler, der in vier Methoden hochgezaehlt wird, ist EIN Umbau. Vier
         Zeilen darueber im Bericht liessen ihn nach vier Baustellen aussehen —
@@ -308,33 +389,36 @@ class Sammelzustand(BefundWerkzeug):
         return sorted(beste.values(), key=lambda f: f.zeile)
 
     def _befund(self, f):
-        wo = '%s:%d' % (f.pfad, f.zeile)
-        if f.art == 'unterobjekt':
-            was = ('%s.%s — EINE Instanz für alle Entitäten (%s)'
-                   % (f.klasse, f.name, f.methode))
-            warum = ('Ihr Zustand vermischt sich über alle Entitäten: Was die '
-                     'eine setzt, sieht die nächste. In das Verzeichnis je '
-                     'Entität verschieben, dann hat jede ihre eigene.')
+        wo = "%s:%d" % (f.pfad, f.zeile)
+        if f.art == "unterobjekt":
+            was = "%s.%s — EINE Instanz für alle Entitäten (%s)" % (f.klasse, f.name, f.methode)
+            warum = (
+                "Ihr Zustand vermischt sich über alle Entitäten: Was die "
+                "eine setzt, sieht die nächste. In das Verzeichnis je "
+                "Entität verschieben, dann hat jede ihre eigene."
+            )
         else:
-            was = ('%s.%s — gesammelt für alle Entitäten (%s)'
-                   % (f.klasse, f.name, f.methode))
-            warum = ('Der Wert bedeutet je Entität etwas, steht aber nur als '
-                     'Summe da. Als Feld einer Instanz je Entität führen.')
+            was = "%s.%s — gesammelt für alle Entitäten (%s)" % (f.klasse, f.name, f.methode)
+            warum = (
+                "Der Wert bedeutet je Entität etwas, steht aber nur als "
+                "Summe da. Als Feld einer Instanz je Entität führen."
+            )
         if f.zusammen:
-            warum = ('In derselben Methode wird je %s nachgesehen und trotzdem '
-                     'gesammelt geschrieben. ' % (f.schluessel or 'Schluessel')
-                     + warum)
+            warum = (
+                "In derselben Methode wird je %s nachgesehen und trotzdem "
+                "gesammelt geschrieben. " % (f.schluessel or "Schluessel") + warum
+            )
         return Befund(wo, was, warum, f.gewicht)
 
     # ------------------------------------------------------------- Erkennung
     def _je_entitaet(self, knoten_liste):
-        u"""Welche ``self``-Verzeichnisse werden mit einer VARIABLEN geoeffnet?
+        """Welche ``self``-Verzeichnisse werden mit einer VARIABLEN geoeffnet?
 
         Ein fester Schluessel (``self._d['gesamt']``) beweist nichts — das ist
         eine Struktur mit benannten Faechern. Erst der variable Schluessel zeigt,
         dass hier je Entitaet abgelegt wird.
         """
-        namen, schluessel = set(), ''
+        namen, schluessel = set(), ""
         for wurzel in knoten_liste:
             for k in ast.walk(wurzel):
                 treffer = self._nachschlagen(k)
@@ -362,7 +446,7 @@ class Sammelzustand(BefundWerkzeug):
         return None
 
     def _unterobjekte(self, methoden):
-        u"""``self.x = EinObjekt()`` — eine Instanz mit eigenem Zustand.
+        """``self.x = EinObjekt()`` — eine Instanz mit eigenem Zustand.
 
         Behaelter und Sperren zaehlen nicht: Ein ``dict`` ist der Ort, an den
         die Unterinstanzen gehoeren, und eine ``Lock`` gehoert dem Dienst.
@@ -384,7 +468,7 @@ class Sammelzustand(BefundWerkzeug):
         return namen
 
     def _flach(self, methode, verzeichnisse, objekte):
-        u"""Flache Felder, die sich in dieser Methode AENDERN.
+        """Flache Felder, die sich in dieser Methode AENDERN.
 
         Nur Veraenderliches. Ein Feld, das in ``__init__`` gesetzt und nie
         wieder angefasst wird, ist eine Einstellung — es je Entitaet zu fuehren
@@ -405,7 +489,7 @@ class Sammelzustand(BefundWerkzeug):
         """
         gefunden = []
         for k in ast.walk(methode):
-            name, art = None, 'zaehler'
+            name, art = None, "zaehler"
             if isinstance(k, ast.AugAssign):
                 name = self._selbstfeld(k.target)
             elif isinstance(k, ast.Assign) and isinstance(k.value, ast.BinOp):
@@ -416,7 +500,7 @@ class Sammelzustand(BefundWerkzeug):
             elif isinstance(k, ast.Call) and isinstance(k.func, ast.Attribute):
                 traeger = self._selbstfeld(k.func.value)
                 if traeger and traeger in objekte:
-                    name, art = traeger, 'unterobjekt'
+                    name, art = traeger, "unterobjekt"
             if not name or name in verzeichnisse or self._eigen(name):
                 continue
             gefunden.append((name, k.lineno, art))
@@ -424,9 +508,9 @@ class Sammelzustand(BefundWerkzeug):
 
     # ------------------------------------------------------------ Werkzeuge
     def _eigen(self, name):
-        u"""Gehoert das Feld dem Dienst selbst statt seinen Entitäten?"""
-        blank = name.lstrip('_').lower()
-        teile = [t for t in blank.split('_') if t]
+        """Gehoert das Feld dem Dienst selbst statt seinen Entitäten?"""
+        blank = name.lstrip("_").lower()
+        teile = [t for t in blank.split("_") if t]
         if blank in self.EIGEN or any(t in self.EIGEN for t in teile):
             return True
         # Eine Kennungsfolge ist absichtlich gemeinsam.
@@ -434,7 +518,7 @@ class Sammelzustand(BefundWerkzeug):
 
     @staticmethod
     def _variabler_schluessel(knoten):
-        u"""Ein Schluessel, der eine Entitaet benennen KANN.
+        """Ein Schluessel, der eine Entitaet benennen KANN.
 
         Draussen bleiben feste Werte (``self._d['gesamt']`` ist eine Struktur),
         eigene Felder (``self.points[self.count]`` ist eine Position) und
@@ -443,58 +527,58 @@ class Sammelzustand(BefundWerkzeug):
         if isinstance(knoten, (ast.Constant, ast.Slice)):
             return False
         # ``self.x`` als Index ist Buchfuehrung ueber die eigene Stelle.
-        return not (isinstance(knoten, ast.Attribute)
-                    and isinstance(knoten.value, ast.Name)
-                    and knoten.value.id in ('self', 'cls'))
+        return not (
+            isinstance(knoten, ast.Attribute)
+            and isinstance(knoten.value, ast.Name)
+            and knoten.value.id in ("self", "cls")
+        )
 
     @staticmethod
     def _ist_datensatz(knoten):
-        u"""``@dataclass`` und Verwandte: ein Datensatz, kein Verteiler.
+        """``@dataclass`` und Verwandte: ein Datensatz, kein Verteiler.
 
         Ein Datensatz beschreibt EINE Sache. Hält er ein Verzeichnis, sind das
         seine Daten — nicht mehrere Entitäten, die er bedient. ``TrackCenters``
         und ``TrackLockState`` (CamTrack) sind genau das.
         """
         for schmuck in knoten.decorator_list:
-            name = getattr(schmuck, 'attr', '') or getattr(schmuck, 'id', '')
+            name = getattr(schmuck, "attr", "") or getattr(schmuck, "id", "")
             if not name and isinstance(schmuck, ast.Call):
-                name = (getattr(schmuck.func, 'attr', '')
-                        or getattr(schmuck.func, 'id', ''))
-            if 'dataclass' in name:
+                name = getattr(schmuck.func, "attr", "") or getattr(schmuck.func, "id", "")
+            if "dataclass" in name:
                 return True
         return False
 
     def _erklaerte_verzeichnisse(self, knoten, methoden):
-        u"""``self.x = {}`` bzw. ``x: dict = ...`` — was die Klasse anlegt."""
+        """``self.x = {}`` bzw. ``x: dict = ...`` — was die Klasse anlegt."""
         namen = set()
         for k in list(knoten.body) + list(methoden):
             for teil in ast.walk(k):
                 if isinstance(teil, ast.AnnAssign):
                     if self._dict_artig(teil.annotation) or self._dict_artig(teil.value):
-                        namen.add(self._selbstfeld(teil.target)
-                                  or self._namen_text(teil.target))
+                        namen.add(self._selbstfeld(teil.target) or self._namen_text(teil.target))
                 elif isinstance(teil, ast.Assign) and self._dict_artig(teil.value):
                     for ziel in teil.targets:
                         namen.add(self._selbstfeld(ziel) or self._namen_text(ziel))
-        return namen - {''}
+        return namen - {""}
 
     def _dict_artig(self, knoten):
         if isinstance(knoten, ast.Dict) or isinstance(knoten, ast.DictComp):
             return True
         if isinstance(knoten, ast.Call):
             return self._gerufen(knoten.func) in self.VERZEICHNIS
-        if isinstance(knoten, ast.Subscript):        # ``dict[str, X]``
+        if isinstance(knoten, ast.Subscript):  # ``dict[str, X]``
             return self._namen_text(knoten.value) in self.VERZEICHNIS
         return self._namen_text(knoten) in self.VERZEICHNIS
 
     def _ist_test(self, pfad):
-        u"""Testdatei? Dort ist der Aufbau je Prüfung der Normalfall."""
-        if pfad.name.startswith('test_') or pfad.name.endswith('_test.py'):
+        """Testdatei? Dort ist der Aufbau je Prüfung der Normalfall."""
+        if pfad.name.startswith("test_") or pfad.name.endswith("_test.py"):
             return True
         return any(teil in self.TESTS_AUS for teil in pfad.parts)
 
     def _vermerkt(self, zeilen, zeile):
-        u"""Steht ``# geteilt gewollt`` an der Zeile oder darueber?"""
+        """Steht ``# geteilt gewollt`` an der Zeile oder darueber?"""
         for nr in (zeile - 1, zeile - 2):
             if 0 <= nr < len(zeilen) and self.MARKER in zeilen[nr]:
                 return True
@@ -503,30 +587,32 @@ class Sammelzustand(BefundWerkzeug):
     @staticmethod
     def _selbstfeld(knoten):
         """``self.x`` -> ``'x'``, sonst ``''``."""
-        if (isinstance(knoten, ast.Attribute)
-                and isinstance(knoten.value, ast.Name)
-                and knoten.value.id in ('self', 'cls')):
+        if (
+            isinstance(knoten, ast.Attribute)
+            and isinstance(knoten.value, ast.Name)
+            and knoten.value.id in ("self", "cls")
+        ):
             return knoten.attr
-        return ''
+        return ""
 
     @staticmethod
     def _gerufen(func):
         if isinstance(func, ast.Name):
             return func.id
-        return getattr(func, 'attr', '')
+        return getattr(func, "attr", "")
 
     @staticmethod
     def _namen_text(knoten):
         if isinstance(knoten, ast.Name):
             return knoten.id
-        return getattr(knoten, 'attr', '')
+        return getattr(knoten, "attr", "")
 
     @classmethod
     def _gelesene(cls, knoten):
         """Alle ``self.x``, die in einem Ausdruck GELESEN werden."""
         if knoten is None:
             return set()
-        return {cls._selbstfeld(k) for k in ast.walk(knoten)} - {''}
+        return {cls._selbstfeld(k) for k in ast.walk(knoten)} - {""}
 
 
-__all__ = ['Sammelzustand', 'Sammelfund']
+__all__ = ["Sammelzustand", "Sammelfund"]

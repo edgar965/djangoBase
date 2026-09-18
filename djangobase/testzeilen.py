@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Testzeilen - den Fortschritt aus der Ausgabe von ``manage.py test`` lesen.
+"""Testzeilen - den Fortschritt aus der Ausgabe von ``manage.py test`` lesen.
 
 Fuer den Live-Lauf (:mod:`.teststrom`): Waehrend die Tests laufen, soll in jeder
 Tabellenzeile stehen, was mit ihr passiert ist. Dazu muss die Ausgabe von
@@ -31,6 +31,7 @@ Dazu die Regel, ab wann NICHT mehr gelesen wird: Im ``--durations``-Block steht
 jeder Test noch einmal mit Namen, und das abschliessende „OK" haette dem letzten
 davon ein zweites Ergebnis verpasst.
 """
+
 import re
 
 __all__ = ["Testzeilen"]
@@ -44,18 +45,24 @@ class Testzeilen:
     STEMPEL = re.compile(r"\d{4}-\d\d-\d\d \d\d:\d\d:\d\d[.,]?\d*\s*")
     #: ``test_x (paket.Klasse.test_x)`` - mit oder ohne folgendes Ergebnis.
     KOPF = re.compile(r"(test_\w+)\s*\(([\w.]+)\)")
-    ERGEBNIS = {"ok": "pass", "OK": "pass", "FAIL": "fail", "ERROR": "error",
-                "skipped": "skip", "expected failure": "pass",
-                "unexpected success": "fail"}
+    ERGEBNIS = {
+        "ok": "pass",
+        "OK": "pass",
+        "FAIL": "fail",
+        "ERROR": "error",
+        "skipped": "skip",
+        "expected failure": "pass",
+        "unexpected success": "fail",
+    }
     #: Ab hier steht die Auswertung, nicht mehr der Fortschritt.
     SCHLUSS = ("Slowest test durations", "Ran ", "FAILED (", "OK (")
 
     def __init__(self):
-        self.offen = None      # (name, voller Pfad) - wartet auf sein Ergebnis
-        self.aus = False       # Auswertungsteil erreicht
+        self.offen = None  # (name, voller Pfad) - wartet auf sein Ergebnis
+        self.aus = False  # Auswertungsteil erreicht
 
     def lesen(self, zeile):
-        u"""``{"test", "id", "status"}`` - oder ``None``, wenn nichts drinsteht."""
+        """``{"test", "id", "status"}`` - oder ``None``, wenn nichts drinsteht."""
         rein = self.STEMPEL.sub("", str(zeile or "")).strip()
         if not rein or self.aus:
             return None
@@ -66,7 +73,7 @@ class Testzeilen:
         kopf = self.KOPF.search(rein)
         if kopf:
             self.offen = (kopf.group(1), kopf.group(2))
-            rest = rein[kopf.end():].strip(" .")
+            rest = rein[kopf.end() :].strip(" .")
             status = self.ERGEBNIS.get(rest)
             return self._fertig(status) if status else None
         if not self.offen:
@@ -87,5 +94,4 @@ class Testzeilen:
         name, pfad = self.offen
         self.offen = None
         # Dictionary gewollt: geht als JSON-Zeile an die Seite.
-        return {"test": "%s (%s)" % (name, pfad), "id": pfad,
-                "status": status, "detail": ""}
+        return {"test": "%s (%s)" % (name, pfad), "id": pfad, "status": status, "detail": ""}

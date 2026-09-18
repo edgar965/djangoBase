@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""RueckgabeDict - Dictionaries mit vielen festen Schluesseln.
+"""RueckgabeDict - Dictionaries mit vielen festen Schluesseln.
 
 DIE UNTERSCHEIDUNG IST DER GANZE PUNKT
 ======================================
@@ -28,6 +28,7 @@ zuverlaessig verfolgen. Deshalb traegt die Stelle selbst den Vermerk:
 Der Vermerk stuft den Befund ab - und zwingt dazu, die Frage einmal wirklich zu
 beantworten: Wohin gehen diese Daten?
 """
+
 import ast
 import re
 from collections import Counter
@@ -65,8 +66,24 @@ class FrontendVertrag:
     WORT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
     MUSTER = ("*.js", "*.mjs", "*.html")
     #: Schlüssel, die überall vorkommen und deshalb nichts belegen.
-    ZU_HAEUFIG = {"ok", "error", "name", "key", "value", "date", "id", "type",
-                  "label", "data", "text", "url", "status", "title", "n", "count"}
+    ZU_HAEUFIG = {
+        "ok",
+        "error",
+        "name",
+        "key",
+        "value",
+        "date",
+        "id",
+        "type",
+        "label",
+        "data",
+        "text",
+        "url",
+        "status",
+        "title",
+        "n",
+        "count",
+    }
     #: Ab diesem Anteil aussagekräftiger Schlüssel gilt es als Anzeigeformat.
     SCHWELLE = 0.7
 
@@ -85,12 +102,10 @@ class FrontendVertrag:
                 for pfad in self.wurzel.rglob(muster):
                     if any(t in self.ausgeschlossen for t in pfad.parts):
                         continue
-                    if (self.gitfilter is not None
-                            and not self.gitfilter.erlaubt(pfad)):
+                    if self.gitfilter is not None and not self.gitfilter.erlaubt(pfad):
                         continue
                     try:
-                        z.update(self.WORT.findall(
-                            pfad.read_text(encoding="utf-8", errors="replace")))
+                        z.update(self.WORT.findall(pfad.read_text(encoding="utf-8", errors="replace")))
                     except OSError:
                         continue
             self._namen = z
@@ -107,14 +122,20 @@ class FrontendVertrag:
 class RueckgabeDict(Werkzeug):
     slug = "rueckgabedict"
     titel = "Dictionary oder Klasse?"
-    zweck = ("Rückgabe-Dictionaries mit mehr als drei festen Schlüsseln, die "
-             "nicht unmittelbar in eine Antwort verpackt werden.")
-    befund = ("Datensätze, die durch mehrere Funktionen wandern und per "
-              "[\"schlüssel\"] gelesen werden: Jeder Tippfehler ist ein stiller "
-              "Fehler, jeder neue Eintrag wird nie gelesen.")
-    abhilfe = ("Klasse mit benannten Feldern. Wo die Daten wirklich hinausgehen "
-               "(JSON, Datenbank), bleibt das Dictionary — dann den Vermerk "
-               "„Dictionary gewollt: <wohin>“ setzen.")
+    zweck = (
+        "Rückgabe-Dictionaries mit mehr als drei festen Schlüsseln, die "
+        "nicht unmittelbar in eine Antwort verpackt werden."
+    )
+    befund = (
+        "Datensätze, die durch mehrere Funktionen wandern und per "
+        '["schlüssel"] gelesen werden: Jeder Tippfehler ist ein stiller '
+        "Fehler, jeder neue Eintrag wird nie gelesen."
+    )
+    abhilfe = (
+        "Klasse mit benannten Feldern. Wo die Daten wirklich hinausgehen "
+        "(JSON, Datenbank), bleibt das Dictionary — dann den Vermerk "
+        "„Dictionary gewollt: <wohin>“ setzen."
+    )
     dauer = "3–8 s"
     kriterium = 11
 
@@ -123,15 +144,15 @@ class RueckgabeDict(Werkzeug):
     #: Aufrufe, deren Ergebnis SOFORT das Programm verlaesst.
     AUSGANG = {"JsonResponse", "HttpResponse", "render", "dumps", "json_response"}
     #: Serialisierungs-Methoden - ihr Dictionary IST die Speicherform.
-    SERIALISIERUNG = {"to_dict", "als_dict", "as_dict", "serialize", "to_json",
-                      "als_json", "speicherform"}
+    SERIALISIERUNG = {"to_dict", "als_dict", "as_dict", "serialize", "to_json", "als_json", "speicherform"}
 
     #: Zwei Rueckgabe-Woerterbuecher mit je vier festen Schluesseln - eines
     #: OHNE Marker (Befund), eines MIT (darf nicht zaehlen). Der Marker ist die
     #: Abkuerzung fuer „geht unveraendert als JSON hinaus"; wer ihn ignoriert,
     #: meldet jede Serialisierung als Umbaubedarf.
     anlassfall = Anlassfall(
-        {"auswertung.py": '''def bilanz(werte):
+        {
+            "auswertung.py": """def bilanz(werte):
     return {"n": len(werte), "summe": sum(werte),
             "min": min(werte), "max": max(werte)}
 
@@ -140,16 +161,17 @@ def als_json(werte):
     # Dictionary gewollt: geht unveraendert als JSON an die Seite.
     return {"n": len(werte), "summe": sum(werte),
             "min": min(werte), "max": max(werte)}
-'''},
-        mindestens=1, hoechstens=1,
+"""
+        },
+        mindestens=1,
+        hoechstens=1,
         erwartet_in="bilanz",
-        warum="Kriterium 11: Datensatz mit mehr als drei festen Schlüsseln "
-              "gehört in eine Klasse")
+        warum="Kriterium 11: Datensatz mit mehr als drei festen Schlüsseln gehört in eine Klasse",
+    )
 
     def laufen(self):
         zeilen = []
-        frontend = FrontendVertrag(self.wurzel(), self.ausgeschlossen(),
-                                   gitfilter=self.gitfilter())
+        frontend = FrontendVertrag(self.wurzel(), self.ausgeschlossen(), gitfilter=self.gitfilter())
         for d in self.dateien():
             if d.baum is None:
                 continue
@@ -176,11 +198,11 @@ def als_json(werte):
             ["datei", "zeile", "funktion", "schlüssel", "namen", "bewertung"],
             zeilen,
             "%d Rückgabe-Dictionaries — %d zu prüfen, %d Anzeigeformat, %d belegt"
-            % (len(zeilen), len(offen), len(anzeige),
-               len(zeilen) - len(offen) - len(anzeige)),
+            % (len(zeilen), len(offen), len(anzeige), len(zeilen) - len(offen) - len(anzeige)),
             "Nicht jeder Eintrag ist ein Fehler. Die Frage lautet: Wandert der "
             "Datensatz durch mehrere Funktionen — oder geht er hinaus? "
-            "„Anzeigeformat“ heißt: die Schlüssel stehen wörtlich im Frontend.")
+            "„Anzeigeformat“ heißt: die Schlüssel stehen wörtlich im Frontend.",
+        )
 
     def _pruefen(self, d, funktion, ret, frontend=None):
         wert = ret.value
@@ -190,8 +212,7 @@ def als_json(werte):
             return None
         if not isinstance(wert, ast.Dict):
             return None
-        feste = [k.value for k in wert.keys
-                 if isinstance(k, ast.Constant) and isinstance(k.value, str)]
+        feste = [k.value for k in wert.keys if isinstance(k, ast.Constant) and isinstance(k.value, str)]
         if len(feste) < self.MIN_SCHLUESSEL:
             return None
         if self._nur_eigene_felder(wert):
@@ -209,10 +230,14 @@ def als_json(werte):
             bewertung = "Anzeigeformat"
         else:
             bewertung = "prüfen"
-        return {"datei": d.name, "zeile": ret.lineno, "funktion": funktion.name,
-                "schlüssel": len(feste),
-                "namen": ", ".join(sorted(feste)[:6]),
-                "bewertung": bewertung}
+        return {
+            "datei": d.name,
+            "zeile": ret.lineno,
+            "funktion": funktion.name,
+            "schlüssel": len(feste),
+            "namen": ", ".join(sorted(feste)[:6]),
+            "bewertung": bewertung,
+        }
 
     @staticmethod
     def _nur_eigene_felder(wert):
@@ -227,9 +252,11 @@ def als_json(werte):
         Felder (``len(self.assets)``) ändern nichts daran."""
         if not wert.values:
             return False
-        eigene = sum(1 for v in wert.values
-                     if isinstance(v, ast.Attribute)
-                     and isinstance(v.value, ast.Name) and v.value.id == "self")
+        eigene = sum(
+            1
+            for v in wert.values
+            if isinstance(v, ast.Attribute) and isinstance(v.value, ast.Name) and v.value.id == "self"
+        )
         return eigene >= max(3, len(wert.values) * 0.6)
 
     def _begruendet(self, d, zeile):

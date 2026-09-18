@@ -17,6 +17,7 @@ nicht, wenn man hinschaut. Deshalb steht die Suche hier als Test und nicht als
 gute Absicht: Die Kurzform gilt für EINE Zeile, alles andere ist
 `{% comment %}`.
 """
+
 import re
 from pathlib import Path
 
@@ -31,7 +32,6 @@ MEHRZEILIG = re.compile(r"\{#(?:[^#]|#(?!\}))*?\n(?:[^#]|#(?!\}))*?#\}", re.S)
 
 
 class TemplateKommentareTest(SimpleTestCase):
-
     def _templates(self):
         wurzel = Path(djangobase.__file__).resolve().parent / "templates"
         return sorted(wurzel.rglob("*.html"))
@@ -42,18 +42,21 @@ class TemplateKommentareTest(SimpleTestCase):
             text = f.read_text(encoding="utf-8")
             for m in MEHRZEILIG.finditer(text):
                 zeile = text[: m.start()].count("\n") + 1
-                funde.append("%s:%d  %s…" % (f.name, zeile,
-                                             m.group(0)[:50].replace("\n", " / ")))
-        self.assertEqual(funde, [], "Mehrzeilige {# #}-Kommentare stehen sichtbar "
-                                    "auf der Seite — {% comment %} benutzen:\n  "
-                                    + "\n  ".join(funde))
+                funde.append("%s:%d  %s…" % (f.name, zeile, m.group(0)[:50].replace("\n", " / ")))
+        self.assertEqual(
+            funde,
+            [],
+            "Mehrzeilige {# #}-Kommentare stehen sichtbar "
+            "auf der Seite — {% comment %} benutzen:\n  " + "\n  ".join(funde),
+        )
 
     def test_die_annahme_dahinter_gilt_noch(self):
         """Der Test darüber ist nur sinnvoll, solange Django das wirklich so macht.
 
         Setzt eine künftige Django-Fassung `re.DOTALL`, wäre die Regel überholt —
         dann soll DIESER Test anschlagen und nicht der andere stumm weiterlaufen."""
-        self.assertFalse(tag_re.flags & re.DOTALL,
-                         "Django %s entfernt mehrzeilige {# #} jetzt selbst — "
-                         "test_keine_mehrzeiligen_kurz_kommentare kann weg."
-                         % django.get_version())
+        self.assertFalse(
+            tag_re.flags & re.DOTALL,
+            "Django %s entfernt mehrzeilige {# #} jetzt selbst — "
+            "test_keine_mehrzeiligen_kurz_kommentare kann weg." % django.get_version(),
+        )

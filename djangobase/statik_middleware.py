@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""WhiteNoise, das auch asynchron kann.
+"""WhiteNoise, das auch asynchron kann.
 
 WARUM DIESE DATEI ÜBERHAUPT EXISTIERT
 =====================================
@@ -46,12 +46,13 @@ In ``MIDDLEWARE`` statt des Originals::
 Fehlt das Paket ``whitenoise``, ist der Import ein klarer ``ImportError`` beim
 Start — kein stiller Rückfall. Wer die Middleware einträgt, will sie.
 """
+
 from asgiref.sync import iscoroutinefunction, markcoroutinefunction, sync_to_async
 from whitenoise.middleware import WhiteNoiseMiddleware
 
 
 class ZweiwegWhiteNoise(WhiteNoiseMiddleware):
-    u"""WhiteNoise mit den zwei Zusagen, die Django braucht."""
+    """WhiteNoise mit den zwei Zusagen, die Django braucht."""
 
     sync_capable = True
     async_capable = True
@@ -68,16 +69,14 @@ class ZweiwegWhiteNoise(WhiteNoiseMiddleware):
         return super().__call__(request)
 
     async def __acall__(self, request):
-        datei = await sync_to_async(self._suchen,
-                                    thread_sensitive=False)(request)
+        datei = await sync_to_async(self._suchen, thread_sensitive=False)(request)
         if datei is not None:
-            return await sync_to_async(self.serve,
-                                       thread_sensitive=False)(datei, request)
+            return await sync_to_async(self.serve, thread_sensitive=False)(datei, request)
         return await self.get_response(request)
 
     # --------------------------------------------------------------- intern
     def _suchen(self, request):
-        u"""Die Suche aus ``WhiteNoiseMiddleware.__call__``, unverändert.
+        """Die Suche aus ``WhiteNoiseMiddleware.__call__``, unverändert.
 
         Bewusst hier herausgezogen und nicht nachgebaut: Ändert das Paket
         eines Tages seine Logik, fällt der Unterschied hier auf — ein

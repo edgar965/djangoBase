@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Tests fuer die Pflicht-Menuepunkte (Hilfe -> Skills / Skills1 / Skills2).
+"""Tests fuer die Pflicht-Menuepunkte (Hilfe -> Skills / Skills1 / Skills2).
 
 WARUM ES DIESE TESTS GIBT (17.08.2026)
 ======================================
@@ -19,6 +19,7 @@ Der erste Test faellt automatisch, sobald jemand eine vierte ``skills``-Seite
 in die URLconf haengt und den Menueeintrag vergisst - ohne dass jemand diese
 Datei anfassen muss.
 """
+
 from django.urls import NoReverseMatch, reverse
 
 from djangobase.pflichtmenue import PFLICHTSEITEN, pflicht_eintraege
@@ -27,7 +28,6 @@ from ..base import BasisTest
 
 
 class PflichtseitenTest(BasisTest):
-
     #: Praefix der Werkzeugkasten-Routen. Absichtlich per Praefix und nicht als
     #: Aufzaehlung: Eine Aufzaehlung haette ``skills1`` genauso verpasst wie das
     #: Menue, das sie verpasst hat.
@@ -36,6 +36,7 @@ class PflichtseitenTest(BasisTest):
     def _routen_der_urlconf(self):
         """Alle ``djangobase:skills*``-Routennamen aus der echten URLconf."""
         from djangobase import urls
+
         aus = set()
         for muster in urls.urlpatterns:
             name = getattr(muster, "name", "") or ""
@@ -50,17 +51,16 @@ class PflichtseitenTest(BasisTest):
             fehlend,
             "Diese Seiten gibt es, aber sie stehen in keinem Menue: %s. "
             "Eintragen in djangobase/pflichtmenue.py -> PFLICHTSEITEN; "
-            "_nav_skills.html liest dieselbe Liste."
-            % ", ".join(sorted(fehlend)))
+            "_nav_skills.html liest dieselbe Liste." % ", ".join(sorted(fehlend)),
+        )
 
     def test_jeder_eintrag_zeigt_auf_eine_aufloesbare_route(self):
         for eintrag in PFLICHTSEITEN:
             with self.subTest(seite=eintrag.label):
                 try:
                     ziel = reverse("djangobase:%s" % eintrag.route)
-                except NoReverseMatch:                      # pragma: no cover
-                    self.fail("Route djangobase:%s gibt es nicht"
-                              % eintrag.route)
+                except NoReverseMatch:  # pragma: no cover
+                    self.fail("Route djangobase:%s gibt es nicht" % eintrag.route)
                 self.assertTrue(ziel.startswith("/"))
 
     def test_label_und_route_sind_eindeutig(self):
@@ -72,8 +72,7 @@ class PflichtseitenTest(BasisTest):
     def test_jeder_eintrag_hat_icon_und_zweck(self):
         for eintrag in PFLICHTSEITEN:
             with self.subTest(seite=eintrag.label):
-                self.assertTrue(eintrag.icon.startswith("bi-"),
-                                "Sidebar-Icons sind Bootstrap-Icons (bi-*)")
+                self.assertTrue(eintrag.icon.startswith("bi-"), "Sidebar-Icons sind Bootstrap-Icons (bi-*)")
                 self.assertTrue(eintrag.zweck, "Zweck fehlt (Tooltip und Doku)")
 
     def test_uebergabeformat_bleibt_das_der_menue_bauer(self):
@@ -86,8 +85,7 @@ class PflichtseitenTest(BasisTest):
         """
         for eintrag in pflicht_eintraege():
             with self.subTest(seite=eintrag.get("label")):
-                self.assertEqual(set(eintrag) - {"title"},
-                                 {"label", "icon", "url"})
+                self.assertEqual(set(eintrag) - {"title"}, {"label", "icon", "url"})
 
 
 class NavVorlageTest(BasisTest):
@@ -97,6 +95,7 @@ class NavVorlageTest(BasisTest):
 
     def _quelltext(self):
         from django.template.loader import get_template
+
         return get_template(self.VORLAGE).template.source
 
     def test_vorlage_rendert_aus_pflichtseiten(self):

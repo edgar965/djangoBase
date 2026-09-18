@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""AnlassfallCheck - lässt jedes Werkzeug seinen eigenen Anlassfall finden.
+"""AnlassfallCheck - lässt jedes Werkzeug seinen eigenen Anlassfall finden.
 
 WOZU (17.08.2026)
 =================
@@ -28,6 +28,7 @@ nochmal.
 Geschrieben wird ins PROJEKT (``<wurzel>/_anlassfall``), nie nach System-Temp,
 und hinterher aufgeräumt.
 """
+
 import shutil
 import traceback
 from pathlib import Path
@@ -50,7 +51,7 @@ class Probelauf:
 
     #: Ein Filter, der nichts filtert — fuer den Probelauf eines Fixers.
     class _AllesErlaubt:
-        u"""``Fixer.pfade()`` geht ueber den Git-Filter.
+        """``Fixer.pfade()`` geht ueber den Git-Filter.
 
         Der Anlassfall-Ordner liegt UNTER der Projektwurzel, also innerhalb
         des Repos — git antwortet dort, kennt die frisch geschriebenen
@@ -88,8 +89,7 @@ class Probelauf:
             # (`self.erlaubt(d.pfad, self.wurzel())`), und eine
             # Attrappe mit nur einem Parameter wirft dort TypeError —
             # der Check meldete `fix-ausnahme` daraufhin als blind.
-            werkzeug.erlaubt = (
-                lambda p, _wurzel=None: not (set(Path(p).parts) & frei))
+            werkzeug.erlaubt = lambda p, _wurzel=None: not (set(Path(p).parts) & frei)
             return self._fixerlauf(werkzeug)
         # UND es muss hier auch hinsehen duerfen. ``_anlassfall`` steht in der
         # Ausschlussliste, damit die Werkzeuge im NORMALEN Lauf nicht ihre
@@ -99,13 +99,21 @@ class Probelauf:
         offen = werkzeug.ausgeschlossen() - {ORDNER}
         werkzeug.ausgeschlossen = lambda: offen
         try:
-            self.zeilen = list(werkzeug.laufen().zeilen)
-        except Exception:                                     # noqa: BLE001
+            ergebnis = werkzeug.laufen()
+            self.zeilen = list(ergebnis.zeilen)
+            # `BefundWerkzeug.laufen` faengt Ausnahmen und meldet sie als
+            # Hinweis „FEHLER: …" — ebenso ein Werkzeug, dessen Programm
+            # fehlt (`ruff`, 18.09.2026). Ohne diese Zeile hiesse das hier
+            # „blind: 0 statt 2", und der Grund stuende nirgends.
+            hinweis = getattr(ergebnis, "hinweis", "") or ""
+            if hinweis.startswith("FEHLER:"):
+                self.fehler = hinweis[len("FEHLER:") :].strip()
+        except Exception:  # noqa: BLE001
             self.fehler = traceback.format_exc(limit=2).strip().split("\n")[-1]
         return self
 
     def _fixerlauf(self, werkzeug):
-        u"""Ein Fixer meldet ueber ``vorschau()``, nicht ueber ``laufen()``.
+        """Ein Fixer meldet ueber ``vorschau()``, nicht ueber ``laufen()``.
 
         EIN FIXER HEISST NICHT `laufen` (25.08.2026)
         ============================================
@@ -122,9 +130,8 @@ class Probelauf:
         Ein Selbsttest, der Dateien aendert, ist kein Selbsttest mehr.
         """
         try:
-            self.zeilen = [a.als_dict()
-                           for a in werkzeug.vorschau().aenderungen]
-        except Exception:                                     # noqa: BLE001
+            self.zeilen = [a.als_dict() for a in werkzeug.vorschau().aenderungen]
+        except Exception:  # noqa: BLE001
             self.fehler = traceback.format_exc(limit=2).strip().split("\n")[-1]
         return self
 
@@ -147,17 +154,16 @@ class Pruefergebnis:
     #: Vorher lasen die Tests den Urteilstext gegen eine Liste erlaubter
     #: Formulierungen; eine neue Formulierung machte sie prompt rot, obwohl
     #: sich an der Sache nichts geaendert hatte (18.08.2026).
-    SIEHT = "sieht"            # geprueft, findet seinen Fall
-    BLIND = "blind"            # geprueft, findet ihn NICHT
-    ERKLAERT = "erklaert"      # kein Anlassfall moeglich, Grund steht am Werkzeug
+    SIEHT = "sieht"  # geprueft, findet seinen Fall
+    BLIND = "blind"  # geprueft, findet ihn NICHT
+    ERKLAERT = "erklaert"  # kein Anlassfall moeglich, Grund steht am Werkzeug
     UNGEPRUEFT = "ungeprueft"  # kein Anlassfall, kein Grund
 
     @property
     def stand(self):
         if self.geprueft:
             return self.BLIND if self.grund else self.SIEHT
-        return (self.ERKLAERT if getattr(self.klasse, "ohne_anlassfall_weil", "")
-                else self.UNGEPRUEFT)
+        return self.ERKLAERT if getattr(self.klasse, "ohne_anlassfall_weil", "") else self.UNGEPRUEFT
 
     @property
     def urteil(self):
@@ -165,8 +171,11 @@ class Pruefergebnis:
             # Der Grund steht AM WERKZEUG (``ohne_anlassfall_weil``). Wer
             # keinen angibt, ist schlicht ungeprueft - und das soll man sehen.
             grund = getattr(self.klasse, "ohne_anlassfall_weil", "")
-            return ("kein Anlassfall nötig: %s" % grund if grund
-                    else "UNGEPRÜFT — kein Anlassfall, kein Grund angegeben")
+            return (
+                "kein Anlassfall nötig: %s" % grund
+                if grund
+                else "UNGEPRÜFT — kein Anlassfall, kein Grund angegeben"
+            )
         return self.grund or "sieht seinen Fall"
 
     @property
@@ -174,30 +183,39 @@ class Pruefergebnis:
         return self.geprueft and bool(self.grund)
 
     def als_zeile(self):
-        return {"werkzeug": self.klasse.slug,
-                "stand": self.stand,
-                "kriterium": self.klasse.kriterium or "—",
-                "im Anlassfall": self.gefunden if self.geprueft else "—",
-                "im Leeren": self.im_leeren if self.geprueft else "—",
-                "urteil": self.urteil,
-                "nachgebaut": (self.anlassfall.warum if self.geprueft else
-                               "kein dateibasierter Fall — von Hand prüfen")}
+        return {
+            "werkzeug": self.klasse.slug,
+            "stand": self.stand,
+            "kriterium": self.klasse.kriterium or "—",
+            "im Anlassfall": self.gefunden if self.geprueft else "—",
+            "im Leeren": self.im_leeren if self.geprueft else "—",
+            "urteil": self.urteil,
+            "nachgebaut": (
+                self.anlassfall.warum if self.geprueft else "kein dateibasierter Fall — von Hand prüfen"
+            ),
+        }
 
 
 class AnlassfallCheck(Werkzeug):
     slug = "anlassfall-check"
     titel = "Sehen die Werkzeuge noch, wofür sie gebaut wurden?"
-    zweck = ("Schreibt jedem Werkzeug seinen eigenen Anlassfall hin und prüft, "
-             "ob es ihn meldet — plus Gegenprobe auf leerem Verzeichnis.")
-    befund = ("Zwei Werkzeuge waren blind, ohne dass es auffiel: "
-              "``getattr-namen`` meldete null, weil sein Maßstab zu weit war "
-              "und den eigenen Anlassfall verschluckte; ``js-vererbung`` hätte "
-              "einen bewusst globalen Namen als Absturz gemeldet. Eine Null "
-              "sieht aus wie ein sauberes Projekt.")
-    abhilfe = ("‚blind‘ heißt: Der Prüfer wurde verschärft oder umgebaut und "
-               "sieht seinen Fall nicht mehr — erst reparieren, dann seinen "
-               "Zahlen wieder glauben. ‚meldet im Leeren‘ heißt: Er ignoriert "
-               "die übergebene Wurzel; dann ist auch der grüne Lauf wertlos.")
+    zweck = (
+        "Schreibt jedem Werkzeug seinen eigenen Anlassfall hin und prüft, "
+        "ob es ihn meldet — plus Gegenprobe auf leerem Verzeichnis."
+    )
+    befund = (
+        "Zwei Werkzeuge waren blind, ohne dass es auffiel: "
+        "``getattr-namen`` meldete null, weil sein Maßstab zu weit war "
+        "und den eigenen Anlassfall verschluckte; ``js-vererbung`` hätte "
+        "einen bewusst globalen Namen als Absturz gemeldet. Eine Null "
+        "sieht aus wie ein sauberes Projekt."
+    )
+    abhilfe = (
+        "‚blind‘ heißt: Der Prüfer wurde verschärft oder umgebaut und "
+        "sieht seinen Fall nicht mehr — erst reparieren, dann seinen "
+        "Zahlen wieder glauben. ‚meldet im Leeren‘ heißt: Er ignoriert "
+        "die übergebene Wurzel; dann ist auch der grüne Lauf wertlos."
+    )
     # Kriterium 19 (26.08.2026): „BDD ohne Gherkin" — dieses Werkzeug IST
     # die Zusicherung, dass jede Regel ein Beispiel hat.
     kriterium = 19
@@ -213,13 +231,14 @@ class AnlassfallCheck(Werkzeug):
     #: Mechanik faellt dabei auf beiden Seiten zugleich aus. Die Pruefung
     #: dafuer steht deshalb ausserhalb, in
     #: ``tests/unit/test_fixer_anlassfall.py``.
-    ohne_anlassfall_weil = ("prüft die ANDEREN Werkzeuge — sein eigener Fall "
-                            "wäre er selbst, und dann pruefte die Mechanik "
-                            "sich durch sich selbst; die Prüfung dafür "
-                            "steht in tests/unit/test_fixer_anlassfall.py")
+    ohne_anlassfall_weil = (
+        "prüft die ANDEREN Werkzeuge — sein eigener Fall "
+        "wäre er selbst, und dann pruefte die Mechanik "
+        "sich durch sich selbst; die Prüfung dafür "
+        "steht in tests/unit/test_fixer_anlassfall.py"
+    )
 
-    SPALTEN = ("werkzeug", "stand", "kriterium", "im Anlassfall", "im Leeren",
-               "urteil", "nachgebaut")
+    SPALTEN = ("werkzeug", "stand", "kriterium", "im Anlassfall", "im Leeren", "urteil", "nachgebaut")
 
     def laufen(self):
         # AUCH DIE FIXER (25.08.2026, auf Ansage: „mach alle die
@@ -227,11 +246,12 @@ class AnlassfallCheck(Werkzeug):
         # sind genau die Werkzeuge, die in Dateien SCHREIBEN. Von sieben
         # hatte einer einen Anlassfall.
         from . import FIXER, WERKZEUGE
+
         basis = self.wurzel() / ORDNER
         self._aufraeumen(basis)
         ergebnisse = []
         try:
-            leer = (basis / "leer")
+            leer = basis / "leer"
             leer.mkdir(parents=True, exist_ok=True)
             for klasse in list(WERKZEUGE) + list(FIXER):
                 if klasse is type(self):
@@ -241,11 +261,14 @@ class AnlassfallCheck(Werkzeug):
             self._aufraeumen(basis)
 
         zeilen = [e.als_zeile() for e in ergebnisse]
-        return Ergebnis(list(self.SPALTEN), zeilen,
-                        self._fazit(ergebnisse),
-                        "Ein Werkzeug ohne Anlassfall ist nicht falsch — es ist "
-                        "ungeprüft. Wer eines schreibt, schreibt den Fall "
-                        "daneben (siehe ``anlassfall.py``).")
+        return Ergebnis(
+            list(self.SPALTEN),
+            zeilen,
+            self._fazit(ergebnisse),
+            "Ein Werkzeug ohne Anlassfall ist nicht falsch — es ist "
+            "ungeprüft. Wer eines schreibt, schreibt den Fall "
+            "daneben (siehe ``anlassfall.py``).",
+        )
 
     def _eines(self, klasse, basis, leer):
         aus = Pruefergebnis(klasse)
@@ -270,8 +293,7 @@ class AnlassfallCheck(Werkzeug):
             # ZUERST melden: Ein Werkzeug, das im Leeren etwas findet, sucht
             # woanders - dann sagt der Anlassfall-Lauf nichts aus, auch wenn
             # er gruen ist.
-            aus.grund = ("meldet im Leeren %d — sucht nicht in der "
-                         "übergebenen Wurzel" % len(leere))
+            aus.grund = "meldet im Leeren %d — sucht nicht in der übergebenen Wurzel" % len(leere)
             return aus
         aus.grund = aus.anlassfall.urteil(gefundene)
         return aus
@@ -280,14 +302,11 @@ class AnlassfallCheck(Werkzeug):
     def _fazit(ergebnisse):
         geprueft = [e for e in ergebnisse if e.geprueft]
         rot = [e for e in geprueft if e.rot]
-        satz = ("%d von %d Werkzeugen an ihrem eigenen Anlassfall geprüft"
-                % (len(geprueft), len(ergebnisse)))
+        satz = "%d von %d Werkzeugen an ihrem eigenen Anlassfall geprüft" % (len(geprueft), len(ergebnisse))
         if rot:
-            return "%s — %d sehen ihn NICHT: %s." % (
-                satz, len(rot), ", ".join(e.klasse.slug for e in rot))
+            return "%s — %d sehen ihn NICHT: %s." % (satz, len(rot), ", ".join(e.klasse.slug for e in rot))
         ohne = len(ergebnisse) - len(geprueft)
-        return "%s, alle bestanden%s." % (
-            satz, "; %d ohne Anlassfall" % ohne if ohne else "")
+        return "%s, alle bestanden%s." % (satz, "; %d ohne Anlassfall" % ohne if ohne else "")
 
     @staticmethod
     def _aufraeumen(basis):

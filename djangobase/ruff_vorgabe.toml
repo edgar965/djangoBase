@@ -1,0 +1,81 @@
+# djangoBase-Vorgabe für ruff (18.09.2026, aus gunSlinger übernommen).
+#
+# Gilt in jedem Konsumenten-Projekt, das KEINE eigene ruff-Konfiguration hat
+# (`ruff.toml`, `.ruff.toml` oder `[tool.ruff]` in `pyproject.toml`): Das
+# Werkzeug Hilfe → Skills → „ruff" übergibt dann diese Datei per `--config`.
+# Wer abweichen will, legt im Projekt eine eigene an und erbt den Rest:
+#
+#     [tool.ruff]
+#     extend = "A:/shared/djangoBase/djangobase/ruff_vorgabe.toml"
+#     line-length = 100
+#
+#     [tool.ruff.lint.extend-per-file-ignores]      # `extend-`, sonst ersetzt die
+#     "app/messdaten.py" = ["E501"]                  # Tabelle die Ausnahmen unten
+#
+# Der Name ist bewusst nicht `ruff.toml`: So heißende Dateien nimmt ruff als
+# nächstgelegene Konfiguration — im Paketordner hätte sie die `pyproject.toml`
+# von djangoBase selbst verdrängt (18.09.2026, gemessen mit --show-settings).
+#
+# Auf der Kommandozeile im Projekt (Version = die des Projekt-Interpreters):
+#     ruff check  --config A:/shared/djangoBase/djangobase/ruff_vorgabe.toml --target-version py314 .
+#     ruff format --config A:/shared/djangoBase/djangobase/ruff_vorgabe.toml --target-version py314 .
+#
+# 110 Zeichen statt 79: `code-qualitaet` hat gemessen, dass CamTrack erkennbar
+# auf 100 schreibt (3009 von 3320 pycodestyle-Meldungen waren allein die
+# 79er-Regel) — eine Grenze, die das Projekt nie angenommen hat, erzeugt
+# einen Bericht, den niemand liest. gunSlinger arbeitet mit 110.
+line-length = 110
+# KEIN `target-version` hier: Das Werkzeug übergibt die Version des laufenden
+# Interpreters (`--target-version py314`). Mit einer festen Angabe meldete
+# ruff im assistant (Python 3.14) 58 „Syntaxfehler" — Zeilenumbrüche in
+# f-Strings, die es seit 3.12 gibt. Ein falscher Syntaxfehler ist der teuerste
+# Fehlalarm. Auf der Kommandozeile die Version selbst anhängen.
+
+# Nur für den Lauf über ein Verzeichnis (`ruff check .`). Das Werkzeug in
+# Hilfe → Skills übergibt die Dateien einzeln — dieselbe Menge wie jedes andere
+# Werkzeug dort (Ausschlussliste, `.gitignore`).
+extend-exclude = [
+    "migrations",
+    "_wegwerf",
+    "_anlassfall",
+    "node_modules",
+    "pythonVENV",
+    "venv*",
+]
+
+[lint]
+# E/W  pycodestyle       Form (Zeilenlänge, Leerraum, ungültige Escape-Folgen)
+# F    pyflakes          echte Fehler: undefinierte Namen, doppelte Definitionen
+# I    isort             Reihenfolge der Importe
+# B    flake8-bugbear    Fallen: veränderliche Vorgabewerte, `except:` ohne Typ
+# UP   pyupgrade         Schreibweisen, die es seit 3.10 einfacher gibt
+select = ["E", "W", "F", "I", "B", "UP"]
+# B008: Funktionsaufruf im Vorgabewert. Django (`default=timezone.now` ist
+# keiner, aber `Depends()`/`Query()`-Muster in FastAPI-Teilen sind es) — in
+# gunSlinger bewusst aus, hier genauso.
+#
+# UP009/UP025/UP031: die Hausschrift der bestehenden Projekte — `# -*- coding:
+# utf-8 -*-`, `u"..."`-Präfix, `%`-Formatierung. Gemessen am 18.09.2026:
+#     assistant   5930 UP025 + 1586 UP009 + 1446 UP031  =  86 % von 10438
+#     HumanBodyWeb 3070 + 865 + 1064                    =  88 % von  5682
+#     djangoBase  3468 + 371 + 1179                     =  96 % von  5250
+# Drei Regeln, die das Projekt nie angenommen hat, decken sonst jeden echten
+# Befund zu (dieselbe Lehre wie die 79-Zeichen-Regel in `code-qualitaet`).
+# Wer sie umstellen will: `ruff check --select UP009,UP025 --fix .` — UP031
+# hat keinen sicheren Fix.
+ignore = ["B008", "UP009", "UP025", "UP031"]
+
+[lint.per-file-ignores]
+# Django schreibt Migrationen selbst — Zeilenlänge und Importreihenfolge sind
+# dort keine Aussage über das Projekt.
+"**/migrations/*.py" = ["E501", "I", "UP"]
+# Eine Fassade führt Namen ein, damit andere sie importieren. `code-qualitaet`
+# hat 211 solcher Zeilen mit `# noqa` gezählt — die öffentliche Schnittstelle
+# der Pakete, ausdrücklich so gewollt.
+"**/__init__.py" = ["F401"]
+# `from .settings_x import *` ist in Django-Settings üblich (assistant: drei
+# Dateien) und dort kein Fehler, sondern der Zusammenbau.
+"**/settings*.py" = ["F403", "F405"]
+
+[lint.isort]
+combine-as-imports = true

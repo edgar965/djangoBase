@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""`proben`: Findet es die Gegenproben - und merkt es, wenn eine stumm ist?
+"""`proben`: Findet es die Gegenproben - und merkt es, wenn eine stumm ist?
 
 DER ANLASS (28.08.2026, 3DTools)
 ================================
@@ -22,6 +22,7 @@ DREI DINGE WERDEN HIER FESTGENAGELT
 3. Der Aufruf kommt aus dem Kopf der Datei, wenn dort einer steht - sonst aus
    der Endung. Ein Eintrag ohne Aufrufbefehl ist eine Fussnote, kein Werkzeug.
 """
+
 import tempfile
 from pathlib import Path
 
@@ -29,8 +30,7 @@ from django.test import SimpleTestCase
 
 from djangobase.skills.proben import Proben
 
-
-ECHTE = u'''"""Gegenprobe: kommt die geaenderte Datei beim Browser an?
+ECHTE = '''"""Gegenprobe: kommt die geaenderte Datei beim Browser an?
 
 Start: python cache_gegenprobe.py --laut
 """
@@ -38,18 +38,18 @@ import sys
 sys.exit(1 if abweichungen else 0)
 '''
 
-STUMME = u'''// Sichtprobe der Tabellen - meldet, aber faellt nie durch.
+STUMME = """// Sichtprobe der Tabellen - meldet, aber faellt nie durch.
 console.log(schlecht ? "FEHL" : "ok");
 process.exit(0);
-'''
+"""
 
-OHNE_AUFRUF = u'''"""Seitenprobe: laedt jede Seite und liest die Konsole mit."""
+OHNE_AUFRUF = '''"""Seitenprobe: laedt jede Seite und liest die Konsole mit."""
 if (fehler.length) throw new Error("Konsolenfehler");
 '''
 
 
 class _Werkzeug(Proben):
-    u"""Ein `Proben`, das in einem Wegwerf-Verzeichnis sucht."""
+    """Ein `Proben`, das in einem Wegwerf-Verzeichnis sucht."""
 
     def __init__(self, ordner):
         super().__init__()
@@ -72,18 +72,20 @@ def _lauf(dateien):
 
 
 class AuswahlTest(SimpleTestCase):
-
     def test_nur_namen_die_auf_probe_enden(self):
-        erg = _lauf({"cache_gegenprobe.py": ECHTE,
-                     "seitenprobe.mjs": OHNE_AUFRUF,
-                     "probeszene.js": STUMME,
-                     "dienst.py": u"x = 1\n"})
+        erg = _lauf(
+            {
+                "cache_gegenprobe.py": ECHTE,
+                "seitenprobe.mjs": OHNE_AUFRUF,
+                "probeszene.js": STUMME,
+                "dienst.py": "x = 1\n",
+            }
+        )
         namen = sorted(z["probe"] for z in erg.zeilen)
-        self.assertEqual(namen, ["cache_gegenprobe.py", "seitenprobe.mjs"],
-                         erg.zusammenfassung)
+        self.assertEqual(namen, ["cache_gegenprobe.py", "seitenprobe.mjs"], erg.zusammenfassung)
 
     def test_wegwerfstuecke_bleiben_draussen(self):
-        u"""Ein fuehrender Unterstrich heisst: waehrend einer Sitzung
+        """Ein fuehrender Unterstrich heisst: waehrend einer Sitzung
         entstanden, nicht zum Aufheben."""
         erg = _lauf({"_globalprobe.mjs": ECHTE, "seitenprobe.mjs": ECHTE})
         self.assertEqual([z["probe"] for z in erg.zeilen], ["seitenprobe.mjs"])
@@ -91,47 +93,41 @@ class AuswahlTest(SimpleTestCase):
     def test_ausnahme_aus_den_einstellungen_greift(self):
         with tempfile.TemporaryDirectory(prefix="djb-proben-") as ordner:
             (Path(ordner) / "fremd").mkdir()
-            (Path(ordner) / "fremd" / "seitenprobe.mjs").write_text(
-                ECHTE, encoding="utf-8")
+            (Path(ordner) / "fremd" / "seitenprobe.mjs").write_text(ECHTE, encoding="utf-8")
             (Path(ordner) / "eigenprobe.py").write_text(ECHTE, encoding="utf-8")
             werkzeug = _Werkzeug(ordner)
-            werkzeug._einstellung = lambda name: (["fremd/"] if name ==
-                                                  "proben_ausser" else [])
+            werkzeug._einstellung = lambda name: ["fremd/"] if name == "proben_ausser" else []
             erg = werkzeug.laufen()
         self.assertEqual([z["probe"] for z in erg.zeilen], ["eigenprobe.py"])
 
 
 class RotWerdenTest(SimpleTestCase):
-
     def test_probe_mit_rueckgabewert_kann_rot_werden(self):
         erg = _lauf({"cache_gegenprobe.py": ECHTE})
         self.assertEqual(erg.zeilen[0]["kann rot werden"], "ja")
 
     def test_probe_die_immer_null_zurueckgibt_wird_gemeldet(self):
-        u"""`process.exit(0)` ist KEIN Fehlschlag-Weg — genau der Fall, den
+        """`process.exit(0)` ist KEIN Fehlschlag-Weg — genau der Fall, den
         `anlass_protokoll.py` am 28.08.2026 hatte."""
         erg = _lauf({"tabellenprobe.mjs": STUMME})
         self.assertEqual(erg.zeilen[0]["kann rot werden"], "nein")
         self.assertIn("kann nicht rot werden", erg.zusammenfassung)
 
     def test_throw_zaehlt_als_fehlschlag_weg(self):
-        u"""Gegenprobe zur Gegenprobe: Wer nur nach `exit` sucht, meldet die
+        """Gegenprobe zur Gegenprobe: Wer nur nach `exit` sucht, meldet die
         halbe Sammlung faelschlich als stumm."""
         erg = _lauf({"seitenprobe.mjs": OHNE_AUFRUF})
         self.assertEqual(erg.zeilen[0]["kann rot werden"], "ja")
 
     def test_saubere_sammlung_sagt_nichts_von_stummen(self):
-        erg = _lauf({"cache_gegenprobe.py": ECHTE,
-                     "seitenprobe.mjs": OHNE_AUFRUF})
+        erg = _lauf({"cache_gegenprobe.py": ECHTE, "seitenprobe.mjs": OHNE_AUFRUF})
         self.assertNotIn("rot werden", erg.zusammenfassung)
 
 
 class AufrufTest(SimpleTestCase):
-
     def test_start_zeile_aus_dem_kopf(self):
         erg = _lauf({"cache_gegenprobe.py": ECHTE})
-        self.assertEqual(erg.zeilen[0]["aufruf"],
-                         "python cache_gegenprobe.py --laut")
+        self.assertEqual(erg.zeilen[0]["aufruf"], "python cache_gegenprobe.py --laut")
 
     def test_ohne_start_zeile_aus_der_endung(self):
         erg = _lauf({"seitenprobe.mjs": OHNE_AUFRUF})

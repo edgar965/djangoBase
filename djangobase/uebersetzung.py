@@ -14,6 +14,7 @@ Funktionsweise:
 - Besucher wählen die Sprache über das Flaggen-Menü ({% sprachen_menue %});
   sie landet als Cookie "sprache", die Tags liefern dann die Übersetzung.
 """
+
 import hashlib
 import re
 import threading
@@ -80,6 +81,7 @@ def _translator(ziel):
     """GoogleTranslator pro Sprachpaar cachen (CleanOrga-Muster)."""
     if ziel not in _translators:
         from deep_translator import GoogleTranslator
+
         _translators[ziel] = GoogleTranslator(source=BASIS, target=ziel)
     return _translators[ziel]
 
@@ -141,16 +143,15 @@ def katalog_leeren():
 def _katalog_laden():
     """Lädt Quellen-Schlüssel + alle Übersetzungen in den Prozess-Speicher."""
     from .models import TextQuelle, Uebersetzung
+
     with _lock:
         if time.time() - _katalog["ts"] < _KATALOG_TTL:
             return
         try:
-            _katalog["quellen"] = dict(
-                TextQuelle.objects.values_list("schluessel", "quelle"))
+            _katalog["quellen"] = dict(TextQuelle.objects.values_list("schluessel", "quelle"))
             spr = {}
             for u in Uebersetzung.objects.select_related("quelle"):
-                spr.setdefault(u.sprache, {})[u.quelle.schluessel] = (
-                    u.quelle_hash, u.text)
+                spr.setdefault(u.sprache, {})[u.quelle.schluessel] = (u.quelle_hash, u.text)
             _katalog["spr"] = spr
             _katalog["ts"] = time.time()
         except Exception:  # noqa: BLE001 – z. B. vor der ersten Migration
@@ -181,6 +182,7 @@ def text_holen(text, sprache, schluessel=None):
 
 def _registrieren(key, text):
     from .models import TextQuelle
+
     try:
         TextQuelle.objects.get_or_create(schluessel=key, defaults={"quelle": text})
         with _lock:
@@ -193,6 +195,7 @@ def _quelle_aktualisieren(key, text):
     """Bei festen Schlüsseln ({% tblock %}) den deutschen Stand mitführen,
     damit der Lauf geänderte Texte als „veraltet" erkennt."""
     from .models import TextQuelle
+
     try:
         q = TextQuelle.objects.filter(schluessel=key).first()
         if q and q.quelle != text:
@@ -218,14 +221,14 @@ def lauf_starten(modus="veraltet"):
     status = lauf_status()
     if status.get("laeuft"):
         return False
-    cache.set(LAUF_KEY, {"laeuft": True, "fertig": 0, "gesamt": 0,
-                         "fehler": [], "modus": modus}, 24 * 3600)
+    cache.set(LAUF_KEY, {"laeuft": True, "fertig": 0, "gesamt": 0, "fehler": [], "modus": modus}, 24 * 3600)
     threading.Thread(target=_lauf, args=(modus,), daemon=True).start()
     return True
 
 
 def _lauf(modus):
     from .models import TextQuelle, Uebersetzung
+
     status = {"laeuft": True, "fertig": 0, "gesamt": 0, "fehler": [], "modus": modus}
     try:
         sprachen = aktive_sprachen()
@@ -235,8 +238,7 @@ def _lauf(modus):
             vorhanden = {u.sprache: u for u in q.uebersetzungen.all()}
             for s in sprachen:
                 u = vorhanden.get(s)
-                noetig = (modus == "alle" or not u
-                          or (modus == "veraltet" and u.quelle_hash != h))
+                noetig = modus == "alle" or not u or (modus == "veraltet" and u.quelle_hash != h)
                 if noetig:
                     jobs.append((q, s))
         status["gesamt"] = len(jobs)
@@ -246,8 +248,8 @@ def _lauf(modus):
             try:
                 text = uebersetze(q.quelle, s)
                 Uebersetzung.objects.update_or_create(
-                    quelle=q, sprache=s,
-                    defaults={"text": text, "quelle_hash": _hash(q.quelle)})
+                    quelle=q, sprache=s, defaults={"text": text, "quelle_hash": _hash(q.quelle)}
+                )
             except Exception as e:  # noqa: BLE001 – einzelner Text darf scheitern
                 if len(status["fehler"]) < 10:
                     status["fehler"].append(f"{q.quelle[:40]} → {s}: {e}")
@@ -269,6 +271,7 @@ def sprach_status():
     """Pro aktiver Sprache: wie viele Texte aktuell / veraltet / fehlend sind
     (für die Einstellungen-Seite)."""
     from .models import TextQuelle
+
     quellen = list(TextQuelle.objects.prefetch_related("uebersetzungen"))
     zeilen = []
     for code in aktive_sprachen():
@@ -282,6 +285,14 @@ def sprach_status():
                 veraltet += 1
             else:
                 aktuell += 1
-        zeilen.append({"code": code, "name": name, "flagge": flagge,
-                       "aktuell": aktuell, "veraltet": veraltet, "fehlt": fehlt})
+        zeilen.append(
+            {
+                "code": code,
+                "name": name,
+                "flagge": flagge,
+                "aktuell": aktuell,
+                "veraltet": veraltet,
+                "fehlt": fehlt,
+            }
+        )
     return len(quellen), zeilen

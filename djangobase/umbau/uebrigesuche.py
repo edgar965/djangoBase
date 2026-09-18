@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Die Dateien EINER Endung aus der Zeile „Übrige" finden — und löschen.
+"""Die Dateien EINER Endung aus der Zeile „Übrige" finden — und löschen.
 
 DIE ANSAGE (Edgar, 02.09.2026)
 ==============================
@@ -31,6 +31,7 @@ Es löscht echte Dateien, endgültig. Vier Dinge schützen:
 
 Verzeichnisse fasst diese Klasse nicht an, auch keine leeren.
 """
+
 import logging
 import os
 from pathlib import Path
@@ -40,7 +41,7 @@ from pathlib import Path
 # der erste echte Lauf mit "'int' object is not callable" abbrach. Die
 # Dateien waren da schon geloescht; nur die Antwort fehlte.
 from ..templatetags.zahlen import groesse as groesse_text
-from .codezahlen import (GROESSTE_QUELLDATEI, UEBRIGE, Codezahlen, ablagen)
+from .codezahlen import GROESSTE_QUELLDATEI, UEBRIGE, Codezahlen, ablagen
 from .klassenmodell import ausser
 
 logger = logging.getLogger(__name__)
@@ -61,51 +62,105 @@ VORSCHAU = 200
 #: Diese Endungen bleiben deshalb sichtbar in der Statistik, bekommen
 #: aber keinen Löschen-Knopf — und werden serverseitig abgewiesen, auch
 #: wenn jemand sie von Hand schickt.
-GESCHUETZT = frozenset((
-    # Bürodokumente
-    '.xlsx', '.xlsm', '.xls', '.xlsb', '.docx', '.doc', '.docm',
-    '.pptx', '.ppt', '.odt', '.ods', '.odp', '.rtf', '.pages',
-    '.numbers', '.epub',
-    # Daten, die jemand von Hand gepflegt haben kann
-    '.csv', '.tsv', '.sqlite', '.sqlite3', '.db', '.mdb', '.accdb',
-    '.eml', '.msg', '.pst', '.ost', '.vcf', '.ics',
-    # Schriften und Medien, die nicht unter „Bilder & Binäres" fallen
-    '.otf', '.fon', '.wav', '.mp3', '.flac', '.aac', '.mov', '.avi',
-    '.mkv', '.psd', '.ai', '.indd', '.svgz',
-    # Ausführbares und Schlüssel
-    '.ps1', '.psm1', '.bat', '.cmd', '.sh', '.bash', '.sql', '.ipynb',
-    '.key', '.pem', '.crt', '.cer', '.pfx', '.p12', '.env',
-    # Protokolle. In `assistant` liegt darin die Mail-Audit-Spur — jede
-    # mutative Aktion, absichtlich getrennt geführt. Am 02.09.2026 sind
-    # 43 solche Dateien (3,45 MB) über dieses Werkzeug verschwunden.
-    # Protokolle räumt man in der Log-Verwaltung auf, nicht in einer
-    # Statistik.
-    '.log', '.log1', '.audit', '.jsonl', '.ndjson',
-))
+GESCHUETZT = frozenset(
+    (
+        # Bürodokumente
+        ".xlsx",
+        ".xlsm",
+        ".xls",
+        ".xlsb",
+        ".docx",
+        ".doc",
+        ".docm",
+        ".pptx",
+        ".ppt",
+        ".odt",
+        ".ods",
+        ".odp",
+        ".rtf",
+        ".pages",
+        ".numbers",
+        ".epub",
+        # Daten, die jemand von Hand gepflegt haben kann
+        ".csv",
+        ".tsv",
+        ".sqlite",
+        ".sqlite3",
+        ".db",
+        ".mdb",
+        ".accdb",
+        ".eml",
+        ".msg",
+        ".pst",
+        ".ost",
+        ".vcf",
+        ".ics",
+        # Schriften und Medien, die nicht unter „Bilder & Binäres" fallen
+        ".otf",
+        ".fon",
+        ".wav",
+        ".mp3",
+        ".flac",
+        ".aac",
+        ".mov",
+        ".avi",
+        ".mkv",
+        ".psd",
+        ".ai",
+        ".indd",
+        ".svgz",
+        # Ausführbares und Schlüssel
+        ".ps1",
+        ".psm1",
+        ".bat",
+        ".cmd",
+        ".sh",
+        ".bash",
+        ".sql",
+        ".ipynb",
+        ".key",
+        ".pem",
+        ".crt",
+        ".cer",
+        ".pfx",
+        ".p12",
+        ".env",
+        # Protokolle. In `assistant` liegt darin die Mail-Audit-Spur — jede
+        # mutative Aktion, absichtlich getrennt geführt. Am 02.09.2026 sind
+        # 43 solche Dateien (3,45 MB) über dieses Werkzeug verschwunden.
+        # Protokolle räumt man in der Log-Verwaltung auf, nicht in einer
+        # Statistik.
+        ".log",
+        ".log1",
+        ".audit",
+        ".jsonl",
+        ".ndjson",
+    )
+)
 
 
 def geschuetzt(endung):
-    u"""Ist diese Endung vor dem Löschen geschützt?"""
-    return (endung or '').lower() in GESCHUETZT
+    """Ist diese Endung vor dem Löschen geschützt?"""
+    return (endung or "").lower() in GESCHUETZT
 
 
 class UebrigeSuche:
-    u"""Findet und löscht die „Übrigen" einer Endung unterhalb einer Wurzel."""
+    """Findet und löscht die „Übrigen" einer Endung unterhalb einer Wurzel."""
 
     def __init__(self, wurzel):
         self.wurzel = Path(wurzel).resolve()
 
     # ── finden ──────────────────────────────────────────────────
     def finden(self, endung):
-        u"""Alle Dateien dieser Endung, die in „Übrige" fallen.
+        """Alle Dateien dieser Endung, die in „Übrige" fallen.
 
         ``endung`` ist ``'.log'`` oder ``''`` für die ohne Endung — genau
         die Werte, die ``Codezahlen.uebrige_arten()`` ausweist.
         """
-        return self.sammeln([endung]).get((endung or '').lower(), [])
+        return self.sammeln([endung]).get((endung or "").lower(), [])
 
     def sammeln(self, endungen):
-        u"""``{endung: [Pfade]}`` für mehrere Endungen in EINEM Durchgang.
+        """``{endung: [Pfade]}`` für mehrere Endungen in EINEM Durchgang.
 
         EIN DURCHGANG, NICHT N (02.09.2026, auf Ansage „mach auch Multi
         Auswahl (check boxen) und batch delete"). Wer fünf Endungen
@@ -135,8 +190,7 @@ class UebrigeSuche:
         """
         # Geschützte Arten kommen gar nicht erst in die Suche — dann kann
         # auch kein Aufrufer sie versehentlich weiterreichen.
-        gesucht = set((e or '').lower() for e in endungen
-                      if not geschuetzt(e))
+        gesucht = set((e or "").lower() for e in endungen if not geschuetzt(e))
         if not gesucht:
             return {}
         raus = ausser()
@@ -149,9 +203,7 @@ class UebrigeSuche:
                 unter[:] = []
                 continue
             # HIER wird gespart: Was ausgeschlossen ist, wird nicht betreten.
-            unter[:] = [o for o in unter
-                        if not self._auslassen(teile, o, daten, raus,
-                                               anmeldungen)]
+            unter[:] = [o for o in unter if not self._auslassen(teile, o, daten, raus, anmeldungen)]
             for name in dateien:
                 endung = self._endung(name)
                 if endung not in gesucht:
@@ -164,7 +216,7 @@ class UebrigeSuche:
                 # plötzlich 528 offene Änderungen statt 57 — der Schaden
                 # war stiller als der Verlust selbst. Dasselbe gilt für
                 # `.env`, `.dockerignore`, `.editorconfig`.
-                if name.startswith('.'):
+                if name.startswith("."):
                     continue
                 pfad = Path(ordner_pfad) / name
                 try:
@@ -176,7 +228,7 @@ class UebrigeSuche:
         return treffer
 
     def _teile(self, ordner_pfad):
-        u"""Die Pfadteile innerhalb der Wurzel — oder ``None`` bei ausserhalb."""
+        """Die Pfadteile innerhalb der Wurzel — oder ``None`` bei ausserhalb."""
         try:
             return Path(ordner_pfad).relative_to(self.wurzel).parts
         except ValueError:
@@ -184,20 +236,20 @@ class UebrigeSuche:
 
     @staticmethod
     def _auslassen(teile, name, daten, raus, anmeldungen):
-        u"""Ist dieses Unterverzeichnis ausgeschlossen?"""
+        """Ist dieses Unterverzeichnis ausgeschlossen?"""
         if name.lower() in daten or name in raus:
             return True
-        voll = teile + (name, )
-        return any(voll[:len(a)] == a for a in anmeldungen)
+        voll = teile + (name,)
+        return any(voll[: len(a)] == a for a in anmeldungen)
 
     @staticmethod
     def _endung(dateiname):
-        u"""``'.log'`` oder ``''`` — dieselbe Regel wie ``Codezahlen.art``."""
-        punkt = dateiname.rfind('.')
-        return dateiname[punkt:].lower() if punkt > 0 else ''
+        """``'.log'`` oder ``''`` — dieselbe Regel wie ``Codezahlen.art``."""
+        punkt = dateiname.rfind(".")
+        return dateiname[punkt:].lower() if punkt > 0 else ""
 
     def vorschau(self, endung, treffer=None):
-        u"""``{anzahl, bytes, groesse, pfade, gekuerzt}`` — was ein Löschen
+        """``{anzahl, bytes, groesse, pfade, gekuerzt}`` — was ein Löschen
         träfe.
 
         ``groesse`` ist der fertige Text mit passender Einheit. Eine
@@ -215,16 +267,16 @@ class UebrigeSuche:
                 pass
         gezeigt = treffer[:VORSCHAU]
         return {
-            'endung': endung or u'(ohne Endung)',
-            'anzahl': len(treffer),
-            'bytes': gesamt,
-            'groesse': groesse_text(gesamt),
-            'pfade': [str(p.relative_to(self.wurzel)) for p in gezeigt],
-            'gekuerzt': max(0, len(treffer) - len(gezeigt)),
+            "endung": endung or "(ohne Endung)",
+            "anzahl": len(treffer),
+            "bytes": gesamt,
+            "groesse": groesse_text(gesamt),
+            "pfade": [str(p.relative_to(self.wurzel)) for p in gezeigt],
+            "gekuerzt": max(0, len(treffer) - len(gezeigt)),
         }
 
     def vorschau_mehrere(self, endungen):
-        u"""Vorschau über mehrere Endungen — ein Durchgang, eine Summe.
+        """Vorschau über mehrere Endungen — ein Durchgang, eine Summe.
 
         Für die Mehrfachauswahl (Edgar, 02.09.2026). Die Rückfrage nennt
         die Gesamtmenge und je Endung eine Zeile; ohne die Aufteilung
@@ -232,41 +284,42 @@ class UebrigeSuche:
         """
         gefunden = self.sammeln(endungen)
         teile = [self.vorschau(e, treffer=p) for e, p in gefunden.items()]
-        teile.sort(key=lambda t: -t['anzahl'])
-        bytes_gesamt = sum(t['bytes'] for t in teile)
+        teile.sort(key=lambda t: -t["anzahl"])
+        bytes_gesamt = sum(t["bytes"] for t in teile)
         return {
-            'anzahl': sum(t['anzahl'] for t in teile),
-            'bytes': bytes_gesamt,
-            'groesse': groesse_text(bytes_gesamt),
-            'arten': [{'endung': t['endung'], 'anzahl': t['anzahl'],
-                       'groesse': t['groesse']} for t in teile if t['anzahl']],
-            'pfade': [p for t in teile for p in t['pfade']][:VORSCHAU],
+            "anzahl": sum(t["anzahl"] for t in teile),
+            "bytes": bytes_gesamt,
+            "groesse": groesse_text(bytes_gesamt),
+            "arten": [
+                {"endung": t["endung"], "anzahl": t["anzahl"], "groesse": t["groesse"]}
+                for t in teile
+                if t["anzahl"]
+            ],
+            "pfade": [p for t in teile for p in t["pfade"]][:VORSCHAU],
         }
 
     # ── löschen ─────────────────────────────────────────────────
     def loeschen_mehrere(self, endungen):
-        u"""Mehrere Endungen löschen — ein Durchgang, ein Bericht."""
+        """Mehrere Endungen löschen — ein Durchgang, ein Bericht."""
         gefunden = self.sammeln(endungen)
-        gesamt = {'geloescht': 0, 'uebersprungen': 0, 'bytes': 0,
-                  'gruende': {}, 'je_endung': []}
-        for endung, pfade in sorted(gefunden.items(),
-                                    key=lambda p: -len(p[1])):
+        gesamt = {"geloescht": 0, "uebersprungen": 0, "bytes": 0, "gruende": {}, "je_endung": []}
+        for endung, pfade in sorted(gefunden.items(), key=lambda p: -len(p[1])):
             if not pfade:
                 continue
             b = self.loeschen(endung, treffer=pfade)
-            gesamt['geloescht'] += b['geloescht']
-            gesamt['uebersprungen'] += b['uebersprungen']
-            gesamt['bytes'] += b['bytes']
-            for grund, n in b['gruende'].items():
-                gesamt['gruende'][grund] = gesamt['gruende'].get(grund, 0) + n
-            gesamt['je_endung'].append({'endung': b['endung'],
-                                        'geloescht': b['geloescht'],
-                                        'groesse': b['groesse']})
-        gesamt['groesse'] = groesse_text(gesamt['bytes'])
+            gesamt["geloescht"] += b["geloescht"]
+            gesamt["uebersprungen"] += b["uebersprungen"]
+            gesamt["bytes"] += b["bytes"]
+            for grund, n in b["gruende"].items():
+                gesamt["gruende"][grund] = gesamt["gruende"].get(grund, 0) + n
+            gesamt["je_endung"].append(
+                {"endung": b["endung"], "geloescht": b["geloescht"], "groesse": b["groesse"]}
+            )
+        gesamt["groesse"] = groesse_text(gesamt["bytes"])
         return gesamt
 
     def loeschen(self, endung, treffer=None):
-        u"""Löscht sie — jede einzeln, jede nochmals geprüft.
+        """Löscht sie — jede einzeln, jede nochmals geprüft.
 
         Zurück kommt ``{geloescht, uebersprungen, bytes, groesse, gruende}``.
         Ein gescheitertes Löschen bricht den Lauf NICHT ab: Eine gesperrte
@@ -280,37 +333,45 @@ class UebrigeSuche:
         keine Abkürzung an der Sicherheit vorbei: Der eigentliche Schutz
         ist ``_pruefen`` unmittelbar vor jedem einzelnen ``unlink``.
         """
-        bericht = {'endung': endung or u'(ohne Endung)', 'geloescht': 0,
-                   'uebersprungen': 0, 'bytes': 0, 'gruende': {}}
+        bericht = {
+            "endung": endung or "(ohne Endung)",
+            "geloescht": 0,
+            "uebersprungen": 0,
+            "bytes": 0,
+            "gruende": {},
+        }
         if treffer is None:
             treffer = self.finden(endung)
         for pfad in treffer:
             grund = self._pruefen(pfad, endung)
             if grund:
-                bericht['uebersprungen'] += 1
-                bericht['gruende'][grund] = bericht['gruende'].get(grund, 0) + 1
+                bericht["uebersprungen"] += 1
+                bericht["gruende"][grund] = bericht["gruende"].get(grund, 0) + 1
                 continue
             try:
                 groesse = pfad.stat().st_size
                 pfad.unlink()
-                bericht['geloescht'] += 1
-                bericht['bytes'] += groesse
+                bericht["geloescht"] += 1
+                bericht["bytes"] += groesse
             except OSError as fehler:
-                bericht['uebersprungen'] += 1
+                bericht["uebersprungen"] += 1
                 grund = type(fehler).__name__
-                bericht['gruende'][grund] = bericht['gruende'].get(grund, 0) + 1
-        bericht['groesse'] = groesse_text(bericht['bytes'])
+                bericht["gruende"][grund] = bericht["gruende"].get(grund, 0) + 1
+        bericht["groesse"] = groesse_text(bericht["bytes"])
         logger.warning(
-            u'Statistik → Übrige: %d Dateien „%s" gelöscht (%s), '
-            u'%d übersprungen%s', bericht['geloescht'], bericht['endung'],
-            bericht['groesse'], bericht['uebersprungen'],
-            (u' — ' + u', '.join('%s: %d' % (g, n)
-                                 for g, n in bericht['gruende'].items()))
-            if bericht['gruende'] else u'')
+            'Statistik → Übrige: %d Dateien „%s" gelöscht (%s), %d übersprungen%s',
+            bericht["geloescht"],
+            bericht["endung"],
+            bericht["groesse"],
+            bericht["uebersprungen"],
+            (" — " + ", ".join("%s: %d" % (g, n) for g, n in bericht["gruende"].items()))
+            if bericht["gruende"]
+            else "",
+        )
         return bericht
 
     def _pruefen(self, pfad, endung):
-        u"""Der letzte Blick VOR dem Löschen. Gibt einen Grund oder ``None``.
+        """Der letzte Blick VOR dem Löschen. Gibt einen Grund oder ``None``.
 
         ``finden`` hat all das schon geprüft — hier steht es ein zweites
         Mal, weil zwischen Finden und Löschen Zeit vergeht und weil eine
@@ -318,26 +379,26 @@ class UebrigeSuche:
         sauber gearbeitet hat.
         """
         if geschuetzt(endung):
-            return u'geschützte Dateiart'
-        if pfad.name.startswith('.'):
-            return u'Konfigurationsdatei'
+            return "geschützte Dateiart"
+        if pfad.name.startswith("."):
+            return "Konfigurationsdatei"
         try:
             echt = pfad.resolve()
         except OSError:
-            return u'nicht auflösbar'
+            return "nicht auflösbar"
         try:
             echt.relative_to(self.wurzel)
         except ValueError:
-            return u'ausserhalb des Projekts'
+            return "ausserhalb des Projekts"
         if pfad.is_symlink():
-            return u'Verweis'
+            return "Verweis"
         if not pfad.is_file():
-            return u'kein einfaches Objekt'
-        if self._endung(pfad.name) != (endung or '').lower():
-            return u'andere Endung'
+            return "kein einfaches Objekt"
+        if self._endung(pfad.name) != (endung or "").lower():
+            return "andere Endung"
         if Codezahlen.art(pfad.name) != UEBRIGE:
-            return u'bekannte Dateiart'
+            return "bekannte Dateiart"
         return None
 
 
-__all__ = ['UebrigeSuche', 'VORSCHAU']
+__all__ = ["UebrigeSuche", "VORSCHAU"]

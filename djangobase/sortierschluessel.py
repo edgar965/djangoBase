@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Sortierschluessel — eine Zahl so schreiben, wie die Tabelle sie liest.
+"""Sortierschluessel — eine Zahl so schreiben, wie die Tabelle sie liest.
 
 DER BEFUND (05.09.2026, Werkzeug ``sortierwerte``)
 ==================================================
@@ -32,11 +32,11 @@ ist fuer Parameterzahlen da. Hier kommt eine fertige Zahl an und wird nur
 lesbar aufgeschrieben.
 """
 
-__all__ = ['Sortierschluessel']
+__all__ = ["Sortierschluessel"]
 
 
 class Sortierschluessel:
-    u"""Wandelt einen Wert in das Format, das die Sortierung versteht."""
+    """Wandelt einen Wert in das Format, das die Sortierung versteht."""
 
     #: Mehr Nachkommastellen braucht keine Sortierung — und es schneidet
     #: zugleich das Fliesskomma-Rauschen ab: ``0.019000000000000003``
@@ -45,7 +45,7 @@ class Sortierschluessel:
 
     @staticmethod
     def aus(wert):
-        u"""Der Attributwert zu ``wert``.
+        """Der Attributwert zu ``wert``.
 
         * ``None`` und Leerstring bleiben leer — das heisst der Sortierung
           „kein Wert" und stellt die Zeile ans Ende. Ein Gedankenstrich
@@ -54,14 +54,14 @@ class Sortierschluessel:
           Modellname sortieren als Zeichenkette voellig richtig.
         * Eine Ganzzahl kommt ohne Komma zurueck.
         """
-        if wert is None or wert == '':
-            return ''
+        if wert is None or wert == "":
+            return ""
         try:
             zahl = float(wert)
         except (TypeError, ValueError):
             return wert
         # `%f` statt `str()`: `str(1e-06)` waere `1e-06` — fuer die
         # Sortierung unlesbar, und zwar still.
-        text = ('%.*f' % (Sortierschluessel.STELLEN, zahl)).rstrip('0')
-        text = text.rstrip('.')
-        return (text or '0').replace('.', ',')
+        text = ("%.*f" % (Sortierschluessel.STELLEN, zahl)).rstrip("0")
+        text = text.rstrip(".")
+        return (text or "0").replace(".", ",")

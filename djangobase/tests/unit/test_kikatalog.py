@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Der KI-Katalog fragt jede Quelle EINMAL — und liest die Namen richtig.
+"""Der KI-Katalog fragt jede Quelle EINMAL — und liest die Namen richtig.
 
 WARUM DIESE TESTS (30.08.2026)
 ==============================
@@ -26,6 +26,7 @@ DAZU DIE NAMENSDEUTUNG, weil sie beim Aufteilen aus ``ModellKatalog`` in
 sondern kommen aus der Kalibrierung im Docstring von ``modellname.py``
 (27B = 17 GB, 26B = 16 GB) und aus echten Modellnamen dieses Rechners.
 """
+
 from django.test import SimpleTestCase
 
 from djangobase.ki.messungen import Bestenliste
@@ -35,34 +36,36 @@ from djangobase.ki.ollama import OllamaModelle
 
 
 class NamenTest(SimpleTestCase):
-    u"""Was ``Modellname`` aus einer Kennung liest."""
+    """Was ``Modellname`` aus einer Kennung liest."""
 
     #: DB nicht angefasst — sonst öffnet jeder Fall eine Transaktion und kann
     #: einen laufenden Server blockieren (Regel ``testlauf-blockiert-server``).
     databases = []
 
     def test_moe_liefert_beide_zahlen(self):
-        self.assertEqual(Modellname.parameter("qwen3.6:35b-a3b-q4_K_M"),
-                         ("35B", "3B"))
-        self.assertEqual(Modellname.parameter("deepseek/v4-550b-a55b"),
-                         ("550B", "55B"))
+        self.assertEqual(Modellname.parameter("qwen3.6:35b-a3b-q4_K_M"), ("35B", "3B"))
+        self.assertEqual(Modellname.parameter("deepseek/v4-550b-a55b"), ("550B", "55B"))
 
     def test_einfaches_modell_hat_keine_aktive_zahl(self):
         self.assertEqual(Modellname.parameter("qwen3.8:27b"), ("27B", None))
 
     def test_geschlossene_modelle_bleiben_leer(self):
-        u"""Keine Schätzung, wo nichts steht — lieber „k.A." als eine Zahl."""
-        for kennung in ("openai/gpt-5", "anthropic/claude-opus-5",
-                        "google/gemini-3-pro", "nomic-embed-text:latest"):
+        """Keine Schätzung, wo nichts steht — lieber „k.A." als eine Zahl."""
+        for kennung in (
+            "openai/gpt-5",
+            "anthropic/claude-opus-5",
+            "google/gemini-3-pro",
+            "nomic-embed-text:latest",
+        ):
             self.assertEqual(Modellname.parameter(kennung), (None, None), kennung)
 
     def test_zahl_muss_auf_b_enden(self):
-        u"""``qwen3.8`` ist eine Versionsnummer, keine Parameterzahl."""
+        """``qwen3.8`` ist eine Versionsnummer, keine Parameterzahl."""
         self.assertEqual(Modellname.parameter("qwen3.8"), (None, None))
         self.assertEqual(Modellname.parameter("modell-b32"), (None, None))
 
     def test_gb_trifft_die_kalibrierung(self):
-        u"""Die drei echten Downloads aus dem Docstring von ``modellname.py``."""
+        """Die drei echten Downloads aus dem Docstring von ``modellname.py``."""
         self.assertEqual(Modellname.gb("27B"), 17.0)
         self.assertEqual(Modellname.gb("26B"), 16.4)
         self.assertIsNone(Modellname.gb(None))
@@ -74,12 +77,12 @@ class NamenTest(SimpleTestCase):
         self.assertIsNone(Modellname.mrd("groß"))
 
     def test_gb_je_mrd_bleibt_kalibriert(self):
-        u"""Ändert jemand die Konstante, ändern sich alle Plattenangaben."""
+        """Ändert jemand die Konstante, ändern sich alle Plattenangaben."""
         self.assertEqual(GB_JE_MRD, 0.63)
 
 
 class ZaehlenderKatalog(ModellKatalog):
-    u"""Ein Katalog, der mitschreibt, wie oft er die Datei anfasst."""
+    """Ein Katalog, der mitschreibt, wie oft er die Datei anfasst."""
 
     def __init__(self, eintraege):
         super().__init__(cache_verzeichnis=None)
@@ -91,11 +94,12 @@ class ZaehlenderKatalog(ModellKatalog):
         # Zeitstempel „jetzt", damit der Frischetest greift und kein Netzabruf
         # versucht wird — der Test soll nichts von diesem Rechner brauchen.
         import time
+
         return self.eintraege, time.time()
 
 
 class ZaehlendeOllama(OllamaModelle):
-    u"""Ollama-Attrappe: zählt die Abrufe, geht nie ins Netz."""
+    """Ollama-Attrappe: zählt die Abrufe, geht nie ins Netz."""
 
     def __init__(self, modelle, kontext=8192):
         super().__init__()
@@ -111,17 +115,19 @@ class ZaehlendeOllama(OllamaModelle):
 
 
 def _eintrag(kennung, preis=0.0):
-    return {"id": kennung, "context_length": 32768,
-            "pricing": {"prompt": preis, "completion": preis}}
+    return {"id": kennung, "context_length": 32768, "pricing": {"prompt": preis, "completion": preis}}
 
 
 def _lokal(name, groesse=1_000_000_000):
-    return {"name": name, "size": groesse,
-            "details": {"parameter_size": "27.3B", "quantization_level": "Q4_K_M"}}
+    return {
+        "name": name,
+        "size": groesse,
+        "details": {"parameter_size": "27.3B", "quantization_level": "Q4_K_M"},
+    }
 
 
 class QuellenNurEinmalTest(SimpleTestCase):
-    u"""Der eigentliche Befund: je Quelle EIN Zugriff, egal wie viele Zeilen."""
+    """Der eigentliche Befund: je Quelle EIN Zugriff, egal wie viele Zeilen."""
 
     databases = []
 
@@ -132,7 +138,7 @@ class QuellenNurEinmalTest(SimpleTestCase):
         self.assertEqual(k.dateizugriffe, 1)
 
     def test_leerer_katalog_wird_auch_gemerkt(self):
-        u"""Sonst liest eine leere Datei bei jeder Messzeile erneut."""
+        """Sonst liest eine leere Datei bei jeder Messzeile erneut."""
         k = ZaehlenderKatalog([])
         for _ in range(4):
             k.online_roh()
@@ -146,7 +152,7 @@ class QuellenNurEinmalTest(SimpleTestCase):
         self.assertEqual(o.abrufe.count("/api/show"), 3)
 
     def test_bestenliste_fragt_nicht_je_zeile_nach(self):
-        u"""Der Fall, der die 620 ms ausgemacht hat.
+        """Der Fall, der die 620 ms ausgemacht hat.
 
         ``_katalogdaten`` läuft je Messzeile — mit einem Katalog, der nichts
         kennt, fällt JEDE Zeile bis in die Ollama-Liste durch. Vor dem
@@ -159,7 +165,7 @@ class QuellenNurEinmalTest(SimpleTestCase):
         self.assertEqual(k.ollama.abrufe.count("/api/tags"), 1)
 
     def test_ollama_aus_wird_nicht_gemerkt(self):
-        u"""Läuft der Dienst gleich wieder, soll die Seite ihn finden.
+        """Läuft der Dienst gleich wieder, soll die Seite ihn finden.
 
         Ein gemerktes „leer" sähe aus wie „nachgesehen, es gibt keine" — und
         bliebe für die Lebensdauer des Katalogs falsch."""
@@ -169,7 +175,7 @@ class QuellenNurEinmalTest(SimpleTestCase):
         self.assertEqual(o.abrufe.count("/api/tags"), 2)
 
     def test_liste_gibt_dieselben_woerterbuecher_zurueck(self):
-        u"""Die Ansicht trägt Messwerte in die Zeilen ein (``zeile.update``).
+        """Die Ansicht trägt Messwerte in die Zeilen ein (``zeile.update``).
 
         Käme beim zweiten Aufruf eine frische Kopie, wären sie weg — genau der
         Grund, aus dem in der Ansicht ``lokal()`` einmal geholt und
@@ -182,12 +188,12 @@ class QuellenNurEinmalTest(SimpleTestCase):
 
 
 class OllamaZeilenTest(SimpleTestCase):
-    u"""Was in einer lokalen Zeile steht — und woher."""
+    """Was in einer lokalen Zeile steht — und woher."""
 
     databases = []
 
     def test_angabe_des_modells_schlaegt_den_namen(self):
-        u"""``27b`` im Namen sind in Wahrheit 27,3 Mrd. Parameter."""
+        """``27b`` im Namen sind in Wahrheit 27,3 Mrd. Parameter."""
         o = ZaehlendeOllama([_lokal("qwen3.8:27b")])
         self.assertEqual(o.liste()[0]["param_gesamt"], "27.3B")
 
@@ -200,14 +206,17 @@ class OllamaZeilenTest(SimpleTestCase):
         self.assertEqual(zeile["param_aktiv"], "3B")
 
     def test_groesste_zuerst(self):
-        o = ZaehlendeOllama([_lokal("klein:3b", 3_000_000_000),
-                             _lokal("gross:70b", 26_400_000_000),
-                             _lokal("mittel:27b", 17_700_000_000)])
-        self.assertEqual([z["kennung"] for z in o.liste()],
-                         ["gross:70b", "mittel:27b", "klein:3b"])
+        o = ZaehlendeOllama(
+            [
+                _lokal("klein:3b", 3_000_000_000),
+                _lokal("gross:70b", 26_400_000_000),
+                _lokal("mittel:27b", 17_700_000_000),
+            ]
+        )
+        self.assertEqual([z["kennung"] for z in o.liste()], ["gross:70b", "mittel:27b", "klein:3b"])
 
     def test_kontext_kommt_aus_api_show(self):
-        u"""Der Präfix wechselt je Modell — gesucht wird die ENDUNG."""
+        """Der Präfix wechselt je Modell — gesucht wird die ENDUNG."""
         o = ZaehlendeOllama([_lokal("a:27b")], kontext=262144)
         self.assertEqual(o.liste()[0]["kontext"], 262144)
 
@@ -223,37 +232,33 @@ class OllamaZeilenTest(SimpleTestCase):
 
 
 class TabellenTest(SimpleTestCase):
-    u"""Die Aufteilung in kostenlos und bezahlt."""
+    """Die Aufteilung in kostenlos und bezahlt."""
 
     databases = []
 
     def test_der_preis_entscheidet_nicht_der_name(self):
-        u"""Befund 22.08.2026: ``stealth/ox-alpha`` kostet nichts und heißt
+        """Befund 22.08.2026: ``stealth/ox-alpha`` kostet nichts und heißt
         nicht ``:free`` — es fiel durch beide Raster und stand in keiner
         Tabelle."""
-        k = ZaehlenderKatalog([_eintrag("stealth/ox-alpha", 0.0),
-                               _eintrag("openai/gpt-5", 0.000002)])
+        k = ZaehlenderKatalog([_eintrag("stealth/ox-alpha", 0.0), _eintrag("openai/gpt-5", 0.000002)])
         frei, bezahlt = k.tabellen()
         self.assertEqual([z["kennung"] for z in frei], ["stealth/ox-alpha"])
         self.assertEqual([z["kennung"] for z in bezahlt], ["openai/gpt-5"])
 
     def test_batch_varianten_fliegen_raus(self):
-        k = ZaehlenderKatalog([_eintrag("openai/gpt-5"),
-                               _eintrag("openai/gpt-5:batch"),
-                               _eintrag("~geplant/modell")])
+        k = ZaehlenderKatalog(
+            [_eintrag("openai/gpt-5"), _eintrag("openai/gpt-5:batch"), _eintrag("~geplant/modell")]
+        )
         frei, bezahlt = k.tabellen()
-        self.assertEqual([z["kennung"] for z in frei + bezahlt],
-                         ["openai/gpt-5"])
+        self.assertEqual([z["kennung"] for z in frei + bezahlt], ["openai/gpt-5"])
 
     def test_filter_auf_anbieter(self):
-        k = ZaehlenderKatalog([_eintrag("qwen/qwen3-27b"),
-                               _eintrag("fremd/irgendwas")])
+        k = ZaehlenderKatalog([_eintrag("qwen/qwen3-27b"), _eintrag("fremd/irgendwas")])
         frei, bezahlt = k.tabellen(anbieter=("qwen",))
-        self.assertEqual([z["kennung"] for z in frei + bezahlt],
-                         ["qwen/qwen3-27b"])
+        self.assertEqual([z["kennung"] for z in frei + bezahlt], ["qwen/qwen3-27b"])
 
     def test_platte_aus_den_gesamtparametern(self):
-        u"""Bei MoE zählt für den Plattenplatz die GESAMTzahl: Alle Experten
+        """Bei MoE zählt für den Plattenplatz die GESAMTzahl: Alle Experten
         müssen geladen sein, gerechnet wird nur mit den aktiven."""
         k = ZaehlenderKatalog([_eintrag("google/gemma4-26b-a4b")])
         frei, _ = k.tabellen()

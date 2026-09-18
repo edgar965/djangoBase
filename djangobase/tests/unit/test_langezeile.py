@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""`LangeZeile`: was sich umbrechen laesst — und was nicht.
+"""`LangeZeile`: was sich umbrechen laesst — und was nicht.
 
 WARUM DIESE AUSNAHME (31.08.2026, 3DTools)
 ==========================================
@@ -24,13 +24,14 @@ BDD - GEGEBEN / DANN
     EineZeileMitMehrerenTags     ... wird gemeldet
     EineZeileImErklaertext       ... nicht
 """
+
 import unittest
 
 from djangobase.skills.jsregeln import LangeZeile
 
 
 class LangezeilenBasis(unittest.TestCase):
-    u"""Prueft die Regel unmittelbar — ohne Dateien, ohne Ablage."""
+    """Prueft die Regel unmittelbar — ohne Dateien, ohne Ablage."""
 
     databases = []
 
@@ -43,7 +44,7 @@ class LangezeilenBasis(unittest.TestCase):
 
 
 class EineLangeZeileOhneTag(LangezeilenBasis):
-    u"""Gegeben: 130 Zeichen gewoehnliches Markup."""
+    """Gegeben: 130 Zeichen gewoehnliches Markup."""
 
     def test_sie_wird_gemeldet(self):
         funde = self.funde("<div>" + "x" * 130 + "</div>")
@@ -59,41 +60,43 @@ class EineLangeZeileOhneTag(LangezeilenBasis):
 
 
 class EineZeileAnEinemTag(LangezeilenBasis):
-    u"""Gegeben: Die Ueberlaenge steckt in EINEM `{% … %}`."""
+    """Gegeben: Die Ueberlaenge steckt in EINEM `{% … %}`."""
 
     #: Wie sie wirklich dasteht (`_einstellungen_speichern.html`).
-    ECHT = ('    {% include "_einstellungen_speichern.html" '
-            'with weiter_route="theatre" weiter_text="Zur Theatre-Seite" '
-            'weiter_icon="fa-film" %}')
+    ECHT = (
+        '    {% include "_einstellungen_speichern.html" '
+        'with weiter_route="theatre" weiter_text="Zur Theatre-Seite" '
+        'weiter_icon="fa-film" %}'
+    )
 
     def test_der_echte_fall_wird_uebergangen(self):
-        self.assertGreater(len(self.ECHT), 120, 'Der Fall muss lang sein')
+        self.assertGreater(len(self.ECHT), 120, "Der Fall muss lang sein")
         self.assertEqual(self.funde(self.ECHT), [])
 
     def test_und_die_ausnahme_zaehlt_mit(self):
-        u"""Eine Ausnahme, die schweigt, ist ein blinder Fleck."""
+        """Eine Ausnahme, die schweigt, ist ein blinder Fleck."""
         self.funde(self.ECHT)
         self.assertEqual(self.regel.unteilbar, 1)
 
     def test_auch_mit_etwas_markup_davor(self):
-        u"""Der zweite echte Fall (`upload_v4.html`, 132 Zeichen): Der
+        """Der zweite echte Fall (`upload_v4.html`, 132 Zeichen): Der
         `{% if %}` allein misst 70, das `<div>` drumherum ist kurz."""
-        zeile = ('                <div class="pipeline-card '
-                 '{% if not status_3d.hybrid_gvhmr '
-                 'and not status_3d.hybrid_prompthmr %}disabled{% endif %}"')
+        zeile = (
+            '                <div class="pipeline-card '
+            "{% if not status_3d.hybrid_gvhmr "
+            'and not status_3d.hybrid_prompthmr %}disabled{% endif %}"'
+        )
         self.assertGreater(len(zeile), 120)
         self.assertEqual(self.funde(zeile), [])
 
 
 class EineZeileMitMehrerenTags(LangezeilenBasis):
-    u"""Gegeben: Mehrere Tags — jeder fuer sich kurz."""
+    """Gegeben: Mehrere Tags — jeder fuer sich kurz."""
 
     def test_sie_wird_gemeldet(self):
-        u"""Die Gegenprobe: Ohne sie deckte die Ausnahme jede Zeile, in
+        """Die Gegenprobe: Ohne sie deckte die Ausnahme jede Zeile, in
         der irgendwo ein Tag steht."""
-        zeile = ("<td>{{ a }}</td>" * 3
-                 + "{% if x %}A{% endif %}" * 4
-                 + "<td>Ende</td>")
+        zeile = "<td>{{ a }}</td>" * 3 + "{% if x %}A{% endif %}" * 4 + "<td>Ende</td>"
         self.assertGreater(len(zeile), 120)
         funde = self.funde(zeile)
         self.assertEqual(len(funde), 1, funde)
@@ -105,25 +108,26 @@ class EineZeileMitMehrerenTags(LangezeilenBasis):
 
 
 class EineZeileImErklaertext(LangezeilenBasis):
-    u"""Gegeben: Der Beispielaufruf steht in einem `{% comment %}`."""
+    """Gegeben: Der Beispielaufruf steht in einem `{% comment %}`."""
 
     def test_sie_wird_uebergangen(self):
-        u"""Wer diesem Befund folgt, kuerzt die BEGRUENDUNG."""
+        """Wer diesem Befund folgt, kuerzt die BEGRUENDUNG."""
         funde = self.funde(
             "{% comment %}",
             "    So fordert man den zweiten Knopf an:",
             "        " + "y" * 130,
-            "{% endcomment %}")
+            "{% endcomment %}",
+        )
         self.assertEqual(funde, [])
 
     def test_aber_dieselbe_zeile_ausserhalb_schon(self):
-        u"""Die Gegenprobe zum Kommentar-Ausschluss."""
+        """Die Gegenprobe zum Kommentar-Ausschluss."""
         funde = self.funde("        " + "y" * 130)
         self.assertEqual(len(funde), 1, funde)
 
 
 class DieRegelBleibtEinEinzelstueck(LangezeilenBasis):
-    u"""Gegeben: `REGELN` haelt EINE Instanz je Regel, ueber Laeufe hinweg.
+    """Gegeben: `REGELN` haelt EINE Instanz je Regel, ueber Laeufe hinweg.
 
     Deshalb setzt `jsbefunde.laufen` die Zaehler vor jedem Lauf zurueck.
     Faellt das weg, waechst `unteilbar` von Lauf zu Lauf — eine Zahl, die
@@ -142,8 +146,8 @@ class DieRegelBleibtEinEinzelstueck(LangezeilenBasis):
         for regel in REGELN:
             if isinstance(regel, LangeZeile):
                 regel.unteilbar = 99
-        quelle = JsBefunde.laufen.__doc__ or ''
-        del quelle          # nur zur Klarheit: geprueft wird der Lauf
+        quelle = JsBefunde.laufen.__doc__ or ""
+        del quelle  # nur zur Klarheit: geprueft wird der Lauf
         JsBefunde().laufen()
         offen = [r.unteilbar for r in REGELN if isinstance(r, LangeZeile)]
         # KLEINER ALS DER STARTWERT, NICHT „ungleich 99" (Befund CodeRabbit,
@@ -153,5 +157,5 @@ class DieRegelBleibtEinEinzelstueck(LangezeilenBasis):
         # seinen Wert in dem Moment, in dem irgendeine Vorlage eine lange
         # ``{% … %}``-Zeile bekam, und sagte das niemandem.
         self.assertTrue(
-            offen and all(w < 99 for w in offen),
-            'Der Zaehler wurde nicht zurueckgesetzt (Werte: %s)' % offen)
+            offen and all(w < 99 for w in offen), "Der Zaehler wurde nicht zurueckgesetzt (Werte: %s)" % offen
+        )

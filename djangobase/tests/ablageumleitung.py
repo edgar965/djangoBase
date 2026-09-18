@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Ablageumleitung — kein Prüflauf schreibt mehr in den System-Zwischenspeicher.
+"""Ablageumleitung — kein Prüflauf schreibt mehr in den System-Zwischenspeicher.
 
 DER BEFUND (31.08.2026)
 =======================
@@ -32,6 +32,7 @@ Beim Start (was ein abgebrochener Lauf hinterlassen hat) und per `atexit`.
 Ein `finally` allein hilft nur, solange der Prozess lebt — und gerade der
 abgebrochene Lauf ist der, der etwas stehenlässt.
 """
+
 import atexit
 import os
 import shutil
@@ -40,7 +41,7 @@ from pathlib import Path
 
 
 class Ablageumleitung:
-    u"""Lenkt `tempfile` für die Dauer des Prüflaufs ins Projekt."""
+    """Lenkt `tempfile` für die Dauer des Prüflaufs ins Projekt."""
 
     #: Unterhalb von BASE_DIR. `_wegwerf` steht in `werkzeug.AUSGESCHLOSSEN`
     #: und in beiden `.gitignore` — siehe `Wegwerfordner.UNTER`.
@@ -54,7 +55,7 @@ class Ablageumleitung:
 
     @classmethod
     def einrichten(cls):
-        u"""Einmal je Prozess. Ohne Django-Einstellungen passiert nichts.
+        """Einmal je Prozess. Ohne Django-Einstellungen passiert nichts.
 
         @returns {Path|None} der Ordner, oder None wenn nichts umgelenkt wurde
         """
@@ -72,7 +73,7 @@ class Ablageumleitung:
 
     @classmethod
     def zuruecknehmen(cls):
-        u"""Ordner leeren und `tempfile` zurückstellen."""
+        """Ordner leeren und `tempfile` zurückstellen."""
         if not cls._steht:
             return
         wurzel = cls._wurzel()
@@ -83,7 +84,7 @@ class Ablageumleitung:
 
     @classmethod
     def _wurzel(cls):
-        u"""`BASE_DIR/_wegwerf/system`, angelegt falls nötig.
+        """`BASE_DIR/_wegwerf/system`, angelegt falls nötig.
 
         Ohne konfigurierte Einstellungen (etwa beim blossen Import eines
         Moduls ausserhalb eines Prueflaufs) gibt es keine Wurzel — dann
@@ -116,7 +117,7 @@ class Ablageumleitung:
 
     @classmethod
     def _verwaiste_raeumen(cls, eltern, eigener):
-        u"""Reste abgestuerzter Laeufe — nie die eines laufenden Prozesses.
+        """Reste abgestuerzter Laeufe — nie die eines laufenden Prozesses.
 
         ZWEI FRAGEN, IN DIESER REIHENFOLGE (31.08.2026):
 
@@ -163,7 +164,7 @@ class Ablageumleitung:
 
     @staticmethod
     def _leeren(wurzel):
-        u"""Alles unterhalb der eigenen Wurzel — Dateien wie Verzeichnisse.
+        """Alles unterhalb der eigenen Wurzel — Dateien wie Verzeichnisse.
 
         NUR UNTERHALB, und die Wurzel selbst bleibt stehen: Ein Aufräumer,
         der Elternpfade anfasst, ist die nächste Sorte Schaden.

@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
-u"""LanguageServer: Parser, fehlendes Programm, Konfigurationsdatei — ohne
+"""LanguageServer: Parser, fehlendes Programm, Konfigurationsdatei — ohne
 einen echten Server zu starten. Der echte Lauf ist eine Gegenprobe auf der
 Seite, kein Unit-Test."""
+
 import json
 import tempfile
 import unittest
@@ -14,25 +15,43 @@ from djangobase.umbau.ls_konfig import LsKonfig
 AUSGABE = {
     "version": "1.19.0",
     "generalDiagnostics": [
-        {"file": r"C:\p\brain\a.py", "severity": "error", "rule": "reportUndefinedVariable",
-         "message": "\"_unveraendert\" is not defined",
-         "range": {"start": {"line": 9, "character": 4}, "end": {"line": 9, "character": 17}}},
-        {"file": r"C:\p\brain\b.py", "severity": "warning", "rule": "reportUnusedImport",
-         "message": "Import \"os\" is not accessed",
-         "range": {"start": {"line": 0, "character": 7}, "end": {"line": 0, "character": 9}}},
-        {"file": r"C:\p\brain\b.py", "severity": "information", "rule": None,
-         "message": "Hinweis", "range": {"start": {"line": 3, "character": 0}}},
+        {
+            "file": r"C:\p\brain\a.py",
+            "severity": "error",
+            "rule": "reportUndefinedVariable",
+            "message": '"_unveraendert" is not defined',
+            "range": {"start": {"line": 9, "character": 4}, "end": {"line": 9, "character": 17}},
+        },
+        {
+            "file": r"C:\p\brain\b.py",
+            "severity": "warning",
+            "rule": "reportUnusedImport",
+            "message": 'Import "os" is not accessed',
+            "range": {"start": {"line": 0, "character": 7}, "end": {"line": 0, "character": 9}},
+        },
+        {
+            "file": r"C:\p\brain\b.py",
+            "severity": "information",
+            "rule": None,
+            "message": "Hinweis",
+            "range": {"start": {"line": 3, "character": 0}},
+        },
     ],
-    "summary": {"filesAnalyzed": 2, "errorCount": 1, "warningCount": 1,
-                "informationCount": 1, "timeInSec": 0.4},
+    "summary": {
+        "filesAnalyzed": 2,
+        "errorCount": 1,
+        "warningCount": 1,
+        "informationCount": 1,
+        "timeInSec": 0.4,
+    },
 }
 
 
 class ParserTest(unittest.TestCase):
-
     def test_parser_liefert_relative_pfade_und_1basierte_zeilen(self):
         befunde, dateien, version = LanguageServer._parsen(
-            "Kopfzeile der Huelle\n" + json.dumps(AUSGABE), Path(r"C:\p"))
+            "Kopfzeile der Huelle\n" + json.dumps(AUSGABE), Path(r"C:\p")
+        )
         self.assertEqual((dateien, version), (2, "1.19.0"))
         self.assertEqual(befunde[0]["datei"], "brain/a.py")
         self.assertEqual((befunde[0]["zeile"], befunde[0]["spalte"]), (10, 5))
@@ -45,12 +64,11 @@ class ParserTest(unittest.TestCase):
 
 
 class LaufTest(unittest.TestCase):
-
     def test_fehlendes_programm_ergibt_hinweis_statt_traceback(self):
         with tempfile.TemporaryDirectory() as d:
             k = LsKonfig({"werkzeug": "pyright", "python": str(Path(d) / "x" / "python.exe")})
             s = LanguageServer(k, d, Path(d) / "ablage")
-            s._programm = lambda name: None              # nirgends installiert
+            s._programm = lambda name: None  # nirgends installiert
             e = s.laufen()
             self.assertIn("nicht installiert", e.fehlt)
             self.assertIn("pip install pyright", e.fehlt)
@@ -66,16 +84,13 @@ class LaufTest(unittest.TestCase):
             # RELATIV zur Konfigurationsdatei (ablage/ liegt eine Ebene unter d):
             # pyright verwirft absolute include-Pfade, 02.09.2026 gemessen.
             self.assertEqual(cfg["include"], [".."])
-            self.assertEqual(s.umgebung()["PYRIGHT_PYTHON_CACHE_DIR"],
-                             str(ordner / "pyright-python"))
+            self.assertEqual(s.umgebung()["PYRIGHT_PYTHON_CACHE_DIR"], str(ordner / "pyright-python"))
 
 
 class BefundeTest(unittest.TestCase):
-
     def _ergebnis(self):
         e = LsErgebnis("basedpyright", "abc", "basic")
-        e.befunde, e.dateien, e.version = LanguageServer._parsen(
-            json.dumps(AUSGABE), Path(r"C:\p"))
+        e.befunde, e.dateien, e.version = LanguageServer._parsen(json.dumps(AUSGABE), Path(r"C:\p"))
         e.dauer_s = 0.4
         return e
 
@@ -104,7 +119,7 @@ class BefundeTest(unittest.TestCase):
 
 
 class DasEigenePaketIstAufloesbar(unittest.TestCase):
-    u"""``extra_pfade()`` muss den Ordner ÜBER ``djangobase`` mitgeben.
+    """``extra_pfade()`` muss den Ordner ÜBER ``djangobase`` mitgeben.
 
     DER ANLASS (02.09.2026)
     =======================
@@ -120,30 +135,37 @@ class DasEigenePaketIstAufloesbar(unittest.TestCase):
 
     def _pfade(self):
         from djangobase.views.languageserver import extra_pfade
+
         return [Path(p).resolve() for p in extra_pfade()]
 
     def test_der_ordner_ueber_dem_paket_ist_dabei(self):
         import djangobase
+
         eigene = Path(djangobase.__file__).resolve().parent.parent
-        self.assertIn(eigene, self._pfade(),
-                      u"Ohne diesen Pfad meldet der Server jeden "
-                      u"djangobase-Import als unauffindbar.")
+        self.assertIn(
+            eigene,
+            self._pfade(),
+            "Ohne diesen Pfad meldet der Server jeden djangobase-Import als unauffindbar.",
+        )
 
     def test_und_er_enthaelt_das_paket_wirklich(self):
-        u"""Sonst prüft die Zusage darüber einen Pfad ins Leere."""
+        """Sonst prüft die Zusage darüber einen Pfad ins Leere."""
         import djangobase
+
         eigene = Path(djangobase.__file__).resolve().parent.parent
-        self.assertTrue((eigene / "djangobase" / "__init__.py").is_file(),
-                        u"%s ist keine Import-Wurzel für djangobase" % eigene)
+        self.assertTrue(
+            (eigene / "djangobase" / "__init__.py").is_file(),
+            "%s ist keine Import-Wurzel für djangobase" % eigene,
+        )
 
     def test_kein_pfad_kommt_doppelt(self):
-        u"""``extraPaths`` wächst sonst bei jedem Lauf um dieselbe Zeile."""
+        """``extraPaths`` wächst sonst bei jedem Lauf um dieselbe Zeile."""
         pfade = self._pfade()
         self.assertEqual(len(pfade), len(set(pfade)))
 
 
 class DieProjekteigenenWurzelnKommenDazu(unittest.TestCase):
-    u"""``ls_extra_pfade`` — dieselbe Fehlerklasse, nur nicht erratbar.
+    """``ls_extra_pfade`` — dieselbe Fehlerklasse, nur nicht erratbar.
 
     DER ANLASS (05.09.2026, 3DTools)
     ================================
@@ -169,10 +191,12 @@ class DieProjekteigenenWurzelnKommenDazu(unittest.TestCase):
     @staticmethod
     def _fremder_ordner():
         import djangobase
+
         return Path(djangobase.__file__).resolve().parent
 
     def _pfade(self, **konfig):
         from djangobase.views import languageserver as modul
+
         echt = modul.conf
         modul.conf = lambda: dict(konfig)
         try:
@@ -181,7 +205,7 @@ class DieProjekteigenenWurzelnKommenDazu(unittest.TestCase):
             modul.conf = echt
 
     def test_der_ordner_steht_ohne_eintrag_nicht_drin(self):
-        u"""Die Voraussetzung des naechsten Falls — sonst prueft er nichts."""
+        """Die Voraussetzung des naechsten Falls — sonst prueft er nichts."""
         self.assertNotIn(self._fremder_ordner(), self._pfade())
 
     def test_mit_eintrag_ist_er_dabei(self):
@@ -189,7 +213,7 @@ class DieProjekteigenenWurzelnKommenDazu(unittest.TestCase):
         self.assertIn(ordner, self._pfade(ls_extra_pfade=[str(ordner)]))
 
     def test_ohne_eintrag_aendert_sich_nichts(self):
-        u"""Die Vorgabe ist leer — alle bisherigen Projekte unverändert."""
+        """Die Vorgabe ist leer — alle bisherigen Projekte unverändert."""
         self.assertEqual(self._pfade(), self._pfade(ls_extra_pfade=[]))
 
     def test_derselbe_ordner_zweimal_zaehlt_einmal(self):
@@ -199,14 +223,15 @@ class DieProjekteigenenWurzelnKommenDazu(unittest.TestCase):
         self.assertIn(ordner, pfade)
 
     def test_die_wurzel_selbst_kommt_nicht_dazu(self):
-        u"""Sie steht ohnehin in jeder ``pyrightconfig.json``; ein zweiter
+        """Sie steht ohnehin in jeder ``pyrightconfig.json``; ein zweiter
         Eintrag wäre nur eine Zeile mehr in ``extraPaths``."""
         from djangobase.views.languageserver import wurzel
+
         drinnen = Path(wurzel()).resolve()
         self.assertNotIn(drinnen, self._pfade(ls_extra_pfade=[str(drinnen)]))
 
     def test_ein_ordner_IM_projekt_kommt_dazu(self):
-        u"""Die Gegenprobe zum Fall darüber — und der Anlass vom 10.09.2026.
+        """Die Gegenprobe zum Fall darüber — und der Anlass vom 10.09.2026.
 
         Ein Ordner voller Skripte, die einander ohne Paketpräfix
         importieren (``werkzeug/aufteilen`` in assistant: 193 Gegenproben,
@@ -215,5 +240,6 @@ class DieProjekteigenenWurzelnKommenDazu(unittest.TestCase):
         weg, weil sein Pfad mit der Wurzel beginnt — 157 gemeldete Importe,
         die alle auflösbar sind."""
         from djangobase.views.languageserver import wurzel
+
         unterordner = Path(wurzel()).resolve() / "werkzeug"
         self.assertIn(unterordner, self._pfade(ls_extra_pfade=[str(unterordner)]))

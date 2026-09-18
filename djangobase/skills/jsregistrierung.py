@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""JsRegistrierung - wird jeder gerufene Name eines Funktionsregisters angemeldet?
+"""JsRegistrierung - wird jeder gerufene Name eines Funktionsregisters angemeldet?
 
 DER BEFUND (3DTools, 16.08.2026)
 ================================
@@ -29,6 +29,7 @@ ANPASSEN: Das Register heisst nicht ueberall ``fn``. Ueber
 ``DJANGOBASE["skills2_register"] = ["fn", "api"]`` kann ein Projekt eigene
 Namen nennen.
 """
+
 import re
 
 from django.conf import settings
@@ -46,13 +47,19 @@ ALS_TEXT = re.compile(r"""['"](\w+)['"]""")
 class JsRegistrierung(Werkzeug):
     slug = "jsregistrierung"
     titel = "Funktionsregister: Anmeldung vs. Aufruf"
-    zweck = ("Vergleicht `fn.name = …` mit `fn.name(…)` über alle .js-Dateien "
-             "und Vorlagen: Wird jeder gerufene Name auch angemeldet?")
-    befund = ("3DTools: vier Namen wurden gerufen, aber nie angemeldet - drei "
-              "Zweige der Foto-Seite und die Lichtsteuerung der Szene waren "
-              "still ohne Wirkung.")
-    abhilfe = ("Fehlende Anmeldung ergänzen oder - besser - den Namen direkt "
-               "importieren statt über das Register zu gehen.")
+    zweck = (
+        "Vergleicht `fn.name = …` mit `fn.name(…)` über alle .js-Dateien "
+        "und Vorlagen: Wird jeder gerufene Name auch angemeldet?"
+    )
+    befund = (
+        "3DTools: vier Namen wurden gerufen, aber nie angemeldet - drei "
+        "Zweige der Foto-Seite und die Lichtsteuerung der Szene waren "
+        "still ohne Wirkung."
+    )
+    abhilfe = (
+        "Fehlende Anmeldung ergänzen oder - besser - den Namen direkt "
+        "importieren statt über das Register zu gehen."
+    )
     dauer = "unter 1 s"
     kriterium = 9
 
@@ -67,22 +74,35 @@ class JsRegistrierung(Werkzeug):
     #: kein Netz: Fehlt die Anmeldung, passiert beim Klick gar nichts - kein
     #: Fehler, kein Log-Eintrag.
     anlassfall = Anlassfall(
-        {"anmeldung.js": '''fn.speichern = () => 1;
-''',
-         "aufruf.js": '''export function knopf() {
+        {
+            "anmeldung.js": """fn.speichern = () => 1;
+""",
+            "aufruf.js": """export function knopf() {
   fn.speichern();
   fn.verwerfen();
 }
-'''},
+""",
+        },
         erwartet_in="verwerfen",
         warum="Vier Namen wurden gerufen und nie angemeldet — die Fotoanalyse "
-              "brach ab, drei weitere Knöpfe waren wirkungslos")
+        "brach ab, drei weitere Knöpfe waren wirkungslos",
+    )
 
     #: Was auf JEDER Funktion und jedem Objekt liegt — nie ein Registereintrag.
-    EINGEBAUT = frozenset({
-        "apply", "call", "bind", "toString", "valueOf", "constructor",
-        "hasOwnProperty", "then", "catch", "finally",
-    })
+    EINGEBAUT = frozenset(
+        {
+            "apply",
+            "call",
+            "bind",
+            "toString",
+            "valueOf",
+            "constructor",
+            "hasOwnProperty",
+            "then",
+            "catch",
+            "finally",
+        }
+    )
 
     def laufen(self):
         namen = "|".join(re.escape(n) for n in self.register())
@@ -110,25 +130,34 @@ class JsRegistrierung(Werkzeug):
             verwiesen.update(verweis.findall(ohne_anmeldung))
             verwiesen.update(ALS_TEXT.findall(ohne_anmeldung))
 
-        fehlend = {n: p for n, p in sorted(gerufen.items())
-                   if n not in angemeldet}
-        unbenutzt = sorted(n for n in angemeldet
-                           if n not in gerufen and n not in verwiesen)
+        fehlend = {n: p for n, p in sorted(gerufen.items()) if n not in angemeldet}
+        unbenutzt = sorted(n for n in angemeldet if n not in gerufen and n not in verwiesen)
 
-        zeilen = [{"art": "gerufen, NICHT angemeldet", "name": name,
-                   "ort": ", ".join(sorted({p for p in pfade})[:3])}
-                  for name, pfade in fehlend.items()]
+        zeilen = [
+            {
+                "art": "gerufen, NICHT angemeldet",
+                "name": name,
+                "ort": ", ".join(sorted({p for p in pfade})[:3]),
+            }
+            for name, pfade in fehlend.items()
+        ]
         if unbenutzt:
-            zeilen.append({"art": "angemeldet, nie gerufen (Hinweis)",
-                           "name": "%d Namen" % len(unbenutzt),
-                           "ort": ", ".join(unbenutzt[:25])})
+            zeilen.append(
+                {
+                    "art": "angemeldet, nie gerufen (Hinweis)",
+                    "name": "%d Namen" % len(unbenutzt),
+                    "ort": ", ".join(unbenutzt[:25]),
+                }
+            )
         return Ergebnis(
-            ["art", "name", "ort"], zeilen,
+            ["art", "name", "ort"],
+            zeilen,
             zusammenfassung="%d Namen angemeldet, %d gerufen, %d fehlen"
-                            % (len(angemeldet), len(gerufen), len(fehlend)),
+            % (len(angemeldet), len(gerufen), len(fehlend)),
             hinweis="Nur die erste Gruppe sind Fehler. „Angemeldet, nie "
-                    "gerufen\" ist ein Hinweis: Meist wird die Funktion direkt "
-                    "importiert und die Anmeldung ist ueberfluessig.")
+            'gerufen" ist ein Hinweis: Meist wird die Funktion direkt '
+            "importiert und die Anmeldung ist ueberfluessig.",
+        )
 
     #: Ausschlussliste und Suche stehen seit dem 17.08.2026 in
     #: ``Frontendquellen`` — vorher hatte sie jedes JS-Werkzeug einzeln,

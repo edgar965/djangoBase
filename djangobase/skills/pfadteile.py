@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Pfadteile — gegen welche Namen eine Ausschlussliste wirklich gilt.
+"""Pfadteile — gegen welche Namen eine Ausschlussliste wirklich gilt.
 
 DER BEFUND (31.08.2026)
 =======================
@@ -25,17 +25,18 @@ Fassungen derselben Regel laufen auseinander; genau das ist an der
 Ausschlussliste schon einmal passiert (siehe ``befund.py``: eigene Suche,
 eigene Liste, 183 Befunde aus ``vendor/``).
 """
+
 from pathlib import Path
 
 __all__ = ["Pfadteile"]
 
 
 class Pfadteile:
-    u"""Die Namen eines Pfades, gegen die eine Ausschlussliste gilt."""
+    """Die Namen eines Pfades, gegen die eine Ausschlussliste gilt."""
 
     @staticmethod
     def unter(pfad, wurzel):
-        u"""Die Teile UNTERHALB der Wurzel — sonst der ganze Pfad.
+        """Die Teile UNTERHALB der Wurzel — sonst der ganze Pfad.
 
         @param pfad   die gefundene Datei
         @param wurzel die Projektwurzel dieses Laufs
@@ -52,7 +53,7 @@ class Pfadteile:
 
     @classmethod
     def trifft(cls, pfad, wurzel, namen):
-        u"""Steht einer der `namen` unterhalb der Wurzel im Pfad?
+        """Steht einer der `namen` unterhalb der Wurzel im Pfad?
 
         @param namen Menge der ausgeschlossenen Verzeichnisnamen
         """

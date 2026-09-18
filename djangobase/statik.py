@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Statik - eine Kennung, die sich mit den mitgelieferten JS/CSS aendert.
+"""Statik - eine Kennung, die sich mit den mitgelieferten JS/CSS aendert.
 
 DAS PROBLEM (gemessen am 17.08.2026)
 ====================================
@@ -36,6 +36,7 @@ Seite waere das Verschwendung. Er laeuft deshalb genau einmal und lebt so lange
 wie der Prozess — der Entwicklungsserver startet bei jeder Aenderung ohnehin
 neu, und in Produktion ist ein Neustart Teil des Deployments.
 """
+
 from pathlib import Path
 
 __all__ = ["Statik"]
@@ -49,7 +50,7 @@ class Statik:
 
     @classmethod
     def kennung(cls):
-        u"""Zahl, die sich mit jeder Aenderung an djangoBase-JS/CSS aendert.
+        """Zahl, die sich mit jeder Aenderung an djangoBase-JS/CSS aendert.
 
         IM ENTWICKLUNGSBETRIEB jedes Mal frisch (``settings.DEBUG``): Der
         Django-Entwicklungsserver startet bei Aenderungen an ``.py`` neu, NICHT
@@ -61,6 +62,7 @@ class Statik:
         in Produktion (DEBUG aus) bleibt es beim einmaligen Rechnen.
         """
         from django.conf import settings
+
         if getattr(settings, "DEBUG", False):
             return cls._berechnen()
         if cls._kennung is None:

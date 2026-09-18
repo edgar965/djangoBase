@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Dokumentation — merkt das Werkzeug, wenn ein Bild nicht mehr stimmt?
+"""Dokumentation — merkt das Werkzeug, wenn ein Bild nicht mehr stimmt?
 
 DIE ANSAGE (Edgar, 27.08.2026)
 ==============================
@@ -18,6 +18,7 @@ immer rot ist, wird nach zwei Wochen ignoriert.
 
 Diese Pruefungen gehoeren zu Kriterium 20 („Dokumentation").
 """
+
 from djangobase.skills import werkzeug_finden
 from djangobase.skills.befund import Befund
 from djangobase.skills.dokumentation import BILDWERKE, Dokumentation
@@ -27,80 +28,77 @@ from ..base import BasisTest
 
 
 class DasWerkzeugStehtImWerkzeugkasten(BasisTest):
-    u"""Ein Werkzeug, das nicht auffindbar ist, laeuft nie."""
+    """Ein Werkzeug, das nicht auffindbar ist, laeuft nie."""
 
     def test_es_laesst_sich_ueber_seinen_namen_finden(self):
-        self.assertIsInstance(werkzeug_finden('dokumentation'), Dokumentation)
+        self.assertIsInstance(werkzeug_finden("dokumentation"), Dokumentation)
 
     def test_es_traegt_kriterium_zwanzig(self):
         self.assertEqual(Dokumentation.kriterium, 20)
 
     def test_kriterium_zwanzig_hat_einen_eigenen_bereich(self):
-        u"""Sonst faellt es in den Auffangkorb und die Ansage nach einem
+        """Sonst faellt es in den Auffangkorb und die Ansage nach einem
         eigenen Abschnitt waere nicht erfuellt."""
         stelle = Rangliste.bereich_von(20)
-        self.assertEqual(BEREICHE[stelle]['name'], 'Dokumentation')
+        self.assertEqual(BEREICHE[stelle]["name"], "Dokumentation")
 
     def test_es_landet_nicht_bloss_im_auffangkorb(self):
-        u"""``bereich_von`` gibt fuer ALLES den letzten Bereich zurueck.
+        """``bereich_von`` gibt fuer ALLES den letzten Bereich zurueck.
         Ohne diese Gegenprobe waere die Zuordnung oben auch dann gruen,
         wenn Kriterium 20 gar nicht eingetragen waere."""
-        self.assertNotEqual(Rangliste.bereich_von(20),
-                            Rangliste.bereich_von(999))
+        self.assertNotEqual(Rangliste.bereich_von(20), Rangliste.bereich_von(999))
 
     def test_der_bdd_bereich_bleibt_der_letzte(self):
-        u"""Der letzte Bereich faengt unbekannte Kriterien auf — das soll
+        """Der letzte Bereich faengt unbekannte Kriterien auf — das soll
         weiter BDD sein und nicht die Dokumentation."""
-        self.assertEqual(BEREICHE[-1]['name'],
-                         'Abnahme und Beispiele (BDD)')
+        self.assertEqual(BEREICHE[-1]["name"], "Abnahme und Beispiele (BDD)")
 
 
 class EsSchweigtSolangeDieBilderStehen(BasisTest):
-    u"""Am echten Projekt, nicht an einem Abzug: Hier zaehlt, dass das
+    """Am echten Projekt, nicht an einem Abzug: Hier zaehlt, dass das
     Werkzeug im Alltag ruhig bleibt."""
 
     def setUp(self):
-        self.satz = werkzeug_finden('dokumentation').pruefen()
+        self.satz = werkzeug_finden("dokumentation").pruefen()
 
     def test_es_meldet_keinen_fehler(self):
         schwer = [b for b in self.satz.befunde if b.gewicht == Befund.FEHLER]
-        self.assertEqual(schwer, [], 'Unerwarteter Fehlbefund: %s'
-                         % [b.was for b in schwer])
+        self.assertEqual(schwer, [], "Unerwarteter Fehlbefund: %s" % [b.was for b in schwer])
 
     def test_es_nennt_die_zahl_der_gezeichneten_wege(self):
-        u"""Ohne Kopfzahlen kann niemand nachrechnen, was geprueft wurde."""
-        self.assertTrue(any('Wege gezeichnet' in k for k in self.satz.kopf))
+        """Ohne Kopfzahlen kann niemand nachrechnen, was geprueft wurde."""
+        self.assertTrue(any("Wege gezeichnet" in k for k in self.satz.kopf))
 
     def test_es_nennt_auch_die_ungeloesten_namen(self):
-        u"""Die Luecke gehoert genannt, sonst sieht ein unvollstaendiges
+        """Die Luecke gehoert genannt, sonst sieht ein unvollstaendiges
         Bild aus wie ein vollstaendiges."""
-        self.assertTrue(any('mehrdeutig' in k for k in self.satz.kopf))
+        self.assertTrue(any("mehrdeutig" in k for k in self.satz.kopf))
 
 
 class EinFehlendesBildFaelltAuf(BasisTest):
-    u"""Der Fall, fuer den es das Werkzeug gibt."""
+    """Der Fall, fuer den es das Werkzeug gibt."""
 
     def test_ohne_das_klassenmodell_kommt_ein_fehler(self):
-        werkzeug = werkzeug_finden('dokumentation')
-        werkzeug._bildwurzel = staticmethod(lambda: __import__(
-            'pathlib').Path(__import__('tempfile').mkdtemp(prefix='leer_')))
+        werkzeug = werkzeug_finden("dokumentation")
+        werkzeug._bildwurzel = staticmethod(
+            lambda: __import__("pathlib").Path(__import__("tempfile").mkdtemp(prefix="leer_"))
+        )
         befunde = werkzeug._bilder_vorhanden()
         self.assertEqual(len(befunde), len(BILDWERKE))
-        self.assertTrue(any('Klassenmodell' in b.was for b in befunde))
+        self.assertTrue(any("Klassenmodell" in b.was for b in befunde))
 
     def test_der_befund_nennt_die_fehlende_datei(self):
-        u"""„Irgendetwas fehlt" hilft niemandem weiter."""
-        werkzeug = werkzeug_finden('dokumentation')
-        werkzeug._bildwurzel = staticmethod(lambda: __import__(
-            'pathlib').Path(__import__('tempfile').mkdtemp(prefix='leer_')))
+        """„Irgendetwas fehlt" hilft niemandem weiter."""
+        werkzeug = werkzeug_finden("dokumentation")
+        werkzeug._bildwurzel = staticmethod(
+            lambda: __import__("pathlib").Path(__import__("tempfile").mkdtemp(prefix="leer_"))
+        )
         befund = werkzeug._bilder_vorhanden()[0]
-        self.assertIn('.py', befund.ort)
-
-
+        self.assertIn(".py", befund.ort)
 
 
 class DiesesWerkzeugHatKeinenAnlassfall(BasisTest):
-    u"""Gegeben: Der Anlassfall ist entfallen — mit angegebenem Grund.
+    """Gegeben: Der Anlassfall ist entfallen — mit angegebenem Grund.
 
     WAS PASSIERT IST (27.08.2026)
     =============================
@@ -124,36 +122,36 @@ class DiesesWerkzeugHatKeinenAnlassfall(BasisTest):
     """
 
     def test_es_traegt_keinen_anlassfall_mehr(self):
-        self.assertIsNone(getattr(Dokumentation, 'anlassfall', None))
+        self.assertIsNone(getattr(Dokumentation, "anlassfall", None))
 
     def test_aber_einen_grund(self):
-        u"""Ohne Grund stünde es als UNGEPRÜFT da — und das wäre es."""
+        """Ohne Grund stünde es als UNGEPRÜFT da — und das wäre es."""
         self.assertTrue(Dokumentation.ohne_anlassfall_weil)
 
     def test_der_grund_nennt_wo_die_gegenprobe_steht(self):
-        self.assertIn('EinBildDasSeineGrenzeVERSCHWEIGT',
-                      Dokumentation.ohne_anlassfall_weil)
+        self.assertIn("EinBildDasSeineGrenzeVERSCHWEIGT", Dokumentation.ohne_anlassfall_weil)
 
     def test_der_pruefer_fuehrt_es_als_erklaert(self):
         from djangobase.skills.anlassfall_check import Pruefergebnis
+
         ergebnis = Pruefergebnis(Dokumentation)
         self.assertEqual(ergebnis.stand, Pruefergebnis.ERKLAERT)
-        self.assertIn('kein Anlassfall nötig', ergebnis.urteil)
+        self.assertIn("kein Anlassfall nötig", ergebnis.urteil)
 
     def test_und_nicht_als_ungeprueft(self):
         from djangobase.skills.anlassfall_check import Pruefergebnis
-        self.assertNotEqual(Pruefergebnis(Dokumentation).stand,
-                            Pruefergebnis.UNGEPRUEFT)
+
+        self.assertNotEqual(Pruefergebnis(Dokumentation).stand, Pruefergebnis.UNGEPRUEFT)
 
 
 class _Bezug:
-    u"""So viel Bezug, wie das Bild zum Zeichnen braucht."""
+    """So viel Bezug, wie das Bild zum Zeichnen braucht."""
 
     def __init__(self, name):
         self.name = self.anzeige = name
         self.klasse = name
-        self.art = 'klasse'
-        self.modul = 'attrappe'
+        self.art = "klasse"
+        self.modul = "attrappe"
         self.datei = None
         self.zeile = 1
 
@@ -162,27 +160,27 @@ class _Schritt:
     def __init__(self, name, tiefe=0):
         self.bezug = _Bezug(name)
         self.tiefe = tiefe
-        self.grund = 'aufruf'
+        self.grund = "aufruf"
 
 
 class _Einstieg:
-    titel = 'Ein Weg, der weitergeht'
-    datei = 'attrappe.py'
+    titel = "Ein Weg, der weitergeht"
+    datei = "attrappe.py"
 
 
 class _Weg:
-    u"""Ein abgeschnittener Weg — mehr braucht die Pruefung nicht."""
+    """Ein abgeschnittener Weg — mehr braucht die Pruefung nicht."""
 
     def __init__(self, abgeschnitten=True):
         self.einstieg = _Einstieg()
-        self.schritte = [_Schritt('Erste'), _Schritt('Zweite', 1)]
+        self.schritte = [_Schritt("Erste"), _Schritt("Zweite", 1)]
         self.kanten = []
         self.offen = []
         self.abgeschnitten = abgeschnitten
 
     @property
     def klassen(self):
-        return ['Erste', 'Zweite']
+        return ["Erste", "Zweite"]
 
 
 class _Liste:
@@ -193,7 +191,7 @@ class _Liste:
 
 
 class EinBildDasSeineGrenzeZeigt(BasisTest):
-    u"""Gegeben: Der Weg geht weiter, und das Bild sagt es.
+    """Gegeben: Der Weg geht weiter, und das Bild sagt es.
 
     DIE VORGESCHICHTE (27.08.2026)
     ==============================
@@ -215,18 +213,20 @@ class EinBildDasSeineGrenzeZeigt(BasisTest):
 
     def test_der_vermerk_steht_wirklich_im_bild(self):
         from djangobase.umbau.workflowbild import Workflowbild
+
         svg = Workflowbild(_Weg()).svg()
         self.assertIn('<text class="wf-mehr"', svg)
-        self.assertIn('hier geht der Weg weiter', svg)
+        self.assertIn("hier geht der Weg weiter", svg)
 
     def test_ein_vollstaendiges_bild_traegt_keinen_vermerk(self):
         from djangobase.umbau.workflowbild import Workflowbild
+
         svg = Workflowbild(_Weg(abgeschnitten=False)).svg()
         self.assertNotIn('<text class="wf-mehr"', svg)
 
 
 class EinBildDasSeineGrenzeVERSCHWEIGT(BasisTest):
-    u"""Gegeben: Der Weg geht weiter, und das Bild sagt es NICHT.
+    """Gegeben: Der Weg geht weiter, und das Bild sagt es NICHT.
 
     Die Gegenprobe. Faellt sie um, meldet das Werkzeug nichts mehr —
     dann waere der Hinweis nicht behoben, sondern abgeschaltet.
@@ -234,11 +234,13 @@ class EinBildDasSeineGrenzeVERSCHWEIGT(BasisTest):
 
     def setUp(self):
         from djangobase.umbau import workflowbild
+
         self.echt = workflowbild.Workflowbild._abschluss
         workflowbild.Workflowbild._abschluss = lambda self: []
 
     def tearDown(self):
         from djangobase.umbau import workflowbild
+
         workflowbild.Workflowbild._abschluss = self.echt
 
     def test_wird_gemeldet(self):
@@ -247,9 +249,8 @@ class EinBildDasSeineGrenzeVERSCHWEIGT(BasisTest):
 
     def test_der_befund_nennt_den_weg(self):
         befund = Dokumentation._abgeschnittene(_Liste([_Weg()]))[0]
-        self.assertIn('Ein Weg, der weitergeht', befund.was)
+        self.assertIn("Ein Weg, der weitergeht", befund.was)
 
     def test_ein_vollstaendiger_weg_bleibt_still(self):
-        u"""Auch ohne Vermerk: Was nicht gekuerzt ist, ist kein Befund."""
-        self.assertEqual(
-            Dokumentation._abgeschnittene(_Liste([_Weg(False)])), [])
+        """Auch ohne Vermerk: Was nicht gekuerzt ist, ist kein Befund."""
+        self.assertEqual(Dokumentation._abgeschnittene(_Liste([_Weg(False)])), [])

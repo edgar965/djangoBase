@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Kriterium 20: Trifft die Dokumentation noch den Code?
+"""Kriterium 20: Trifft die Dokumentation noch den Code?
 
 DIE ANSAGE (Edgar, 27.08.2026)
 ==============================
@@ -44,6 +44,7 @@ nur beim Paket statt in der uebergebenen Wurzel.
 LEEREN Verzeichnis dasselbe wie auf dem echten Projekt — also blind. Ein
 Werkzeug, das seinen eigenen Beispielfall nicht findet, prueft nichts.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -53,38 +54,52 @@ from .befund import Befund, Befundsatz, BefundWerkzeug
 #: Was vorhanden sein muss, damit „es gibt ein Bild" mehr ist als eine
 #: Behauptung: die Ansicht, der Zeichner und die Vorlage.
 BILDWERKE = (
-    (u'Klassenmodell',
-     ('djangobase/views/klassenmodell.py',
-      'djangobase/umbau/klassenbild.py',
-      'djangobase/templates/djangobase/hilfe/klassenmodell.html')),
-    (u'Workflows',
-     ('djangobase/views/workflows.py',
-      'djangobase/umbau/workflowbild.py',
-      'djangobase/umbau/workflows.py',
-      'djangobase/umbau/wegenetz.py',
-      'djangobase/umbau/ablauf.py',
-      'djangobase/umbau/ablaufbild.py',
-      'djangobase/templates/djangobase/hilfe/workflows.html')),
+    (
+        "Klassenmodell",
+        (
+            "djangobase/views/klassenmodell.py",
+            "djangobase/umbau/klassenbild.py",
+            "djangobase/templates/djangobase/hilfe/klassenmodell.html",
+        ),
+    ),
+    (
+        "Workflows",
+        (
+            "djangobase/views/workflows.py",
+            "djangobase/umbau/workflowbild.py",
+            "djangobase/umbau/workflows.py",
+            "djangobase/umbau/wegenetz.py",
+            "djangobase/umbau/ablauf.py",
+            "djangobase/umbau/ablaufbild.py",
+            "djangobase/templates/djangobase/hilfe/workflows.html",
+        ),
+    ),
 )
 
-class Dokumentation(BefundWerkzeug):
 
+class Dokumentation(BefundWerkzeug):
     kriterium = 20
-    slug = 'dokumentation'
-    titel = u'Dokumentation: deckt sich das Bild noch mit dem Code?'
-    zweck = (u'Prüft nicht, ob viel dokumentiert ist, sondern ob es stimmt: '
-             u'Gibt es ein Klassendiagramm und Workflow-Bilder, zeigt jeder '
-             u'Kasten auf Code, der wirklich existiert, und sagt jedes Bild '
-             u'selbst, wo es aufhört?')
-    abhilfe = (u'Nach jedem Umbau, der Klassen umbenennt oder verschiebt. '
-               u'Genau dann verfällt eine Zeichnung, ohne dass man es ihr '
-               u'ansieht.')
-    befund = (u'Der Anlass: Eine Hilfeseite zeichnete den Aufnahme-Ablauf mit '
-              u'„10-Minuten-Segmenten". Gemessen schreibt der Segment-Muxer '
-              u'seit v0.83 Stunden-Dateien und der Hauptstrom liegt seit '
-              u'v0.88 in 10-Sekunden-Blöcken — die Zeichnung war zwei '
-              u'Umbauten alt und sah unverändert richtig aus.')
-    dauer = u'wenige Sekunden'
+    slug = "dokumentation"
+    titel = "Dokumentation: deckt sich das Bild noch mit dem Code?"
+    zweck = (
+        "Prüft nicht, ob viel dokumentiert ist, sondern ob es stimmt: "
+        "Gibt es ein Klassendiagramm und Workflow-Bilder, zeigt jeder "
+        "Kasten auf Code, der wirklich existiert, und sagt jedes Bild "
+        "selbst, wo es aufhört?"
+    )
+    abhilfe = (
+        "Nach jedem Umbau, der Klassen umbenennt oder verschiebt. "
+        "Genau dann verfällt eine Zeichnung, ohne dass man es ihr "
+        "ansieht."
+    )
+    befund = (
+        "Der Anlass: Eine Hilfeseite zeichnete den Aufnahme-Ablauf mit "
+        '„10-Minuten-Segmenten". Gemessen schreibt der Segment-Muxer '
+        "seit v0.83 Stunden-Dateien und der Hauptstrom liegt seit "
+        "v0.88 in 10-Sekunden-Blöcken — die Zeichnung war zwei "
+        "Umbauten alt und sah unverändert richtig aus."
+    )
+    dauer = "wenige Sekunden"
 
     #: KEIN ANLASSFALL — und warum das seit dem 27.08.2026 so ist.
     #:
@@ -111,30 +126,33 @@ class Dokumentation(BefundWerkzeug):
     #: ``tests/unit/test_skills_dokumentation.py``. Der schaltet den
     #: Vermerk ab und verlangt, dass die Befunde zurückkommen.
     ohne_anlassfall_weil = (
-        u'der verbliebene Befund hängt am Zeichner, nicht am geprüften '
-        u'Projekt — nachgebaut wird er im Testfall '
-        u'EinBildDasSeineGrenzeVERSCHWEIGT')
+        "der verbliebene Befund hängt am Zeichner, nicht am geprüften "
+        "Projekt — nachgebaut wird er im Testfall "
+        "EinBildDasSeineGrenzeVERSCHWEIGT"
+    )
 
     # ------------------------------------------------------------------
     def pruefen(self, **_argumente):
         befunde = []
         befunde.extend(self._bilder_vorhanden())
         deckung = self._deckung()
-        befunde.extend(deckung['befunde'])
+        befunde.extend(deckung["befunde"])
         return Befundsatz(self.titel, self._kopf(deckung), befunde)
 
     @staticmethod
     def _kopf(deckung):
-        return [u'%d Bildwerke' % len(BILDWERKE),
-                u'%d Wege gezeichnet' % deckung['wege'],
-                u'%d Kästen gegen den Quelltext gehalten' % deckung['kaesten'],
-                u'%d Namen blieben mehrdeutig' % deckung['offen']]
+        return [
+            "%d Bildwerke" % len(BILDWERKE),
+            "%d Wege gezeichnet" % deckung["wege"],
+            "%d Kästen gegen den Quelltext gehalten" % deckung["kaesten"],
+            "%d Namen blieben mehrdeutig" % deckung["offen"],
+        ]
 
     # ── 1 und 2: Gibt es die Bilder ueberhaupt? ──────────────────
 
     @staticmethod
     def _bildwurzel():
-        u"""Wo die Bildwerke liegen: beim Paket, nicht beim Projekt.
+        """Wo die Bildwerke liegen: beim Paket, nicht beim Projekt.
 
         djangoBase liegt NEBEN dem Projekt, das es bedient — hier
         ``C:/CamTrack/djangoBase`` neben ``C:/CamTrack/CamTrackDjango``.
@@ -143,10 +161,11 @@ class Dokumentation(BefundWerkzeug):
         die Pruefung wertlos gemacht haette, weil sie IMMER rot war.
         """
         import djangobase
+
         return Path(djangobase.__file__).resolve().parent.parent
 
     def _bilder_vorhanden(self):
-        u"""Erst im geprüften Projekt nachsehen, dann beim Paket.
+        """Erst im geprüften Projekt nachsehen, dann beim Paket.
 
         BEIDE WURZELN — UND WARUM DAS NICHT BEQUEMLICHKEIT IST
         =====================================================
@@ -167,22 +186,24 @@ class Dokumentation(BefundWerkzeug):
         aus = []
         wurzeln = (Path(self.wurzel()), self._bildwurzel())
         for name, teile in BILDWERKE:
-            fehlend = [t for t in teile
-                       if not any((w / t).exists() for w in wurzeln)]
+            fehlend = [t for t in teile if not any((w / t).exists() for w in wurzeln)]
             if fehlend:
-                aus.append(Befund(
-                    fehlend[0],
-                    u'%s: kein Bild im Projekt' % name,
-                    u'Fehlt: %s. Ohne Ansicht, Zeichner UND Vorlage gibt es '
-                    u'kein Bild, sondern höchstens die Absicht, eines zu '
-                    u'bauen.' % ', '.join(fehlend),
-                    Befund.FEHLER))
+                aus.append(
+                    Befund(
+                        fehlend[0],
+                        "%s: kein Bild im Projekt" % name,
+                        "Fehlt: %s. Ohne Ansicht, Zeichner UND Vorlage gibt es "
+                        "kein Bild, sondern höchstens die Absicht, eines zu "
+                        "bauen." % ", ".join(fehlend),
+                        Befund.FEHLER,
+                    )
+                )
         return aus
 
     # ── 3 und 4: Trifft das Bild den Code? ──────────────────────
 
     def _deckung(self):
-        u"""Jeden Kasten der Workflow-Bilder gegen den Quelltext halten.
+        """Jeden Kasten der Workflow-Bilder gegen den Quelltext halten.
 
         Gelesen wird dazu dasselbe, was die Seite zeigt — nicht eine
         zweite Ermittlung daneben. Zwei Wege zur selben Zahl laufen
@@ -190,8 +211,8 @@ class Dokumentation(BefundWerkzeug):
         """
         try:
             from ..umbau.workflows import DECKEL, GRENZE, Workflowliste
-        except ImportError:                            # pragma: no cover
-            return {'befunde': [], 'kaesten': 0, 'wege': 0, 'offen': 0}
+        except ImportError:  # pragma: no cover
+            return {"befunde": [], "kaesten": 0, "wege": 0, "offen": 0}
         self._deckel, self._grenze = DECKEL, GRENZE
         liste = Workflowliste(self.wurzel()).lesen()
         befunde, kaesten, offen = [], 0, 0
@@ -201,20 +222,22 @@ class Dokumentation(BefundWerkzeug):
                 kaesten += 1
                 bezug = schritt.bezug
                 if not bezug.datei or not bezug.datei.exists():
-                    befunde.append(Befund(
-                        str(bezug.datei),
-                        u'Kasten zeigt ins Leere: %s' % bezug.anzeige,
-                        u'Im Bild von „%s" steht ein Kasten, dessen Datei es '
-                        u'nicht mehr gibt.' % weg.einstieg.titel,
-                        Befund.FEHLER))
+                    befunde.append(
+                        Befund(
+                            str(bezug.datei),
+                            "Kasten zeigt ins Leere: %s" % bezug.anzeige,
+                            'Im Bild von „%s" steht ein Kasten, dessen Datei es '
+                            "nicht mehr gibt." % weg.einstieg.titel,
+                            Befund.FEHLER,
+                        )
+                    )
         befunde.extend(self._abgeschnittene(liste))
         befunde.extend(self._nicht_in_der_liste(liste))
-        return {'befunde': befunde, 'kaesten': kaesten,
-                'wege': len(liste.wege), 'offen': offen}
+        return {"befunde": befunde, "kaesten": kaesten, "wege": len(liste.wege), "offen": offen}
 
     @staticmethod
     def _abgeschnittene(liste):
-        u"""Bilder, die ihre eigene Grenze VERSCHWEIGEN.
+        """Bilder, die ihre eigene Grenze VERSCHWEIGEN.
 
         Kein Fehler, sondern ein Hinweis: Die Tiefengrenze ist Absicht —
         ohne sie laufen alle Wege bei den Hilfsfunktionen zusammen und
@@ -253,30 +276,33 @@ class Dokumentation(BefundWerkzeug):
                 zeigt_es = False
             if zeigt_es:
                 continue
-            befunde.append(Befund(
-                str(weg.einstieg.datei),
-                u'Bild verschweigt seine Grenze: %s' % weg.einstieg.titel,
-                u'%d Klassen in %d Schritten gezeichnet — dahinter geht der '
-                u'Weg weiter, und das Bild sagt es nicht.'
-                % (len(weg.klassen), len(weg.schritte)),
-                Befund.HINWEIS))
+            befunde.append(
+                Befund(
+                    str(weg.einstieg.datei),
+                    "Bild verschweigt seine Grenze: %s" % weg.einstieg.titel,
+                    "%d Klassen in %d Schritten gezeichnet — dahinter geht der "
+                    "Weg weiter, und das Bild sagt es nicht." % (len(weg.klassen), len(weg.schritte)),
+                    Befund.HINWEIS,
+                )
+            )
         return befunde
 
     def _nicht_in_der_liste(self, liste):
-        u"""Wege, die schwer genug wären, aber nicht mehr hineinpassen.
+        """Wege, die schwer genug wären, aber nicht mehr hineinpassen.
 
         Der Deckel hält die Liste lesbar. Was er abschneidet, ist damit
         NICHT dokumentiert — und das gehört gesagt statt verschwiegen.
         """
-        uebrig = (liste.kennzahlen.get('einstiege', 0) - liste.verworfen
-                  - len(liste.wege))
+        uebrig = liste.kennzahlen.get("einstiege", 0) - liste.verworfen - len(liste.wege)
         if uebrig <= 0:
             return []
-        return [Befund(
-            'djangobase/umbau/workflows.py',
-            u'%d Wege über der Grenze, aber nicht gezeichnet' % uebrig,
-            u'Sie berühren mindestens %d Klassen und wären damit '
-            u'dokumentationswürdig, passen aber nicht mehr in die Liste von '
-            u'%d.' % (getattr(self, '_grenze', 0), getattr(self, '_deckel', 0)),
-            Befund.HINWEIS)]
-
+        return [
+            Befund(
+                "djangobase/umbau/workflows.py",
+                "%d Wege über der Grenze, aber nicht gezeichnet" % uebrig,
+                "Sie berühren mindestens %d Klassen und wären damit "
+                "dokumentationswürdig, passen aber nicht mehr in die Liste von "
+                "%d." % (getattr(self, "_grenze", 0), getattr(self, "_deckel", 0)),
+                Befund.HINWEIS,
+            )
+        ]

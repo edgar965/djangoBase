@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""TestStromView - der Live-Lauf hinter Hilfe -> Tests.
+"""TestStromView - der Live-Lauf hinter Hilfe -> Tests.
 
     „live fortschritt in djangoBase einbauen" (Edgar, 17.08.2026)
 
@@ -19,6 +19,7 @@ Ausschliesslich, was die Seite selbst kennt: entdeckte Test-IDs, Slugs
 konfigurierter Befehle, Karten-Labels. Die Prüfung ist
 :class:`~..testziele.Testziele` — dieselbe, die der normale Seitenlauf benutzt.
 """
+
 import json
 import logging
 
@@ -52,9 +53,7 @@ class TestStromView(ZugriffMixin, View):
         # mit „belegt" endet.
         belegt = Laufsperre().zustand()
         if belegt:
-            return JsonResponse(
-                {"ok": False, "belegt": True,
-                 "error": Laufsperre._grund(belegt)}, status=409)
+            return JsonResponse({"ok": False, "belegt": True, "error": Laufsperre._grund(belegt)}, status=409)
         ids = daten.get("ids") or []
         if isinstance(ids, str):
             ids = [ids]
@@ -63,21 +62,23 @@ class TestStromView(ZugriffMixin, View):
 
         auswahl, python = self._auswahl()
         cmd, ziele, verworfen = auswahl.befehl(ids, python)
-        ganz = not ziele and bool(cmd)     # „Alles ausführen": Lauf ohne Label
+        ganz = not ziele and bool(cmd)  # „Alles ausführen": Lauf ohne Label
         if not cmd:
-            log.warning("Live-Lauf ohne gültiges Ziel — %d Einträge verworfen",
-                        verworfen)
+            log.warning("Live-Lauf ohne gültiges Ziel — %d Einträge verworfen", verworfen)
             return JsonResponse(
-                {"ok": False,
-                 "error": "Keine gültige Auswahl — %d Einträge verworfen."
-                          % verworfen}, status=409)
+                {"ok": False, "error": "Keine gültige Auswahl — %d Einträge verworfen." % verworfen},
+                status=409,
+            )
         name = Testziele.name(ziele, verworfen)
-        log.info("Live-Lauf: %s durch %s — %s", name,
-                 getattr(getattr(request, "user", None), "username", "?"),
-                 " ".join(ziele[:5]) + (" …" if len(ziele) > 5 else ""))
+        log.info(
+            "Live-Lauf: %s durch %s — %s",
+            name,
+            getattr(getattr(request, "user", None), "username", "?"),
+            " ".join(ziele[:5]) + (" …" if len(ziele) > 5 else ""),
+        )
         antwort = StreamingHttpResponse(
-            Teststrom().fahren(cmd, name, ziele=ziele, alles=ganz),
-            content_type="application/x-ndjson")
+            Teststrom().fahren(cmd, name, ziele=ziele, alles=ganz), content_type="application/x-ndjson"
+        )
         # Ohne das puffern Proxies (und manche Browser) die Antwort, bis sie
         # fertig ist — genau das, was der Live-Lauf vermeiden soll.
         antwort["Cache-Control"] = "no-cache, no-store"
@@ -86,34 +87,36 @@ class TestStromView(ZugriffMixin, View):
 
     @staticmethod
     def _abbrechen(request):
-        u"""Den laufenden Lauf beenden - samt Prozessbaum und Sperre.
+        """Den laufenden Lauf beenden - samt Prozessbaum und Sperre.
 
         Ohne diesen Weg hält ein haengender Lauf die Sperre bis zur Frist
         (eine Stunde), und niemand kann etwas tun außer den Server neu zu
         starten.
         """
         erfolg, meldung = Laufsperre().abbrechen()
-        log.warning("Abbruch angefordert durch %s: %s",
-                    getattr(getattr(request, "user", None), "username", "?"),
-                    meldung)
-        return JsonResponse({"ok": erfolg, "meldung": meldung},
-                            status=200 if erfolg else 409)
+        log.warning(
+            "Abbruch angefordert durch %s: %s",
+            getattr(getattr(request, "user", None), "username", "?"),
+            meldung,
+        )
+        return JsonResponse({"ok": erfolg, "meldung": meldung}, status=200 if erfolg else 409)
 
     @staticmethod
     def _auswahl():
-        u"""Die erlaubten Ziele — aus derselben Quelle wie die Seite.
+        """Die erlaubten Ziele — aus derselben Quelle wie die Seite.
 
         Die Discovery ist gecacht (``TestsView._ids_gecacht``), der Aufruf kostet
         also nichts, solange die Seite kurz vorher geladen wurde.
         """
         from .tests import TestsView
+
         c = conf()
         befehle = c.get("test_befehle") or TestsView._befehle_abgeleitet()
         kat = Kategorien(befehle)
         discover = c.get("test_discover") or kat.discover()
         kategorien, bekannte = TestsView._einzeltests(
-            discover, mit_djangobase=bool(c.get("tests_djangobase_sichtbar")))
+            discover, mit_djangobase=bool(c.get("tests_djangobase_sichtbar"))
+        )
         labels = {Karten.label(k.get("tests") or []) for k in kategorien}
         labels.discard("")
-        return (Testziele(bekannte, befehle, kat.sammelbefehle(), labels),
-                Kategorien.python(befehle))
+        return (Testziele(bekannte, befehle, kat.sammelbefehle(), labels), Kategorien.python(befehle))

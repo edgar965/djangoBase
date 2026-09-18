@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Skills - der Werkzeugkasten. EINE Seite, EIN Paket, alle Werkzeuge.
+"""Skills - der Werkzeugkasten. EINE Seite, EIN Paket, alle Werkzeuge.
 
 WIE ES HIERHIN KAM (17.08.2026)
 ===============================
@@ -46,37 +46,45 @@ Neues Werkzeug: von ``Werkzeug`` ableiten (oder von ``BefundWerkzeug``,
 wenn es Befunde meldet), EINE Klasse je Datei, unten in ``NEUE`` bzw.
 ``BEFUNDBASIERT`` eintragen.
 """
-# --- Basis und Infrastruktur -------------------------------------------------
-from .basis import EigenesWerkzeug
-from .bericht import Bericht
-from .fixer import Aenderung, Fixer, Vorschau
-from .kriterien import KRITERIEN as _KRITERIEN_BASIS
-from .kriterien import OHNE_WERKZEUG
-from .lehren import BEREICHE, LEHREN, Lehre, Lehrenstand, als_zeilen, gruppen
-from .netz import Abnahme, Umbaunetz
-from .befund import Befund, Befundsatz, BefundWerkzeug
-from .cachebusting import Cachebusting
-from .cachekonzept import Cachekonzept
-from .cssdubletten import Cssdubletten
-from .nurlesen import NurLesen
-from .pfadpraefix import Pfadpraefix
-from .werkzeug import Ergebnis, Quelldatei, Werkzeug
-# `BefundWerkzeug` kommt schon aus Zeile 57 mit — der zweite Import stand
-# hier bis zum 29.08.2026 und ueberschrieb ihn mit demselben Objekt
-# (`pyflakes`: RedefinedWhileUnused).
 
-# --- Werkzeuge auf der neuen Basis (frueher skills2) -------------------------
+# Alphabetisch, gehalten von `ruff` (isort, 18.09.2026). Die frueheren
+# Abschnitte (Basis / neue Basis / alte Basis / Kriterien 16+17 / Fixer)
+# stehen als Gliederung unten in NEUE, BEFUNDBASIERT und FIXER - dort, wo
+# sie etwas bedeuten.
+from .abhaengigkeiten import Abhaengigkeiten
 from .altlast import Altlast
 from .anlassfall import Anlassfall
 from .anlassfall_check import AnlassfallCheck
 from .anzeigeformat import Anzeigeformat
+from .basis import EigenesWerkzeug
+from .befund import Befund, Befundsatz, BefundWerkzeug
+from .bericht import Bericht
+from .cachebusting import Cachebusting
+from .cachekonzept import Cachekonzept
 from .codequalitaet import CodeQualitaet
+from .cssdubletten import Cssdubletten
 from .dateigroesse import Dateigroesse
+from .dokumentation import Dokumentation
+from .doppelcode import Doppelcode
 from .doppelrumpf import Doppelrumpf
+from .endpunktprobe import Endpunktprobe
+from .endpunktprofil import Endpunktprofil
+from .endpunktzeiten import Endpunktzeiten
 from .esmodulimporte import EsModulImporte
-from .importziele import ImportZiele
+from .fix_ausnahme import FixAusnahme
+from .fix_dictklasse import FixDictKlasse
+from .fix_fzeichenkette import FixFZeichenkette
+from .fix_importe import ImportFixer
+from .fix_jserbe import FixJsErbe
+from .fix_jsschnitt import FixJsSchnitt
+from .fix_vermerk import FixVermerk
+from .fixer import Aenderung, Fixer, Vorschau
+from .freiefunktionen import FreieFunktionen
 from .frontendadressen import Frontendadressen
 from .getattrnamen import GetattrNamen
+from .globalerzustand import GlobalerZustand
+from .grossdateien import Grossdateien
+from .importziele import ImportZiele
 from .jsbefunde import JsBefunde
 from .jsfaenger import JsFaenger
 from .jsfunktionen import JsFunktionen
@@ -88,67 +96,52 @@ from .jssyntax import JsSyntax
 from .jsvererbung import JsVererbung
 from .jswaisen import JsWaisen
 from .kapselung import Kapselung
-from .klassenreif import Klassenreif
+from .klassenjedatei import KlassenJeDatei
+from .klassenkandidat import Klassenkandidat
 from .klassenplan import Klassenplan
-from .lehrentreue import Lehrentreue
+from .klassenreif import Klassenreif
+from .kriterien import KRITERIEN as _KRITERIEN_BASIS, OHNE_WERKZEUG
 from .langsameadresse import LangsameAdresse
+from .lehren import BEREICHE, LEHREN, Lehre, Lehrenstand, als_zeilen, gruppen
+from .lehrentreue import Lehrentreue
 from .leserzahl import LeserzahlWerkzeug
+from .modulindex import ModulIndex
 from .modulzustand import ModulZustand
-from .umbaugegenprobe import Umbaugegenprobe
-from .reviewbefunde import ReviewBefunde
-from .stilnamen import Stilnamen
-from .vorlagentags import Vorlagentags
-from .proben import Proben
+from .namensdubletten import Namensdubletten
 from .namensvarianten import Namensvarianten
+from .netz import Abnahme, Umbaunetz
+from .nurlesen import NurLesen
+from .objektwurzeln import Objektwurzeln
+from .offenedatei import OffeneDatei
+from .pfadpraefix import Pfadpraefix
+from .proben import Proben
+from .protokoll import Protokoll
+from .reviewbefunde import ReviewBefunde
 from .rueckgabedict import RueckgabeDict
 from .rueckgabetupel import RueckgabeTupel
-from .schleifenarbeit import Schleifenarbeit
-from .offenedatei import OffeneDatei
-from .systemablage import Systemablage
-from .dokumentation import Dokumentation
-from .szenarien import Szenarien
-from .schreibrouten import Schreibrouten
-from .seitenzeiten import Seitenzeiten
-from .uebersprungen import Uebersprungen
-from .vorlagenblock import Vorlagenblock
-from .wachstum import Wachstum
-
-# --- Werkzeuge auf der alten Basis (frueher skills, jetzt ueber AltWerkzeug) --
-from .abhaengigkeiten import Abhaengigkeiten
-from .doppelcode import Doppelcode
-from .endpunktprobe import Endpunktprobe
-from .endpunktprofil import Endpunktprofil
-from .endpunktzeiten import Endpunktzeiten
-from .sortierwerte import Sortierwerte
-from .freiefunktionen import FreieFunktionen
-from .globalerzustand import GlobalerZustand
-from .objektwurzeln import Objektwurzeln
-from .seitenwurzeln import Seitenwurzeln
+from .ruffbefunde import RuffBefunde
 from .sammelzustand import Sammelzustand
-from .klassenkandidat import Klassenkandidat
-from .grossdateien import Grossdateien
-from .klassenjedatei import KlassenJeDatei
-from .namensdubletten import Namensdubletten
-from .modulindex import ModulIndex
 from .scheindocstring import ScheinDocstring
-from .toteimporte import ToteImporte
-from .totesmodul import TotesModul
-from .vorlagenkontext import Vorlagenkontext
-from .vorlagenvariablen import Vorlagenvariablen
-
-# --- Werkzeuge zu den Kriterien 16 und 17 ------------------------------------
-from .protokoll import Protokoll
+from .schleifenarbeit import Schleifenarbeit
+from .schreibrouten import Schreibrouten
+from .seitenwurzeln import Seitenwurzeln
+from .seitenzeiten import Seitenzeiten
+from .sortierwerte import Sortierwerte
+from .stilnamen import Stilnamen
+from .systemablage import Systemablage
+from .szenarien import Szenarien
 from .testaufbau import Testaufbau
 from .testdeckung import Testdeckung
-
-# --- Fixer -------------------------------------------------------------------
-from .fix_ausnahme import FixAusnahme
-from .fix_dictklasse import FixDictKlasse
-from .fix_fzeichenkette import FixFZeichenkette
-from .fix_importe import ImportFixer
-from .fix_jserbe import FixJsErbe
-from .fix_jsschnitt import FixJsSchnitt
-from .fix_vermerk import FixVermerk
+from .toteimporte import ToteImporte
+from .totesmodul import TotesModul
+from .uebersprungen import Uebersprungen
+from .umbaugegenprobe import Umbaugegenprobe
+from .vorlagenblock import Vorlagenblock
+from .vorlagenkontext import Vorlagenkontext
+from .vorlagentags import Vorlagentags
+from .vorlagenvariablen import Vorlagenvariablen
+from .wachstum import Wachstum
+from .werkzeug import Ergebnis, Quelldatei, Werkzeug
 
 #: Kriterien 16 und 17 gehen ueber die vierzehn aus dem shortlongx-Durchgang
 #: hinaus. Sie stehen hier und nicht in ``kriterien.py``, weil jene Datei den
@@ -159,15 +152,15 @@ KRITERIEN_ZUSATZ = {
     # „jedes Werkzeug nennt ein bekanntes Kriterium" an ``AnlassfallCheck`` ab.
     0: "Kein Auftrags-Kriterium — Werkzeug über die Werkzeuge",
     16: "Logging sauber: kein console.log, Server-Logging über den rotierenden "
-        "djangoBase-Logger, klare Ausnahmen im UI und im Exception-Log, wichtige "
-        "Aktionen mit Zeitstempel",
+    "djangoBase-Logger, klare Ausnahmen im UI und im Exception-Log, wichtige "
+    "Aktionen mit Zeitstempel",
     17: "Testcases sauber erzeugen für alle wichtigen Funktionen und Menüs, "
-        "startbar unter Hilfe → Tests (djangoBase); Untermenüs für Unit, "
-        "Component, UI und Longrunner — bei großen Projekten mehrere Unterseiten",
+    "startbar unter Hilfe → Tests (djangoBase); Untermenüs für Unit, "
+    "Component, UI und Longrunner — bei großen Projekten mehrere Unterseiten",
     18: "Freie Funktionen und globale Variablen in Klassen unterbringen: "
-        "Verhalten in Klassen bzw. Utility-Klassen mit statischen Methoden, "
-        "veränderlichen Zustand als Attribut, globale Konstanten in einer "
-        "Kontext-Klasse",
+    "Verhalten in Klassen bzw. Utility-Klassen mit statischen Methoden, "
+    "veränderlichen Zustand als Attribut, globale Konstanten in einer "
+    "Kontext-Klasse",
     # KRITERIUM 19 — BDD, aber ohne Gherkin (26.08.2026)
     # =================================================
     #     „Macht es sinn, dass ich die anwende?"
@@ -185,11 +178,11 @@ KRITERIEN_ZUSATZ = {
     # Zusicherung die richtige ist. Dafuer gibt es den Anlassfall, der den
     # Fall vorfuehrt, statt ihn zu behaupten.
     19: "Jede Prüfung sagt durch ihren Namen, was herauskommen soll, und "
-        "behauptet es auch — keine, die nur durchläuft und immer grün "
-        "meldet. Jedes Werkzeug führt einen Beispielfall mit, an dem es "
-        "beweist, dass es seinen Befund noch findet. Jede Seite und jeder "
-        "Endpunkt wird einmal aufgerufen, damit ein Absturz auffällt, "
-        "bevor ihn jemand im Betrieb findet",
+    "behauptet es auch — keine, die nur durchläuft und immer grün "
+    "meldet. Jedes Werkzeug führt einen Beispielfall mit, an dem es "
+    "beweist, dass es seinen Befund noch findet. Jede Seite und jeder "
+    "Endpunkt wird einmal aufgerufen, damit ein Absturz auffällt, "
+    "bevor ihn jemand im Betrieb findet",
     # KRITERIUM 20 — DOKUMENTATION, DIE SICH SELBST WIDERLEGEN KANN
     # =============================================================
     #     „Mach auch einen neuen Abschnitt: Dokumentation, wo auch getestet
@@ -209,11 +202,11 @@ KRITERIEN_ZUSATZ = {
     # jeder Kasten trägt Modul und Zeile. Eine von Hand gemalte Zeichnung
     # erfüllt dieses Kriterium nicht.
     20: "Die Dokumentation deckt sich mit dem Code: Es gibt ein "
-        "Klassendiagramm und Bilder der wichtigsten Abläufe, beide aus dem "
-        "Quelltext gelesen statt gemalt; jeder Kasten nennt Modul und "
-        "Zeile, sodass er nachprüfbar ist; ein abgeschnittenes oder "
-        "unvollständiges Bild sagt das selbst, statt Vollständigkeit "
-        "vorzutäuschen",
+    "Klassendiagramm und Bilder der wichtigsten Abläufe, beide aus dem "
+    "Quelltext gelesen statt gemalt; jeder Kasten nennt Modul und "
+    "Zeile, sodass er nachprüfbar ist; ein abgeschnittenes oder "
+    "unvollständiges Bild sagt das selbst, statt Vollständigkeit "
+    "vorzutäuschen",
 }
 KRITERIEN = dict(_KRITERIEN_BASIS)
 KRITERIEN.update(KRITERIEN_ZUSATZ)
@@ -282,10 +275,10 @@ NEUE = [
     Dateigroesse,
     Altlast,
     # „Lohnt der Umbau ueberhaupt" statt „was ist falsch":
-    Anzeigeformat,   # 134 von 204 Befunden waren gar keine
-    Klassenplan,     # Feld oder blosses Zwischenergebnis?
-    JsSchnitt,       # wo teilen, ohne Zirkel zu erzeugen
-    Wachstum,        # misst nach, statt „quadratisch" zu behaupten
+    Anzeigeformat,  # 134 von 204 Befunden waren gar keine
+    Klassenplan,  # Feld oder blosses Zwischenergebnis?
+    JsSchnitt,  # wo teilen, ohne Zirkel zu erzeugen
+    Wachstum,  # misst nach, statt „quadratisch" zu behaupten
     # --- Kriterien 16/17
     Protokoll,
     Testaufbau,
@@ -315,6 +308,11 @@ BEFUNDBASIERT = [
     # dieses bringt die Antworten der Standardwerkzeuge in dieselbe
     # Form.
     CodeQualitaet,
+    # Direkt dahinter (18.09.2026, aus gunSlinger): dasselbe Prinzip, ein
+    # Werkzeug weiter. ruff enthaelt pyflakes und pycodestyle, dazu isort,
+    # bugbear, pyupgrade — und einen FORMATIERER, der Stilfragen mechanisch
+    # entscheidet. Regeln: die des Projekts, sonst `djangobase/ruff_vorgabe.toml`.
+    RuffBefunde,
     FreieFunktionen,
     # Direkt hinter FreieFunktionen (19.08.2026, Kriterium 18): dieselbe Frage
     # von der Zustandsseite. Freie Funktionen zeigen, wo Verhalten heimatlos
@@ -489,20 +487,54 @@ def kriterien():
 
 
 __all__ = [
-    "WERKZEUGE", "NEUE", "ALTE", "FIXER", "werkzeuge", "werkzeug_finden",
-    "fixer", "fixer_finden", "hat_fixer",
-    "Werkzeug", "Ergebnis", "Quelldatei", "EigenesWerkzeug",
-    "Werkzeug", "ErgebnisAlt", "Befund", "Ausgabe", "AltWerkzeug",
-    "Fixer", "Vorschau", "Aenderung", "ImportFixer",
-    "Bericht", "Umbaunetz", "Abnahme",
-    "KRITERIEN", "KRITERIEN_ZUSATZ", "OHNE_WERKZEUG", "kriterien",
-    "ALT_KRITERIUM", "UEBERSPRINGEN",
-    "LEHREN", "BEREICHE", "gruppen", "als_zeilen", "Lehre", "Lehrenstand",
-    "Anlassfall", "Proben", "Protokoll", "Testaufbau", "Testdeckung",
+    "WERKZEUGE",
+    "NEUE",
+    "ALTE",
+    "FIXER",
+    "werkzeuge",
+    "werkzeug_finden",
+    "fixer",
+    "fixer_finden",
+    "hat_fixer",
+    "Werkzeug",
+    "Ergebnis",
+    "Quelldatei",
+    "EigenesWerkzeug",
+    "Werkzeug",
+    "ErgebnisAlt",
+    "Befund",
+    "Ausgabe",
+    "AltWerkzeug",
+    "Fixer",
+    "Vorschau",
+    "Aenderung",
+    "ImportFixer",
+    "Bericht",
+    "Umbaunetz",
+    "Abnahme",
+    "KRITERIEN",
+    "KRITERIEN_ZUSATZ",
+    "OHNE_WERKZEUG",
+    "kriterien",
+    "ALT_KRITERIUM",
+    "UEBERSPRINGEN",
+    "LEHREN",
+    "BEREICHE",
+    "gruppen",
+    "als_zeilen",
+    "Lehre",
+    "Lehrenstand",
+    "Anlassfall",
+    "Proben",
+    "Protokoll",
+    "Testaufbau",
+    "Testdeckung",
     # Diese beiden werden im Modul selbst nicht gebraucht — sie gehoeren zur
     # FASSADE: Ein Konsument schreibt `from djangobase.skills import
     # Grossdateien`. Im `__all__` steht das als Aussage; ohne den Eintrag
     # meldet `pyflakes` sie als unbenutzt, und beim naechsten Aufraeumen
     # fliegen sie raus (29.08.2026).
-    "Befundsatz", "BefundWerkzeug", "Grossdateien",
+    "Befundsatz",
+    "BefundWerkzeug",
+    "Grossdateien",
 ]

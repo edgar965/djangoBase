@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Seitenzeiten - was jede Seite kostet: Server UND Browser.
+"""Seitenzeiten - was jede Seite kostet: Server UND Browser.
 
 DER BEFUND (3DTools, 17.08.2026)
 ================================
@@ -26,6 +26,7 @@ WELCHE SEITEN: Alle benannten GET-Routen ohne Parameter — Django kennt sie
 selbst (`urls`), es wird nichts geraten. Wer eine Seite ausnehmen will:
 ``DJANGOBASE["skills2_seiten_außer"] = ["logout", "…"]``.
 """
+
 import time
 
 from django.conf import settings
@@ -40,15 +41,21 @@ __all__ = ["Seitenzeiten"]
 class Seitenzeiten(Werkzeug):
     slug = "seitenzeiten"
     titel = "Seiten: Serverzeit und Größe"
-    zweck = ("Ruft jede parameterlose Seite auf und misst Antwortzeit und "
-             "HTML-Größe. Der Knopf „Im Browser messen\" ergänzt Dateizahl, "
-             "Bytes und Ladezeit aus dem Browser.")
-    befund = ("3DTools: Alle Endpunkte unter 100 ms — die Szenenseite brauchte "
-              "trotzdem 2,6 s und lud 250 Dateien mit 14,8 MB. Serverzeit allein "
-              "sagt nichts über das, was der Benutzer erlebt.")
-    abhilfe = ("Grosse Antworten hinter einen Parameter legen (nur laden, was "
-               "gebraucht wird), Vorschaubilder erst beim Aufklappen holen, "
-               "Listen paginieren.")
+    zweck = (
+        "Ruft jede parameterlose Seite auf und misst Antwortzeit und "
+        'HTML-Größe. Der Knopf „Im Browser messen" ergänzt Dateizahl, '
+        "Bytes und Ladezeit aus dem Browser."
+    )
+    befund = (
+        "3DTools: Alle Endpunkte unter 100 ms — die Szenenseite brauchte "
+        "trotzdem 2,6 s und lud 250 Dateien mit 14,8 MB. Serverzeit allein "
+        "sagt nichts über das, was der Benutzer erlebt."
+    )
+    abhilfe = (
+        "Grosse Antworten hinter einen Parameter legen (nur laden, was "
+        "gebraucht wird), Vorschaubilder erst beim Aufklappen holen, "
+        "Listen paginieren."
+    )
     dauer = "5-30 s (jede Seite wird wirklich aufgerufen)"
     kriterium = 12
 
@@ -65,17 +72,29 @@ class Seitenzeiten(Werkzeug):
     GRENZE_KB = 400
     #: Routen mit diesen Namensteilen werden nicht aufgerufen — sie aendern
     #: Daten, melden ab oder gehoeren nicht zur Anwendung.
-    AUSSER = ("logout", "delete", "loeschen", "abmelden", "start", "stop",
-              "bulk", "reset", "admin/", "__debug__", "media/", "static/")
+    AUSSER = (
+        "logout",
+        "delete",
+        "loeschen",
+        "abmelden",
+        "start",
+        "stop",
+        "bulk",
+        "reset",
+        "admin/",
+        "__debug__",
+        "media/",
+        "static/",
+    )
 
     #: Kein Anlassfall - und das ist in Ordnung:
-    ohne_anlassfall_weil = ("misst nur (Ladezeiten je Seite) - "
-                            "eine Messung hat keinen Fall, den man nachbauen könnte")
+    ohne_anlassfall_weil = (
+        "misst nur (Ladezeiten je Seite) - eine Messung hat keinen Fall, den man nachbauen könnte"
+    )
 
     def seiten(self):
-        u"""Benannte GET-Routen ohne Parameter — von Django selbst erfragt."""
-        eigen = (getattr(settings, "DJANGOBASE", {}) or {}).get(
-            "skills2_seiten_ausser") or []
+        """Benannte GET-Routen ohne Parameter — von Django selbst erfragt."""
+        eigen = (getattr(settings, "DJANGOBASE", {}) or {}).get("skills2_seiten_ausser") or []
         raus = tuple(Seitenzeiten.AUSSER) + tuple(eigen)
         gefunden = []
         for muster in self._alle_muster(get_resolver()):
@@ -83,7 +102,7 @@ class Seitenzeiten(Werkzeug):
             if any(teil in (name or "") or teil in weg for teil in raus):
                 continue
             if "<" in weg or weg.startswith("api/"):
-                continue        # Parameter noetig bzw. keine Seite
+                continue  # Parameter noetig bzw. keine Seite
             gefunden.append("/" + weg)
         return sorted(set(gefunden))
 
@@ -97,7 +116,7 @@ class Seitenzeiten(Werkzeug):
                 yield (weg, getattr(eintrag, "name", "") or "")
 
     def laufen(self):
-        u"""Jede Seite einmal aufrufen und Zeit und Größe festhalten.
+        """Jede Seite einmal aufrufen und Zeit und Größe festhalten.
 
         FALLE, die beim Bau zuschlug (17.08.2026): Der Test-Client schickt den
         Host `testserver`. Steht der nicht in `ALLOWED_HOSTS`, antwortet Django
@@ -107,32 +126,37 @@ class Seitenzeiten(Werkzeug):
         Statuscode steht in der Tabelle — 400 oder 500 fällt damit auf.
         """
         zeilen = []
-        erlaubt = list(getattr(settings, 'ALLOWED_HOSTS', [])) + ['testserver']
+        erlaubt = list(getattr(settings, "ALLOWED_HOSTS", [])) + ["testserver"]
         with override_settings(ALLOWED_HOSTS=erlaubt):
             zeilen, angemeldet = self._messen()
         zeilen.sort(key=lambda z: -z["ms"])
         langsam = [z for z in zeilen if z["hinweis"]]
         echt = [z for z in zeilen if str(z["status"]) == "200"]
-        zusammen = ("%d Seiten gemessen (%d echt beantwortet), %d über %d ms "
-                    "oder %d KB" % (len(zeilen), len(echt), len(langsam),
-                                    Seitenzeiten.GRENZE_MS,
-                                    Seitenzeiten.GRENZE_KB))
+        zusammen = "%d Seiten gemessen (%d echt beantwortet), %d über %d ms oder %d KB" % (
+            len(zeilen),
+            len(echt),
+            len(langsam),
+            Seitenzeiten.GRENZE_MS,
+            Seitenzeiten.GRENZE_KB,
+        )
         if not angemeldet:
             zusammen += " — OHNE ANMELDUNG gemessen"
         elif len(echt) < len(zeilen) // 2:
             zusammen += " — die Mehrheit antwortet nicht mit 200"
         return Ergebnis(
-            ["ms", "kb", "status", "seite", "hinweis"], zeilen,
+            ["ms", "kb", "status", "seite", "hinweis"],
+            zeilen,
             zusammenfassung=zusammen,
             hinweis="Das ist die SERVERZEIT. Was der Benutzer erlebt, steht "
-                    "erst nach dem Knopf „Im Browser messen“ daneben "
-                    "— dort zählen Dateizahl und Bytes meist mehr. "
-                    "Zeilen mit 302 oder 401 sind die Abweisung am Eingang, "
-                    "keine Seitenzeit.")
+            "erst nach dem Knopf „Im Browser messen“ daneben "
+            "— dort zählen Dateizahl und Bytes meist mehr. "
+            "Zeilen mit 302 oder 401 sind die Abweisung am Eingang, "
+            "keine Seitenzeit.",
+        )
 
     @staticmethod
     def _anmelden(klient):
-        u"""Angemeldet messen - sonst misst man die Abweisung am Eingang.
+        """Angemeldet messen - sonst misst man die Abweisung am Eingang.
 
         BELEGT (17.08.2026): Von 162 Seiten antworteten 131 mit 302 und 29 mit
         401; genau ZWEI lieferten wirklich eine Seite. Die Zusammenfassung sagte
@@ -144,8 +168,8 @@ class Seitenzeiten(Werkzeug):
         nächste Falle.
         """
         from django.contrib.auth import get_user_model
-        nutzer = get_user_model().objects.filter(
-            is_superuser=True, is_active=True).order_by("pk").first()
+
+        nutzer = get_user_model().objects.filter(is_superuser=True, is_active=True).order_by("pk").first()
         if nutzer is None:
             return False
         klient.force_login(nutzer)
@@ -154,8 +178,8 @@ class Seitenzeiten(Werkzeug):
     @staticmethod
     def _abmelden(klient):
         try:
-            klient.logout()                 # loescht die Sitzungszeile wieder
-        except Exception:                   # noqa: BLE001
+            klient.logout()  # loescht die Sitzungszeile wieder
+        except Exception:  # noqa: BLE001
             # stumm gewollt: Das Abmelden ist Aufraeumen. Schlaegt es fehl,
             # bleibt eine Sitzung stehen, die von selbst ablaeuft - eine
             # Fehlermeldung darueber im Werkzeug waere Laerm ohne Handlung.
@@ -175,14 +199,14 @@ class Seitenzeiten(Werkzeug):
         if hasattr(antwort, "streaming_content"):
             try:
                 return sum(len(stueck) for stueck in antwort.streaming_content)
-            except Exception:                         # noqa: BLE001
+            except Exception:  # noqa: BLE001
                 # stumm gewollt: Ein Strom, der sich nicht auslesen laesst, ist
                 # fuer eine Groessenmessung uninteressant - 0 ist die ehrliche
                 # Antwort, und eine Meldung je Seite waere nur Laerm.
                 return 0
         try:
             return len(antwort.content)
-        except Exception:                             # noqa: BLE001
+        except Exception:  # noqa: BLE001
             # stumm gewollt: siehe oben - die Groesse ist Beiwerk, die Zeit ist
             # die Messgroesse. Ein Ausfall hier darf die Messung nicht kosten.
             return 0
@@ -206,10 +230,10 @@ class Seitenzeiten(Werkzeug):
                     beginn = time.perf_counter()
                     antwort = klient.get(weg)
                     zeiten.append((time.perf_counter() - beginn) * 1000)
-            except Exception as fehler:            # noqa: BLE001
-                zeilen.append({"ms": 0, "kb": 0, "status": "Fehler",
-                               "seite": weg,
-                               "hinweis": type(fehler).__name__})
+            except Exception as fehler:  # noqa: BLE001
+                zeilen.append(
+                    {"ms": 0, "kb": 0, "status": "Fehler", "seite": weg, "hinweis": type(fehler).__name__}
+                )
                 continue
             dauer = int(min(zeiten))
             kb = self._groesse(antwort) // 1024
@@ -218,6 +242,13 @@ class Seitenzeiten(Werkzeug):
                 hinweise.append("langsam")
             if kb >= Seitenzeiten.GRENZE_KB:
                 hinweise.append("großes HTML")
-            zeilen.append({"ms": dauer, "kb": kb, "status": antwort.status_code,
-                           "seite": weg, "hinweis": ", ".join(hinweise)})
+            zeilen.append(
+                {
+                    "ms": dauer,
+                    "kb": kb,
+                    "status": antwort.status_code,
+                    "seite": weg,
+                    "hinweis": ", ".join(hinweise),
+                }
+            )
         return zeilen

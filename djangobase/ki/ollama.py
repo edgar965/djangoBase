@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Die Modelle, die auf DIESEM Rechner liegen - gelesen ueber die Ollama-API.
+"""Die Modelle, die auf DIESEM Rechner liegen - gelesen ueber die Ollama-API.
 
 Herausgeloest aus ``modelle.py`` (30.08.2026): Dort standen der Onlinekatalog
 (OpenRouter, eine JSON-Datei, Preise) und die lokale Installation (ein Dienst auf
@@ -16,6 +16,7 @@ dazu die Quantisierungsstufe.
 Ist Ollama nicht da, ist die Liste leer. Das ist kein Fehler, sondern der
 Normalfall auf einem Rechner ohne lokale Modelle.
 """
+
 import json
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
@@ -36,7 +37,7 @@ FAEDEN = 4
 
 
 class OllamaModelle:
-    u"""Liste und Kontextlaenge der lokal installierten Modelle.
+    """Liste und Kontextlaenge der lokal installierten Modelle.
 
     Ein Objekt gilt fuer EINE Anfrage: Beide Merker leben nur, solange es lebt,
     danach wird wieder frisch gefragt. Ein prozessweiter Speicher waere schneller
@@ -57,23 +58,25 @@ class OllamaModelle:
     # ------------------------------------------------------------------- Abruf
 
     def _holen(self, pfad, nutzlast=None):
-        u"""Die Antwort von ``pfad`` als Wörterbuch - oder ``{}``, wenn nichts kommt."""
+        """Die Antwort von ``pfad`` als Wörterbuch - oder ``{}``, wenn nichts kommt."""
         if nutzlast is None:
             ziel = BASIS + pfad
         else:
             ziel = urllib.request.Request(
-                BASIS + pfad, data=json.dumps(nutzlast).encode("utf-8"),
-                headers={"Content-Type": "application/json"})
+                BASIS + pfad,
+                data=json.dumps(nutzlast).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+            )
         try:
             with urllib.request.urlopen(ziel, timeout=self.timeout) as r:
                 return json.loads(r.read().decode("utf-8"))
-        except Exception:                                        # noqa: BLE001
+        except Exception:  # noqa: BLE001
             return {}
 
     # ------------------------------------------------------------------ Zeilen
 
     def liste(self):
-        u"""[{kennung, gb, param_gesamt, param_aktiv, quant, kontext}], groesste zuerst.
+        """[{kennung, gb, param_gesamt, param_aktiv, quant, kontext}], groesste zuerst.
 
         IMMER DIESELBE Liste (Messung 30.08.2026). ``Bestenliste._katalogdaten``
         sucht hier jede Messzeile, die online nicht steht - auf
@@ -124,26 +127,26 @@ class OllamaModelle:
     # ----------------------------------------------------------------- Kontext
 
     def _details_vorholen(self, kennungen):
-        u"""Die ``/api/show``-Abrufe nebeneinander statt nacheinander."""
+        """Die ``/api/show``-Abrufe nebeneinander statt nacheinander."""
         offen = [k for k in kennungen if k and k not in self._details]
         if len(offen) < 2:
             return
         with ThreadPoolExecutor(max_workers=min(FAEDEN, len(offen))) as pool:
-            for kennung, wert in zip(offen, pool.map(self._details_holen, offen)):
+            for kennung, wert in zip(offen, pool.map(self._details_holen, offen), strict=True):
                 self._details[kennung] = wert
 
     def kontext(self, kennung):
-        u"""Kontextlaenge eines lokalen Modells - oder None."""
+        """Kontextlaenge eines lokalen Modells - oder None."""
         return self._detail(kennung, "kontext")
 
     def _detail(self, kennung, feld):
-        u"""Ein Feld aus dem gemerkten ``/api/show`` - notfalls nachholen."""
+        """Ein Feld aus dem gemerkten ``/api/show`` - notfalls nachholen."""
         if kennung not in self._details:
             self._details[kennung] = self._details_holen(kennung)
         return (self._details[kennung] or {}).get(feld)
 
     def _details_holen(self, kennung):
-        u"""Kontext, Familie und Expertenzahl aus EINEM ``/api/show``.
+        """Kontext, Familie und Expertenzahl aus EINEM ``/api/show``.
 
         Die Laenge steht NICHT in ``/api/tags`` (Rueckfrage 11.08.2026: „der
         Kontext fehlt auch bei den lokalen"), sondern nur hier unter
@@ -160,8 +163,11 @@ class OllamaModelle:
         """
         antwort = self._holen("/api/show", {"model": kennung})
         info = antwort.get("model_info") or {}
-        aus = {"kontext": None, "experten": None,
-               "familie": (antwort.get("details") or {}).get("family") or ""}
+        aus = {
+            "kontext": None,
+            "experten": None,
+            "familie": (antwort.get("details") or {}).get("family") or "",
+        }
         for schluessel, wert in info.items():
             if schluessel.endswith(".context_length"):
                 aus["kontext"] = self._ganzzahl(wert)

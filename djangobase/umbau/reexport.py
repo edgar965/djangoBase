@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""``# noqa: F401`` — die Absicht, die pyright nicht liest.
+"""``# noqa: F401`` — die Absicht, die pyright nicht liest.
 
 Ein Sammelmodul holt Namen herein, um sie weiterzureichen::
 
@@ -25,6 +25,7 @@ erst zur Laufzeit. Einen vorhandenen Marker zu lesen ändert nichts am Programm.
 
 Django-frei.
 """
+
 import ast
 import re
 
@@ -32,16 +33,14 @@ __all__ = ["Reexporte"]
 
 
 class Reexporte:
-    u"""Findet Import-Anweisungen, die als Weitergabe markiert sind."""
+    """Findet Import-Anweisungen, die als Weitergabe markiert sind."""
 
     #: ``# noqa`` mit optionaler Code-Liste (``F401``, ``F401,E501``).
-    MARKER = re.compile(
-        r"#\s*noqa(?:\s*:\s*(?P<codes>[A-Z][A-Z0-9]*(?:\s*,\s*[A-Z][A-Z0-9]*)*))?",
-        re.I)
+    MARKER = re.compile(r"#\s*noqa(?:\s*:\s*(?P<codes>[A-Z][A-Z0-9]*(?:\s*,\s*[A-Z][A-Z0-9]*)*))?", re.I)
 
     @classmethod
     def ist_marker(cls, zeile):
-        u"""Sagt diese Zeile „unbenutzt ist Absicht"?
+        """Sagt diese Zeile „unbenutzt ist Absicht"?
 
         ``# noqa: F401`` ja. Nacktes ``# noqa`` auch — es unterdrückt jede
         Regel, F401 eingeschlossen. ``# noqa: E501`` dagegen spricht über die
@@ -55,7 +54,7 @@ class Reexporte:
 
     @classmethod
     def zeilen(cls, baum, quellzeilen):
-        u"""``{Zeilennummern}`` aller so markierten Import-Anweisungen.
+        """``{Zeilennummern}`` aller so markierten Import-Anweisungen.
 
         Der Marker steht an EINER Zeile der Anweisung, meist der ersten; pyright
         meldet aber jeden Namen einzeln, auch in den Folgezeilen einer
@@ -71,7 +70,6 @@ class Reexporte:
             anfang = knoten.lineno
             ende = getattr(knoten, "end_lineno", None) or anfang
             bereich = range(anfang, ende + 1)
-            if any(cls.ist_marker(quellzeilen[n - 1])
-                   for n in bereich if 0 < n <= len(quellzeilen)):
+            if any(cls.ist_marker(quellzeilen[n - 1]) for n in bereich if 0 < n <= len(quellzeilen)):
                 raus.update(bereich)
         return raus

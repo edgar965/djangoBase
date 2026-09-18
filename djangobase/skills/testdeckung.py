@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Testdeckung - welche Seite, welcher Endpunkt, welcher Menuepunkt hat KEINEN Test?
+"""Testdeckung - welche Seite, welcher Endpunkt, welcher Menuepunkt hat KEINEN Test?
 
     Kriterium 17 (Zusatz): Testcases für alle wichtigen Funktionen und Menues.
 
@@ -24,10 +24,11 @@ Seiten (GET, im Menue verlinkt) wiegen schwerer als interne Endpunkte: Eine tote
 Seite sieht der Nutzer sofort, eine tote API erst im Umweg. Menuepunkte ohne Test
 stehen deshalb ganz oben.
 """
+
 import re
 
-from .werkzeug import Ergebnis
 from .basis import EigenesWerkzeug
+from .werkzeug import Ergebnis
 
 __all__ = ["Testdeckung"]
 
@@ -35,18 +36,32 @@ __all__ = ["Testdeckung"]
 class Testdeckung(EigenesWerkzeug):
     slug = "testdeckung"
     titel = "Tests: was hat gar keinen?"
-    zweck = ("Vergleicht URL-Tabelle und Menü mit dem, was die Tests erwähnen — "
-             "und listet Seiten, Endpunkte und Menüpunkte ohne jeden Test.")
-    befund = ("Ein Menüpunkt, den kein Test je aufruft, fällt erst dem Nutzer "
-              "auf. Die Gliederung der Tests sagt darüber nichts.")
-    abhilfe = ("Je ungeprüfter Seite ein UI-Test (Status 200 + eine Zusicherung "
-               "auf den Inhalt), je Endpunkt ein Component-Test.")
+    zweck = (
+        "Vergleicht URL-Tabelle und Menü mit dem, was die Tests erwähnen — "
+        "und listet Seiten, Endpunkte und Menüpunkte ohne jeden Test."
+    )
+    befund = (
+        "Ein Menüpunkt, den kein Test je aufruft, fällt erst dem Nutzer "
+        "auf. Die Gliederung der Tests sagt darüber nichts."
+    )
+    abhilfe = (
+        "Je ungeprüfter Seite ein UI-Test (Status 200 + eine Zusicherung "
+        "auf den Inhalt), je Endpunkt ein Component-Test."
+    )
     dauer = "3–10 s"
     kriterium = 17
 
     #: Django-eigene und Hilfsrouten - nicht die Verantwortung des Projekts.
-    FREMD = ("admin:", "djangobase:", "account_", "socialaccount",
-             "django.contrib", "allauth", "static", "media")
+    FREMD = (
+        "admin:",
+        "djangobase:",
+        "account_",
+        "socialaccount",
+        "django.contrib",
+        "allauth",
+        "static",
+        "media",
+    )
 
     #: Rahmencode. ``django.contrib`` allein reichte nicht: Djangos Admin legt
     #: fuer die alte Objekt-Adresse (``/admin/auth/group/<id>/``) eine
@@ -65,29 +80,35 @@ class Testdeckung(EigenesWerkzeug):
         # Gegenprobe „laeuft auf leerem Projekt ohne Befund" gefunden hat
         # (17.08.2026).
         if not self.hat_code():
-            return Ergebnis(["art", "stelle", "ziel", "hinweis"], [],
-                            "kein Quelltext gefunden — nichts zu prüfen",
-                            "Die Routen stammen aus Django; ohne Projektcode "
-                            "wäre jede Meldung eine über ein fremdes Projekt.")
+            return Ergebnis(
+                ["art", "stelle", "ziel", "hinweis"],
+                [],
+                "kein Quelltext gefunden — nichts zu prüfen",
+                "Die Routen stammen aus Django; ohne Projektcode "
+                "wäre jede Meldung eine über ein fremdes Projekt.",
+            )
         erwaehnt = self._testtexte()
         zeilen = []
         zeilen += self._menue(erwaehnt)
         zeilen += self._routen(erwaehnt)
         zeilen += self._klassen(erwaehnt)
-        rang = {"Menüpunkt ungeprüft": 0, "Seite ungeprüft": 1,
-                "Klasse ungeprüft": 2, "Endpunkt ungeprüft": 3}
-        zeilen.sort(key=lambda z: (rang.get(z["art"], 9),
-                                   -z.get("gewicht", 0), z["stelle"]))
-        seiten = [z for z in zeilen if z["art"] in ("Menüpunkt ungeprüft",
-                                                    "Seite ungeprüft")]
+        rang = {
+            "Menüpunkt ungeprüft": 0,
+            "Seite ungeprüft": 1,
+            "Klasse ungeprüft": 2,
+            "Endpunkt ungeprüft": 3,
+        }
+        zeilen.sort(key=lambda z: (rang.get(z["art"], 9), -z.get("gewicht", 0), z["stelle"]))
+        seiten = [z for z in zeilen if z["art"] in ("Menüpunkt ungeprüft", "Seite ungeprüft")]
         klassen = [z for z in zeilen if z["art"] == "Klasse ungeprüft"]
         return Ergebnis(
-            ["art", "stelle", "ziel", "hinweis"], zeilen,
+            ["art", "stelle", "ziel", "hinweis"],
+            zeilen,
             "%d ungeprüft — %d Seiten/Menüpunkte (die sichtbaren), "
-            "%d Klassen auf einem Arbeitsweg"
-            % (len(zeilen), len(seiten), len(klassen)),
+            "%d Klassen auf einem Arbeitsweg" % (len(zeilen), len(seiten), len(klassen)),
             "„Ungeprüft“ heißt: kommt in keinem Test vor. Ob ein vorhandener Test "
-            "sinnvoll prüft, sagt dieses Werkzeug nicht — das bleibt Handarbeit.")
+            "sinnvoll prüft, sagt dieses Werkzeug nicht — das bleibt Handarbeit.",
+        )
 
     # ------------------------------------------------------------------ Quellen
 
@@ -101,7 +122,7 @@ class Testdeckung(EigenesWerkzeug):
         return "\n".join(teile)
 
     def _klassen(self, erwaehnt):
-        u"""Welche KLASSE des laufenden Systems erwähnt kein Test?
+        """Welche KLASSE des laufenden Systems erwähnt kein Test?
 
         DIE ANSAGE (Edgar, 27.08.2026)
         ==============================
@@ -136,9 +157,9 @@ class Testdeckung(EigenesWerkzeug):
         als eine Hilfsklasse, die einmal vorkommt.
         """
         try:
-            from ..umbau.workflows import Workflowspeicher
             from ..umbau.wegenetz import Verzeichnis
-        except ImportError:                            # pragma: no cover
+            from ..umbau.workflows import Workflowspeicher
+        except ImportError:  # pragma: no cover
             return []
         wurzel = self.wurzel()
         # MIT der Ausschlussliste dieses Projekts: Sonst zaehlen
@@ -154,23 +175,25 @@ class Testdeckung(EigenesWerkzeug):
             if self._kommt_vor(erwaehnt, name):
                 continue
             if self._nur_eine_ausnahme(bezug):
-                continue          # nichts zu prüfen — siehe unten
+                continue  # nichts zu prüfen — siehe unten
             wege = gewicht.get(name, 0)
             if not wege:
-                continue          # Randbereich — gezählt, nicht gelistet
-            aus.append({
-                "art": "Klasse ungeprüft",
-                "stelle": name,
-                "ziel": "%s:%d" % (bezug.modul, bezug.zeile),
-                "gewicht": wege,
-                "hinweis": "liegt auf %d Arbeitsweg%s, wird aber in keinem "
-                           "Test erwähnt" % (wege, "en" if wege != 1 else ""),
-            })
+                continue  # Randbereich — gezählt, nicht gelistet
+            aus.append(
+                {
+                    "art": "Klasse ungeprüft",
+                    "stelle": name,
+                    "ziel": "%s:%d" % (bezug.modul, bezug.zeile),
+                    "gewicht": wege,
+                    "hinweis": "liegt auf %d Arbeitsweg%s, wird aber in keinem "
+                    "Test erwähnt" % (wege, "en" if wege != 1 else ""),
+                }
+            )
         return aus
 
     @staticmethod
     def _nur_eine_ausnahme(bezug):
-        u"""Eine Ausnahme-Klasse ohne eigenen Rumpf ist kein Testziel.
+        """Eine Ausnahme-Klasse ohne eigenen Rumpf ist kein Testziel.
 
         DER FEHLALARM (27.08.2026, an assistant gefunden)
         =================================================
@@ -183,27 +206,25 @@ class Testdeckung(EigenesWerkzeug):
         Von 77 gemeldeten Klassen war es an assistant genau eine — kein
         großer Posten, aber ein falscher.
         """
-        knoten = getattr(bezug, 'knoten', None)
-        if knoten is None or not hasattr(knoten, 'bases'):
+        knoten = getattr(bezug, "knoten", None)
+        if knoten is None or not hasattr(knoten, "bases"):
             return False
-        basen = [b.id for b in knoten.bases
-                 if getattr(b, 'id', None)]
-        if not basen or not all(
-                b.endswith('Error') or b.endswith('Exception')
-                for b in basen):
+        basen = [b.id for b in knoten.bases if getattr(b, "id", None)]
+        if not basen or not all(b.endswith("Error") or b.endswith("Exception") for b in basen):
             return False
         # Rumpf ohne Docstring und ohne ``pass``: dann steht dort etwas.
         import ast as _ast
-        inhalt = [k for k in knoten.body
-                  if not isinstance(k, (_ast.Expr, _ast.Pass))]
+
+        inhalt = [k for k in knoten.body if not isinstance(k, (_ast.Expr, _ast.Pass))]
         return not inhalt
 
     def _routen(self, erwaehnt):
         """Jede Route des Projekts gegen die Testtexte halten."""
         try:
             from django.urls import get_resolver
+
             wurzel = get_resolver()
-        except Exception:                                       # noqa: BLE001
+        except Exception:  # noqa: BLE001
             return []
         aus, gesehen = [], set()
 
@@ -212,7 +233,7 @@ class Testdeckung(EigenesWerkzeug):
                 if hasattr(p, "url_patterns"):
                     try:
                         gehen(p.url_patterns, praefix + str(p.pattern))
-                    except Exception:                           # noqa: BLE001
+                    except Exception:  # noqa: BLE001
                         pass
                     continue
                 pfad = praefix + str(p.pattern)
@@ -239,18 +260,27 @@ class Testdeckung(EigenesWerkzeug):
                 # deshalb zusaetzlich auf den Anfang pruefen: die erste Fassung
                 # meldete jeden API-Endpunkt als „Seite" (17.08.2026).
                 voll = "/" + pfad.lstrip("^/")
-                api = ("/api/" in voll or voll.startswith("/api")
-                       or ziel.endswith(("_api", "_status", "_json", "_stream")))
-                aus.append({
-                    "art": "Endpunkt ungeprüft" if api else "Seite ungeprüft",
-                    "stelle": "/" + pfad.lstrip("^/"), "ziel": ziel,
-                    "hinweis": ("Component-Test: Aufruf + erwartete Antwort"
-                                if api else
-                                "UI-Test: Status 200 und eine Zusicherung auf den "
-                                "Inhalt")})
+                api = (
+                    "/api/" in voll
+                    or voll.startswith("/api")
+                    or ziel.endswith(("_api", "_status", "_json", "_stream"))
+                )
+                aus.append(
+                    {
+                        "art": "Endpunkt ungeprüft" if api else "Seite ungeprüft",
+                        "stelle": "/" + pfad.lstrip("^/"),
+                        "ziel": ziel,
+                        "hinweis": (
+                            "Component-Test: Aufruf + erwartete Antwort"
+                            if api
+                            else "UI-Test: Status 200 und eine Zusicherung auf den Inhalt"
+                        ),
+                    }
+                )
+
         try:
             gehen(wurzel.url_patterns)
-        except Exception:                                       # noqa: BLE001
+        except Exception:  # noqa: BLE001
             pass
         return aus
 
@@ -279,7 +309,8 @@ class Testdeckung(EigenesWerkzeug):
     def _menue(self, erwaehnt):
         """Die Menuepunkte aus DJANGOBASE - das ist die Sicht des Nutzers."""
         from django.conf import settings
-        cfg = (getattr(settings, "DJANGOBASE", {}) or {})
+
+        cfg = getattr(settings, "DJANGOBASE", {}) or {}
         aus = []
         for eintrag in self._menue_eintraege(cfg.get("menu") or []):
             titel, ziel = eintrag
@@ -288,10 +319,14 @@ class Testdeckung(EigenesWerkzeug):
             marke = str(ziel).strip("/").split("/")[-1] or str(ziel)
             if self._kommt_vor(erwaehnt, marke, str(ziel), ""):
                 continue
-            aus.append({"art": "Menüpunkt ungeprüft", "stelle": titel,
-                        "ziel": str(ziel),
-                        "hinweis": "sichtbarer Einstieg ohne Test — ein Ausfall "
-                                   "fällt sonst erst dem Nutzer auf"})
+            aus.append(
+                {
+                    "art": "Menüpunkt ungeprüft",
+                    "stelle": titel,
+                    "ziel": str(ziel),
+                    "hinweis": "sichtbarer Einstieg ohne Test — ein Ausfall fällt sonst erst dem Nutzer auf",
+                }
+            )
         return aus
 
     @staticmethod
@@ -351,7 +386,7 @@ class Testdeckung(EigenesWerkzeug):
 
     @classmethod
     def _woerter(cls, text):
-        u"""Alle Bezeichner des Textes als Menge — einmal je Text.
+        """Alle Bezeichner des Textes als Menge — einmal je Text.
 
         Gemerkt wird an der Länge plus einem Ausschnitt statt am ganzen
         Text: Ein 1,58-MB-String als dict-Schlüssel wird bei jedem Zugriff

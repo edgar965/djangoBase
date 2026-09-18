@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""GetattrNamen - ``getattr(x, "name", vorgabe)`` auf einen Namen, den es nicht gibt.
+"""GetattrNamen - ``getattr(x, "name", vorgabe)`` auf einen Namen, den es nicht gibt.
 
 DER ANLASS (shortlongx, 16.08.2026)
 ===================================
@@ -51,6 +51,7 @@ vor. Deshalb meldet dieses Werkzeug einen VERDACHT, keinen Fehler.
 Gezaehlt werden nur Aufrufe MIT Vorgabe: ``getattr(x, "n")`` ohne dritten
 Parameter wirft von selbst und braucht keine Pruefung.
 """
+
 import ast
 from collections import Counter
 
@@ -81,8 +82,7 @@ class Namensbestand:
                 self.bezeichner.add(k.id)
             elif isinstance(k, ast.arg):
                 self.bezeichner.add(k.arg)
-            elif isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef,
-                                ast.ClassDef)):
+            elif isinstance(k, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
                 self.bezeichner.add(k.name)
             elif isinstance(k, ast.keyword) and k.arg:
                 self.bezeichner.add(k.arg)
@@ -98,10 +98,12 @@ class Namensbestand:
             if not isinstance(k, ast.Subscript):
                 continue
             traeger = k.value
-            if (isinstance(traeger, ast.Attribute)
-                    and traeger.attr == "__dict__"
-                    and isinstance(k.slice, ast.Constant)
-                    and isinstance(k.slice.value, str)):
+            if (
+                isinstance(traeger, ast.Attribute)
+                and traeger.attr == "__dict__"
+                and isinstance(k.slice, ast.Constant)
+                and isinstance(k.slice.value, str)
+            ):
                 self.attribute.add(k.slice.value)
 
     def kennt(self, name):
@@ -144,30 +146,40 @@ class GetattrStelle:
         return type(k).__name__
 
     def als_zeile(self, bestand):
-        return {"datei": self.datei, "zeile": self.zeile,
-                "empfänger": self.empfaenger, "gefragtes Feld": self.feld,
-                "Vorgabe": self.vorgabe, "belegt": bestand.einstufung(self.feld)}
+        return {
+            "datei": self.datei,
+            "zeile": self.zeile,
+            "empfänger": self.empfaenger,
+            "gefragtes Feld": self.feld,
+            "Vorgabe": self.vorgabe,
+            "belegt": bestand.einstufung(self.feld),
+        }
 
 
 class GetattrNamen(Werkzeug):
     slug = "getattr-namen"
     titel = "getattr auf Felder, die es nicht gibt"
-    zweck = ("Findet ``getattr(x, \"name\", vorgabe)``, wo der Name im Projekt "
-             "weder als Attribut noch als Bezeichner vorkommt.")
-    befund = ("In shortlongx fragte der Live-Autotrader ``getattr(self.ts, "
-              "\"orb_nacht\", False)``; das Feld heißt ``position_über_nacht`` "
-              "und hat nie anders geheißen. Der Autotrader schloss deshalb jede "
-              "Position am Fensterende, während der Backtest daneben über Nacht "
-              "hielt — ohne eine einzige Fehlermeldung.")
-    abhilfe = ("Namen richtigstellen. Ist das Feld absichtlich optional (ältere "
-               "gespeicherte Objekte kennen es nicht), gehört es trotzdem "
-               "einmal in die Feldliste der Klasse — dann ist es belegt. Gehört "
-               "der Name einer Fremdbibliothek, ist die Zeile in Ordnung.")
+    zweck = (
+        'Findet ``getattr(x, "name", vorgabe)``, wo der Name im Projekt '
+        "weder als Attribut noch als Bezeichner vorkommt."
+    )
+    befund = (
+        "In shortlongx fragte der Live-Autotrader ``getattr(self.ts, "
+        '"orb_nacht", False)``; das Feld heißt ``position_über_nacht`` '
+        "und hat nie anders geheißen. Der Autotrader schloss deshalb jede "
+        "Position am Fensterende, während der Backtest daneben über Nacht "
+        "hielt — ohne eine einzige Fehlermeldung."
+    )
+    abhilfe = (
+        "Namen richtigstellen. Ist das Feld absichtlich optional (ältere "
+        "gespeicherte Objekte kennen es nicht), gehört es trotzdem "
+        "einmal in die Feldliste der Klasse — dann ist es belegt. Gehört "
+        "der Name einer Fremdbibliothek, ist die Zeile in Ordnung."
+    )
     kriterium = 7
     dauer = "5–10 s"
 
-    SPALTEN = ("datei", "zeile", "empfänger", "gefragtes Feld", "Vorgabe",
-               "belegt")
+    SPALTEN = ("datei", "zeile", "empfänger", "gefragtes Feld", "Vorgabe", "belegt")
 
     #: Der Fall vom 16.08.2026, auf das Noetige eingedampft. ``position_ueber_
     #: nacht`` ist das echte Feld, ``orb_nacht`` der Tippfehler. Die erste
@@ -175,7 +187,8 @@ class GetattrNamen(Werkzeug):
     #: Zeichenkette als Beleg gelten, und der Name steht als Zeichenkette in der
     #: Pruefung, die ihn dokumentiert. Genau dafuer gibt es diesen Anlassfall.
     anlassfall = Anlassfall(
-        {"handel.py": '''# -*- coding: utf-8 -*-
+        {
+            "handel.py": '''# -*- coding: utf-8 -*-
 
 
 class System:
@@ -201,12 +214,15 @@ def kann_das(paketname):
     """Ausnahme 2: ein MODUL als Empfaenger - fremder Code."""
     paket = __import__(paketname)
     return callable(getattr(paket, "irgendeine_funktion", None))
-'''},
-        mindestens=1, hoechstens=1,
+'''
+        },
+        mindestens=1,
+        hoechstens=1,
         erwartet_in="orb_nacht",
         warum="Autotrader fragte ``orb_nacht``; das Feld heißt "
-              "``position_über_nacht`` (16.08.2026). Die zwei Ausnahmen sind "
-              "die Fehlalarme aus 3DTools: Dunder und Modul-Empfänger.")
+        "``position_über_nacht`` (16.08.2026). Die zwei Ausnahmen sind "
+        "die Fehlalarme aus 3DTools: Dunder und Modul-Empfänger.",
+    )
 
     def laufen(self):
         dateien = [d for d in self.dateien(".py") if d.baum is not None]
@@ -235,7 +251,8 @@ def kann_das(paketname):
             self._fazit(stellen, gesamt, len(dateien)),
             "Jede Zeile von Hand prüfen: Der Name kann von außen kommen "
             "(Fremdbibliothek, Django-Interna). Das Werkzeug meldet einen "
-            "begründeten Verdacht — keinen Fehler.")
+            "begründeten Verdacht — keinen Fehler.",
+        )
 
     @staticmethod
     def _fazit(stellen, gesamt, dateien):
@@ -243,18 +260,22 @@ def kann_das(paketname):
             # Null ist hier ein Zwischenstand, keine Auszeichnung: Genau diese
             # Null hatte die erste Fassung ausgewiesen, weil ihr Massstab zu
             # weit war (Modulkopf). Der Satz sagt deshalb, WORAN gemessen wurde.
-            return ("Kein unbekannter Name unter %d ``getattr``-Aufrufen mit "
-                    "Vorgabe (%d Dateien). Gemessen gegen alle Attribute und "
-                    "Bezeichner des Projekts — Namen aus Fremdbibliotheken "
-                    "sieht diese Prüfung nicht." % (gesamt, dateien))
+            return (
+                "Kein unbekannter Name unter %d ``getattr``-Aufrufen mit "
+                "Vorgabe (%d Dateien). Gemessen gegen alle Attribute und "
+                "Bezeichner des Projekts — Namen aus Fremdbibliotheken "
+                "sieht diese Prüfung nicht." % (gesamt, dateien)
+            )
         haeufig = Counter(s.empfaenger for s in stellen).most_common(1)[0]
-        return ("%d von %d ``getattr``-Aufrufen mit Vorgabe nennen ein Feld, "
-                "das das Projekt sonst nicht kennt (häufigster Empfänger: %s, "
-                "%dx)." % (len(stellen), gesamt, haeufig[0], haeufig[1]))
+        return (
+            "%d von %d ``getattr``-Aufrufen mit Vorgabe nennen ein Feld, "
+            "das das Projekt sonst nicht kennt (häufigster Empfänger: %s, "
+            "%dx)." % (len(stellen), gesamt, haeufig[0], haeufig[1])
+        )
 
     @staticmethod
     def _nicht_zu_pruefen(stelle, module):
-        u"""Zwei Faelle, in denen ein unbekannter Name in Ordnung IST.
+        """Zwei Faelle, in denen ein unbekannter Name in Ordnung IST.
 
         Beide in 3DTools gemessen (17.08.2026) — es waren die einzigen zwei
         Befunde des Werkzeugs dort, also 2 von 2 Fehlalarmen:
@@ -279,7 +300,7 @@ def kann_das(paketname):
 
     @staticmethod
     def _modulnamen(baum):
-        u"""Namen, die in dieser Datei ein MODUL bezeichnen.
+        """Namen, die in dieser Datei ein MODUL bezeichnen.
 
         Drei Wege: ``import x as m``, ``from p import x as m`` und die
         Zuweisung eines Import-Aufrufs (``m = __import__(...)``,
@@ -304,8 +325,7 @@ def kann_das(paketname):
                         aus.add(name.asname or letzter)
             elif isinstance(k, ast.Assign) and isinstance(k.value, ast.Call):
                 gerufen = k.value.func
-                name = (gerufen.attr if isinstance(gerufen, ast.Attribute)
-                        else getattr(gerufen, "id", ""))
+                name = gerufen.attr if isinstance(gerufen, ast.Attribute) else getattr(gerufen, "id", "")
                 if name in ("__import__", "import_module"):
                     for ziel in k.targets:
                         if isinstance(ziel, ast.Name):
@@ -314,8 +334,11 @@ def kann_das(paketname):
 
     @staticmethod
     def _ist_getattr_mit_vorgabe(k):
-        return (isinstance(k, ast.Call)
-                and isinstance(k.func, ast.Name) and k.func.id == "getattr"
-                and len(k.args) == 3
-                and isinstance(k.args[1], ast.Constant)
-                and isinstance(k.args[1].value, str))
+        return (
+            isinstance(k, ast.Call)
+            and isinstance(k.func, ast.Name)
+            and k.func.id == "getattr"
+            and len(k.args) == 3
+            and isinstance(k.args[1], ast.Constant)
+            and isinstance(k.args[1].value, str)
+        )

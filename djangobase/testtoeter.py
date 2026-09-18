@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Toeter - einen Testlauf samt seiner Kinder beenden.
+"""Toeter - einen Testlauf samt seiner Kinder beenden.
 
 ``prozess.kill()`` beendet GENAU den einen Prozess. Ein Testlauf startet aber
 selbst welche: ``ProcessPoolExecutor``-Arbeiter, Hilfsprogramme, ein zweiter
@@ -16,6 +16,7 @@ Deshalb wird der BAUM beendet:
 
 Kein ``psutil``: djangoBase soll ohne zusaetzliche Abhaengigkeit laufen.
 """
+
 import logging
 import os
 import signal
@@ -35,7 +36,7 @@ class Toeter:
 
     @classmethod
     def prozess(cls, prozess):
-        u"""Einen ``Popen`` beenden - Baum zuerst, dann der Prozess selbst."""
+        """Einen ``Popen`` beenden - Baum zuerst, dann der Prozess selbst."""
         if prozess is None or prozess.poll() is not None:
             return False
         cls.baum(prozess.pid)
@@ -46,14 +47,13 @@ class Toeter:
         try:
             prozess.wait(timeout=cls.GEDULD)
         except Exception:  # noqa: BLE001
-            log.warning("Testlauf-Prozess %s ist nach %d s noch da",
-                        prozess.pid, cls.GEDULD)
+            log.warning("Testlauf-Prozess %s ist nach %d s noch da", prozess.pid, cls.GEDULD)
             return False
         return True
 
     @classmethod
     def baum(cls, pid):
-        u"""Prozess ``pid`` und seine Kinder beenden. ``True``, wenn versucht."""
+        """Prozess ``pid`` und seine Kinder beenden. ``True``, wenn versucht."""
         if not pid:
             return False
         if sys.platform.startswith("win"):
@@ -65,8 +65,11 @@ class Toeter:
         try:
             ergebnis = subprocess.run(
                 ["taskkill", "/F", "/T", "/PID", str(int(pid))],
-                capture_output=True, text=True, timeout=Toeter.GEDULD,
-                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+                capture_output=True,
+                text=True,
+                timeout=Toeter.GEDULD,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
         except Exception:  # noqa: BLE001
             log.exception("taskkill für PID %s nicht ausfuehrbar", pid)
             return False
@@ -74,9 +77,12 @@ class Toeter:
             # 128 = „Prozess nicht gefunden" — der Normalfall, wenn er schon weg
             # ist. Alles andere gehoert ins Log, sonst raetselt man spaeter,
             # warum ein Prozess ueberlebt hat.
-            log.warning("taskkill /T PID %s: rc=%s %s", pid,
-                        ergebnis.returncode,
-                        (ergebnis.stderr or ergebnis.stdout or "").strip()[:200])
+            log.warning(
+                "taskkill /T PID %s: rc=%s %s",
+                pid,
+                ergebnis.returncode,
+                (ergebnis.stderr or ergebnis.stdout or "").strip()[:200],
+            )
         return True
 
     @staticmethod
@@ -85,7 +91,7 @@ class Toeter:
             os.killpg(os.getpgid(int(pid)), signal.SIGKILL)
             return True
         except ProcessLookupError:
-            return True                      # schon weg
+            return True  # schon weg
         except OSError:
             # Keine eigene Gruppe (oder keine Rechte): dann nur dieser Prozess.
             try:

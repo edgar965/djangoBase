@@ -16,6 +16,7 @@ solche unterhalb von ``review_wurzel`` (Prüfung in ReviewLauf._datei_lesen).
 Freitext-Pfade nimmt diese Seite bewusst nicht entgegen — bei einem
 Online-Partner verlässt der Inhalt den Rechner.
 """
+
 import json
 
 from django.conf import settings
@@ -27,14 +28,14 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 
 from ..conf import conf
 from ..mixins import ZugriffMixin
+from ..review import NACHFASSEN, REGISTER, ReviewFehler, ReviewLauf, WerkzeugPartner
 from ..review.kontext_sitzungen import Sitzungen
-from ..review import (NACHFASSEN, REGISTER, ReviewFehler, ReviewLauf,
-                      WerkzeugPartner)
 
 
 def _einstellungen():
     """Review-Teil der Konfiguration mit aufgeloesten Vorgaben."""
     from django.conf import settings
+
     c = conf()
     wurzel = c.get("review_wurzel") or settings.BASE_DIR
     ablage = c.get("review_ablage") or (c["log_verzeichnis"] / "review")
@@ -66,19 +67,22 @@ class ReviewView(ZugriffMixin, View):
             for d in b.get("dateien") or []:
                 if isinstance(d, dict):
                     anzahl = len(d.get("funktionen") or [])
-                    namen.append("%s%s" % (d.get("pfad", "?"),
-                                           " (%d Funktionen)" % anzahl if anzahl else ""))
+                    namen.append("%s%s" % (d.get("pfad", "?"), " (%d Funktionen)" % anzahl if anzahl else ""))
                 else:
                     namen.append(str(d))
-            aufbereitet.append({
-                "slug": b.get("slug", ""), "name": b.get("name", b.get("slug", "")),
-                "anzahl": len(namen), "dateien_text": ", ".join(namen),
-            })
+            aufbereitet.append(
+                {
+                    "slug": b.get("slug", ""),
+                    "name": b.get("name", b.get("slug", "")),
+                    "anzahl": len(namen),
+                    "dateien_text": ", ".join(namen),
+                }
+            )
         return aufbereitet
 
     @staticmethod
     def _partner_anzeigen(partner):
-        u"""Partner fuers Template — mit Kennzeichen und Auswahlen.
+        """Partner fuers Template — mit Kennzeichen und Auswahlen.
 
         Ein Werkzeug-Partner bekommt statt der Bereichsliste eine Auswahl,
         WELCHER Git-Stand geprueft wird. Ohne dieses Kennzeichen zeigte die
@@ -88,15 +92,18 @@ class ReviewView(ZugriffMixin, View):
         raus = []
         for p in partner:
             ist_werkzeug = p.get("ziel") == WerkzeugPartner.ZIEL
-            raus.append(dict(
-                p, ist_werkzeug=ist_werkzeug,
-                auswahl_liste=(WerkzeugPartner.anzeige_auswahlen(p)
-                               if ist_werkzeug else [])))
+            raus.append(
+                dict(
+                    p,
+                    ist_werkzeug=ist_werkzeug,
+                    auswahl_liste=(WerkzeugPartner.anzeige_auswahlen(p) if ist_werkzeug else []),
+                )
+            )
         return raus
 
     @method_decorator(ensure_csrf_cookie)
     def get(self, request):
-        u"""Die Seite — und ausdruecklich MIT CSRF-Cookie.
+        """Die Seite — und ausdruecklich MIT CSRF-Cookie.
 
         WARUM DER DEKORATOR (31.08.2026): Diese Seite rendert kein Formular;
         ihre POSTs baut das JavaScript und holt den Token aus dem Cookie
@@ -117,19 +124,24 @@ class ReviewView(ZugriffMixin, View):
         # die halbe Bedienung (Bereiche weg, Auswahl da). Zwei Dinge, die sich
         # so verschieden bedienen, gehoeren nicht in dieselbe Auswahlliste.
         werkzeuge = [p for p in alle if p["ist_werkzeug"]]
-        return render(request, "djangobase/hilfe/review.html", {
-            "aktiv": "review",
-            "werkzeuge": werkzeuge,
-            "partner": [p for p in alle if not p["ist_werkzeug"]],
-            "bereiche": self._bereiche_anzeigen(e["bereiche"]),
-            "nachfassen": [{"slug": k, "text": v} for k, v in NACHFASSEN.items()],
-            "wurzel": str(e["wurzel"]),
-            "laeufe": [{"id": l.id, "titel": l.titel, "modus": l.modus}
-                       for l in REGISTER.liste()],
-            # Nur die LISTE, nicht die Auswertung: Die kostet Sekunden je
-            # Protokoll und kommt erst auf Knopfdruck (02.09.2026).
-            "sitzungen": Sitzungen(settings.BASE_DIR).liste(),
-        })
+        return render(
+            request,
+            "djangobase/hilfe/review.html",
+            {
+                "aktiv": "review",
+                "werkzeuge": werkzeuge,
+                "partner": [p for p in alle if not p["ist_werkzeug"]],
+                "bereiche": self._bereiche_anzeigen(e["bereiche"]),
+                "nachfassen": [{"slug": k, "text": v} for k, v in NACHFASSEN.items()],
+                "wurzel": str(e["wurzel"]),
+                "laeufe": [
+                    {"id": lauf.id, "titel": lauf.titel, "modus": lauf.modus} for lauf in REGISTER.liste()
+                ],
+                # Nur die LISTE, nicht die Auswertung: Die kostet Sekunden je
+                # Protokoll und kommt erst auf Knopfdruck (02.09.2026).
+                "sitzungen": Sitzungen(settings.BASE_DIR).liste(),
+            },
+        )
 
 
 class ReviewStartView(ZugriffMixin, View):
@@ -146,8 +158,7 @@ class ReviewStartView(ZugriffMixin, View):
         if modus not in ("frage", "dialog", "bereiche"):
             return JsonResponse({"fehler": "Unbekannte Betriebsart"}, status=400)
 
-        partner = next((p for p in e["partner"]
-                        if p.get("slug") == daten.get("partner")), None)
+        partner = next((p for p in e["partner"] if p.get("slug") == daten.get("partner")), None)
         if partner is None:
             return JsonResponse({"fehler": "Unbekannter Partner"}, status=400)
 
@@ -185,18 +196,24 @@ class ReviewStartView(ZugriffMixin, View):
             if modus == "frage" and not frage:
                 return JsonResponse({"fehler": "Keine Frage eingegeben"}, status=400)
 
-        lauf = ReviewLauf(modus, partner, wurzel=e["wurzel"], ablage=e["ablage"],
-                          rolle=e["rolle"], schluessel_datei=e["schluessel_datei"],
-                          ollama_url=e["ollama_url"], online_url=e["online_url"],
-                          auswahl=auswahl)
+        lauf = ReviewLauf(
+            modus,
+            partner,
+            wurzel=e["wurzel"],
+            ablage=e["ablage"],
+            rolle=e["rolle"],
+            schluessel_datei=e["schluessel_datei"],
+            ollama_url=e["ollama_url"],
+            online_url=e["online_url"],
+            auswahl=auswahl,
+        )
         REGISTER.hinzu(lauf)
         # EIN KONFIGURATIONSFEHLER IST KEINE 500 (31.08.2026): Der
         # Werkzeug-Partner weist beim Anlegen zurueck, was er nicht ausfuehren
         # kann (leerer Befehl, unbekannte Auswahl). Ohne diesen Zweig kaeme im
         # Browser ein nackter Serverfehler an, und der Grund staende nur im Log.
         try:
-            lauf.starten(bereiche=gewaehlt, frage=frage,
-                         titel=daten.get("titel", ""))
+            lauf.starten(bereiche=gewaehlt, frage=frage, titel=daten.get("titel", ""))
         except ReviewFehler as fehler:
             return JsonResponse({"fehler": str(fehler)}, status=400)
         return JsonResponse({"id": lauf.id, "zustand": lauf.zustand(mit_text=False)})
@@ -208,8 +225,7 @@ class ReviewNachfassenView(ZugriffMixin, View):
     def post(self, request, lauf_id):
         lauf = REGISTER.holen(lauf_id)
         if lauf is None:
-            return JsonResponse({"fehler": "Lauf nicht gefunden (Server neu gestartet?)"},
-                                status=404)
+            return JsonResponse({"fehler": "Lauf nicht gefunden (Server neu gestartet?)"}, status=404)
         try:
             daten = json.loads(request.body or b"{}")
         except (json.JSONDecodeError, ValueError):

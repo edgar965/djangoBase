@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Testhistorie - wie lange jeder Testcase in den letzten Laeufen gebraucht hat.
+"""Testhistorie - wie lange jeder Testcase in den letzten Laeufen gebraucht hat.
 
 WOZU (Ansage Edgar, 17.08.2026)
 ===============================
@@ -24,6 +24,7 @@ Vier Werte passen in eine Tabellenzeile, ohne sie zu sprengen, und decken den
 Fall ab, um den es geht („seit wann ist der langsam?"). Eine vollstaendige
 Historie waere eine Zeitreihen-Datenbank; das ist eine andere Aufgabe.
 """
+
 import json
 from pathlib import Path
 
@@ -71,9 +72,10 @@ class Testhistorie:
             # verworfen und beim naechsten Lauf neu aufgebaut; die Meldung geht
             # ins Log, damit es nicht lautlos passiert.
             import logging
+
             logging.getLogger("djangobase.tests").warning(
-                "Testhistorie %s ist nicht lesbar — sie wird neu aufgebaut",
-                self.pfad)
+                "Testhistorie %s ist nicht lesbar — sie wird neu aufgebaut", self.pfad
+            )
             return {"tests": {}, "suiten": {}}
         daten.setdefault("tests", {})
         daten.setdefault("suiten", {})
@@ -82,7 +84,7 @@ class Testhistorie:
     # --------------------------------------------------------------- Schreiben
 
     def merken(self, zeit, dauern, suite=None):
-        u"""Einen Lauf eintragen.
+        """Einen Lauf eintragen.
 
         ``zeit``   Zeichenkette „17.08.2026 16:55:03" (die Seite zeigt sie so an)
         ``dauern`` ``{test_id: sekunden}`` - aus der ``--durations``-Ausgabe
@@ -91,25 +93,31 @@ class Testhistorie:
         for test_id, sek in (dauern or {}).items():
             reihe = self.daten["tests"].setdefault(test_id, [])
             reihe.insert(0, {"zeit": zeit, "dauer": round(float(sek), 3)})
-            del reihe[self.TIEFE:]
+            del reihe[self.TIEFE :]
         if suite:
             reihe = self.daten["suiten"].setdefault(suite["slug"], [])
-            reihe.insert(0, {"zeit": zeit, "dauer": round(float(suite.get("dauer") or 0), 1),
-                             "ok": bool(suite.get("ok")),
-                             "tests": int(suite.get("tests") or 0)})
-            del reihe[self.TIEFE:]
+            reihe.insert(
+                0,
+                {
+                    "zeit": zeit,
+                    "dauer": round(float(suite.get("dauer") or 0), 1),
+                    "ok": bool(suite.get("ok")),
+                    "tests": int(suite.get("tests") or 0),
+                },
+            )
+            del reihe[self.TIEFE :]
         self.schreiben()
 
     def schreiben(self):
         try:
             self.pfad.parent.mkdir(parents=True, exist_ok=True)
-            self.pfad.write_text(json.dumps(self.daten, ensure_ascii=False,
-                                            indent=1), encoding="utf-8")
+            self.pfad.write_text(json.dumps(self.daten, ensure_ascii=False, indent=1), encoding="utf-8")
         except OSError:
             import logging
+
             logging.getLogger("djangobase.tests").exception(
-                "Testhistorie %s nicht schreibbar — die Laufzeiten dieses "
-                "Durchgangs sind verloren", self.pfad)
+                "Testhistorie %s nicht schreibbar — die Laufzeiten dieses Durchgangs sind verloren", self.pfad
+            )
 
     # ---------------------------------------------------------------- Abfragen
 
@@ -133,7 +141,7 @@ class Testhistorie:
         return round(sum(x["dauer"] for x in reihe) / len(reihe), 3)
 
     def trend(self, test_id):
-        u"""Wie sich der letzte Lauf zum Mittel der VORIGEN verhaelt.
+        """Wie sich der letzte Lauf zum Mittel der VORIGEN verhaelt.
 
         Zurueck kommt ``(text, klasse)``. Ohne Vergleichswert bleibt es leer -
         eine Prozentzahl aus einem einzigen Lauf waere erfunden.
@@ -146,7 +154,7 @@ class Testhistorie:
         if mittel <= 0:
             return "", ""
         anteil = (reihe[0]["dauer"] - mittel) / mittel * 100
-        if abs(anteil) < 25:            # Rauschen, nicht Trend
+        if abs(anteil) < 25:  # Rauschen, nicht Trend
             return "", ""
         klasse = "schlecht" if anteil > 0 else "gut"
         return "%+.0f %%" % anteil, klasse

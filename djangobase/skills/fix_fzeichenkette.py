@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""FixFZeichenkette — das ``f`` vor Zeichenketten ohne Platzhalter streichen.
+"""FixFZeichenkette — das ``f`` vor Zeichenketten ohne Platzhalter streichen.
 
 DIE FRAGE (Edgar, 25.08.2026)
 =============================
@@ -36,54 +36,64 @@ Wortende vor einem Anführungszeichen. Der AST liefert die genaue Spalte des
 gestrichen. Zusätzlich muss der Knoten NACHWEISLICH keinen
 ``FormattedValue`` enthalten — sonst wäre es kein leeres ``f``.
 """
+
 import ast
 
 from .anlassfall import Anlassfall
 from .fixer import Aenderung, Fixer, Vorschau
 
-__all__ = ['FixFZeichenkette']
+__all__ = ["FixFZeichenkette"]
 
 
 class FixFZeichenkette(Fixer):
-
-    slug = 'fix-fzeichenkette'
+    slug = "fix-fzeichenkette"
     #: Der Befund, den dieser Fixer behebt — als Kennung des
     #: Werkzeugs, das ihn meldet. Die Oberflaeche zeigt daraus die
     #: NUMMER der Pruefung in der Tabelle statt einer
     #: Kriteriums-Nummer, die dort nirgends steht.
-    behebt = 'code-qualitaet'
-    titel = 'Leere f-Zeichenketten entschärfen'
-    tut = ('Streicht das ``f`` vor Zeichenketten, die keinen Platzhalter '
-           'enthalten.')
-    warum = ('Ein ``f`` ohne ``{}`` tut nichts und behauptet das Gegenteil. '
-             'Wer die Zeichenkette später um ``{wert}`` ergänzt, verlässt '
-             'sich darauf, dass die Klammern greifen — ohne das ``f`` tun '
-             'sie es nicht, und die Klammern stehen wörtlich in der '
-             'Ausgabe. `pyflakes` meldet es als '
-             '``FStringMissingPlaceholders``.')
-    grenzen = ('Nur Knoten, die nachweislich keinen ``FormattedValue`` '
-               'enthalten. Zeilen mit ``# noqa`` bleiben unberührt — das '
-               'ist die ausdrückliche Ansage des Autors, dieselbe Regel wie '
-               'bei ``ImportFixer``.')
+    behebt = "code-qualitaet"
+    titel = "Leere f-Zeichenketten entschärfen"
+    tut = "Streicht das ``f`` vor Zeichenketten, die keinen Platzhalter enthalten."
+    warum = (
+        "Ein ``f`` ohne ``{}`` tut nichts und behauptet das Gegenteil. "
+        "Wer die Zeichenkette später um ``{wert}`` ergänzt, verlässt "
+        "sich darauf, dass die Klammern greifen — ohne das ``f`` tun "
+        "sie es nicht, und die Klammern stehen wörtlich in der "
+        "Ausgabe. `pyflakes` meldet es als "
+        "``FStringMissingPlaceholders``."
+    )
+    grenzen = (
+        "Nur Knoten, die nachweislich keinen ``FormattedValue`` "
+        "enthalten. Zeilen mit ``# noqa`` bleiben unberührt — das "
+        "ist die ausdrückliche Ansage des Autors, dieselbe Regel wie "
+        "bei ``ImportFixer``."
+    )
     kriterium = 0
-    dauer = 'wenige Sekunden'
+    dauer = "wenige Sekunden"
 
     anlassfall = Anlassfall(
-        {'melden.py': ("import logging\n\n\n"
-                       "logger = logging.getLogger(__name__)\n\n\n"
-                       "def melden(n):\n"
-                       "    logger.info(f'fertig')\n"
-                       "    logger.info(f'{n} Stück')\n")},
-        mindestens=1, hoechstens=1, erwartet_in='melden.py',
-        warum='Ein `f` ohne Klammern tut nichts — und die Zeile daneben '
-              'zeigt, dass nicht jedes `f` gemeint ist')
+        {
+            "melden.py": (
+                "import logging\n\n\n"
+                "logger = logging.getLogger(__name__)\n\n\n"
+                "def melden(n):\n"
+                "    logger.info(f'fertig')\n"
+                "    logger.info(f'{n} Stück')\n"
+            )
+        },
+        mindestens=1,
+        hoechstens=1,
+        erwartet_in="melden.py",
+        warum="Ein `f` ohne Klammern tut nichts — und die Zeile daneben "
+        "zeigt, dass nicht jedes `f` gemeint ist",
+    )
 
     # ------------------------------------------------------------------
     def vorschau(self):
         aenderungen = []
-        for pfad in self.pfade('*.py'):
+        for pfad in self.pfade("*.py"):
             try:
-                quelle = pfad.read_text(encoding='utf-8')
+                quelle = pfad.read_text(encoding="utf-8")
                 baum = ast.parse(quelle)
             except (OSError, SyntaxError, ValueError):
                 continue
@@ -95,32 +105,28 @@ class FixFZeichenkette(Fixer):
             # Treffer in derselben Zeile.
             for zeile, spalte in sorted(stellen, reverse=True):
                 inhalt = zeilen[zeile - 1]
-                zeilen[zeile - 1] = inhalt[:spalte] + inhalt[spalte + 1:]
-            aenderungen.append(Aenderung(
-                pfad, '%d leere f-Zeichenketten' % len(stellen),
-                ''.join(zeilen)))
-        return Vorschau(
-            aenderungen,
-            'Nur Knoten ohne jeden Platzhalter; Zeilen mit # noqa bleiben.')
+                zeilen[zeile - 1] = inhalt[:spalte] + inhalt[spalte + 1 :]
+            aenderungen.append(Aenderung(pfad, "%d leere f-Zeichenketten" % len(stellen), "".join(zeilen)))
+        return Vorschau(aenderungen, "Nur Knoten ohne jeden Platzhalter; Zeilen mit # noqa bleiben.")
 
     def pruefen(self, aenderung):
-        u"""Netz: parst die Datei noch, und ist wirklich nichts übrig?"""
+        """Netz: parst die Datei noch, und ist wirklich nichts übrig?"""
         try:
-            quelle = aenderung.pfad.read_text(encoding='utf-8')
+            quelle = aenderung.pfad.read_text(encoding="utf-8")
             baum = ast.parse(quelle)
         except SyntaxError as fehler:
-            return ['kompiliert nicht mehr: %s' % fehler]
+            return ["kompiliert nicht mehr: %s" % fehler]
         except OSError as fehler:
-            return ['nicht lesbar: %s' % fehler]
+            return ["nicht lesbar: %s" % fehler]
         uebrig = self._leere_f(baum, quelle.splitlines(keepends=True))
         if uebrig:
-            return ['%d leere f-Zeichenketten stehen noch' % len(uebrig)]
+            return ["%d leere f-Zeichenketten stehen noch" % len(uebrig)]
         return []
 
     # ------------------------------------------------------------ intern
     @staticmethod
     def _leere_f(baum, zeilen):
-        u"""``[(zeile, spalte)]`` — wo ein ``f`` steht, das nichts tut.
+        """``[(zeile, spalte)]`` — wo ein ``f`` steht, das nichts tut.
 
         Geprüft wird DREIFACH, weil hier ein Zeichen mitten im Quelltext
         verschwindet:
@@ -137,16 +143,15 @@ class FixFZeichenkette(Fixer):
         for knoten in ast.walk(baum):
             if not isinstance(knoten, ast.JoinedStr):
                 continue
-            if any(isinstance(teil, ast.FormattedValue)
-                   for teil in knoten.values):
+            if any(isinstance(teil, ast.FormattedValue) for teil in knoten.values):
                 continue
-            zeile = getattr(knoten, 'lineno', 0)
-            spalte = getattr(knoten, 'col_offset', -1)
+            zeile = getattr(knoten, "lineno", 0)
+            spalte = getattr(knoten, "col_offset", -1)
             if not 1 <= zeile <= len(zeilen) or spalte < 0:
                 continue
             inhalt = zeilen[zeile - 1]
-            if 'noqa' in inhalt.lower():
-                continue            # ausdrueckliche Ansage des Autors
-            if spalte < len(inhalt) and inhalt[spalte] in 'fF':
+            if "noqa" in inhalt.lower():
+                continue  # ausdrueckliche Ansage des Autors
+            if spalte < len(inhalt) and inhalt[spalte] in "fF":
                 raus.append((zeile, spalte))
         return raus

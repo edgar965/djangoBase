@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""FixAusnahme - verschluckte Ausnahmen protokollieren statt verschwinden lassen.
+"""FixAusnahme - verschluckte Ausnahmen protokollieren statt verschwinden lassen.
 
 DER BEFUND (assistant, 17.08.2026)
 ==================================
@@ -36,10 +36,11 @@ Je Datei: ``compile()`` muss durchlaufen, die Zahl der Zeilen darf nur wachsen,
 und ``protokoll`` muss die Datei danach mit WENIGER Befunden sehen. Faellt eine
 der drei Pruefungen, wird genau diese Datei zurueckgespielt.
 """
+
 import ast
 
-from .fix_ausnahme_datei import Ausnahmedatei
 from .anlassfall import Anlassfall
+from .fix_ausnahme_datei import Ausnahmedatei
 from .fixer import Aenderung, Fixer, Vorschau
 
 __all__ = ["FixAusnahme"]
@@ -51,19 +52,25 @@ class FixAusnahme(Fixer):
     #: Werkzeugs, das ihn meldet. Die Oberflaeche zeigt daraus die
     #: NUMMER der Pruefung in der Tabelle statt einer
     #: Kriteriums-Nummer, die dort nirgends steht.
-    behebt = 'protokoll'
+    behebt = "protokoll"
     titel = "Verschluckte Ausnahmen protokollieren"
-    tut = ("Setzt in jeden stummen except-Block einen `logger.exception(…)` mit "
-           "Funktionsname und gefangenem Typ — und dort, wo Schweigen richtig "
-           "ist (ImportError, KeyboardInterrupt), den Vermerk `# stumm "
-           "gewollt: <Grund>`.")
-    warum = ("`except Exception: pass` macht aus einem Absturz eine leere Seite, "
-             "und die Ursache steht nirgends. Im Projekt assistant traf das 636 "
-             "Stellen in 212 Modulen, 346 davon mit `except Exception`.")
-    grenzen = ("Tests, die Logging-Infrastruktur selbst und Fremdcode bleiben "
-               "unberührt. Ein Block mit `continue` bekommt `logger.debug` statt "
-               "`exception` — sonst schreibt ein Lauf über 100.000 Zeilen "
-               "100.000 Tracebacks.")
+    tut = (
+        "Setzt in jeden stummen except-Block einen `logger.exception(…)` mit "
+        "Funktionsname und gefangenem Typ — und dort, wo Schweigen richtig "
+        "ist (ImportError, KeyboardInterrupt), den Vermerk `# stumm "
+        "gewollt: <Grund>`."
+    )
+    warum = (
+        "`except Exception: pass` macht aus einem Absturz eine leere Seite, "
+        "und die Ursache steht nirgends. Im Projekt assistant traf das 636 "
+        "Stellen in 212 Modulen, 346 davon mit `except Exception`."
+    )
+    grenzen = (
+        "Tests, die Logging-Infrastruktur selbst und Fremdcode bleiben "
+        "unberührt. Ein Block mit `continue` bekommt `logger.debug` statt "
+        "`exception` — sonst schreibt ein Lauf über 100.000 Zeilen "
+        "100.000 Tracebacks."
+    )
     kriterium = 16
     dauer = "5–20 s"
 
@@ -71,21 +78,25 @@ class FixAusnahme(Fixer):
         # NICHT `test…` oder `…middleware…` nennen: Diese Pfadteile stehen in
         # NICHT_HIER, und die Datei fiele aus dem Lauf — der Anlassfall
         # meldete dann „blind", obwohl der Fixer richtig arbeitet.
-        {"holen.py": "import json\n"
-                     "\n\n"
-                     "def lesen(pfad):\n"
-                     "    try:\n"
-                     "        return json.loads(open(pfad).read())\n"
-                     "    except Exception:\n"
-                     "        pass\n"
-                     "    return None\n"},
-        mindestens=1, hoechstens=1, erwartet_in="holen.py",
+        {
+            "holen.py": "import json\n"
+            "\n\n"
+            "def lesen(pfad):\n"
+            "    try:\n"
+            "        return json.loads(open(pfad).read())\n"
+            "    except Exception:\n"
+            "        pass\n"
+            "    return None\n"
+        },
+        mindestens=1,
+        hoechstens=1,
+        erwartet_in="holen.py",
         warum="Ein `except Exception: pass` macht aus einem Absturz eine leere "
-              "Seite — die Ursache ist mit der Antwort weg")
+        "Seite — die Ursache ist mit der Antwort weg",
+    )
 
     #: Pfadteile, in denen nicht instrumentiert wird (siehe Modulkopf).
-    NICHT_HIER = ("tests", "test", "logging_utils.py", "middleware", "dblog.py",
-                  "conftest.py")
+    NICHT_HIER = ("tests", "test", "logging_utils.py", "middleware", "dblog.py", "conftest.py")
 
     def __init__(self, hoechstens=0):
         #: Obergrenze fuer einen Lauf (0 = alle). Erlaubt es, in Etappen zu
@@ -94,7 +105,7 @@ class FixAusnahme(Fixer):
         self._protokoll = None
 
     def pruefer(self):
-        u"""Das Pruefwerk, das die stummen Bloecke findet.
+        """Das Pruefwerk, das die stummen Bloecke findet.
 
         DIESELBE WURZEL WIE DER FIXER (25.08.2026)
         ==========================================
@@ -112,6 +123,7 @@ class FixAusnahme(Fixer):
         mehr als ihm gesagt wurde" trotzdem der falsche Zustand.
         """
         from .protokoll import Protokoll
+
         if self._protokoll is None:
             self._protokoll = Protokoll()
             self._protokoll.wurzel = self.wurzel
@@ -146,19 +158,23 @@ class FixAusnahme(Fixer):
             gesamt += 1
             if self.hoechstens and gesamt >= self.hoechstens:
                 break
-        return Vorschau(aus, hinweis=(
-            "Die Meldung enthält nur Funktionsname und gefangenen Typ — keine "
-            "Variablen. Nach dem Schreiben prüft das Netz je Datei: compile(), "
-            "Zeilenzahl gewachsen, und `protokoll` sieht weniger Befunde."))
+        return Vorschau(
+            aus,
+            hinweis=(
+                "Die Meldung enthält nur Funktionsname und gefangenen Typ — keine "
+                "Variablen. Nach dem Schreiben prüft das Netz je Datei: compile(), "
+                "Zeilenzahl gewachsen, und `protokoll` sieht weniger Befunde."
+            ),
+        )
 
     def _stumme(self, d):
-        u"""Die Handler, die ``protokoll`` in dieser Datei meldet."""
+        """Die Handler, die ``protokoll`` in dieser Datei meldet."""
         pruefer = self.pruefer()
         aus = []
         for k in d.knoten(ast.ExceptHandler):
             if not k.body:
                 continue
-            if pruefer._ausnahme(d, k):        # dieselbe Frage wie im Pruefwerk
+            if pruefer._ausnahme(d, k):  # dieselbe Frage wie im Pruefwerk
                 aus.append(k)
         return aus
 
@@ -204,27 +220,29 @@ class FixAusnahme(Fixer):
         # nur kompiliert, faengt genau diese Klasse nicht.
         if "logging.getLogger" in text:
             gebunden = any(
-                isinstance(k, ast.Import)
-                and any(a.name == "logging" and a.asname is None for a in k.names)
-                for k in baum.body)
+                isinstance(k, ast.Import) and any(a.name == "logging" and a.asname is None for a in k.names)
+                for k in baum.body
+            )
             if not gebunden and self._nutzt_modulweit(baum):
-                fehler.append("nutzt `logging.` auf Modulebene, bindet den Namen "
-                              "aber nicht — das wäre ein NameError beim Import")
+                fehler.append(
+                    "nutzt `logging.` auf Modulebene, bindet den Namen "
+                    "aber nicht — das wäre ein NameError beim Import"
+                )
         # Zweite Frage: Sieht das Pruefwerk hier jetzt weniger? Ohne diese
         # Gegenprobe koennte der Fixer Zeilen einsetzen, die gar nicht als Log
         # gelten - und alle 636 Befunde blieben stehen, waehrend der Bericht
         # „geschrieben" sagt.
         from .werkzeug import Quelldatei
+
         neu = Quelldatei(aenderung.pfad, self.wurzel())
         offen = self._stumme(neu)
         if offen:
-            fehler.append("noch %d stumme Blöcke — der Umbau hat nicht "
-                          "gegriffen" % len(offen))
+            fehler.append("noch %d stumme Blöcke — der Umbau hat nicht gegriffen" % len(offen))
         return fehler
 
     @staticmethod
     def _nutzt_modulweit(baum):
-        u"""Steht ein ``logging.<etwas>`` AUSSERHALB jeder Funktion?
+        """Steht ein ``logging.<etwas>`` AUSSERHALB jeder Funktion?
 
         Nur dann fliegt der fehlende Name schon beim Import. Innerhalb einer
         Funktion darf ``import logging`` lokal stehen — so machen es
@@ -237,7 +255,11 @@ class FixAusnahme(Fixer):
                 for x in ast.walk(k):
                     innen.add(id(x))
         for k in ast.walk(baum):
-            if (isinstance(k, ast.Attribute) and isinstance(k.value, ast.Name)
-                    and k.value.id == "logging" and id(k) not in innen):
+            if (
+                isinstance(k, ast.Attribute)
+                and isinstance(k.value, ast.Name)
+                and k.value.id == "logging"
+                and id(k) not in innen
+            ):
                 return True
         return False

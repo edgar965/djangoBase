@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-u"""Die Lehren aus den Code-Reviews - Ankreuzliste, Stand und Auftragstext.
+"""Die Lehren aus den Code-Reviews - Ankreuzliste, Stand und Auftragstext.
 
 Bis zum 18.08.2026 stand diese Liste auf einer eigenen Seite („Skills3"). Sie
 ist entfallen — Skills2 zeigte ohnehin dasselbe wie Skills, und von Skills3
@@ -20,6 +20,7 @@ Der Lehren-Stand liegt in einer Datei neben den Einstellungen; die Tests lenken
 ihn auf eine Temp-Datei um, damit sie den Stand des Host-Projekts nicht
 ueberschreiben.
 """
+
 import tempfile
 from pathlib import Path
 
@@ -34,10 +35,10 @@ class LehrenstandIsolation:
     """Lenkt die Lehren-Datei auf eine Temp-Datei um."""
 
     def lehren_isolieren(self):
-        tmp = tempfile.NamedTemporaryFile(suffix='.json', delete=False)
+        tmp = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
         tmp.close()
         self._lehren_tmp = Path(tmp.name)
-        self._lehren_tmp.unlink()          # Startzustand: Datei fehlt
+        self._lehren_tmp.unlink()  # Startzustand: Datei fehlt
         original = Lehrenstand._pfad
         Lehrenstand._pfad = classmethod(lambda cls: self._lehren_tmp)
         self.addCleanup(self._lehren_zurueck, original)
@@ -51,7 +52,6 @@ class LehrenstandIsolation:
 
 
 class LehrenTest(LehrenstandIsolation, BasisTest):
-
     def setUp(self):
         super().setUp()
         self.lehren_isolieren()
@@ -61,7 +61,7 @@ class LehrenTest(LehrenstandIsolation, BasisTest):
             with self.subTest(lehre=lehre.slug):
                 self.assertTrue(lehre.titel)
                 self.assertTrue(lehre.regel)
-                self.assertTrue(lehre.warum, 'ohne Begründung keine Regel')
+                self.assertTrue(lehre.warum, "ohne Begründung keine Regel")
                 self.assertIn(lehre.bereich, BEREICHE)
 
     def test_kennungen_sind_eindeutig(self):
@@ -86,7 +86,7 @@ class LehrenTest(LehrenstandIsolation, BasisTest):
         self.assertEqual(Lehrenstand.aktive(), [])
 
     def test_kaputte_datei_faellt_auf_die_vorgabe_zurueck(self):
-        self._lehren_tmp.write_text('kein json', encoding='utf-8')
+        self._lehren_tmp.write_text("kein json", encoding="utf-8")
         self.assertTrue(all(Lehrenstand.laden().values()))
 
     def test_auftragstext_enthaelt_nur_aktive(self):
@@ -94,13 +94,13 @@ class LehrenTest(LehrenstandIsolation, BasisTest):
         Lehrenstand.speichern({eine.slug})
         text = Lehrenstand.auftragstext()
         self.assertIn(eine.regel, text)
-        self.assertIn('Warum:', text)
+        self.assertIn("Warum:", text)
         andere = next(lehre for lehre in LEHREN if lehre.slug != eine.slug)
         self.assertNotIn(andere.regel, text)
 
 
 class LehrenAufDerSkillsSeiteTest(LehrenstandIsolation, BasisTest):
-    u"""Der Merge selbst: Die Liste muss auf der Skills-Seite bedienbar sein."""
+    """Der Merge selbst: Die Liste muss auf der Skills-Seite bedienbar sein."""
 
     def setUp(self):
         super().setUp()
@@ -110,12 +110,12 @@ class LehrenAufDerSkillsSeiteTest(LehrenstandIsolation, BasisTest):
 
     @property
     def adresse(self):
-        return reverse('djangobase:skills')
+        return reverse("djangobase:skills")
 
     def test_seite_zeigt_jede_lehre(self):
         antwort = self.client.get(self.adresse)
         self.assertEqual(antwort.status_code, 200)
-        inhalt = antwort.content.decode('utf-8')
+        inhalt = antwort.content.decode("utf-8")
         self.assertEqual(inhalt.count('name="lehre"'), len(LEHREN))
         for bereich in BEREICHE:
             with self.subTest(bereich=bereich):
@@ -123,23 +123,23 @@ class LehrenAufDerSkillsSeiteTest(LehrenstandIsolation, BasisTest):
 
     def test_speichern_setzt_den_stand(self):
         eine = LEHREN[0].slug
-        antwort = self.client.post(self.adresse,
-                                   {'aktion': 'lehren', 'lehre': [eine]})
+        antwort = self.client.post(self.adresse, {"aktion": "lehren", "lehre": [eine]})
         self.assertEqual(antwort.status_code, 302)
         stand = Lehrenstand.laden()
         self.assertTrue(stand[eine])
         self.assertFalse(any(v for k, v in stand.items() if k != eine))
 
     def test_auftragstext_kommt_als_textdatei(self):
-        antwort = self.client.get(self.adresse + '?auftrag=1')
+        antwort = self.client.get(self.adresse + "?auftrag=1")
         self.assertEqual(antwort.status_code, 200)
-        self.assertIn('text/plain', antwort['Content-Type'])
-        self.assertIn(LEHREN[0].regel, antwort.content.decode('utf-8'))
+        self.assertIn("text/plain", antwort["Content-Type"])
+        self.assertIn(LEHREN[0].regel, antwort.content.decode("utf-8"))
 
     def test_die_alten_adressen_sind_weg(self):
-        u"""Gegenprobe zum Aufloesen: Skills2/Skills3 gibt es nicht mehr."""
+        """Gegenprobe zum Aufloesen: Skills2/Skills3 gibt es nicht mehr."""
         from django.urls import NoReverseMatch
-        for name in ('skills2', 'skills3'):
+
+        for name in ("skills2", "skills3"):
             with self.subTest(seite=name):
                 with self.assertRaises(NoReverseMatch):
-                    reverse('djangobase:' + name)
+                    reverse("djangobase:" + name)
