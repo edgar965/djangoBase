@@ -23,6 +23,10 @@ from django.core.cache import cache
 from django.db import connection
 
 from .conf import conf
+from .pause import Pause
+
+#: Schonpausen zum Endpunkt — im Test ``uebersetzung.PAUSE = Pause.sofort()``.
+PAUSE = Pause()
 
 BASIS = "de"
 COOKIE = "sprache"
@@ -115,7 +119,7 @@ def uebersetze(text, ziel):
             out.append(teil)
         else:
             out.append(_uebersetze_klartext(teil, ziel))
-            time.sleep(0.15)  # Endpoint schonen
+            PAUSE.warten(0.15)  # Endpoint schonen
     return "".join(out)
 
 
@@ -250,7 +254,7 @@ def _lauf(modus):
             status["fertig"] += 1
             if status["fertig"] % 5 == 0:
                 cache.set(LAUF_KEY, status, 24 * 3600)
-            time.sleep(0.2)  # Google-Endpoint schonen
+            PAUSE.warten(0.2)  # Google-Endpoint schonen
     except Exception as e:  # noqa: BLE001
         status["fehler"].append(str(e))
     finally:

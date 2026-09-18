@@ -345,18 +345,36 @@ Vier Dinge, die dabei Zeit gekostet haben und in jedem Projekt wiederkommen:
 - **Aus dem Browser kommt nur der Schlüssel einer vorbereiteten Auswahl**, nie
   ein Argument. Der Befehl steht ausschließlich in der Konfiguration.
 
+### Drei Bauformen aus gunSlinger (18.09.2026)
+
+Anlass: `A:\gunSlinger` (pytest, kein Django) hatte drei Dinge, die unsere
+Django-Projekte nur als Text kannten. Ansage Edgar: „baue das in djangoBase ein".
+
+| Bauform | Datei | Was sie tut |
+|---|---|---|
+| **Strukturregeln als Test** | `strukturtests.py` | `from djangobase.strukturtests import *` in `<app>/tests/automated/test_struktur.py`. Macht aus den Befunden von `skills/dateigroesse` und `skills/klassenjedatei` Zusicherungen — **keine eigene Eichung**, die Fehlalarm-Lehren der Werkzeuge gelten weiter. Auf Wunsch `test_je_klasse` (gunSlinger-Regel). **Ratsche:** `DJANGOBASE["struktur"]["bestand"]` = `{"groesse": [...], "klassen": [...], "tests": [...]}` — bekannte Verstöße, ausdrücklich; rot für alles Neue UND für jeden Eintrag, der kein Verstoß mehr ist. Die Liste kann nur schrumpfen. |
+| **Netzverbot im Prüflauf** | `netzsperre.py`, `testlaeufer.py` | Sitzt an `socket.socket.connect` (trifft httpx, requests, smtplib, imaplib) UND an `sock_connect` der asyncio-Loops (der Proactor-Loop auf Windows geht am Socket vorbei). Loopback bleibt offen (Postgres, LiveServer). Ausweg für den einen Fall: `with Netzsperre.erlaubt():`; dauerhaft `DJANGOBASE_NETZ_ERLAUBT = [...]`; je Lauf aus mit `DJANGOBASE_NETZSPERRE = False`. Für Konsumenten: `TEST_RUNNER = "djangobase.testlaeufer.Testlaeufer"` (richtet auch die Ablageumleitung ein); wer einen eigenen Läufer hat (assistant), erbt davon oder ruft `Netzsperre.einrichten()` in `setup_test_environment`. djangoBase-eigene Suite: eingehängt in `tests/__init__.py`, 1805 Tests ohne einen gesperrten Zugriff. |
+| **Zeit als injizierbare Pause** | `pause.py` | `Pause().warten(s)` statt `time.sleep(s)`; `Pause.sofort()` im Test wartet nicht, zählt aber (`gewartet`, `gesamt`); `abbrechen()` beendet auch eine 90-s-Pause augenblicklich (Event). Erste Nutzer: `store._Sperre` (Test läuft jetzt mit allen 20 Versuchen statt heruntergedrehten 2) und `uebersetzung`. Neue Wartezeit im Paket nimmt diese Klasse, nicht `time.sleep`. |
+
+Warum ein Läufer und keine Basisklasse: Eine Basisklasse erreicht nur, wer von
+ihr erbt. Genau der Prüffall mit `unittest.TestCase` ist der, der nach draußen
+telefoniert. `setup_test_environment` läuft einmal je Prozess, für alle.
+
 ### Neue DJANGOBASE-Schlüssel
 
 `skills2_register` (Vorgabe `["fn"]`), `skills2_abrufklassen`
 (`["Serverabruf"]`), `skills2_funktionsgrenze` (90), `skills2_ignorieren`,
 `jobs_ausschluss` (Befehle, die auf der Jobs-Seite nicht als Ablauf
-gelten — Liste oder eine Angabe je Zeile).
+gelten — Liste oder eine Angabe je Zeile), `struktur` (Grenzen, Schalter und
+Bestandslisten der Strukturtests, s. o.).
 
 Als **Settings-Konstanten** (nicht im `DJANGOBASE`-Dict, weil sie nur Tests
-betreffen): `DJANGOBASE_KONFORM_AUS` (Datenordner, die keine Prüfung ansieht)
-und `DJANGOBASE_KONFORM_TABELLEN_AUS` (einzelne Dateien, die bewusst kein
+betreffen): `DJANGOBASE_KONFORM_AUS` (Datenordner, die keine Prüfung ansieht),
+`DJANGOBASE_KONFORM_TABELLEN_AUS` (einzelne Dateien, die bewusst kein
 Tabellen-Raster bekommen — Druckansichten, feste Gliederungen, Tabellen mit
-eigener serverseitiger Sortierung).
+eigener serverseitiger Sortierung), `DJANGOBASE_NETZ_ERLAUBT` (Rechner, die
+der Prüflauf anfahren darf) und `DJANGOBASE_NETZSPERRE` (`False` = Sperre für
+diesen Lauf aus).
 
 ## Vor Änderungen (Breaking-Check)
 - Shell-Templates (`base.html`, `base_app.html`, `_shell.html`, `_sidebar.html`,

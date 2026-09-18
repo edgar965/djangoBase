@@ -166,9 +166,15 @@ import logging
 import os
 import re
 import tempfile
-import time
+
+from .pause import Pause
 
 logger = logging.getLogger(__name__)
+
+#: Das Warten auf die Sperrdatei — ein Objekt, damit ein Test es durch
+#: ``Pause.sofort()`` ersetzen kann, statt VERSUCHE herunterzudrehen oder
+#: ``time.sleep`` modulweit zu patchen (Bauform aus ``pause.py``).
+PAUSE = Pause()
 
 STANDARD_SLUG = "standard"
 STANDARD_LABEL = "djangoBase Standard"
@@ -263,7 +269,7 @@ class _Sperre:
                 self._datei = pfad
                 return self
             except FileExistsError:
-                time.sleep(self.PAUSE_S)
+                PAUSE.warten(self.PAUSE_S)
             except OSError:
                 return self            # kein Sperrdatei-Ort -> ohne weitermachen
         logger.warning("djangobase.store: Sperrdatei %s blieb belegt — es wird "
