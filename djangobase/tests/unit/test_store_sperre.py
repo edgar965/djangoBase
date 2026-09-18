@@ -25,6 +25,7 @@ from pathlib import Path
 from django.test import SimpleTestCase
 
 from djangobase import store
+from djangobase.pause import Pause
 
 
 class StoreSperreTest(SimpleTestCase):
@@ -84,10 +85,18 @@ class StoreSperreTest(SimpleTestCase):
         wäre schlimmer als ein unwahrscheinliches Wettrennen."""
         sperre = self.datei.with_suffix(self.datei.suffix + '.lock')
         sperre.write_text('', encoding='utf-8')
+        # Bis zum 18.09.2026 drehte dieser Test VERSUCHE auf 2 herunter, damit
+        # er nicht 20 x 0,05 s wartet — und prüfte damit einen anderen Ablauf
+        # als den echten. Mit ``Pause.sofort()`` läuft der ECHTE Ablauf (alle
+        # 20 Versuche) in Millisekunden, und die Wartezeiten stehen zum
+        # Nachzählen bereit (Bauform aus ``pause.py``).
+        pause, alt = Pause.sofort(), store.PAUSE
+        store.PAUSE = pause
         try:
-            store._Sperre.VERSUCHE, alt = 2, store._Sperre.VERSUCHE
             store.speichern_gruppe('website', {'titel': 'trotz Sperre'})
             self.assertEqual(store.laden().get('titel'), 'trotz Sperre')
         finally:
-            store._Sperre.VERSUCHE = alt
+            store.PAUSE = alt
             sperre.unlink()
+        self.assertEqual(pause.gewartet, [store._Sperre.PAUSE_S] * store._Sperre.VERSUCHE,
+                         'Alle Versuche müssen gelaufen sein, jeder mit der vollen Pause')
