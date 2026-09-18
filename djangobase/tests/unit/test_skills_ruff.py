@@ -272,6 +272,16 @@ class DieVorgabe(BasisTest):
         for familie in ("E", "F", "I", "B", "UP"):
             self.assertIn(familie, daten["lint"]["select"])
 
+    def test_tote_importe_werden_nie_automatisch_entfernt(self):
+        """Re-Exporte (shortlongx brain/data_fetcher.py → brain/__init__.py) hatte
+        `ruff check --fix` zerlegt; F401 bleibt Befund, aber ohne Fix."""
+        try:
+            import tomllib
+        except ImportError:  # Python 3.10
+            self.skipTest("tomllib gibt es erst ab Python 3.11")
+        daten = tomllib.loads(RuffBefunde.VORGABE.read_text(encoding="utf-8"))
+        self.assertIn("F401", daten["lint"]["unfixable"])
+
     def test_sie_wird_mit_dem_paket_ausgeliefert(self):
         """Sonst fehlt sie bei ``pip install`` ohne ``-e``."""
         from pathlib import Path

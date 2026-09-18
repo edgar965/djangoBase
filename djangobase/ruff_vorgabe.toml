@@ -64,6 +64,12 @@ select = ["E", "W", "F", "I", "B", "UP"]
 # Wer sie umstellen will: `ruff check --select UP009,UP025 --fix .` — UP031
 # hat keinen sicheren Fix.
 ignore = ["B008", "UP009", "UP025", "UP031"]
+# F401 melden, aber nie automatisch entfernen: `from .assets import ASSETS` in
+# einem Modul kann ein Re-Export sein, den ein `__init__.py` weiterreicht —
+# `ruff check --fix` hatte in shortlongx genau so `brain/__init__.py` zerlegt
+# (19.09.2026, manage.py check: ImportError). Tote Importe von Hand oder über
+# Hilfe → Skills → „tote-importe" entfernen.
+unfixable = ["F401"]
 
 [lint.per-file-ignores]
 # Django schreibt Migrationen selbst — Zeilenlänge und Importreihenfolge sind
