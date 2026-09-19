@@ -85,8 +85,30 @@
                                 </a>
                                 <div class="collapse" id="m{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
                                     <ul class="nav flex-column submenu">
+                                        {% comment %}Vierte Ebene (19.09.2026, SchweizerMakler:
+                                        Exposé → Erstellt → Schwanenburg → Seiten). Additiv wie die
+                                        dritte: ein Eintrag ohne eigenes untermenu wird exakt wie
+                                        bisher gerendert. Die Kennung setzt die drei Zähler fort,
+                                        damit sie eindeutig bleibt; markActive (sidebar.js) klappt
+                                        ALLE Collapse-Vorfahren auf, die Tiefe ist ihm egal.{% endcomment %}
                                         {% for t in s.untermenu %}
-                                        <li><a class="nav-link" href="{{ t.url }}"><i class="bi {{ t.icon }}"></i> {{ t.label }}</a></li>
+                                            {% if t.untermenu %}
+                                            <li class="nav-item">
+                                                <a class="nav-link menu-toggle" data-bs-toggle="collapse" href="#m{{ forloop.parentloop.parentloop.counter }}-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
+                                                    <i class="bi {{ t.icon }}"></i> {{ t.label }}
+                                                    <i class="bi bi-chevron-down float-end"></i>
+                                                </a>
+                                                <div class="collapse" id="m{{ forloop.parentloop.parentloop.counter }}-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
+                                                    <ul class="nav flex-column submenu">
+                                                        {% for v in t.untermenu %}
+                                                        <li><a class="nav-link" href="{{ v.url }}"><i class="bi {{ v.icon }}"></i> {{ v.label }}</a></li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                </div>
+                                            </li>
+                                            {% else %}
+                                            <li><a class="nav-link" href="{{ t.url }}"><i class="bi {{ t.icon }}"></i> {{ t.label }}</a></li>
+                                            {% endif %}
                                         {% endfor %}
                                     </ul>
                                 </div>

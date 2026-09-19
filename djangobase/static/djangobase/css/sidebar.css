@@ -45,6 +45,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
    matchen .submenu .submenu nie und bleiben unverändert. */
 .sidebar .submenu .submenu { background: rgba(0,0,0,0.28); }
 .sidebar .submenu .submenu .nav-link { padding-left: 3.7rem; }
+/* Vierte Ebene (19.09.2026): noch eine Stufe dunkler und eingerückter. */
+.sidebar .submenu .submenu .submenu { background: rgba(0,0,0,0.38); }
+.sidebar .submenu .submenu .submenu .nav-link { padding-left: 4.8rem; }
 
 /* Zwischenüberschrift mit eingerückten Kindern (24.08.2026).
    ------------------------------------------------------------------
