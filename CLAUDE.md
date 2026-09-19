@@ -27,6 +27,7 @@ wirken SOFORT live in allen Projekten:
 | HumanBodyWeb | `A:\3DTools\HumanBodyWeb` (:4040) | Standard-Shell (`DJANGOBASE["menu"]`) |
 | shortlongx | `A:\shortlongx\shortlongxWeb` (:5020) | Standard-Shell, 3-Ebenen-Menü, nutzt Jobs-Seite (cron_runner) |
 | CamTrack | `A:\CamTrack\CamTrackDjango` | eigene Sidebar `app/_sidebar.html` |
+| SchweizerMakler | `A:\SchweizerMakler\server` (:8092) | Standard-Shell mit **4-Ebenen-Menü** (dafür rendert `_sidebar.html` seit 19.09.2026 eine vierte Stufe, additiv; `sidebar.css` rückt sie ein), Settings-Paket nach Themen, `Testlaeufer`, Strukturtests; angelegt 19.09.2026 |
 
 Enumeration prüfen: ripgrep respektiert `.gitignore` und übersieht dabei Projekte
 (ist mit shortlongx passiert) — für vollständige Suchen `rg --no-ignore` oder `grep -r`.
