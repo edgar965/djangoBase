@@ -63,6 +63,20 @@ export function tabellenBinden(wurzel) {
   const vergeben = new Set();
   w.querySelectorAll('table.sortable, table[data-sort-key]').forEach((t, nr) => {
     if (t.dataset.djbGebunden === '1') return;
+    // EIGENE SPALTENBREITEN-STEUERUNG (Befund 23.09.2026, steuer_web): Eine
+    // Tabelle mit ``data-col-resize`` bringt ihr eigenes Zieh-System mit
+    // (eigener Griff, eigener Speicher). ``TabellenBreiten._ths()`` nimmt die
+    // UNTERSTE thead-Zeile fuer die Kopfzellen — bei einer Tabelle mit
+    // zusaetzlicher Filterzeile (TableTools, <tr class="tt-filter-row">, aus
+    // <td> statt <th>) ist das NICHT die echte Kopfzeile, sondern die
+    // Filterzeile. ``binden()`` setzte dort ``position: relative`` samt
+    // Zieh-Griff hinein; das ueberschrieb die Filterzeilen-CSS-Regel
+    // ``position: sticky`` und verschob sie sichtbar in die naechste
+    // Tabellenzeile hinein — eine gefilterte Zeile war „da" (zaehlte mit,
+    // liess sich kopieren) aber nicht mehr zu SEHEN. Zwei Zieh-Systeme auf
+    // derselben Kopfzeile waeren ohnehin falsch (zwei Griffe, zwei
+    // Speicherorte); daher hier ganz aussen vor lassen.
+    if (t.hasAttribute('data-col-resize')) return;
     // ERST WENN EINE KOPFZEILE DA IST (Fehler gemessen 21.08.2026): Auf
     // ``/risiko/`` steht das leere ``<table>`` schon im Markup, die Zeilen
     // kommen erst nach einem Abruf je Anlage. Der Beobachter fand die leere
