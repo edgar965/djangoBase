@@ -38,6 +38,9 @@ ERWARTETE STRUKTUR (``tabelle``):
          ]},
       ],
       "leer": "keine Einträge",          Text, wenn zeilen leer ist
+      "spaltenwahl": False,              True = Menü „Spalten" (ein-/ausblenden, gemerkt je
+                                         Tabelle). Braucht js/tabellen_spalten.js auf der Seite.
+                                         Spalten mit "fest": True bleiben immer sichtbar.
       "klasse": "",                      zusätzliche Klassen der <table>
     }
 
@@ -62,13 +65,14 @@ WEISSE RAHMEN (Ansage Edgar, 11.08.2026): Die Klasse ``db-tabelle`` zieht sie au
 zeigen, nicht die Aufmerksamkeit binden.
 {% endcomment %}
 <div class="db-tabelle-rahmen">
-<table class="db-tabelle sortable {{ tabelle.klasse }}" data-sort-key="{{ tabelle.key }}">
+<table class="db-tabelle sortable {{ tabelle.klasse }}" data-sort-key="{{ tabelle.key }}"{% if tabelle.spaltenwahl %} data-spaltenwahl="1"{% endif %}>
   <thead>
     <tr>
       {% for s in tabelle.spalten %}
       <th{% if s.num %} class="num"{% endif %} data-key="{{ s.key|default:forloop.counter0 }}"
           {% if s.titel %} title="{{ s.titel }}"{% endif %}
-          {% if s.sortAus %} data-sort-aus="1"{% endif %}>{{ s.label|safe }}</th>
+          {% if s.sortAus %} data-sort-aus="1"{% endif %}
+          {% if s.fest %} data-spalte-fest="1"{% endif %}>{{ s.label|safe }}</th>
       {% endfor %}
     </tr>
   </thead>
