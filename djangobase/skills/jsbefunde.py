@@ -87,7 +87,7 @@ export async function laden(url) {
         # uebergehen. Vor jedem Lauf zuruecksetzen: Die Regeln sind
         # Einzelstuecke in `REGELN` und leben laenger als ein Lauf.
         for regel in REGELN:
-            for zaehler in ("dynamisch", "unteilbar"):
+            for zaehler in ("dynamisch", "unteilbar", "zustand"):
                 if hasattr(regel, zaehler):
                     setattr(regel, zaehler, 0)
         for pfad in self._quellen():
@@ -118,10 +118,13 @@ export async function laden(url) {
         gesamt = sum(len(f) for f in gruppen.values())
         dynamisch = sum(getattr(r, "dynamisch", 0) for r in REGELN)
         unteilbar = sum(getattr(r, "unteilbar", 0) for r in REGELN)
+        zustand = sum(getattr(r, "zustand", 0) for r in REGELN)
         satz = "%d Befunde in %d Arten, %d Dateien geprüft" % (gesamt, len(gruppen), dateien)
         if dynamisch:
             # Nie verschweigen, wie viel die Ausnahme schluckt.
             satz += "; %d Stil-Stellen uebergangen (Wert erst zur Laufzeit)" % dynamisch
+        if zustand:
+            satz += "; %d Stellen blenden nur aus (display:none — Anfangszustand)" % zustand
         if unteilbar:
             satz += "; %d lange Zeilen haengen an EINEM Vorlagen-Tag (nicht umbrechbar)" % unteilbar
         return Ergebnis(

@@ -86,6 +86,15 @@ class JsPruefer:
         return shutil.which("tsc")
 
     # ── Konfiguration ────────────────────────────────────────────────────
+    def statikordner(self):
+        """Jeder ``static``-Ordner: im Projekt (erste drei Ebenen) und die der
+        installierten Apps außerhalb (``static_wurzeln``)."""
+        ordner = []
+        for muster in ("static", "*/static", "*/*/static"):
+            ordner += [p for p in self.wurzel.glob(muster) if p.is_dir()]
+        ordner += [p for p in self.static_wurzeln if p.is_dir()]
+        return ordner
+
     def statikpfade(self):
         """``/static/<app>/x.js`` auf den echten Ordner abbilden.
 
@@ -104,11 +113,8 @@ class JsPruefer:
 
         Die Abbildung entsteht aus dem Dateisystem: jeder ``static``-Ordner in
         den ersten drei Ebenen, und darin jeder Namensraum-Unterordner."""
-        pfade, ordner = {}, []
-        for muster in ("static", "*/static", "*/*/static"):
-            ordner += [p for p in self.wurzel.glob(muster) if p.is_dir()]
-        ordner += [p for p in self.static_wurzeln if p.is_dir()]
-        for statisch in ordner:
+        pfade = {}
+        for statisch in self.statikordner():
             fest = str(statisch).replace("\\", "/")
             for unter in sorted(p for p in statisch.iterdir() if p.is_dir()):
                 pfade.setdefault("/static/%s/*" % unter.name, [fest + "/" + unter.name + "/*"])
@@ -138,6 +144,12 @@ class JsPruefer:
                 # ab, BEVOR eine Datei geprüft ist. Die Ziele in ``paths``
                 # stehen deshalb absolut, wie schon ``include``.
                 "paths": self.statikpfade(),
+                # Relative Importe über App-Grenzen (assistant, 22.10.2026):
+                # ``search/static/search/js/x.js`` lädt ``../../djangobase/js/y.js``.
+                # Der Browser landet bei ``/static/djangobase/js/y.js`` (eine andere
+                # App), ``tsc`` sucht ``search/static/djangobase/`` — 2 × TS2307.
+                # ``rootDirs`` legt alle Static-Ordner so zusammen wie die URL.
+                "rootDirs": [str(p).replace("\\", "/") for p in self.statikordner()],
             },
             # ``*.d.ts`` gehoert dazu: Projekte, deren Seiten Namen ueber
             # ``window`` teilen, deklarieren die dort (shortlongx:

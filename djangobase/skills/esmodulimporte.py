@@ -35,6 +35,7 @@ import re
 from pathlib import Path
 
 from .anlassfall import Anlassfall
+from .statikpfad import Statikpfad
 from .werkzeug import Ergebnis, Werkzeug
 
 
@@ -99,7 +100,8 @@ class EsModulImporte(Werkzeug):
         pfad = ziel.split("?")[0]
         if pfad.startswith("./") or pfad.startswith("../"):
             kandidat = (quelldatei.parent / pfad).resolve()
-            return kandidat if kandidat.exists() else None
+            # Nicht auf der Platte? Dann wie im Browser über die Adresse (Statikpfad).
+            return kandidat if kandidat.exists() else Statikpfad.finden(quelldatei, pfad)
         if pfad.startswith("/static/"):
             treffer = finders.find(pfad[len("/static/") :])
             if isinstance(treffer, (list, tuple)):

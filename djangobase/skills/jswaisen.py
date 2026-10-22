@@ -35,6 +35,7 @@ import re
 from pathlib import Path
 
 from .anlassfall import Anlassfall
+from .statikpfad import Statikpfad
 from .werkzeug import Ergebnis, Werkzeug
 
 __all__ = ["JsWaisen"]
@@ -118,7 +119,9 @@ class Modulinventar:
         """Angabe zu einem Pfad machen; absolute Pfade über den Dateinamen."""
         if angabe.startswith("."):
             ziel = (von.parent / angabe).resolve()
-            return ziel if ziel in bekannt else None
+            # Nicht unter den Projektdateien? Dann wie im Browser über die Adresse —
+            # etwa ``../../djangobase/js/x.js`` aus einer anderen App (Statikpfad).
+            return ziel if ziel in bekannt else Statikpfad.finden(von, angabe)
         name = angabe.split("/")[-1]
         passende = [p for p in self.dateien if p.name == name]
         return passende[0] if len(passende) == 1 else None

@@ -174,6 +174,40 @@ class InlineStil(Stilregel):
     muster = re.compile(r"""\.style\.cssText\s*=|style\s*=\s*['"][^'"]*:""")
     nicht = re.compile(r"^\s*(//|\*|/\*)")
 
+    #: Ein ``style``, der NUR ausblendet, ist der Anfangszustand eines Elements,
+    #: das JavaScript ein- und ausblendet — dieselbe Sache, die `StilZuweisung`
+    #: bei ``el.style.display = 'none'`` ausnimmt.
+    #:
+    #: WARUM AUSGENOMMEN (assistant, 22.10.2026): Beim Umbau von 1.833
+    #: Inline-Stilen auf Klassen lasen oder leerten 60 Stellen ``style.display``
+    #: (``if (el.style.display === 'none')``, ``el.style.display = ''``). Steht
+    #: ``display:none`` in einer Klasse, liest der erste Klick ``''`` und schaltet
+    #: falsch herum; ``= ''`` blendet gar nicht mehr ein. Die Regel verlangte
+    #: also einen Umbau, der die Seite still kaputtmacht. Gezählt wird weiter
+    #: (`zustand`), nur nicht als Befund.
+    ZUSTAND = re.compile(r"(display\s*:\s*none|visibility\s*:\s*hidden)", re.I)
+    WERT = re.compile(r"""style\s*=\s*(\\?['"])(.*?)\1""")
+
+    def __init__(self):
+        super().__init__()
+        self.zustand = 0
+
+    def pruefen(self, datei, zeilen):
+        gefunden = []
+        for fund in super().pruefen(datei, zeilen):
+            zeile = zeilen[fund.zeile - 1]
+            werte = [m.group(2) for m in InlineStil.WERT.finditer(zeile)]
+            if werte and ".style.cssText" not in zeile and all(map(InlineStil._nur_zustand, werte)):
+                self.zustand += 1
+                continue
+            gefunden.append(fund)
+        return gefunden
+
+    @staticmethod
+    def _nur_zustand(wert):
+        teile = [t.strip() for t in wert.split(";") if t.strip()]
+        return bool(teile) and all(InlineStil.ZUSTAND.fullmatch(t) for t in teile)
+
 
 class StilZuweisung(Stilregel):
     art = "Einzelne Stilzuweisung im JavaScript"
@@ -409,11 +443,22 @@ class LangeZeile(Regel):
         for fund in super().pruefen(datei, zeilen):
             zeile = zeilen[fund.zeile - 1]
             laengster = max((len(t) for t in self.TAG.findall(zeile)), default=0)
-            if laengster and len(zeile) - laengster <= 120:
+            text = max(
+                (len(m.group(2) or m.group(3) or "") for m in self.TEXTATTRIBUT.finditer(zeile)), default=0
+            )
+            if (laengster and len(zeile) - laengster <= 120) or (text and len(zeile) - text <= 120):
                 self.unteilbar += 1
                 continue
             raus.append(fund)
         return raus
+
+    #: Ein Attribut, dessen Wert Lesetext ist. Ein Umbruch darin STEHT im Text: Chrome zeigt
+    #: ihn im ``title``-Tooltip als neue Zeile, ein ``data-tip`` mit ``white-space: pre-line``
+    #: ebenso. Belegt (assistant, 22.10.2026): 30 von 115 übrigen Markup-Zeilen hingen an
+    #: genau einem solchen Wert — „kürzbar" nur, indem man den Tooltip umformuliert.
+    TEXTATTRIBUT = re.compile(
+        r"""\b(title|data-tip|data-bs-title|placeholder|alt|aria-label)\s*=\s*(?:"([^"]*)"|'([^']*)')"""
+    )
 
 
 class TodoImCode(Regel):
