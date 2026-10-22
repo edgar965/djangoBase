@@ -46,6 +46,35 @@ def _hilfe_extra(c):
     return list(wert or [])
 
 
+def _menue(c, request):
+    """Das Menü der Seitenleiste: die feste Liste `menu`, vom `menu_provider` ergänzt (14.10.2026).
+
+    Anlass: HumanBodyWeb → Mesh3D-AI hat je Job eine Unterseite, und die Jobs kommen und gehen.
+    Eine feste Liste in `settings.py` hätte bei jedem neuen Job einen Handgriff gebraucht und
+    wäre irgendwann hinter der Tabelle zurückgeblieben (zwei Meinungen darüber, welche Jobs es gibt).
+
+    Wie `_hilfe_extra`: Funktion oder gepunkteter Pfad, Fehler gehen ins Log und das feste Menü
+    bleibt. Die Tests und `testdeckung` lesen weiter `conf()["menu"]` — den festen Teil.
+    """
+    fest = c["menu"]
+    provider = c.get("menu_provider")
+    if not provider:
+        return fest
+    try:
+        if isinstance(provider, str):
+            from django.utils.module_loading import import_string
+
+            provider = import_string(provider)
+        menue = provider(fest, request)
+    except Exception:
+        log.exception("menu_provider: Aufruf fehlgeschlagen - das feste Menü bleibt")
+        return fest
+    if not isinstance(menue, (list, tuple)):
+        log.error("menu_provider: Liste erwartet, %s bekommen - das feste Menü bleibt", type(menue).__name__)
+        return fest
+    return list(menue)
+
+
 def _offen_setzen(eintraege, aktiv):
     """Ein Klappmenü, dessen Seite gerade offen ist, muss offen stehen.
 
@@ -114,7 +143,7 @@ def djangobase(request):
             "favicons": c.get("favicons", ()),
             "farben": c["farben"],
             "base_template": c["base_template"],
-            "menu": c["menu"],
+            "menu": _menue(c, request),
             "version": c["version"],
             "extra_css": c["extra_css"],
             "extra_js_head": c["extra_js_head"],

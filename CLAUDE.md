@@ -231,7 +231,9 @@ CSRF-Kopf und kennt `senden`/`formular`/`jsonOderNull`. Cookiename über
 
 Lädt ein ES-Modul der Seite in Node — spiegelt die Importkette und biegt
 absolute `/static/…`-Pfade um (die Node sonst als `A:\static\…` sucht) sowie
-`?v=`-Anhänge. Ein Import ins Leere wirft, statt still zu überspringen.
+`?v=`-Anhänge. Ein Import ins Leere wirft, statt still zu überspringen. Ausnahme
+(20.10.2026): ein nackter Paketname der Importkarte (`three/addons/…/X.js`) ist keine
+Datei der Seite — ihn löst Node beim Laden auf und wirft dann selbst.
 
 ### Konformitätsprüfungen: `djangobase.tests.konform` (21.08.2026)
 
@@ -422,6 +424,10 @@ aus Tests noch im Quelltext vorkommen.
 
 ### Neue DJANGOBASE-Schlüssel
 
+`menu_provider` (14.10.2026, aus HumanBodyWeb: Mesh3D-AI hat je Job einen Menüeintrag, und die Jobs kommen zur Laufzeit): Funktion oder gepunkteter Pfad zu einer
+**Modulfunktion** `f(menue, request) -> Liste` im Format von `menu` (`context_processors._menue`, wie `hilfe_extra`; ein Klassenaufruf geht nicht, `import_string` zerlegt am
+letzten Punkt). Sie bekommt die feste Liste und baut Kopien; wirft sie oder liefert keine Liste, bleibt das feste Menü und `djangobase.nav` loggt. Läuft bei JEDER Seite —
+leichte Quellen nehmen. Ohne Angabe ändert sich nichts; Tests und `testdeckung` lesen weiter nur den festen Teil. Nicht gegen die djangoBase-Suite gelaufen.
 `skills2_register` (Vorgabe `["fn"]`), `skills2_abrufklassen`
 (`["Serverabruf"]`), `skills2_funktionsgrenze` (90), `skills2_ignorieren`,
 `jobs_ausschluss` (Befehle, die auf der Jobs-Seite nicht als Ablauf

@@ -32,10 +32,13 @@
 
    TEXTAUSWAHL GEHT VOR SORTIEREN: Hat der Nutzer gerade Text markiert, wird der
    Klick verworfen (Befund shortlongx 04.08.2026 - der Neuaufbau warf die Auswahl
-   weg, und Kopieren aus den Tabellen war unmöglich).
+   weg, und Kopieren aus den Tabellen war unmöglich). AUSNAHME seit 16.10.2026:
+   der Sortierknopf ``.tsort-pfeil`` sortiert immer - siehe tabellen_sortierklick.js.
 
    Verträgt sich mit TabellenBreiten: Der Ziehgriff wird beim Neuschreiben der
    Kopfzelle gerettet, und ein Klick auf den Griff sortiert nicht mit. */
+
+import { Sortierklick } from '/static/djangobase/js/tabellen_sortierklick.js';
 
 const SPEICHER = 'dbTabSort:';
 
@@ -77,40 +80,11 @@ export class TabellenSortierung {
     // was sich beide Instanzen teilen.
     if (!document.documentElement.dataset.tabsortHorcher) {
       document.documentElement.dataset.tabsortHorcher = '1';
+      // Ob und wonach sortiert wird (Markierung, Ziehgriff, `data-sort-aus`,
+      // Gruppen-Kopfzeile, Sortierknopf) entscheidet tabellen_sortierklick.js.
       TabellenSortierung._handler = e => {
-        // Markieren geht vor Sortieren - ABER NICHT AUS EINEM EINGABEFELD
-        // HERAUS (25.08.2026).
-        //
-        // Der Schutz ist dafuer da, dass ein Doppelklick auf Tabellentext die
-        // Auswahl nicht sofort wieder wegsortiert. Steht der Cursor dagegen in
-        // einem Feld der Tabelle - die Werkzeugliste hat deren zwei je Zeile,
-        // die Kriteriums-Nummer und das Argument -, dann meldet
-        // ``getSelection()`` je nach Browser die Auswahl IM FELD. Der naechste
-        // Klick auf eine Spaltenueberschrift lief damit ins ``return``, und
-        // die Sortierung wirkte kaputt: gemeldet als "bei einer Aenderung der
-        // Nummern funktioniert der Sortier-Button nicht mehr".
-        //
-        // Eine Auswahl innerhalb eines Feldes ist keine Textmarkierung im
-        // Sinne dieses Schutzes - sie gehoert zum Bearbeiten, nicht zum Lesen.
-        const aktiv = document.activeElement;
-        const imFeld = aktiv && /^(INPUT|TEXTAREA|SELECT)$/.test(aktiv.tagName);
-        const sel = window.getSelection && window.getSelection();
-        if (!imFeld && sel && String(sel).length) return;
-        if (e.target.closest('.tb-griff')) return;      // Breiten-Ziehen
-        const th = e.target.closest('table.sortable thead th');
-        if (!th || th.dataset.sortAus !== undefined) return;
-        // `data-sort-aus` AN DER TABELLE: Die Zeilenfolge bedeutet etwas
-        // (BWA-Gliederung, Steuer-Kennzahlen, Tage eines Stundenzettels).
-        // Solche Tabellen tragen `sortable` normalerweise gar nicht erst;
-        // steht es doch da, gilt die ausdrueckliche Marke.
-        if (th.closest('table').dataset.sortAus !== undefined) return;
-        // NUR die unterste Kopfzeile sortiert. Tabellen mit einer GRUPPEN-Zeile
-        // darüber (Walk-Forward: „Ergebnis beim Suchen" spannt mehrere Spalten)
-        // haben dort th-Elemente mit colspan - deren Index in der Zeile ist
-        // nicht der Spaltenindex, ein Klick hätte nach der falschen Spalte
-        // sortiert (Befund beim Umbau 11.08.2026).
-        if (th.parentNode !== TabellenSortierung._kopfzeile(th.closest('table'))) return;
-        TabellenSortierung.sortieren(th);
+        const th = Sortierklick.ziel(e);
+        if (th) TabellenSortierung.sortieren(th);
       };
       document.addEventListener('click', TabellenSortierung._handler);
     }
@@ -135,13 +109,9 @@ export class TabellenSortierung {
    *  Ziehen ruft; sie zu entfernen haette dort einen Fehler ausgeloest. */
   static hochkant(_tabelle) {}
 
-  /** Die Zeile mit den ECHTEN Spaltenköpfen: die UNTERSTE des <thead>.
-   *
-   *  Darüber können Gruppen-Zeilen stehen (th mit colspan). Nur die unterste
-   *  Zeile hat je Spalte genau eine Zelle - nur dort stimmt der Index. */
+  /** Die Zeile mit den ECHTEN Spaltenköpfen - steht in Sortierklick.kopfzeile. */
   static _kopfzeile(tabelle) {
-    const k = tabelle && tabelle.tHead;
-    return (k && k.rows.length) ? k.rows[k.rows.length - 1] : null;
+    return Sortierklick.kopfzeile(tabelle);
   }
 
   /** Pfeile in alle Kopfzellen schreiben - ⇅ neutral, ▲/▼ für die aktive Spalte. */
@@ -156,6 +126,8 @@ export class TabellenSortierung {
       if (!span) {
         span = document.createElement('span');
         span.className = 'tsort-pfeil';
+        span.setAttribute('role', 'button');             // seit 16.10.2026 ein Knopf
+        span.setAttribute('aria-label', 'nach dieser Spalte sortieren');
         // DIREKT HINTER DIE BESCHRIFTUNG (Ansage 11.08.2026), also in die
         // Inhalts-Hülle, sofern es sie schon gibt: Dann wandert der Pfeil beim
         // Hochkantstellen mit dem Text mit, statt am Zellenrand zurückzubleiben.

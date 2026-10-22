@@ -102,6 +102,11 @@ GRUPPEN = {
             # --- Versionen-Seite ---
             ("version_commits_per_page", "int", "Versionen-Seite: Commits pro Repo aus GitHub holen"),
             (
+                "version_commits_alle",
+                "bool",
+                "Versionen-Seite: ALLE Commits holen (seitenweise, mehrere GitHub-Aufrufe) statt nur der letzten",
+            ),
+            (
                 "commit_text_transform",
                 "text",
                 "Versionen-Seite: optionaler Body-Transform (dotted Path, z. B. "

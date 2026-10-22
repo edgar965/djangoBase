@@ -34,6 +34,7 @@ from django.views import View
 from ..conf import conf
 from ..gitabfrage import Gitabfrage
 from ..mixins import ZugriffMixin
+from .versions_commitseiten import Commitseiten
 
 logger = logging.getLogger(__name__)
 
@@ -240,21 +241,15 @@ def _gh(args, timeout=10):
         return 1, "", str(exc)
 
 
-def _gh_list_commits(repo, per_page=100, transform=None):
+def _gh_list_commits(repo, per_page=100, transform=None, alle=False):
     return _GH_CACHE.get_or_compute(
-        f"commits:{repo}:{per_page}",
-        lambda: _fetch_commits(repo, per_page, transform),
+        f"commits:{repo}:{per_page}:{'alle' if alle else 'letzte'}",
+        lambda: _fetch_commits(repo, per_page, transform, alle),
     )
 
 
-def _fetch_commits(repo, per_page, transform):
-    rc, out, _err = _gh([f"repos/{repo}/commits?per_page={per_page}"])
-    if rc != 0:
-        return []
-    try:
-        data = json.loads(out or "[]")
-    except json.JSONDecodeError:
-        return []
+def _fetch_commits(repo, per_page, transform, alle=False):
+    data = Commitseiten.holen(_gh, repo, per_page, alle)
     tr = transform or (lambda s: s)
     result = []
     for c in data:
@@ -522,6 +517,7 @@ class VersionsView(ZugriffMixin, View):
         base_dir = c["log_verzeichnis"]  # = BASE_DIR-Default
         current_version = c["version"]
         per_page = int(c.get("version_commits_per_page") or 100)
+        alle = bool(c.get("version_commits_alle"))
         transform = _resolve_transform(c.get("commit_text_transform"))
         manual = _manual_entries(c.get("manual_versions") or [], current_version)
         repos = []
@@ -535,7 +531,11 @@ class VersionsView(ZugriffMixin, View):
             dirty = len(
                 [zeile for zeile in _git(local_path, "status", "--porcelain").splitlines() if zeile.strip()]
             )
-            commits = _gh_list_commits(gh_repo, per_page=per_page, transform=transform) if gh_repo else []
+            commits = (
+                _gh_list_commits(gh_repo, per_page=per_page, transform=transform, alle=alle)
+                if gh_repo
+                else []
+            )
             if not commits and local_path.exists():
                 commits = _git_log_local(local_path, transform=transform, gh_repo=gh_repo)
             tags = _gh_list_tags(gh_repo) if gh_repo else []

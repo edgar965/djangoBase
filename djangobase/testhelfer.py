@@ -106,9 +106,14 @@ class Webmodul:
         for _, _, angabe, _ in IMPORTE.findall(text):
             ziel = self._aufloesen(quelle, angabe)
             if ziel is None:
-                # Fremdbibliotheken ueber Importkarten ('three') haben keine
-                # Endung .js und tauchen hier nicht auf; alles andere ist ein
-                # echter Fehler.
+                # Fremdbibliotheken ueber Importkarten: ein nackter Name ist keine
+                # Datei der Seite - 'three' ohne Endung taucht hier gar nicht auf,
+                # 'three/addons/loaders/KTX2Loader.js' (20.10.2026, 3DTools) schon.
+                # Den loest Node auf, wenn er wirklich geladen wird, und wirft dann
+                # selbst. Alles mit '.' oder '/' vorn ist eine Datei der Seite: ins
+                # Leere ist ein echter Fehler.
+                if not angabe.startswith((".", "/")):
+                    continue
                 raise WebmodulFehler("%s importiert '%s' - dort liegt keine Datei" % (quelle.name, angabe))
             ziele.append(ziel)
         return ziele

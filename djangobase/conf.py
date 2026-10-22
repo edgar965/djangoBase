@@ -138,6 +138,15 @@ DEFAULTS = {
     # Navigation
     "menu": [],  # [{label, icon, url} | {label, icon, untermenu:[{label, icon, url}]}]
     #  (Untermenü-Key heißt "untermenu", NICHT "items" -> dict.items-Kollision!)
+    # Optional (14.10.2026, aus HumanBodyWeb: die Jobs von Mesh3D-AI wachsen zur Laufzeit,
+    # eine feste Liste in settings.py kann sie nicht tragen). Callable ODER gepunkteter Pfad
+    # zu einer MODULFUNKTION (kein Klassenaufruf: `import_string` zerlegt am letzten Punkt):
+    #   f(menue, request) -> Liste im Format von "menu"
+    # `menue` ist die feste Liste; sie darf nicht verändert werden (Kopien bauen). Läuft bei
+    # jedem Anzeigen. Fällt der Aufruf hin oder liefert keine Liste, bleibt das feste Menü
+    # und der Fehler steht im Log `djangobase.nav` — eine Navigation ist kein Grund für eine
+    # Fehlerseite. Ohne Angabe ändert sich nichts.
+    "menu_provider": None,
     # djangoBase-eigene Menue-Gruppen im Nav-Block (djangobase/_nav.html):
     # Einstellungen (Website/djangoBase) + Hilfe. Projekte mit eigener Sidebar
     # koennen den Block per {% include "djangobase/_nav.html" %} einhaengen und
@@ -264,8 +273,11 @@ DEFAULTS = {
     # zu einer Callable str -> str. Wird auf subject + title + body
     # angewendet — z.B. Umlaut-Restore fuer alte Commits ohne Umlaute.
     "commit_text_transform": None,  # "search.utils.umlauts.restore_umlauts"
-    # Wie viele Commits pro Repo aus GitHub holen.
+    # Wie viele Commits pro Repo aus GitHub holen (je Aufruf hoechstens 100).
     "version_commits_per_page": 100,
+    # True: ALLE Commits holen, Seite fuer Seite (`views/versions_commitseiten.py`) — der erste Abruf braucht
+    # entsprechend mehr gh-Aufrufe (590 Commits = 6). False: nur die letzten `version_commits_per_page`.
+    "version_commits_alle": False,
     # Manuelle Versions-Eintraege — werden zusaetzlich zu den GitHub-Commits
     # gerendert (oben, vor den Repos). Fuer Projekte die einen handgepflegten
     # Changelog haben den sie nicht in Git-Commit-Bodies zwaengen wollen.

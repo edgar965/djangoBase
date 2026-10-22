@@ -48,25 +48,42 @@ table.sortable thead th.tsort-kopf:hover {
    die Pfeile dann wild umher. Jetzt sitzt er fest oben rechts, also auf Höhe der
    ERSTEN Textzeile: bei einzeiligen Köpfen wirkt das wie „hinter dem Text",
    bei mehrzeiligen bleibt die Kopfzeile ruhig. */
+/* EIN KNOPF MIT EIGENER FLÄCHE (Ansage Edgar 16.10.2026: „mach klaren
+   Sortierbutton, mit Klickfeld, am besten in anderer Hintergrundfarbe"): Der
+   Klick auf die Beschriftung markierte Text statt zu sortieren. Jetzt hat der
+   Pfeil Rahmen und Grund in der Akzentfarbe und ist in ``table.sortable``
+   selbst klickbar - er sortiert auch, wenn gerade Text markiert ist
+   (js/tabellen_sortierklick.js). In Tabellen ohne ``sortable`` (eigene
+   Sortierung) bleibt er durchlässig, der Klick gehört dort der Kopfzelle. */
 .tsort-pfeil {
   position: absolute;
-  right: 0.4em;
-  top: 0.5em;
+  right: 0.3em;
+  top: 0.35em;
+  min-width: 1.45em;
+  padding: 0.15em 0.2em;
+  box-sizing: border-box;
+  text-align: center;
   font-size: 0.95em;
   line-height: 1;
-  opacity: 0.55;
+  border: 1px solid rgba(var(--accent-rgb, 96, 165, 250), 0.5);
+  border-radius: 4px;
+  background: rgba(var(--accent-rgb, 96, 165, 250), 0.16);
   color: var(--accent, #60a5fa);
-  pointer-events: none;       /* der Klick gehört der Kopfzelle */
+  pointer-events: none;
+}
+table.sortable thead th.tsort-kopf .tsort-pfeil { pointer-events: auto; cursor: pointer; }
+table.sortable thead th.tsort-kopf .tsort-pfeil:hover {
+  background: rgba(var(--accent-rgb, 96, 165, 250), 0.34);
+  border-color: rgba(var(--accent-rgb, 96, 165, 250), 0.85);
 }
 
-/* Die aktive Spalte: volle Deckkraft, kräftiger. */
+/* Die aktive Spalte: kräftiger Grund, Schrift in der Vordergrundfarbe. */
 .tsort-pfeil.aktiv {
-  opacity: 1;
   font-weight: 700;
-  font-size: 1.02em;
+  background: rgba(var(--accent-rgb, 96, 165, 250), 0.42);
+  border-color: rgba(var(--accent-rgb, 96, 165, 250), 0.9);
+  color: rgb(var(--fg-rgb, 230, 237, 243));
 }
-
-table.sortable thead th.tsort-kopf:hover .tsort-pfeil { opacity: 0.95; }
 
 /* ----------------------------------------------- Überschriften umbrechen */
 /* DAS PROBLEM: Lange Überschriften in schmalen Spalten liefen in die
@@ -108,9 +125,15 @@ table.sortable thead th, .db-tabelle thead th, table.db-rahmen thead th {
      damit kurze Ueberschriften wie „Note" nicht umbrechen (11.08.2026) */
 }
 
+/* Platz für den Sortierknopf (16.10.2026): Er ist breiter als der frühere Pfeil,
+   die Beschriftung darf nicht unter ihn laufen. */
+table.sortable thead th.tsort-kopf, .db-tabelle thead th:has(.tsort-pfeil),
+table.db-rahmen thead th:has(.tsort-pfeil) { padding-right: 2em !important; }
+
 /* Steht ein Ziehgriff in derselben Zelle, rückt der Pfeil nach links, damit
    sich beide nicht überlagern. */
 table.sortable thead th.tsort-kopf:has(.tb-griff) .tsort-pfeil { right: 0.75rem; }
+table.sortable thead th.tsort-kopf:has(.tb-griff) { padding-right: calc(2em + 0.5rem) !important; }
 
 /* --------------------------------------------------------- Spalten-Ziehen */
 
