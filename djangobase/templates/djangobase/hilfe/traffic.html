@@ -19,7 +19,7 @@
            border-radius: 10px; padding: 3px; }
 .tf-tabs a { padding: 5px 16px; border-radius: 8px; text-decoration: none;
              color: var(--db-fg); font-size: .9rem; }
-.tf-tabs a.aktiv { background: var(--db-accent); color: #fff; font-weight: 600; }
+.tf-tabs a.aktiv { background: var(--db-accent); color: var(--dbt-text, #fff); font-weight: 600; }
 .tf-hint { opacity: .6; font-size: .85rem; }
 .tf-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
            gap: 12px; margin-bottom: 16px; }
@@ -49,7 +49,7 @@
 .tf-tabelle td { padding: 5px 10px; border-bottom: 1px solid
                  color-mix(in srgb, var(--db-fg) 7%, transparent); }
 .tf-tabelle td.num, .tf-tabelle th.num { text-align: right; white-space: nowrap; }
-.tf-pfad { position: relative; font-family: ui-monospace, Consolas, monospace;
+.tf-pfad { position: relative; font-family: var(--dbt-schrift-mono, ui-monospace, Consolas, monospace);
            font-size: .84rem; }
 .tf-pfad i { position: absolute; left: 0; top: 4px; bottom: 4px;
              background: color-mix(in srgb, var(--db-accent) 16%, transparent);

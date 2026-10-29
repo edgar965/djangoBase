@@ -18,19 +18,19 @@ Befund-Werkzeug `cachekonzept` und die Konformitätsprüfung
 {% block content %}
 <style>
 .ca-abschnitt { margin-bottom: 1.6rem; }
-.ca-abschnitt h2 { font-size: 1.1rem; margin: 0 0 0.6rem; border-bottom: 1px solid var(--ct-border, #2b3540); padding-bottom: 0.3rem; }
+.ca-abschnitt h2 { font-size: 1.1rem; margin: 0 0 0.6rem; border-bottom: 1px solid var(--ct-border, var(--dbt-rand, #2b3540)); padding-bottom: 0.3rem; }
 .ca-abschnitt h3 { font-size: 0.98rem; margin: 1rem 0 0.4rem; }
 .ca-zustand td:first-child { white-space: nowrap; }
-.ca-ja { color: #3fb950; font-weight: 600; }
-.ca-nein { color: #f85149; font-weight: 600; }
+.ca-ja { color: var(--dbt-ok-text, #3fb950); font-weight: 600; }
+.ca-nein { color: var(--dbt-fehler-text, #f85149); font-weight: 600; }
 .ca-regel { border-left: 3px solid var(--ct-accent, #38d4d8); padding: 0.4rem 0.8rem; margin: 0.6rem 0; }
 .ca-regel .ca-warum { opacity: 0.85; }
-.ca-regel .ca-wie { font-family: Consolas, monospace; font-size: 0.86em; margin-top: 0.3rem; white-space: pre-wrap; }
-.ca-fall { background: rgba(255,255,255,0.04); border-radius: 4px; padding: 0.6rem 0.9rem; margin: 0.5rem 0; }
-.ca-fall b { color: var(--ct-accent, #38d4d8); }
-pre.ca-code { background: #0d1117; border: 1px solid var(--ct-border, #2b3540); border-radius: 4px; padding: 0.6rem 0.8rem; font-size: 0.84em; overflow-x: auto; }
+.ca-regel .ca-wie { font-family: var(--dbt-schrift-mono, Consolas, monospace); font-size: 0.86em; margin-top: 0.3rem; white-space: pre-wrap; }
+.ca-fall { background: rgba(var(--dbt-fg-rgb, 255, 255, 255), 0.04); border-radius: 4px; padding: 0.6rem 0.9rem; margin: 0.5rem 0; }
+.ca-fall b { color: var(--ct-accent, var(--dbt-akzent-text, #38d4d8)); }
+pre.ca-code { background: var(--dbt-flaeche-tief, #0d1117); border: 1px solid var(--ct-border, var(--dbt-rand, #2b3540)); border-radius: 4px; padding: 0.6rem 0.8rem; font-size: 0.84em; overflow-x: auto; }
 table.ca-tab { width: 100%; border-collapse: collapse; font-size: 0.9em; }
-table.ca-tab th, table.ca-tab td { border-bottom: 1px solid var(--ct-border, #2b3540); padding: 0.35rem 0.5rem; text-align: left; vertical-align: top; }
+table.ca-tab th, table.ca-tab td { border-bottom: 1px solid var(--ct-border, var(--dbt-rand, #2b3540)); padding: 0.35rem 0.5rem; text-align: left; vertical-align: top; }
 .ca-hinweis { font-size: 0.86em; opacity: 0.8; }
 </style>
 

@@ -119,57 +119,57 @@
 </div>
 
 <style>
-.vw { padding: 0.8rem 1.4rem 2.5rem; color: #d8dee9; background: #0c1421; font-size: 0.92rem; line-height: 1.35; max-width: 1500px; min-height: 100vh; }
-.vw-h h1 { margin: 0 0 0.6rem; font-size: 1.6rem; font-weight: 600; color: #d8dee9; }
-.vw-h h1 i { color: #4ad9c2; margin-right: 0.4rem; }
-.vw-meta { color: #8b94a3; font-size: 0.95rem; margin: 0 0 0.6rem; line-height: 1.5; }
-.vw-meta code { background: #1a2433; padding: 0.1rem 0.5rem; border-radius: 4px; color: #4ad9c2; font-size: 0.92em; }
-.vw-meta strong { color: #b0bac7; }
+.vw { padding: 0.8rem 1.4rem 2.5rem; color: var(--dbt-text, #d8dee9); background: var(--dbt-flaeche-tief, #0c1421); font-size: 0.92rem; line-height: 1.35; max-width: 1500px; min-height: 100vh; }
+.vw-h h1 { margin: 0 0 0.6rem; font-size: 1.6rem; font-weight: 600; color: var(--dbt-text, #d8dee9); }
+.vw-h h1 i { color: var(--dbt-akzent-text, #4ad9c2); margin-right: 0.4rem; }
+.vw-meta { color: var(--dbt-text-2, #8b94a3); font-size: 0.95rem; margin: 0 0 0.6rem; line-height: 1.5; }
+.vw-meta code { background: var(--dbt-flaeche, #1a2433); padding: 0.1rem 0.5rem; border-radius: 4px; color: var(--dbt-akzent-text, #4ad9c2); font-size: 0.92em; }
+.vw-meta strong { color: var(--dbt-text-2, #b0bac7); }
 .vw-tags { margin-bottom: 1.6rem; }
-.vw-tag { display: inline-block; margin: 0 0.25rem; background: rgba(74,217,194,0.12); color: #4ad9c2; padding: 0.1rem 0.55rem; border-radius: 4px; font-family: ui-monospace, monospace; font-size: 0.88rem; text-decoration: none; border: 1px solid rgba(74,217,194,0.25); }
+.vw-tag { display: inline-block; margin: 0 0.25rem; background: rgba(74,217,194,0.12); color: var(--dbt-akzent-text, #4ad9c2); padding: 0.1rem 0.55rem; border-radius: 4px; font-family: var(--dbt-schrift-mono, ui-monospace, monospace); font-size: 0.88rem; text-decoration: none; border: 1px solid rgba(74,217,194,0.25); }
 .vw-tag:hover { background: rgba(74,217,194,0.25); }
-.vw-repo { color: #e9f0f8; font-size: 1.1rem; margin: 1.8rem 0 0.6rem; display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
-.vw-repo i { color: #4ad9c2; }
-.vw-gh { color: #79c0ff; font-size: .82rem; text-decoration: none; font-weight: 500; }
-.vw-badge { background: #1e3a5f; color: #cfe0f4; border-radius: 6px; padding: 2px 9px; font-size: .74rem; font-weight: 600; }
+.vw-repo { color: var(--dbt-text, #e9f0f8); font-size: 1.1rem; margin: 1.8rem 0 0.6rem; display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.vw-repo i { color: var(--dbt-akzent-text, #4ad9c2); }
+.vw-gh { color: var(--dbt-akzent-text, #79c0ff); font-size: .82rem; text-decoration: none; font-weight: 500; }
+.vw-badge { background: var(--dbt-flaeche-hoch, #1e3a5f); color: var(--dbt-text, #cfe0f4); border-radius: 6px; padding: 2px 9px; font-size: .74rem; font-weight: 600; }
 .vw-badge.ok { background: #15803d; color: #fff; }
 .vw-badge.warn { background: #b45309; color: #fff; }
 .vw-badge.dirty { background: #b91c1c; color: #fff; }
 
-.ver-card { background: #142136; border: 1px solid #1e3a5f; border-radius: 10px; padding: 14px 18px; margin-bottom: 18px; }
-.ver-card h3 { color: #e9f0f8; font-size: 1.0rem; margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
-.ver-card h3 i { color: #4ad9c2; }
-.ver-pakete td { padding: 2px 18px 2px 0; color: #cdddf0; font-size: .9rem; }
-.ver-pakete code { background: #0d1117; color: #a5d6ff; padding: 1px 6px; border-radius: 4px; font-size: .82rem; }
+.ver-card { background: var(--dbt-flaeche, #142136); border: 1px solid var(--dbt-rand, #1e3a5f); border-radius: 10px; padding: 14px 18px; margin-bottom: 18px; }
+.ver-card h3 { color: var(--dbt-text, #e9f0f8); font-size: 1.0rem; margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
+.ver-card h3 i { color: var(--dbt-akzent-text, #4ad9c2); }
+.ver-pakete td { padding: 2px 18px 2px 0; color: var(--dbt-text, #cdddf0); font-size: .9rem; }
+.ver-pakete code { background: var(--dbt-flaeche-tief, #0d1117); color: var(--dbt-akzent-text, #a5d6ff); padding: 1px 6px; border-radius: 4px; font-size: .82rem; }
 
 .vw-list { margin-top: 0.3rem; }
-.vw-entry { display: grid; grid-template-columns: 110px 1fr; gap: 1.1rem; padding: 0.7rem 0; border-top: 1px solid #1a2433; }
+.vw-entry { display: grid; grid-template-columns: 110px 1fr; gap: 1.1rem; padding: 0.7rem 0; border-top: 1px solid var(--dbt-rand, #1a2433); }
 .vw-entry:first-child { border-top: 0; padding-top: 0.3rem; }
 .vw-entry-release { background: rgba(74,217,194,0.025); }
 .vw-entry-current { background: linear-gradient(90deg, rgba(74,217,194,0.10) 0%, rgba(74,217,194,0.02) 60%, transparent 100%); border-left: 3px solid #4ad9c2; padding-left: 1rem; border-radius: 4px; }
 .vw-left { text-align: left; padding-top: 0.05rem; }
-.vw-version { font-size: 1.4rem; font-weight: 700; color: #4ad9c2; line-height: 1.0; letter-spacing: -0.02em; font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; }
-.vw-version-inherited { font-size: 0.95rem; font-weight: 500; color: #6b7891; opacity: 0.85; }
-.vw-version-dev { color: #b8a14a; }
-.vw-pill { display: inline-block; margin-top: 0.5rem; margin-right: 0.25rem; font-size: 0.7rem; font-weight: 600; padding: 0.18rem 0.7rem; border-radius: 999px; background: rgba(74,217,194,0.2); color: #4ad9c2; border: 1px solid rgba(74,217,194,0.5); text-transform: uppercase; letter-spacing: 0.04em; }
+.vw-version { font-size: 1.4rem; font-weight: 700; color: var(--dbt-akzent-text, #4ad9c2); line-height: 1.0; letter-spacing: -0.02em; font-family: var(--dbt-schrift-mono, ui-monospace, 'Cascadia Code', Consolas, monospace); }
+.vw-version-inherited { font-size: 0.95rem; font-weight: 500; color: var(--dbt-text-3, #6b7891); opacity: 0.85; }
+.vw-version-dev { color: var(--dbt-warn-text, #b8a14a); }
+.vw-pill { display: inline-block; margin-top: 0.5rem; margin-right: 0.25rem; font-size: 0.7rem; font-weight: 600; padding: 0.18rem 0.7rem; border-radius: 999px; background: rgba(74,217,194,0.2); color: var(--dbt-akzent-text, #4ad9c2); border: 1px solid rgba(74,217,194,0.5); text-transform: uppercase; letter-spacing: 0.04em; }
 .vw-pill-release { background: rgba(74,217,194,0.12); }
-.vw-sha { display: inline-block; margin-top: 0.55rem; font-family: ui-monospace, monospace; font-size: 0.78rem; color: #6b7891; text-decoration: none; background: #1a2433; padding: 0.12rem 0.5rem; border-radius: 3px; }
-.vw-sha:hover { color: #4ad9c2; }
-.vw-date { font-size: 0.82rem; color: #6b7891; margin-top: 0.4rem; font-family: ui-monospace, monospace; }
+.vw-sha { display: inline-block; margin-top: 0.55rem; font-family: var(--dbt-schrift-mono, ui-monospace, monospace); font-size: 0.78rem; color: var(--dbt-text-3, #6b7891); text-decoration: none; background: var(--dbt-flaeche, #1a2433); padding: 0.12rem 0.5rem; border-radius: 3px; }
+.vw-sha:hover { color: var(--dbt-akzent-text, #4ad9c2); }
+.vw-date { font-size: 0.82rem; color: var(--dbt-text-3, #6b7891); margin-top: 0.4rem; font-family: var(--dbt-schrift-mono, ui-monospace, monospace); }
 .vw-right { min-width: 0; }
-.vw-right h2 { margin: 0 0 0.25rem; color: #d8dee9; font-weight: 600; font-size: 0.98rem; line-height: 1.25; }
-.vw-entry-release .vw-right h2 { color: #4ad9c2; }
+.vw-right h2 { margin: 0 0 0.25rem; color: var(--dbt-text, #d8dee9); font-weight: 600; font-size: 0.98rem; line-height: 1.25; }
+.vw-entry-release .vw-right h2 { color: var(--dbt-akzent-text, #4ad9c2); }
 .vw-body { padding-left: 0; }
 .vw-body ul { list-style: none; padding-left: 0; margin: 0.15rem 0; }
-.vw-body ul li { position: relative; padding-left: 1.1rem; margin: 0.12rem 0; color: #d8dee9; line-height: 1.35; }
-.vw-body ul li::before { content: '•'; position: absolute; left: 0.2rem; top: 0; color: #4ad9c2; font-size: 1rem; line-height: 1.5; }
+.vw-body ul li { position: relative; padding-left: 1.1rem; margin: 0.12rem 0; color: var(--dbt-text, #d8dee9); line-height: 1.35; }
+.vw-body ul li::before { content: '•'; position: absolute; left: 0.2rem; top: 0; color: var(--dbt-akzent-text, #4ad9c2); font-size: 1rem; line-height: 1.5; }
 .vw-body ul ul { margin: 0.1rem 0 0.1rem 0.4rem; }
-.vw-body ul ul li::before { content: '◦'; color: #6b7891; }
-.vw-body strong { color: #4ad9c2; font-weight: 600; }
-.vw-body code { background: #1a2433; padding: 0.1rem 0.45rem; border-radius: 3px; color: #9ec5d8; font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; font-size: 0.9em; }
+.vw-body ul ul li::before { content: '◦'; color: var(--dbt-text-3, #6b7891); }
+.vw-body strong { color: var(--dbt-akzent-text, #4ad9c2); font-weight: 600; }
+.vw-body code { background: var(--dbt-flaeche, #1a2433); padding: 0.1rem 0.45rem; border-radius: 3px; color: var(--dbt-text-2, #9ec5d8); font-family: var(--dbt-schrift-mono, ui-monospace, 'Cascadia Code', Consolas, monospace); font-size: 0.9em; }
 .vw-body p { margin: 0.2rem 0; }
-.vw-body h3 { color: #b0bac7; font-size: 0.85rem; margin: 0.4rem 0 0.1rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
-.vw-empty { color: #8b94a3; font-style: italic; padding: 1rem 0; }
+.vw-body h3 { color: var(--dbt-text-2, #b0bac7); font-size: 0.85rem; margin: 0.4rem 0 0.1rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+.vw-empty { color: var(--dbt-text-2, #8b94a3); font-style: italic; padding: 1rem 0; }
 @media (max-width: 760px) { .vw-entry { grid-template-columns: 90px 1fr; gap: 1rem; } .vw-version { font-size: 1.5rem; } }
 </style>
 {% endblock %}

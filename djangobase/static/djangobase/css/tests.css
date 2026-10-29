@@ -10,32 +10,32 @@
    Vorgabe lautet ohnehin, dass Inhaltsseiten den Bereich rechts ausfüllen. */
 .ts-page { padding: 1.25rem 1.5rem 4rem; }
 /* --- Laufzeiten in den Testcase-Tabellen ---------------------------------- */
-.ts-lauf { display: inline-block; background: #0d1117; border: 1px solid #1e3a5f;
+.ts-lauf { display: inline-block; background: var(--dbt-flaeche-tief, #0d1117); border: 1px solid var(--dbt-rand, #1e3a5f);
     border-radius: 10px; padding: 0 7px; margin: 1px 2px 1px 0;
-    font-size: .78rem; color: #b9c9db; white-space: nowrap; }
-.ts-lauf .ts-ok { color: #5fd97a; }
-.ts-lauf .ts-fehler { color: #ff8080; }
-.ts-nie { color: #6b7d92; font-style: italic; }
+    font-size: .78rem; color: var(--dbt-text-2, #b9c9db); white-space: nowrap; }
+.ts-lauf .ts-ok { color: var(--dbt-ok-text, #5fd97a); }
+.ts-lauf .ts-fehler { color: var(--dbt-fehler-text, #ff8080); }
+.ts-nie { color: var(--dbt-text-3, #6b7d92); font-style: italic; }
 /* Trend: langsamer geworden faellt auf, schneller ist erfreulich — beides nur
    ab 25 % Abweichung, darunter ist es Rauschen (siehe Testhistorie.trend). */
-.ts-trend.schlecht { color: #ffb3b3; font-weight: 600; }
-.ts-trend.gut { color: #8ef0ae; font-weight: 600; }
+.ts-trend.schlecht { color: var(--dbt-fehler-text, #ffb3b3); font-weight: 600; }
+.ts-trend.gut { color: var(--dbt-ok-text, #8ef0ae); font-weight: 600; }
 .db-tabelle td.num, .db-tabelle th.num { text-align: right; font-variant-numeric: tabular-nums; }
-.db-tabelle tr.aktiv td { background: rgba(78,168,246,0.12); }
-.db-tabelle .ts-ziel { color: #8aa0b8; font-family: ui-monospace, Consolas, monospace; font-size: .78rem; }
-.ts-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; border-bottom: 1px solid #1e3a5f; }
-.ts-tab { background: transparent; border: 1px solid transparent; border-bottom: none; color: #8aa0b8;
+.db-tabelle tr.aktiv td { background: rgba(var(--dbt-akzent-rgb, 78, 168, 246), 0.12); }
+.db-tabelle .ts-ziel { color: var(--dbt-text-2, #8aa0b8); font-family: var(--dbt-schrift-mono, ui-monospace, Consolas, monospace); font-size: .78rem; }
+.ts-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; border-bottom: 1px solid var(--dbt-rand, #1e3a5f); }
+.ts-tab { background: transparent; border: 1px solid transparent; border-bottom: none; color: var(--dbt-text-2, #8aa0b8);
     padding: 8px 16px; border-radius: 8px 8px 0 0; cursor: pointer; font-size: .92rem; font-weight: 600; }
-.ts-tab:hover { color: #e9f0f8; }
-.ts-tab.aktiv { color: #e9f0f8; background: #142136; border-color: #1e3a5f; }
-.ts-count { background: #0d1117; color: #4ea8f6; border-radius: 10px; padding: 0 7px; font-size: .72rem; margin-left: 4px; }
+.ts-tab:hover { color: var(--dbt-text, #e9f0f8); }
+.ts-tab.aktiv { color: var(--dbt-text, #e9f0f8); background: var(--dbt-flaeche, #142136); border-color: var(--dbt-rand, #1e3a5f); }
+.ts-count { background: var(--dbt-flaeche-tief, #0d1117); color: var(--dbt-akzent-text, #4ea8f6); border-radius: 10px; padding: 0 7px; font-size: .72rem; margin-left: 4px; }
 .ts-panel { display: none; }
 .ts-panel.aktiv { display: block; }
 .ts-subtabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
-.ts-subtab { background: #0f1d31; border: 1px solid #1e3a5f; color: #8aa0b8;
+.ts-subtab { background: var(--dbt-flaeche, #0f1d31); border: 1px solid var(--dbt-rand, #1e3a5f); color: var(--dbt-text-2, #8aa0b8);
     padding: 6px 14px; border-radius: 20px; cursor: pointer; font-size: .85rem; font-weight: 600; }
-.ts-subtab:hover { color: #e9f0f8; border-color: #1e5bb8; }
-.ts-subtab.aktiv { color: #fff; background: #15406e; border-color: #1e5bb8; }
+.ts-subtab:hover { color: var(--dbt-text, #e9f0f8); border-color: var(--dbt-knopf-hover, #1e5bb8); }
+.ts-subtab.aktiv { color: var(--dbt-text, #fff); background: var(--dbt-flaeche-hoch, #15406e); border-color: var(--dbt-knopf, #1e5bb8); }
 .ts-subpanel { display: none; }
 .ts-subpanel.aktiv { display: block; }
 .ts-alles { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
@@ -48,55 +48,55 @@
 .ts-alles .ts-id { display: block; max-width: 100%; overflow-x: auto;
     text-overflow: clip; padding: 3px 6px; }
 .ts-run.gross { padding: 9px 20px; font-size: .92rem; flex: 0 0 auto; }
-.ts-card { background: #142136; border: 1px solid #1e3a5f; border-radius: 10px; padding: 16px 20px; margin-bottom: 18px; }
-.ts-card h3 { color: #e9f0f8; font-size: 1.05rem; margin: 0 0 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.ts-card h3 i { color: #4ea8f6; }
+.ts-card { background: var(--dbt-flaeche, #142136); border: 1px solid var(--dbt-rand, #1e3a5f); border-radius: 10px; padding: 16px 20px; margin-bottom: 18px; }
+.ts-card h3 { color: var(--dbt-text, #e9f0f8); font-size: 1.05rem; margin: 0 0 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ts-card h3 i { color: var(--dbt-akzent-text, #4ea8f6); }
 .ts-list { display: flex; flex-direction: column; gap: 6px; }
 .ts-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px;
-    background: #0f1d31; border: 1px solid #1e3a5f; }
-.ts-item.aktiv { border-color: #1e5bb8; background: #14365f; }
-.ts-name { color: #e9f0f8; font-size: .9rem; white-space: nowrap; }
-.ts-name i { color: #4ea8f6; }
-.ts-id { background: #0d1117; color: #a5d6ff; padding: 1px 6px; border-radius: 4px; font-size: .72rem;
+    background: var(--dbt-flaeche, #0f1d31); border: 1px solid var(--dbt-rand, #1e3a5f); }
+.ts-item.aktiv { border-color: var(--dbt-knopf, #1e5bb8); background: var(--dbt-flaeche-hoch, #14365f); }
+.ts-name { color: var(--dbt-text, #e9f0f8); font-size: .9rem; white-space: nowrap; }
+.ts-name i { color: var(--dbt-akzent-text, #4ea8f6); }
+.ts-id { background: var(--dbt-flaeche-tief, #0d1117); color: var(--dbt-akzent-text, #a5d6ff); padding: 1px 6px; border-radius: 4px; font-size: .72rem;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 auto; min-width: 0; }
 .ts-run { display: inline-flex; align-items: center; gap: 4px; text-decoration: none; flex: 0 0 auto;
-    background: #15406e; color: #dbeafe; border: 1px solid #1e5bb8; border-radius: 6px; padding: 4px 10px;
+    background: var(--dbt-flaeche-hoch, #15406e); color: var(--dbt-akzent-text, #dbeafe); border: 1px solid var(--dbt-knopf, #1e5bb8); border-radius: 6px; padding: 4px 10px;
     font-size: .8rem; font-weight: 600; cursor: pointer; }
-.ts-run:hover { background: #1e5bb8; color: #fff; }
+.ts-run:hover { background: var(--dbt-knopf-hover, #1e5bb8); color: #fff; }
 .ts-run:disabled { opacity: .4; cursor: not-allowed; }
 .ts-ui-status { flex: 0 0 auto; font-size: .78rem; min-width: 64px; text-align: right; }
-.ts-ui-status.ok { color: #34d399; } .ts-ui-status.fail { color: #f87171; } .ts-ui-status.laeuft { color: #fbbf24; }
-.ts-frame { width: 100%; height: 320px; border: 1px solid #1e3a5f; border-radius: 8px; background: #fff; }
+.ts-ui-status.ok { color: var(--dbt-ok-text, #34d399); } .ts-ui-status.fail { color: var(--dbt-fehler-text, #f87171); } .ts-ui-status.laeuft { color: var(--dbt-warn-text, #fbbf24); }
+.ts-frame { width: 100%; height: 320px; border: 1px solid var(--dbt-rand, #1e3a5f); border-radius: 8px; background: #fff; }
 .ts-badge { border-radius: 6px; padding: 3px 10px; font-size: .8rem; font-weight: 700; }
 .ts-badge.ok { background: #15803d; color: #fff; } .ts-badge.fail { background: #b91c1c; color: #fff; }
-.ts-meta { color: #8aa0b8; font-size: .82rem; font-weight: 400; }
-.ts-meta code { background: #0d1117; color: #a5d6ff; padding: 1px 6px; border-radius: 4px; }
-.ts-label { color: #8aa0b8; font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; margin: 10px 0 4px; }
-.ts-pre { background: #0d1117; border: 1px solid #1e3a5f; border-radius: 6px; padding: 12px 14px; color: #c9d1d9;
+.ts-meta { color: var(--dbt-text-2, #8aa0b8); font-size: .82rem; font-weight: 400; }
+.ts-meta code { background: var(--dbt-flaeche-tief, #0d1117); color: var(--dbt-akzent-text, #a5d6ff); padding: 1px 6px; border-radius: 4px; }
+.ts-label { color: var(--dbt-text-2, #8aa0b8); font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; margin: 10px 0 4px; }
+.ts-pre { background: var(--dbt-flaeche-tief, #0d1117); border: 1px solid var(--dbt-rand, #1e3a5f); border-radius: 6px; padding: 12px 14px; color: var(--dbt-text-2, #c9d1d9);
     font-size: .8rem; max-height: 50vh; overflow: auto; white-space: pre-wrap; word-break: break-word; }
-.ts-pre.err { color: #f85149; }
-.ts-empty { color: #8aa0b8; }
+.ts-pre.err { color: var(--dbt-fehler-text, #f85149); }
+.ts-empty { color: var(--dbt-text-2, #8aa0b8); }
 
 /* ===== Spalte „Verschieben" ==============================================
    Combo-Box je Zeile: aktuelle Kategorie sichtbar, Auswahl haengt die
    Testdatei um (Ansage 17.08.2026). Native <select> erben kein Theme —
    Farben deshalb ausdruecklich, sonst weisse Schrift auf weissem Dropdown. */
 select.ts-kat {
-    background: rgba(255,255,255,0.08);
-    color: #e0e8f0;
-    border: 1px solid #1e3a5f;
+    background: rgba(var(--dbt-fg-rgb, 255, 255, 255), 0.08);
+    color: var(--dbt-text, #e0e8f0);
+    border: 1px solid var(--dbt-rand, #1e3a5f);
     border-radius: 6px;
     padding: 2px 6px;
     font-size: .82rem;
     max-width: 12rem;
 }
-select.ts-kat option { background: #12263f; color: #e0e8f0; }
+select.ts-kat option { background: var(--dbt-flaeche, #12263f); color: var(--dbt-text, #e0e8f0); }
 select.ts-kat:disabled { opacity: .6; cursor: progress; }
-.ts-kat-fest { color: #8aa0b8; font-size: .82rem; }
+.ts-kat-fest { color: var(--dbt-text-2, #8aa0b8); font-size: .82rem; }
 .ts-kat-meldung { display: block; font-size: .76rem; margin-top: 2px; }
-.ts-kat-meldung.laeuft { color: #a9e6ff; }
-.ts-kat-meldung.gut { color: #8ef0ae; }
-.ts-kat-meldung.fehler { color: #ffb3b3; }
+.ts-kat-meldung.laeuft { color: var(--dbt-akzent-text, #a9e6ff); }
+.ts-kat-meldung.gut { color: var(--dbt-ok-text, #8ef0ae); }
+.ts-kat-meldung.fehler { color: var(--dbt-fehler-text, #ffb3b3); }
 
 /* Gleiche Spaltenbreiten in ALLEN Tabellen der Seite (Ansage 17.08.2026:
    „die spalten sollen die gleiche Breite haben"). `table-layout: fixed` ohne
@@ -123,13 +123,13 @@ select.ts-kat:disabled { opacity: .6; cursor: progress; }
 input.ts-wahl { width: 15px; height: 15px; cursor: pointer; accent-color: #4ea8f6; }
 .ts-wahl-knoepfe { margin-left: auto; display: inline-flex; gap: 8px; }
 .ts-wahl-knoepfe button {
-    background: #15406e; border: 1px solid #1e5bb8; color: #e9f0f8;
+    background: var(--dbt-flaeche-hoch, #15406e); border: 1px solid var(--dbt-knopf, #1e5bb8); color: var(--dbt-text, #e9f0f8);
     border-radius: 6px; padding: 3px 10px; font-size: .8rem; cursor: pointer;
 }
-.ts-wahl-knoepfe button:hover:not(:disabled) { background: #1a5490; }
+.ts-wahl-knoepfe button:hover:not(:disabled) { background: var(--dbt-flaeche-hoch, #1a5490); }
 .ts-wahl-knoepfe button:disabled { opacity: .45; cursor: default; }
 .ts-wahl-zahl {
-    background: #0d1117; color: #4ea8f6; border-radius: 10px;
+    background: var(--dbt-flaeche-tief, #0d1117); color: var(--dbt-akzent-text, #4ea8f6); border-radius: 10px;
     padding: 0 6px; margin-left: 4px; font-size: .75rem;
 }
 
@@ -140,62 +140,62 @@ input.ts-wahl { width: 15px; height: 15px; cursor: pointer; accent-color: #4ea8f
 .ts-bereich {
     display: inline-block; max-width: 100%; overflow: hidden;
     text-overflow: ellipsis; white-space: nowrap;
-    border-left: 3px solid #4ea8f6; padding-left: 6px;
-    color: #cfe0f2; font-size: .82rem;
+    border-left: 3px solid var(--dbt-knopf, #4ea8f6); padding-left: 6px;
+    color: var(--dbt-text, #cfe0f2); font-size: .82rem;
 }
 select.ts-ber {
-    background: #12263f; color: #e0e8f0; border: 1px solid #2a466e;
+    background: var(--dbt-flaeche, #12263f); color: var(--dbt-text, #e0e8f0); border: 1px solid var(--dbt-rand-stark, #2a466e);
     border-radius: 6px; padding: 2px 6px; font-size: .8rem;
     width: 100%; max-width: 12rem; cursor: pointer;
 }
-select.ts-ber option { background: #12263f; color: #e0e8f0; }
+select.ts-ber option { background: var(--dbt-flaeche, #12263f); color: var(--dbt-text, #e0e8f0); }
 select.ts-ber:disabled { opacity: .6; cursor: progress; }
 
 /* Abschnittszeile: eine Zelle über die volle Breite, deutlich abgesetzt. */
 .db-tabelle tr.ts-gruppe td {
-    background: #0f2744; border-top: 2px solid #4ea8f6;
+    background: var(--dbt-flaeche, #0f2744); border-top: 2px solid var(--dbt-knopf, #4ea8f6);
     padding: 6px 10px; white-space: nowrap;
 }
-.ts-gruppe-name { font-weight: 600; color: #e9f0f8; letter-spacing: .01em; }
+.ts-gruppe-name { font-weight: 600; color: var(--dbt-text, #e9f0f8); letter-spacing: .01em; }
 .ts-gruppe .ts-count { margin-left: 6px; }
 .ts-ber-wahl, .ts-ber-run {
-    background: #15406e; border: 1px solid #1e5bb8; color: #e9f0f8;
+    background: var(--dbt-flaeche-hoch, #15406e); border: 1px solid var(--dbt-knopf, #1e5bb8); color: var(--dbt-text, #e9f0f8);
     border-radius: 6px; padding: 2px 9px; font-size: .78rem; cursor: pointer;
     margin-left: 8px;
 }
-.ts-ber-wahl:hover, .ts-ber-run:hover { background: #1a5490; }
+.ts-ber-wahl:hover, .ts-ber-run:hover { background: var(--dbt-flaeche-hoch, #1a5490); }
 .ts-ber-run { background: #1c5a34; border-color: #2b8a4f; }
 .ts-ber-run:hover { background: #24743f; }
 
 /* Ohne Abschnittszeile (Tabelle ist nach etwas anderem sortiert) bleibt beim
    Bereichswechsel wenigstens eine kräftige Linie. */
-.db-tabelle tr.ts-schnitt td { border-top: 2px solid #35618f; }
+.db-tabelle tr.ts-schnitt td { border-top: 2px solid var(--dbt-rand-stark, #35618f); }
 
 /* Status, den ein Projekt-Runner in die Zeile schreibt (läuft …, ✓, ✗). */
 .ts-status { font-size: .78rem; margin-left: 6px; }
-.ts-status.laeuft { color: #a9e6ff; }
-.ts-status.ok { color: #8ef0ae; }
-.ts-status.fail { color: #ffb3b3; }
+.ts-status.laeuft { color: var(--dbt-akzent-text, #a9e6ff); }
+.ts-status.ok { color: var(--dbt-ok-text, #8ef0ae); }
+.ts-status.fail { color: var(--dbt-fehler-text, #ffb3b3); }
 .ts-wahl-lauf {
     background: #1c5a34; border: 1px solid #2b8a4f; color: #e9f0f8;
     border-radius: 6px; padding: 3px 10px; font-size: .8rem; cursor: pointer;
     text-decoration: none; display: inline-flex; align-items: center; gap: 4px;
 }
 .ts-wahl-lauf:hover { background: #24743f; color: #fff; }
-.ts-bereich-zahl { color: #8aa0b8; font-size: .78rem; margin-left: 10px; }
+.ts-bereich-zahl { color: var(--dbt-text-2, #8aa0b8); font-size: .78rem; margin-left: 10px; }
 
 /* ===== Live-Lauf (tests_strom.js) ======================================== */
 .ts-strom { margin-top: 14px; }
 .ts-strom-kopf {
     font-size: .9rem; margin-bottom: 8px; padding: 4px 8px;
-    border-radius: 6px; background: #0f2744; color: #cfe0f2;
+    border-radius: 6px; background: var(--dbt-flaeche, #0f2744); color: var(--dbt-text, #cfe0f2);
 }
-.ts-strom-kopf.laeuft { color: #a9e6ff; }
-.ts-strom-kopf.gut    { color: #8ef0ae; border-left: 3px solid #2b8a4f; }
-.ts-strom-kopf.fehler { color: #ffb3b3; border-left: 3px solid #a33; }
+.ts-strom-kopf.laeuft { color: var(--dbt-akzent-text, #a9e6ff); }
+.ts-strom-kopf.gut    { color: var(--dbt-ok-text, #8ef0ae); border-left: 3px solid #2b8a4f; }
+.ts-strom-kopf.fehler { color: var(--dbt-fehler-text, #ffb3b3); border-left: 3px solid #a33; }
 /* Uebersprungen: weder bestanden noch gescheitert — der Lauf hat an
    dieser Stelle nichts geprueft. */
-.ts-strom-kopf.teilweise { color: #ffd479; border-left: 3px solid #b8860b; }
+.ts-strom-kopf.teilweise { color: var(--dbt-warn-text, #ffd479); border-left: 3px solid #b8860b; }
 #ts-strom-ausgabe { max-height: 380px; overflow-y: auto; margin: 0; }
 /* Während ein Lauf läuft, sind die Startknöpfe gesperrt: Zwei Testprozesse
    bauen dieselbe Testdatenbank zweimal auf und scheitern aneinander. */
@@ -205,13 +205,13 @@ select.ts-ber:disabled { opacity: .6; cursor: progress; }
 .ts-nr-zelle { text-align: right; }
 input.ts-nr {
     width: 100%; max-width: 4.5rem; text-align: right;
-    background: #12263f; color: #e0e8f0; border: 1px solid #2a466e;
+    background: var(--dbt-flaeche, #12263f); color: var(--dbt-text, #e0e8f0); border: 1px solid var(--dbt-rand-stark, #2a466e);
     border-radius: 6px; padding: 2px 4px; font-size: .8rem;
     font-variant-numeric: tabular-nums;
 }
 input.ts-nr:disabled { opacity: .6; cursor: progress; }
 .ts-nr-meldung { display: block; font-size: .74rem; margin-top: 2px; }
-.ts-nr-meldung.fehler { color: #ffb3b3; }
+.ts-nr-meldung.fehler { color: var(--dbt-fehler-text, #ffb3b3); }
 /* Die Bedien-Spalten bleiben schmal — Kästchen, Nummer, Run. Die übrigen
    teilen sich den Platz zu gleichen Teilen (Ansage „gleiche Breite"). */
 .ts-page .db-tabelle th:nth-child(2),
@@ -230,12 +230,12 @@ input.ts-nr:disabled { opacity: .6; cursor: progress; }
    Scrollen wissen will, wo der Lauf steht, soll nicht zurückspringen müssen. */
 .ts-strom {
     position: sticky; top: 0; z-index: 20;
-    background: #0b1a2e; border: 1px solid #1e3a5f;
-    box-shadow: 0 6px 14px rgba(0,0,0,.35);
+    background: var(--dbt-flaeche-tief, #0b1a2e); border: 1px solid var(--dbt-rand, #1e3a5f);
+    box-shadow: 0 6px 14px rgba(var(--dbt-tief-rgb, 0, 0, 0), 0.35);
 }
 .ts-strom-balken {
     flex: 0 0 220px; height: 10px; border-radius: 6px;
-    background: #12263f; border: 1px solid #2a466e; overflow: hidden;
+    background: var(--dbt-flaeche, #12263f); border: 1px solid var(--dbt-rand-stark, #2a466e); overflow: hidden;
 }
 .ts-strom-fuellung {
     height: 100%; width: 0; background: #2b8a4f;
@@ -245,7 +245,7 @@ input.ts-nr:disabled { opacity: .6; cursor: progress; }
    aufgebaut). Ein wandernder Streifen sagt „es tut sich was", ohne eine Zahl
    zu behaupten, die es nicht gibt. */
 .ts-strom-balken.unbestimmt .ts-strom-fuellung {
-    width: 35%; background: linear-gradient(90deg, #15406e, #4ea8f6, #15406e);
+    width: 35%; background: linear-gradient(90deg, #15406e, var(--dbt-knopf, #4ea8f6), #15406e);
     animation: ts-wandern 1.1s linear infinite;
 }
 @keyframes ts-wandern {
@@ -253,7 +253,7 @@ input.ts-nr:disabled { opacity: .6; cursor: progress; }
     to   { transform: translateX(300%); }
 }
 .ts-strom-zahl {
-    flex: 0 0 auto; color: #cfe0f2; font-size: .8rem;
+    flex: 0 0 auto; color: var(--dbt-text, #cfe0f2); font-size: .8rem;
     font-variant-numeric: tabular-nums; min-width: 5.5rem; text-align: right;
 }
 
@@ -263,22 +263,22 @@ input.ts-nr:disabled { opacity: .6; cursor: progress; }
    dunkel auf dunkel und damit unsichtbar. */
 .au-leiste { display: flex; align-items: center; gap: .8rem; flex-wrap: wrap; }
 .au-leiste .ts-empty { margin: 0; }
-#au-lage { color: #9fb6d0; font-variant-numeric: tabular-nums; }
+#au-lage { color: var(--dbt-text-2, #9fb6d0); font-variant-numeric: tabular-nums; }
 /* Der laufende Zustand muss auf einen Blick erkennbar sein - ein Knopf, dem
    man nicht ansieht, dass er gerade aufzeichnet, ist der halbe Weg zu einer
    vergessenen Aufnahme. */
 #au-schalter.btn-danger { font-weight: 600; }
 input.au-name {
-  background: rgba(255,255,255,.06);
-  color: #e9f0f8;
-  border: 1px solid #1e3a5f;
+  background: rgba(var(--dbt-fg-rgb, 255, 255, 255), 0.06);
+  color: var(--dbt-text, #e9f0f8);
+  border: 1px solid var(--dbt-rand, #1e3a5f);
   border-radius: 6px;
   padding: .15rem .4rem;
   min-width: 16rem;
   font: inherit;
   font-size: .9rem;
 }
-input.au-name:focus { outline: none; border-color: #4ea8f6; background: rgba(255,255,255,.1); }
+input.au-name:focus { outline: none; border-color: var(--dbt-knopf, #4ea8f6); background: rgba(var(--dbt-fg-rgb, 255, 255, 255), 0.1); }
 
 /* Spaltenbreiten der Aufzeichnungs-Tabelle.
    OHNE SIE IST SIE UNLESBAR (Befund 20.08.2026): Die ziehbaren Breiten starten

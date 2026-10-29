@@ -76,30 +76,30 @@
 
 <style>
 .set-page { padding: 1.25rem 1.5rem 4rem; max-width: 760px; }
-.set-card { background: #142136; border: 1px solid #1e3a5f; border-radius: 10px; padding: 18px 22px; }
-.set-hint { color: #b9c6d6; font-size: .86rem; background: #0d1f33; border: 1px solid #1e3a5f;
+.set-card { background: var(--dbt-flaeche, #142136); border: 1px solid var(--dbt-rand, #1e3a5f); border-radius: 10px; padding: 18px 22px; }
+.set-hint { color: var(--dbt-text-2, #b9c6d6); font-size: .86rem; background: var(--dbt-flaeche, #0d1f33); border: 1px solid var(--dbt-rand, #1e3a5f);
     border-radius: 8px; padding: 10px 12px; margin: 0 0 18px; }
-.set-hint i { color: #4ea8f6; }
-.set-hint code, .set-key { background: #0d1117; color: #a5d6ff; padding: 1px 6px; border-radius: 4px; font-size: .8rem; }
-.set-row { display: flex; align-items: center; gap: 16px; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+.set-hint i { color: var(--dbt-akzent-text, #4ea8f6); }
+.set-hint code, .set-key { background: var(--dbt-flaeche-tief, #0d1117); color: var(--dbt-akzent-text, #a5d6ff); padding: 1px 6px; border-radius: 4px; font-size: .8rem; }
+.set-row { display: flex; align-items: center; gap: 16px; padding: 9px 0; border-bottom: 1px solid rgba(var(--dbt-fg-rgb, 255, 255, 255), 0.05); }
 .set-row:last-of-type { border-bottom: 0; }
-.set-label { flex: 1 1 50%; color: #e9f0f8; font-size: .92rem; display: flex; flex-direction: column; gap: 3px; }
+.set-label { flex: 1 1 50%; color: var(--dbt-text, #e9f0f8); font-size: .92rem; display: flex; flex-direction: column; gap: 3px; }
 .set-key { align-self: flex-start; font-weight: 400; opacity: .8; }
 .set-input { flex: 1 1 50%; display: flex; align-items: center; gap: 10px; }
 .set-input input[type=text], .set-input input[type=number], .set-input select {
-    width: 100%; max-width: 320px; background: #0d1117; color: #e9f0f8;
-    border: 1px solid #2a466e; border-radius: 6px; padding: 6px 10px; font-size: .9rem; }
-.set-input input.set-input-wide { max-width: 560px; font-family: ui-monospace, Consolas, monospace; font-size: .85rem; }
-.set-input textarea.set-input-wide { width: 100%; max-width: 560px; font-family: ui-monospace, Consolas, monospace;
-    font-size: .85rem; background: #0d1b2e; color: #dbe7f5; border: 1px solid #2a466e;
+    width: 100%; max-width: 320px; background: var(--dbt-flaeche-tief, #0d1117); color: var(--dbt-text, #e9f0f8);
+    border: 1px solid var(--dbt-rand-stark, #2a466e); border-radius: 6px; padding: 6px 10px; font-size: .9rem; }
+.set-input input.set-input-wide { max-width: 560px; font-family: var(--dbt-schrift-mono, ui-monospace, Consolas, monospace); font-size: .85rem; }
+.set-input textarea.set-input-wide { width: 100%; max-width: 560px; font-family: var(--dbt-schrift-mono, ui-monospace, Consolas, monospace);
+    font-size: .85rem; background: var(--dbt-flaeche-tief, #0d1b2e); color: var(--dbt-text, #dbe7f5); border: 1px solid var(--dbt-rand-stark, #2a466e);
     border-radius: 6px; padding: 6px 8px; resize: vertical; }
 /* Lange Felder (dotted Paths, CSV) brauchen mehr Platz und Monospace fuer Lesbarkeit. */
 .set-row { flex-wrap: wrap; }
 .set-label { min-width: 280px; }
-.set-input input[type=color] { width: 48px; height: 32px; padding: 0; border: 1px solid #2a466e;
-    border-radius: 6px; background: #0d1117; cursor: pointer; }
-.set-colorval { background: #0d1117; color: #a5d6ff; padding: 2px 8px; border-radius: 4px; font-size: .82rem; }
-.set-switch { display: inline-flex; align-items: center; gap: 8px; color: #cdddf0; font-size: .9rem; cursor: pointer; }
+.set-input input[type=color] { width: 48px; height: 32px; padding: 0; border: 1px solid var(--dbt-rand-stark, #2a466e);
+    border-radius: 6px; background: var(--dbt-flaeche-tief, #0d1117); cursor: pointer; }
+.set-colorval { background: var(--dbt-flaeche-tief, #0d1117); color: var(--dbt-akzent-text, #a5d6ff); padding: 2px 8px; border-radius: 4px; font-size: .82rem; }
+.set-switch { display: inline-flex; align-items: center; gap: 8px; color: var(--dbt-text, #cdddf0); font-size: .9rem; cursor: pointer; }
 .set-switch input { width: 18px; height: 18px; cursor: pointer; }
 .set-actions { margin-top: 20px; display: flex; gap: 10px; }
 </style>

@@ -9,6 +9,9 @@ DEFAULTS = {
     "titel": "Verwaltung",
     "untertitel": "",
     "logo_icon": "bi-grid-1x2-fill",
+    # Logo als Bild oben in der Seitenleiste (Static-Pfad, z. B. "app/img/logo.svg",
+    # 29.10.2026 aus StayNestor). Gesetzt ersetzt es `logo_icon`; leer = Symbol wie bisher.
+    "logo_bild": "",
     # Optionales Favicon (Static-Pfad, z. B. "img/favicon.svg").
     # Leer = kein <link rel="icon"> (Default, bestehende Projekte unberuehrt).
     "favicon": "",

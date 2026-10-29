@@ -16,10 +16,10 @@ erhalten.{% endcomment %}
             <i class="bi bi-palette"></i>
         </button>
         <ul class="dropdown-menu dropdown-menu-end"
-            style="background:#1a2940; border:1px solid rgba(78,168,246,0.3);">
+            style="background:var(--dbt-flaeche, #1a2940); border:1px solid rgba(var(--dbt-akzent-rgb, 78, 168, 246), 0.3);">
             {% for slug, label, color in djangobase.theme_modes %}
             <li><button type="button" class="dropdown-item theme-pick" data-theme="{{ slug }}"
-                        style="color:#e0e8f0;">
+                        style="color:var(--dbt-text, #e0e8f0);">
                 <i class="bi bi-circle-fill" style="color:{{ color }};"></i> {{ label }}
             </button></li>
             {% endfor %}
@@ -50,13 +50,18 @@ erhalten.{% endcomment %}
 {% block body_scripts %}
     {% comment %}Theme-Switcher-Handler: speichert Wahl in localStorage
     und setzt body[data-theme]. Wirkungsvoll nur wenn die Projekt-CSS
-    Themes anhand von data-theme stylet.{% endcomment %}
+    Themes anhand von data-theme stylet.
+
+    Ein gespeichertes Theme gilt nur, wenn das Projekt es noch führt
+    (29.10.2026, StayNestor: „light“ wurde zu „weiss“/„blau“ — der alte
+    Eintrag im Browser hätte ein Theme gesetzt, das es nicht mehr gibt).{% endcomment %}
     {% if djangobase.theme_modes %}
     <script>
     (function () {
+        var erlaubt = [{% for slug, label, color in djangobase.theme_modes %}'{{ slug|escapejs }}'{% if not forloop.last %}, {% endif %}{% endfor %}];
         try {
             var stored = localStorage.getItem('djangobase.theme');
-            if (stored) document.body.setAttribute('data-theme', stored);
+            if (stored && erlaubt.indexOf(stored) >= 0) document.body.setAttribute('data-theme', stored);
         } catch (e) {}
         document.addEventListener('click', function (e) {
             var btn = e.target.closest('.theme-pick');

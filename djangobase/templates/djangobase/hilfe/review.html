@@ -63,7 +63,7 @@
     Auswahlliste zu zeigen.
     {% endcomment %}
     <div class="rv-card">
-        <h3 style="margin:0 0 10px;font-size:1.05rem;color:#e9f0f8;">
+        <h3 style="margin:0 0 10px;font-size:1.05rem;color:var(--dbt-text, #e9f0f8);">
             <i class="bi bi-plug"></i> Noch kein Modell-Partner eingetragen</h3>
         <p class="rv-fuss" style="margin:0 0 10px;">
             Diese Seite befragt ein zweites Modell zu eigenem Code — lokal über Ollama
@@ -186,18 +186,18 @@
 </div>
 
 <style>
-.rv-hilfe { margin: 0 0 14px; border: 1px solid rgba(255,255,255,.14);
-  border-radius: 9px; background: rgba(255,255,255,.03); }
+.rv-hilfe { margin: 0 0 14px; border: 1px solid rgba(var(--dbt-fg-rgb, 255, 255, 255), 0.14);
+  border-radius: 9px; background: rgba(var(--dbt-fg-rgb, 255, 255, 255), 0.03); }
 .rv-hilfe > summary { cursor: pointer; padding: 9px 14px; font-weight: 600;
-  color: var(--db-accent, #4ea8f6); list-style: none; }
+  color: var(--db-accent, var(--dbt-akzent-text, #4ea8f6)); list-style: none; }
 .rv-hilfe > summary::-webkit-details-marker { display: none; }
 .rv-hilfe > summary::before { content: '\25B8 '; }
 .rv-hilfe[open] > summary::before { content: '\25BE '; }
 .rv-hilfe-inhalt { padding: 2px 14px 12px; font-size: .9rem; line-height: 1.55;
-  color: rgba(233,240,248,.85); }
+  color: rgba(var(--dbt-fg-rgb, 233, 240, 248), .85); }
 .rv-hilfe-inhalt p, .rv-hilfe-inhalt ol { margin: .5rem 0; }
 .rv-hilfe-inhalt code { padding: .05rem .3rem; border-radius: 3px;
-  background: rgba(255,255,255,.08); }
+  background: rgba(var(--dbt-fg-rgb, 255, 255, 255), 0.08); }
 
 /* Feste dunkle Palette wie die uebrigen Hilfe-Seiten (tests.html, logs.html).
    BEWUSST KEINE CSS-Variablen: Der erste Entwurf nahm var(--card-bg) mit
@@ -206,61 +206,61 @@
    djangoBase laeuft in sechs Projekten mit verschiedenen Variablen-Welten;
    feste Farben sind hier die verlaessliche Wahl. */
 .rv-page { padding: 1.25rem 1.5rem 4rem; max-width: 1400px; }
-.rv-card { background: #142136; border: 1px solid #1e3a5f; border-radius: 10px;
-    padding: 16px 20px; margin-bottom: 18px; color: #e9f0f8; }
+.rv-card { background: var(--dbt-flaeche, #142136); border: 1px solid var(--dbt-rand, #1e3a5f); border-radius: 10px;
+    padding: 16px 20px; margin-bottom: 18px; color: var(--dbt-text, #e9f0f8); }
 .rv-zeile { display: flex; align-items: center; gap: 12px; }
 .rv-zeile-oben { align-items: flex-start; margin-top: 12px; }
-.rv-label { min-width: 84px; color: #8aa0b8; font-size: .78rem; font-weight: 600;
+.rv-label { min-width: 84px; color: var(--dbt-text-2, #8aa0b8); font-size: .78rem; font-weight: 600;
     text-transform: uppercase; letter-spacing: .04em; padding-top: 6px; }
-.rv-select, .rv-textarea { background: #0f1d31; color: #e9f0f8; border: 1px solid #1e3a5f;
+.rv-select, .rv-textarea { background: var(--dbt-flaeche, #0f1d31); color: var(--dbt-text, #e9f0f8); border: 1px solid var(--dbt-rand, #1e3a5f);
     border-radius: 6px; padding: 7px 10px; font-size: .9rem; }
 .rv-textarea { flex: 1; font-family: inherit; resize: vertical; }
-.rv-hinweis { color: #8aa0b8; font-size: .82rem; }
+.rv-hinweis { color: var(--dbt-text-2, #8aa0b8); font-size: .82rem; }
 .rv-bereiche { display: flex; flex-wrap: wrap; gap: 8px; flex: 1; }
 .rv-bereich { display: flex; align-items: center; gap: 6px; padding: 6px 12px;
-    background: #0f1d31; border: 1px solid #1e3a5f; border-radius: 20px;
+    background: var(--dbt-flaeche, #0f1d31); border: 1px solid var(--dbt-rand, #1e3a5f); border-radius: 20px;
     cursor: pointer; font-size: .88rem; }
-.rv-bereich:hover { border-color: #1e5bb8; }
-.rv-bereich em { color: #8aa0b8; font-style: normal; font-size: .76rem; }
+.rv-bereich:hover { border-color: var(--dbt-knopf-hover, #1e5bb8); }
+.rv-bereich em { color: var(--dbt-text-2, #8aa0b8); font-style: normal; font-size: .76rem; }
 .rv-knoepfe { display: flex; gap: 8px; margin-top: 16px; align-items: center; flex-wrap: wrap; }
-.rv-knopf { display: inline-flex; align-items: center; gap: 6px; background: #15406e;
-    color: #dbeafe; border: 1px solid #1e5bb8; border-radius: 6px; padding: 7px 14px;
+.rv-knopf { display: inline-flex; align-items: center; gap: 6px; background: var(--dbt-flaeche-hoch, #15406e);
+    color: var(--dbt-akzent-text, #dbeafe); border: 1px solid var(--dbt-knopf, #1e5bb8); border-radius: 6px; padding: 7px 14px;
     font-size: .85rem; font-weight: 600; cursor: pointer; }
-.rv-knopf:hover { background: #1e5bb8; color: #fff; }
+.rv-knopf:hover { background: var(--dbt-knopf-hover, #1e5bb8); color: #fff; }
 .rv-knopf[disabled] { opacity: .4; cursor: not-allowed; }
-.rv-primaer { background: #1e5bb8; color: #fff; }
+.rv-primaer { background: var(--dbt-knopf, #1e5bb8); color: #fff; }
 .rv-klein { padding: 4px 10px; font-size: .78rem; font-weight: 400; }
 .rv-vorlagen { display: flex; gap: 6px; flex-wrap: wrap; }
-.rv-status { color: #fbbf24; font-size: .85rem; }
-.rv-fuss { margin: 14px 0 0; color: #8aa0b8; font-size: .8rem; }
-.rv-fuss code, .rv-meta code { background: #0d1117; color: #a5d6ff; padding: 1px 6px;
+.rv-status { color: var(--dbt-warn-text, #fbbf24); font-size: .85rem; }
+.rv-fuss { margin: 14px 0 0; color: var(--dbt-text-2, #8aa0b8); font-size: .8rem; }
+.rv-fuss code, .rv-meta code { background: var(--dbt-flaeche-tief, #0d1117); color: var(--dbt-akzent-text, #a5d6ff); padding: 1px 6px;
     border-radius: 4px; }
-.rv-leer { color: #8aa0b8; margin: 0; }
-.rv-anleitung { white-space: pre; overflow-x: auto; color: #c9d1d9; background: #0d1117;
-    border: 1px solid #1e3a5f; border-radius: 6px; padding: 12px 14px; font-size: .78rem;
+.rv-leer { color: var(--dbt-text-2, #8aa0b8); margin: 0; }
+.rv-anleitung { white-space: pre; overflow-x: auto; color: var(--dbt-text-2, #c9d1d9); background: var(--dbt-flaeche-tief, #0d1117);
+    border: 1px solid var(--dbt-rand, #1e3a5f); border-radius: 6px; padding: 12px 14px; font-size: .78rem;
     margin: 0 0 12px; }
-.rv-faden { background: #142136; border: 1px solid #1e3a5f; border-radius: 10px;
+.rv-faden { background: var(--dbt-flaeche, #142136); border: 1px solid var(--dbt-rand, #1e3a5f); border-radius: 10px;
     margin-bottom: 18px; overflow: hidden; }
 .rv-kopf { display: flex; align-items: center; gap: 10px; padding: 12px 20px;
-    background: #0f1d31; border-bottom: 1px solid #1e3a5f; }
-.rv-kopf h3 { margin: 0; font-size: 1.02rem; color: #e9f0f8; }
-.rv-pill { font-size: .72rem; padding: 2px 9px; border-radius: 10px; border: 1px solid #1e3a5f;
-    color: #8aa0b8; }
-.rv-pill.laeuft { border-color: #a16207; color: #fbbf24; }
-.rv-pill.fertig { border-color: #15803d; color: #34d399; }
-.rv-pill.fehler { border-color: #b91c1c; color: #f87171; }
-.rv-runde { padding: 12px 20px; border-top: 1px solid #1e3a5f; }
+    background: var(--dbt-flaeche, #0f1d31); border-bottom: 1px solid var(--dbt-rand, #1e3a5f); }
+.rv-kopf h3 { margin: 0; font-size: 1.02rem; color: var(--dbt-text, #e9f0f8); }
+.rv-pill { font-size: .72rem; padding: 2px 9px; border-radius: 10px; border: 1px solid var(--dbt-rand, #1e3a5f);
+    color: var(--dbt-text-2, #8aa0b8); }
+.rv-pill.laeuft { border-color: #a16207; color: var(--dbt-warn-text, #fbbf24); }
+.rv-pill.fertig { border-color: var(--dbt-ok-rand, #15803d); color: var(--dbt-ok-text, #34d399); }
+.rv-pill.fehler { border-color: #b91c1c; color: var(--dbt-fehler-text, #f87171); }
+.rv-runde { padding: 12px 20px; border-top: 1px solid var(--dbt-rand, #1e3a5f); }
 .rv-runde-kopf { display: flex; gap: 10px; align-items: center; cursor: pointer; }
-.rv-runde-kopf b { color: #e9f0f8; font-size: .9rem; }
-.rv-meta { color: #8aa0b8; font-size: .78rem; margin-left: auto; }
-.rv-text { white-space: pre-wrap; line-height: 1.55; margin-top: 10px; color: #c9d1d9;
+.rv-runde-kopf b { color: var(--dbt-text, #e9f0f8); font-size: .9rem; }
+.rv-meta { color: var(--dbt-text-2, #8aa0b8); font-size: .78rem; margin-left: auto; }
+.rv-text { white-space: pre-wrap; line-height: 1.55; margin-top: 10px; color: var(--dbt-text-2, #c9d1d9);
     font-size: .9rem; overflow-x: auto; }
 .rv-frage-details { margin-top: 8px; }
 .rv-frage-details summary { cursor: pointer; margin-left: 0; }
-.rv-faden-nachfass { display: flex; gap: 8px; align-items: flex-start; background: #0f1d31; }
+.rv-faden-nachfass { display: flex; gap: 8px; align-items: flex-start; background: var(--dbt-flaeche, #0f1d31); }
 .rv-faden-nachfass .rv-textarea { flex: 1; }
-.rv-frage-text { white-space: pre-wrap; color: #8aa0b8; font-size: .8rem;
-    max-height: 200px; overflow: auto; margin-top: 6px; border-left: 2px solid #1e3a5f;
+.rv-frage-text { white-space: pre-wrap; color: var(--dbt-text-2, #8aa0b8); font-size: .8rem;
+    max-height: 200px; overflow: auto; margin-top: 6px; border-left: 2px solid var(--dbt-rand, #1e3a5f);
     padding-left: 10px; }
 </style>
 

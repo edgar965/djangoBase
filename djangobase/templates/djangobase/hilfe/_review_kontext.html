@@ -14,7 +14,7 @@ Dieselbe Lehre wie beim Werkzeug Klassenmodell am selben Tag.
 {% endcomment %}
 <link rel="stylesheet" href="/static/djangobase/css/tabellen.css">
 <div class="rv-card" id="kontext-karte">
-    <h3 style="margin:0 0 10px;font-size:1.05rem;color:#e9f0f8;">
+    <h3 style="margin:0 0 10px;font-size:1.05rem;color:var(--dbt-text, #e9f0f8);">
         <i class="bi bi-speedometer"></i> Kontextverbrauch der Sitzungen</h3>
 
     {% if sitzungen %}
@@ -78,7 +78,7 @@ Dieselbe Lehre wie beim Werkzeug Klassenmodell am selben Tag.
             (z) => '<tr>' + z.map((c) => `<td>${c}</td>`).join('') + '</tr>'
         ).join('');
         return `<h4 style="margin:1.1rem 0 .4rem;font-size:.95rem;
-                    color:#c8d4e0;">${titel}</h4>
+                    color:var(--dbt-text-2, #c8d4e0);">${titel}</h4>
                 <table class="km-liste sortable db-tabelle"
                        data-sort-key="${schluessel}">
                   <thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table>`;

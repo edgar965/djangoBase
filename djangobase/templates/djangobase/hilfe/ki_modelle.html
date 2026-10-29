@@ -49,10 +49,10 @@ table.plain td.num, table.plain th.num { text-align: right; font-variant-numeric
 table.plain .klein { color: rgba(var(--fg-rgb),0.5); font-size: 0.84em; font-weight: 400; }
 table.plain tr.rang1 td { background: rgba(34,197,94,0.07); }
 .tabellenrahmen { overflow-x: auto; }
-.kennung { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 0.86em; color: var(--text-primary); }
-.gut { color: #4ade80; font-weight: 700; } .schlecht { color: #fb7185; font-weight: 700; }
+.kennung { font-family: var(--dbt-schrift-mono, ui-monospace, "Cascadia Code", Consolas, monospace); font-size: 0.86em; color: var(--text-primary); }
+.gut { color: var(--dbt-ok-text, #4ade80); font-weight: 700; } .schlecht { color: var(--dbt-fehler-text, #fb7185); font-weight: 700; }
 .medaille { font-weight: 700; color: var(--accent); }
-.einschraenkung { color: #fb9a5a; }
+.einschraenkung { color: var(--dbt-warn-text, #fb9a5a); }
 .note { font-size: 1.15rem; color: var(--accent); }
 /* SPEZIFITAET, sonst gewinnt ``table.plain b`` (18.08.2026): Die Farbklassen
    stehen an ``<b>``-Elementen INNERHALB der Tabellen. ``table.plain b`` hat
@@ -61,24 +61,24 @@ table.plain tr.rang1 td { background: rgba(34,197,94,0.07); }
    nur ``.gut`` fiel nicht auf, weil Gruen auch ausserhalb der Tabellen steht.
    Der Fehler ist aelter als der Umzug nach djangoBase - er faellt erst auf,
    seit das Seiten-CSS wieder greift. */
-table.plain b.gut { color: #4ade80; }
-table.plain b.schlecht { color: #fb7185; }
+table.plain b.gut { color: var(--dbt-ok-text, #4ade80); }
+table.plain b.schlecht { color: var(--dbt-fehler-text, #fb7185); }
 table.plain b.note { color: var(--accent); }
 /* Spalte „Wo" auf einen Blick (Ansage Edgar, 18.08.2026): gruen = laeuft auf
    der eigenen Karte, gelb = fremder Rechner aber kostenlos, rot = fremder
    Rechner UND kostet. Die Farbe beantwortet damit die zwei Fragen, die vor
    jeder Nutzung stehen: Verlaesst die Frage den Rechner, und zahle ich dafuer? */
-table.plain b.wo-lokal   { color: #4ade80; }
-table.plain b.wo-frei    { color: #facc15; }
-table.plain b.wo-bezahlt { color: #fb7185; }
+table.plain b.wo-lokal   { color: var(--dbt-ok-text, #4ade80); }
+table.plain b.wo-frei    { color: var(--dbt-warn-text, #facc15); }
+table.plain b.wo-bezahlt { color: var(--dbt-fehler-text, #fb7185); }
 .beispiel { display: block; margin-top: 0.4rem; padding-left: 0.6rem;
   border-left: 2px solid rgba(var(--accent-rgb),0.4); color: rgba(var(--fg-rgb),0.62);
   font-style: italic; font-size: 0.9em; }
 .beispiel b { font-style: normal; color: rgba(var(--fg-rgb),0.8); }
 .warnbox { background: rgba(239,68,68,0.09); border: 1px solid rgba(239,68,68,0.3); border-radius: 14px; padding: 1.1rem 1.3rem; margin-bottom: 1.2rem; }
-.warnbox h2 { color: #fb7185; font-size: 1.05rem; margin: 0 0 0.5rem; }
+.warnbox h2 { color: var(--dbt-fehler-text, #fb7185); font-size: 1.05rem; margin: 0 0 0.5rem; }
 .warnbox p { font-size: 0.96rem; line-height: 1.65; color: rgba(var(--fg-rgb),0.85); margin-bottom: 0.4rem; }
-.warnbox b { color: #fff; }
+.warnbox b { color: var(--dbt-text, #fff); }
 .befundgitter { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 0.9rem; margin-bottom: 1.2rem; }
 .befund { background: rgba(var(--fg-rgb),0.04); border: 1px solid rgba(var(--fg-rgb),0.08); border-radius: 13px; padding: 0.9rem 1.1rem; }
 .befund h3 { font-size: 0.95rem; color: var(--accent); margin: 0 0 0.4rem; }

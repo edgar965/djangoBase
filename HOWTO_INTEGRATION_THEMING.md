@@ -190,7 +190,23 @@ Jede Standalone-Seite (Weg B) braucht im `<head>`/`<body>`:
 
 ### 3.4 djangoBase-eigene Inhalte hell bekommen
 
-Die djangoBase-Hilfeseiten (z. B. `einstellungen_tabs.html`) bringen eigene
+**Seit 29.10.2026 über Theme-Variablen, ohne `!important`:** Jede feste Farbe und Schrift
+der djangoBase-Seiten steht als `var(--dbt-<rolle>, <alter Wert>)` (Rollen und Liste:
+Kopf von `themes.css`). Ein Theme, das die Rollen setzt, färbt Shell UND Hilfe-/
+Einstellungsseiten um; eines, das sie nicht setzt, sieht unverändert aus. djangoBase
+bringt dafür zwei Themes mit:
+
+| Theme | Aussehen | Rollen |
+|---|---|---|
+| `weiss` | alles weiß, schwarze Schrift und Akzente, auch Seitenleiste/Kopfzeile | alle `--dbt-*` gesetzt |
+| `blau` | das frühere `light`: blaue Leiste, heller Inhalt, dunkelblaue Karten | keine (Rückfallwerte) |
+
+Einbinden: `("weiss", "Weiß", "#9ca3af")` in `theme_modes`, ggf. `theme_default: "weiss"`.
+Eigene Themes setzen die Rollen in ihrer `theme.css` (`body[data-theme="x"] { --dbt-text: …; }`).
+Die Prüfung `tests/unit/test_theme_variablen.py` hält fest, dass `weiss` jede benutzte
+Rolle setzt. Neue Seiten schreiben Farben gleich als `var(--dbt-…, #alt)`.
+
+Älterer Weg (für Projekte, die noch nicht umgestellt haben): Die djangoBase-Hilfeseiten (z. B. `einstellungen_tabs.html`) bringen eigene
 inline-`<style>`-Blöcke mit **hartkodierten** Dunkel-Farben mit, die im `<body>`
 NACH `themes.css`/`theme.css` stehen → sie gewinnen per Reihenfolge. Mit
 `!important` (in der via `extra_css` geladenen `theme.css`) zurückholen:
@@ -247,6 +263,10 @@ landet alles als sichtbarer Text in der Sidebar/Seite. Für mehrzeilig **immer**
 `awk '/{#/ && !/#}/' <file>` muss leer sein.
 
 ### 5.3 Die djangoBase-Sidebar NICHT von außen auf Weiß zwingen
+> Seit 29.10.2026 gibt es dafür das Theme `weiss` (§3.4): Es setzt auch die Schriftfarben
+> der Leiste (`--dbt-leiste-text`, `--dbt-leiste-rgb`). Der Rest dieses Abschnitts gilt
+> für Projekte, die das Theme nicht nutzen.
+
 djangoBase's eigenes `themes.css` gibt der Sidebar im Light-Modus ein dunkelblaues
 `--sidebar-bg` mit heller Schrift (lesbar). Wer von außen nur `--sidebar-bg` auf
 Weiß überschreibt, bekommt **helle Schrift auf weiß** = unsichtbar — und kommt

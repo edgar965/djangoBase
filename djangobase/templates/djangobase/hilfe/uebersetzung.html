@@ -23,7 +23,7 @@
 .uz-sprachen label:has(input:checked) { background: color-mix(in srgb, var(--db-accent) 18%, transparent);
                                         border-color: var(--db-accent); }
 .uz-sprachen .fl { font-size: 1.1rem; }
-.uz-btn { background: var(--db-accent); color: #fff; border: 0; border-radius: 8px;
+.uz-btn { background: var(--db-accent); color: var(--dbt-text, #fff); border: 0; border-radius: 8px;
           padding: 7px 18px; font-weight: 600; cursor: pointer; }
 .uz-btn[disabled] { opacity: .5; cursor: default; }
 .uz-tabelle { width: 100%; border-collapse: collapse; font-size: .9rem; }
@@ -33,9 +33,9 @@
 .uz-tabelle td { padding: 6px 10px; border-bottom: 1px solid
                  color-mix(in srgb, var(--db-fg) 7%, transparent); }
 .uz-tabelle td.num { text-align: right; }
-.uz-ok { color: #2fbf71; font-weight: 600; }
-.uz-alt { color: #e9b949; font-weight: 600; }
-.uz-fehlt { color: #e05d5d; font-weight: 600; }
+.uz-ok { color: var(--dbt-ok-text, #2fbf71); font-weight: 600; }
+.uz-alt { color: var(--dbt-warn-text, #e9b949); font-weight: 600; }
+.uz-fehlt { color: var(--dbt-fehler-text, #e05d5d); font-weight: 600; }
 .uz-progress { height: 10px; border-radius: 6px; overflow: hidden;
                background: color-mix(in srgb, var(--db-fg) 10%, transparent); margin: 8px 0; }
 .uz-progress i { display: block; height: 100%; background: var(--db-accent); transition: width .4s; }
@@ -44,7 +44,7 @@
                    border: 1px solid color-mix(in srgb, var(--db-fg) 18%, transparent);
                    background: transparent; color: var(--db-fg); }
 .uz-zeile select option { color: #0f172a; }
-.uz-fehler { color: #e05d5d; font-size: .82rem; margin-top: 8px; white-space: pre-line; }
+.uz-fehler { color: var(--dbt-fehler-text, #e05d5d); font-size: .82rem; margin-top: 8px; white-space: pre-line; }
 </style>
 
 <div class="uz-page">

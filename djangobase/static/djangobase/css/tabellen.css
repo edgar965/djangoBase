@@ -68,7 +68,7 @@ table.sortable thead th.tsort-kopf:hover {
   border: 1px solid rgba(var(--accent-rgb, 96, 165, 250), 0.5);
   border-radius: 4px;
   background: rgba(var(--accent-rgb, 96, 165, 250), 0.16);
-  color: var(--accent, #60a5fa);
+  color: var(--accent, var(--dbt-akzent-text, #60a5fa));
   pointer-events: none;
 }
 table.sortable thead th.tsort-kopf .tsort-pfeil { pointer-events: auto; cursor: pointer; }
@@ -228,7 +228,7 @@ table.sortable td .klein, .db-tabelle td .klein, table.db-rahmen td .klein {
 .db-tabelle th, .db-tabelle td,
 table.sortable th, table.sortable td,
 table.db-rahmen th, table.db-rahmen td {
-  border: 1px solid rgba(255, 255, 255, 0.42) !important;
+  border: 1px solid rgba(var(--dbt-fg-rgb, 255, 255, 255), 0.42) !important;
 }
 
 .db-tabelle th, .db-tabelle td {
@@ -240,7 +240,7 @@ table.db-rahmen th, table.db-rahmen td {
 
 .db-tabelle thead th {
   background: rgba(var(--accent-rgb, 96 165 250), 0.10);
-  color: var(--accent, #60a5fa);
+  color: var(--accent, var(--dbt-akzent-text, #60a5fa));
   font-weight: 600;
   font-size: 0.8rem;
   white-space: nowrap;
@@ -275,7 +275,7 @@ body[data-theme="light"] table.sortable th,
 body[data-theme="light"] table.sortable td,
 body[data-theme="light"] table.db-rahmen th,
 body[data-theme="light"] table.db-rahmen td {
-  border-color: rgba(0, 0, 0, 0.32) !important;
+  border-color: rgba(var(--dbt-tief-rgb, 0, 0, 0), 0.32) !important;
 }
 
 /* Spaltenwahl (js/tabellen_spalten.js, opt-in über spaltenwahl im Auftrag) */
@@ -284,13 +284,13 @@ body[data-theme="light"] table.db-rahmen td {
 .db-spalten-knopf {
   font-size: 0.8rem; padding: 0.2rem 0.6rem; border-radius: 6px; cursor: pointer;
   border: 1px solid rgba(var(--fg-rgb, 224, 232, 240), 0.25);
-  background: rgba(255, 255, 255, 0.06); color: rgba(var(--fg-rgb, 224, 232, 240), 0.92);
+  background: rgba(var(--dbt-fg-rgb, 255, 255, 255), 0.06); color: rgba(var(--fg-rgb, 224, 232, 240), 0.92);
 }
 .db-spalten-menue {
   position: absolute; left: 0; top: calc(100% + 4px); z-index: 30; min-width: 14rem;
   padding: 0.4rem 0.6rem; border-radius: 8px;
-  background: #0f1a2b; color: #e0e8f0; border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  background: var(--dbt-flaeche-tief, #0f1a2b); color: var(--dbt-text, #e0e8f0); border: 1px solid rgba(var(--dbt-fg-rgb, 255, 255, 255), 0.15);
+  box-shadow: 0 6px 18px rgba(var(--dbt-tief-rgb, 0, 0, 0), 0.35);
 }
 .db-spalten-eintrag { display: block; padding: 0.15rem 0; font-size: 0.85rem; cursor: pointer; }
 .db-spalten-eintrag input { accent-color: var(--accent, #4aa3ff); margin-right: 0.35rem; }

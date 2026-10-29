@@ -10,7 +10,10 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; background: var(--db-bg); }
-body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--db-fg); }
+/* Theme-Variablen --dbt-* (themes.css, Abschnitt „weiss“): jede steht mit dem bisherigen
+   Wert als Rückfall da -> ein Theme, das sie nicht setzt, sieht unverändert aus.
+   --dbt-leiste-* färben Seitenleiste und Kopfzeile, unabhängig vom Inhalt. */
+body { font-family: var(--dbt-schrift, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif); color: var(--db-fg); }
 
 .sidebar {
     width: var(--sidebar-width); height: 100vh;
@@ -18,35 +21,37 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
     position: fixed; top: 0; left: 0; z-index: 1000;
     display: flex; flex-direction: column; overflow-y: auto;
 }
-.sidebar-header { padding: 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
-.sidebar-header h4 { color: #fff; margin: 0; font-weight: 700; font-size: 1.25rem; }
+.sidebar-header { padding: 1.25rem; border-bottom: 1px solid rgba(var(--dbt-leiste-rgb, 255, 255, 255), 0.1); }
+.sidebar-header h4 { color: var(--dbt-leiste-text, #fff); margin: 0; font-weight: 700; font-size: 1.25rem; }
 .sidebar-header h4 i { margin-right: 0.4rem; }
+/* DJANGOBASE["logo_bild"]: feste Pixelgröße, damit es auch in der eingeklappten Leiste steht. */
+.sidebar-header h4 .sidebar-logo { width: 30px; height: 30px; margin-right: 0.45rem; vertical-align: -7px; }
 .sidebar-user { margin-top: 0.6rem; }
-.sidebar-user-name { color: rgba(255,255,255,0.8); font-size: 0.82rem; }
+.sidebar-user-name { color: rgba(var(--dbt-leiste-rgb, 255, 255, 255), 0.8); font-size: 0.82rem; }
 .sidebar-user-name i { margin-right: 0.35rem; opacity: 0.85; }
 
 .sidebar .nav { padding: 0.5rem 0; flex: 1; }
 .sidebar .nav-link {
-    color: rgba(255,255,255,0.75);
+    color: rgba(var(--dbt-leiste-rgb, 255, 255, 255), 0.75);
     padding: 0.6rem 1.25rem; font-size: 0.9rem;
     transition: background-color 0.2s, color 0.2s;
     text-decoration: none; display: flex; align-items: center;
 }
-.sidebar .nav-link:hover { color: #fff; background-color: var(--sidebar-light); }
-.sidebar .nav-link.active { color: #fff; background-color: var(--sidebar-light); }
+.sidebar .nav-link:hover { color: var(--dbt-leiste-text, #fff); background-color: var(--sidebar-light); }
+.sidebar .nav-link.active { color: var(--dbt-leiste-text, #fff); background-color: var(--sidebar-light); }
 .sidebar .nav-link i { margin-right: 0.6rem; width: 1.1rem; text-align: center; }
 .sidebar .menu-toggle .float-end { margin-left: auto; transition: transform 0.2s; font-size: 0.75rem; }
 .sidebar .menu-toggle[aria-expanded="true"] .float-end { transform: rotate(180deg); }
-.sidebar .submenu { padding: 0; background: rgba(0,0,0,0.18); }
+.sidebar .submenu { padding: 0; background: rgba(var(--dbt-leiste-tief-rgb, 0, 0, 0), 0.18); }
 .sidebar .submenu .nav-link { padding-left: 2.6rem; font-size: 0.85rem; }
 .sidebar .submenu .nav-link i { font-size: 0.85rem; }
 /* Dritte Ebene (verschachteltes untermenu): tiefere Einrückung + dunkler.
    Greift nur, wenn ein Projekt 3-stufige Menüs nutzt — 2-stufige Menüs
    matchen .submenu .submenu nie und bleiben unverändert. */
-.sidebar .submenu .submenu { background: rgba(0,0,0,0.28); }
+.sidebar .submenu .submenu { background: rgba(var(--dbt-leiste-tief-rgb, 0, 0, 0), 0.28); }
 .sidebar .submenu .submenu .nav-link { padding-left: 3.7rem; }
 /* Vierte Ebene (19.09.2026): noch eine Stufe dunkler und eingerückter. */
-.sidebar .submenu .submenu .submenu { background: rgba(0,0,0,0.38); }
+.sidebar .submenu .submenu .submenu { background: rgba(var(--dbt-leiste-tief-rgb, 0, 0, 0), 0.38); }
 .sidebar .submenu .submenu .submenu .nav-link { padding-left: 4.8rem; }
 
 /* Zwischenüberschrift mit eingerückten Kindern (24.08.2026).
@@ -61,7 +66,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
    nächsten Layoutwechsel einzeln nachzuziehen gewesen wären. */
 .sidebar .nav-abschnitt {
     padding: 0.7rem 1rem 0.2rem 2.6rem;
-    color: rgba(255, 255, 255, 0.45);
+    color: rgba(var(--dbt-leiste-rgb, 255, 255, 255), 0.45);
     font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -77,7 +82,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 /* Trennlinie über jeder Ueberschrift außer der ersten — die Gruppen
    sollen als Gruppen lesbar sein, nicht als Aufzählung mit Zwischenwort. */
 .sidebar .nav-abschnitt + li,
-.sidebar li + .nav-abschnitt { border-top: 1px solid rgba(255,255,255,0.06); }
+.sidebar li + .nav-abschnitt { border-top: 1px solid rgba(var(--dbt-leiste-rgb, 255, 255, 255), 0.06); }
 
 .main-wrapper {
     margin-left: var(--sidebar-width);
@@ -89,10 +94,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
     display: flex; align-items: center; justify-content: space-between;
     gap: 1rem; padding: 0.6rem 1.25rem;
     background: var(--sidebar-dark);
-    border-bottom: 1px solid rgba(255,255,255,0.1);
+    border-bottom: 1px solid rgba(var(--dbt-leiste-rgb, 255, 255, 255), 0.1);
     position: sticky; top: 0; z-index: 500;
 }
-.topbar-title { color: #fff; font-weight: 600; font-size: 1.05rem; display: flex; align-items: center; gap: 0.45rem; }
+.topbar-title { color: var(--dbt-leiste-text, #fff); font-weight: 600; font-size: 1.05rem; display: flex; align-items: center; gap: 0.45rem; }
 .topbar-title i { color: var(--db-accent); }
 .topbar-actions { display: flex; align-items: center; gap: 0.4rem; }
 .db-content { padding: 0; }

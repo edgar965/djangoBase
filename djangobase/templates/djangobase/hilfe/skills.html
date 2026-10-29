@@ -199,8 +199,8 @@ nur Zeilen.
 <style>
 .sk1-page { padding: .5rem 0 2rem; }
 .sk1-card {
-    background: var(--card-bg, #1b2028);
-    border: 1px solid var(--card-border, #2b323d);
+    background: var(--card-bg, var(--dbt-flaeche, #1b2028));
+    border: 1px solid var(--card-border, var(--dbt-rand, #2b323d));
     border-radius: 10px; padding: 1rem 1.25rem 1.25rem; margin-bottom: 1.25rem;
 }
 .sk1-card h3 { font-size: 1.05rem; margin: 0 0 .5rem; }
@@ -211,10 +211,10 @@ nur Zeilen.
 .sk1-mitte { text-align: center; white-space: nowrap; }
 .sk1-name { display: block; font-weight: 600; }
 .sk1-dauer { display: block; font-size: .74rem; opacity: .6; }
-.sk1-ruft { display: block; font-size: .74rem; color: #e0a63c; }
+.sk1-ruft { display: block; font-size: .74rem; color: var(--dbt-warn-text, #e0a63c); }
 .sk1-arg {
-    background: var(--input-bg, #11151b); color: inherit;
-    border: 1px solid var(--card-border, #2b323d);
+    background: var(--input-bg, var(--dbt-flaeche-tief, #11151b)); color: inherit;
+    border: 1px solid var(--card-border, var(--dbt-rand, #2b323d));
     border-radius: 5px; padding: .2rem .35rem; font-size: .8rem;
 }
 .db-hervor { background: rgba(120,170,255,.08); }
@@ -237,17 +237,17 @@ nur Zeilen.
    "Setzen" haette die Spalte doppelt so breit gemacht. */
 .sk1-rang {
     width: 3.2rem; text-align: center;
-    background: var(--input-bg, #11151b); color: inherit;
-    border: 1px solid var(--card-border, #2b323d);
+    background: var(--input-bg, var(--dbt-flaeche-tief, #11151b)); color: inherit;
+    border: 1px solid var(--card-border, var(--dbt-rand, #2b323d));
     border-radius: 5px; padding: .18rem .2rem; font-size: .8rem;
 }
-.sk1-rang:focus { outline: 1px solid #2d6cdf; border-color: #2d6cdf; }
+.sk1-rang:focus { outline: 1px solid var(--dbt-knopf, #2d6cdf); border-color: var(--dbt-knopf, #2d6cdf); }
 .sk1-rang-los {
-    border: 1px solid var(--card-border, #2b323d); background: transparent;
+    border: 1px solid var(--card-border, var(--dbt-rand, #2b323d)); background: transparent;
     color: inherit; border-radius: 5px; cursor: pointer;
     padding: .1rem .2rem; margin-left: .15rem; line-height: 1;
 }
-.sk1-rang-los:hover { background: #2d6cdf; border-color: #2d6cdf; color: #fff; }
+.sk1-rang-los:hover { background: var(--dbt-knopf-hover, #2d6cdf); border-color: var(--dbt-knopf-hover, #2d6cdf); color: #fff; }
 
 /* Bereichskopf: eine Zeile ueber die volle Breite. Die Erklaerung daneben in
    gedaempfter Farbe - sie sagt, WARUM der Bereich an dieser Stelle steht, und
@@ -261,28 +261,28 @@ tr[data-gruppe] .sk1-leise { font-weight: 400; margin-left: .5rem; }
     border: 0; border-radius: 5px; cursor: pointer; white-space: nowrap;
     font-size: .82rem; padding: .32rem .7rem;
 }
-.sk1-batch { background: #2d6cdf; color: #fff; font-weight: 600; }
-.sk1-run { background: #2d6cdf; color: #fff; }
-.sk1-batch:hover, .sk1-run:hover { background: #3a7cf0; }
+.sk1-batch { background: var(--dbt-knopf, #2d6cdf); color: #fff; font-weight: 600; }
+.sk1-run { background: var(--dbt-knopf, #2d6cdf); color: #fff; }
+.sk1-batch:hover, .sk1-run:hover { background: var(--dbt-knopf-hover, #3a7cf0); }
 .sk1-knopf {
     background: transparent; color: inherit;
-    border: 1px solid var(--card-border, #2b323d);
+    border: 1px solid var(--card-border, var(--dbt-rand, #2b323d));
 }
-.sk1-knopf:hover { background: rgba(255,255,255,.06); }
+.sk1-knopf:hover { background: rgba(var(--dbt-fg-rgb, 255, 255, 255), 0.06); }
 .sk1-warn:hover { background: rgba(208,83,83,.18); border-color: #d05353; }
 
 .sk1-fixzeile {
     display: flex; gap: .5rem; align-items: flex-start;
-    padding: .55rem .4rem; border-top: 1px solid var(--card-border, #2b323d);
+    padding: .55rem .4rem; border-top: 1px solid var(--card-border, var(--dbt-rand, #2b323d));
 }
 .sk1-fixzeile:first-of-type { border-top: none; }
 .sk1-fixtext { display: flex; flex-direction: column; gap: .12rem; }
 .sk1-fixtut { font-size: .85rem; opacity: .9; }
 
 .sk1-textbox {
-    width: 100%; background: #0e1116; color: #d7dee8;
-    border: 1px solid var(--card-border, #2b323d); border-radius: 6px;
-    padding: .7rem; font-family: ui-monospace, Consolas, monospace;
+    width: 100%; background: var(--dbt-flaeche-tief, #0e1116); color: var(--dbt-text, #d7dee8);
+    border: 1px solid var(--card-border, var(--dbt-rand, #2b323d)); border-radius: 6px;
+    padding: .7rem; font-family: var(--dbt-schrift-mono, ui-monospace, Consolas, monospace);
     font-size: .78rem; line-height: 1.45; white-space: pre; resize: vertical;
 }
 </style>
@@ -367,18 +367,18 @@ TabellenSortierung.binden();
 .sk-bereich { margin: 0 0 1rem; }
 .sk-bereich-kopf {
     font-size: .8rem; text-transform: uppercase; letter-spacing: .06em;
-    opacity: .6; border-bottom: 1px solid var(--card-border, #2b323d);
+    opacity: .6; border-bottom: 1px solid var(--card-border, var(--dbt-rand, #2b323d));
     padding-bottom: .25rem; margin-bottom: .5rem;
 }
 .sk-count {
-    background: rgba(255,255,255,.09); border-radius: 8px;
+    background: rgba(var(--dbt-fg-rgb, 255, 255, 255), 0.09); border-radius: 8px;
     padding: 0 .35rem; font-size: .72rem; margin-left: .25rem;
 }
 .sk-lehre {
     display: grid; grid-template-columns: 1.4rem 1fr; gap: .5rem;
     padding: .5rem .4rem; border-radius: 6px; cursor: pointer;
 }
-.sk-lehre:hover { background: rgba(255,255,255,.04); }
+.sk-lehre:hover { background: rgba(var(--dbt-fg-rgb, 255, 255, 255), 0.04); }
 .sk-lehre input { margin-top: .25rem; width: 1rem; height: 1rem; }
 .sk-lehre-text { display: flex; flex-direction: column; gap: .15rem; }
 .sk-lehre-titel { font-weight: 600; font-size: .9rem; }

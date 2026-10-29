@@ -21,20 +21,20 @@ die Prosa.
 .ab-kopf { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;
            margin-bottom: 0.8rem; }
 .ab-zahl { font-size: 0.82rem; opacity: 0.75; }
-.ab-zahl b { color: var(--ct-accent, #38d4d8); font-weight: 600; }
-.ab-knopf { background: #1f6feb; color: #fff; border: 0; border-radius: 4px;
+.ab-zahl b { color: var(--ct-accent, var(--dbt-akzent-text, #38d4d8)); font-weight: 600; }
+.ab-knopf { background: var(--dbt-knopf, #1f6feb); color: #fff; border: 0; border-radius: 4px;
             padding: 0.4rem 1rem; font-size: 0.86rem; cursor: pointer; }
-.ab-knopf:hover { background: #2b7ef7; }
-.ab-knopf-matt { background: #2b3540; }
+.ab-knopf:hover { background: var(--dbt-knopf-hover, #2b7ef7); }
+.ab-knopf-matt { background: var(--dbt-flaeche, #2b3540); }
 
 .ab-reiter { display: flex; gap: 0.3rem; flex-wrap: wrap;
-             border-bottom: 1px solid var(--ct-border, #2a3038);
+             border-bottom: 1px solid var(--ct-border, var(--dbt-rand, #2a3038));
              margin-bottom: 0.9rem; }
 .ab-reiter button {
     background: transparent; border: 0; border-bottom: 2px solid transparent;
-    color: var(--ct-text-muted, #8b949e); padding: 0.45rem 0.9rem;
+    color: var(--ct-text-muted, var(--dbt-text-2, #8b949e)); padding: 0.45rem 0.9rem;
     font-size: 0.88rem; cursor: pointer; }
-.ab-reiter button.an { color: var(--ct-accent, #38d4d8);
+.ab-reiter button.an { color: var(--ct-accent, var(--dbt-akzent-text, #38d4d8));
                        border-bottom-color: var(--ct-accent, #38d4d8); }
 .ab-reiter .ab-n { opacity: 0.6; font-size: 0.78rem; margin-left: 0.3rem; }
 
@@ -42,89 +42,89 @@ die Prosa.
              gap: 1rem; align-items: start; }
 @media (max-width: 900px) { .ab-raster { grid-template-columns: 1fr; } }
 
-.ab-liste { border: 1px solid var(--ct-border, #2a3038); border-radius: 5px;
+.ab-liste { border: 1px solid var(--ct-border, var(--dbt-rand, #2a3038)); border-radius: 5px;
             overflow: hidden; }
 .ab-liste table { width: 100%; border-collapse: collapse; }
 .ab-liste td { padding: 5px 8px; font-size: 0.8rem; cursor: pointer;
-               border-bottom: 1px solid var(--ct-border, #2a3038); }
-.ab-liste tr:hover td { background: rgba(255,255,255,0.04); }
+               border-bottom: 1px solid var(--ct-border, var(--dbt-rand, #2a3038)); }
+.ab-liste tr:hover td { background: rgba(var(--dbt-fg-rgb, 255, 255, 255), 0.04); }
 .ab-liste tr.an td { background: rgba(56,212,216,0.10); }
 .ab-liste tr.an td:first-child { box-shadow: inset 3px 0 0 #38d4d8; }
 .ab-liste .ab-titel { word-break: break-all; }
 .ab-art { display: inline-block; font-size: 0.68rem; padding: 0 5px;
           border-radius: 8px; margin-right: 4px; opacity: 0.85; }
-.ab-art-seite  { background: rgba(56,212,216,0.18);  color: #38d4d8; }
-.ab-art-api    { background: rgba(139,123,216,0.18); color: #a99bea; }
-.ab-art-befehl { background: rgba(106,187,106,0.18); color: #6abb6a; }
-.ab-art-faden  { background: rgba(255,193,7,0.14);   color: #ffc107; }
+.ab-art-seite  { background: rgba(56,212,216,0.18);  color: var(--dbt-akzent-text, #38d4d8); }
+.ab-art-api    { background: rgba(139,123,216,0.18); color: var(--dbt-akzent-text, #a99bea); }
+.ab-art-befehl { background: rgba(106,187,106,0.18); color: var(--dbt-ok-text, #6abb6a); }
+.ab-art-faden  { background: rgba(255,193,7,0.14);   color: var(--dbt-warn-text, #ffc107); }
 
 /* Die Bühne ist hell — ein Aktivitätsdiagramm lebt von Weiß. */
-.ab-buehne { background: #ffffff !important; border: 1px solid var(--ct-border, #2a3038);
+.ab-buehne { background: #ffffff !important; border: 1px solid var(--ct-border, var(--dbt-rand, #2a3038));
              border-radius: 5px; overflow: auto; max-height: 80vh;
              padding: 0.5rem; }
 .ab-buehne svg { display: block; margin: 0 auto; }
 .ab-buehne [data-ziel] { cursor: pointer; }
-.ab-buehne [data-ziel]:hover rect { fill: #dfe8f0; }
+.ab-buehne [data-ziel]:hover rect { fill: var(--dbt-text, #dfe8f0); }
 .ab-fuss { font-size: 0.78rem; opacity: 0.7; margin-top: 0.5rem; }
 
 /* Ein Kasten zeigt beim Überfahren, dass er etwas zu sagen hat. */
 .ab-buehne .ak-teil { cursor: pointer; }
 .ab-buehne .ak-teil:hover rect,
-.ab-buehne .ak-teil:hover polygon { stroke: #1f6feb; stroke-width: 2; }
+.ab-buehne .ak-teil:hover polygon { stroke: var(--dbt-akzent-text, #1f6feb); stroke-width: 2; }
 
 /* Beim Überfahren: eine kleine Karte am Zeiger. Kein Klick nötig. */
 .ab-schwebe {
     position: fixed; z-index: 3000; pointer-events: none;
-    background: #10151b; color: #e6edf3; border: 1px solid #2b3540;
+    background: var(--dbt-flaeche-tief, #10151b); color: var(--dbt-text, #e6edf3); border: 1px solid var(--dbt-rand, #2b3540);
     border-radius: 5px; padding: 0.45rem 0.6rem; font-size: 0.78rem;
-    max-width: 380px; box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+    max-width: 380px; box-shadow: 0 6px 18px rgba(var(--dbt-tief-rgb, 0, 0, 0), 0.45);
     line-height: 1.45; display: none; }
-.ab-schwebe b { color: #38d4d8; }
-.ab-schwebe .ab-code { color: #a99bea; font-family: ui-monospace, monospace;
+.ab-schwebe b { color: var(--dbt-akzent-text, #38d4d8); }
+.ab-schwebe .ab-code { color: var(--dbt-akzent-text, #a99bea); font-family: var(--dbt-schrift-mono, ui-monospace, monospace);
                        font-size: 0.74rem; word-break: break-all; }
 
 /* Beim Klick: ein Fenster, das stehen bleibt — mit X rechts oben. */
 .ab-fenster {
     position: fixed; z-index: 3100; top: 90px; right: 32px; width: 420px;
-    background: #10151b; color: #e6edf3; border: 1px solid #2b3540;
-    border-radius: 6px; box-shadow: 0 10px 30px rgba(0,0,0,0.55);
+    background: var(--dbt-flaeche-tief, #10151b); color: var(--dbt-text, #e6edf3); border: 1px solid var(--dbt-rand, #2b3540);
+    border-radius: 6px; box-shadow: 0 10px 30px rgba(var(--dbt-tief-rgb, 0, 0, 0), 0.55);
     display: none; }
 .ab-fenster.auf { display: block; }
 .ab-fenster-kopf {
     display: flex; align-items: center; gap: 0.5rem;
     padding: 0.5rem 0.6rem 0.5rem 0.8rem;
-    border-bottom: 1px solid #2b3540; }
+    border-bottom: 1px solid var(--dbt-rand, #2b3540); }
 .ab-fenster-titel { flex: 1; font-size: 0.9rem; font-weight: 600;
-                    color: #38d4d8; word-break: break-all; }
+                    color: var(--dbt-akzent-text, #38d4d8); word-break: break-all; }
 .ab-fenster-zu {
-    background: transparent; border: 0; color: #8b949e; cursor: pointer;
+    background: transparent; border: 0; color: var(--dbt-text-2, #8b949e); cursor: pointer;
     font-size: 1.1rem; line-height: 1; padding: 0.1rem 0.4rem;
     border-radius: 4px; }
-.ab-fenster-zu:hover { background: #2b3540; color: #e6edf3; }
+.ab-fenster-zu:hover { background: var(--dbt-flaeche, #2b3540); color: var(--dbt-text, #e6edf3); }
 .ab-fenster-rumpf { padding: 0.7rem 0.8rem; font-size: 0.82rem;
                     line-height: 1.6; }
-.ab-fenster-rumpf dt { color: #8b949e; font-size: 0.72rem;
+.ab-fenster-rumpf dt { color: var(--dbt-text-2, #8b949e); font-size: 0.72rem;
                        text-transform: uppercase; letter-spacing: 0.05em;
                        margin-top: 0.75rem; }
 .ab-fenster-rumpf dt:first-child { margin-top: 0; }
 .ab-fenster-rumpf dd { margin: 0.15rem 0 0; word-break: break-word; }
-.ab-fenster-rumpf .ab-code { font-family: ui-monospace, monospace;
-                             font-size: 0.76rem; color: #a99bea;
+.ab-fenster-rumpf .ab-code { font-family: var(--dbt-schrift-mono, ui-monospace, monospace);
+                             font-size: 0.76rem; color: var(--dbt-akzent-text, #a99bea);
                              word-break: break-all; }
 /* Was sie tut — ganz oben, ohne Überschrift: Das IST die Antwort auf
    „was ist das", und eine Überschrift davor wäre nur Lärm. */
-.ab-was { font-size: 0.86rem; line-height: 1.5; color: #e6edf3;
-          padding-bottom: 0.35rem; border-bottom: 1px solid #1e2630;
+.ab-was { font-size: 0.86rem; line-height: 1.5; color: var(--dbt-text, #e6edf3);
+          padding-bottom: 0.35rem; border-bottom: 1px solid var(--dbt-rand, #1e2630);
           margin-bottom: 0.15rem; }
-.ab-was.leer { color: #8b949e; font-style: italic; }
-.ab-fenster-rumpf .ab-matt { color: #8b949e; font-style: italic; }
+.ab-was.leer { color: var(--dbt-text-2, #8b949e); font-style: italic; }
+.ab-fenster-rumpf .ab-matt { color: var(--dbt-text-2, #8b949e); font-style: italic; }
 /* Rufer untereinander — vier Namen im Fließtext kann niemand trennen. */
 .ab-rufer { list-style: none; margin: 0.2rem 0 0; padding: 0; }
 .ab-rufer li { padding: 1px 0 1px 0.7rem; position: relative;
-               font-family: ui-monospace, monospace; font-size: 0.78rem; }
+               font-family: var(--dbt-schrift-mono, ui-monospace, monospace); font-size: 0.78rem; }
 .ab-rufer li::before { content: "·"; position: absolute; left: 0;
-                       color: #8b949e; }
-.ab-zahl-klein { color: #8b949e; font-weight: 400; font-size: 0.72rem; }
+                       color: var(--dbt-text-2, #8b949e); }
+.ab-zahl-klein { color: var(--dbt-text-2, #8b949e); font-weight: 400; font-size: 0.72rem; }
 .ab-fenster-fuss { padding: 0 0.8rem 0.8rem; }
 </style>
 

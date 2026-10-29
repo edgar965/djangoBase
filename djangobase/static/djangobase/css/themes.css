@@ -5,7 +5,30 @@
    data-theme und es gelten :root/DJANGOBASE["farben"]).
 
    Der Theme-Switcher im Topbar (base_app.html) speichert die Wahl in
-   localStorage['djangobase.theme'] und setzt body[data-theme]. */
+   localStorage['djangobase.theme'] und setzt body[data-theme].
+
+   THEME-VARIABLEN --dbt-* (29.10.2026, Ansage Edgar: „das Theme soll Bestandteil von
+   djangoBase sein … so dass alles einstellbar ist“)
+   ======================================================================
+   Jede feste Farbe und Schrift der djangoBase-Seiten steht als var(--dbt-<rolle>, <alter
+   Wert>). Ein Theme, das eine Rolle nicht setzt, sieht genau aus wie vorher — deshalb sind
+   dark/light/cyber/forest/sunset unverändert. Ein Theme, das sie setzt, färbt damit auch
+   Hilfe, Einstellungen, Tests, Logs … um. Die Rollen:
+
+     Leiste   --dbt-leiste-text, --dbt-leiste-rgb (Schleier), --dbt-leiste-tief-rgb (Untermenü)
+     Flächen  --dbt-flaeche, -flaeche-tief (Code, Eingaben), -flaeche-hoch (Hover, Auswahl),
+              -flaeche-mitte (graue Abzeichen)
+     Ränder   --dbt-rand, --dbt-rand-stark (Eingabefelder)
+     Text     --dbt-text, --dbt-text-2 (gedämpft), --dbt-text-3 (schwach), --dbt-akzent-text
+     Schleier --dbt-fg-rgb (statt rgba(255,255,255,a)), --dbt-tief-rgb (statt rgba(0,0,0,a))
+     Status   --dbt-{ok,fehler,warn,akzent,violett}-{text,flaeche,rand}
+     Knöpfe   --dbt-knopf, --dbt-knopf-hover (blaue Knöpfe), --dbt-akzent-rgb (blaue Schleier)
+     Schrift  --dbt-schrift, --dbt-schrift-mono
+
+   Grüne/rote/gelbe Knöpfe und Abzeichen (weiße Schrift auf Farbe) haben keine Rolle — sie
+   tragen Bedeutung und sind auf jedem Grund lesbar. Umgestellt am 29.10.2026 per Skript (696 Stellen in 29 Vorlagen und
+   Stilblättern; Rolle aus Eigenschaft, Helligkeit und Sättigung der alten Farbe), die Leiste
+   in sidebar.css von Hand. NEUE Seiten schreiben Farben gleich als var(--dbt-…, #alt). */
 
 body[data-theme="dark"] {
     --db-bg: #0d1117; --db-fg: #e0e8f0; --db-accent: #4ea8f6;
@@ -18,6 +41,54 @@ body[data-theme="light"] {
     color: #1a2533;
 }
 body[data-theme="light"] .db-content { color: #1a2533; }
+
+/* „blau“ — das bisherige Light unter eigenem Namen (Ansage Edgar 29.10.2026: „die alten
+   blauen Farben bitte in Thema blau speichern“): blaue Seitenleiste und Kopfzeile, heller
+   Inhalt; die djangoBase-Seiten behalten ihre dunkelblauen Karten (keine --dbt-*). */
+body[data-theme="blau"] {
+    --db-bg: #f5f7fa; --db-fg: #1a2533; --db-accent: #1976d2;
+    --sidebar-bg: #1f3a5f; --sidebar-light: #2e5a8f; --sidebar-dark: #14283f;
+    color: #1a2533;
+}
+body[data-theme="blau"] .db-content { color: #1a2533; }
+
+/* „weiss“ — alles weißer Grund, schwarze Schrift, auch Seitenleiste, Kopfzeile und alle
+   djangoBase-Seiten (Ansage Edgar 29.10.2026). Akzente schwarz statt blau; Status-Farben
+   (ok/Fehler/Warnung) bleiben farbig, aber dunkel genug für weißen Grund. */
+body[data-theme="weiss"] {
+    --db-bg: #ffffff; --db-fg: #111111; --db-accent: #111827;
+    --sidebar-bg: #ffffff; --sidebar-light: #f1f3f5; --sidebar-dark: #ffffff;
+    --dbt-leiste-text: #111111; --dbt-leiste-rgb: 17, 17, 17; --dbt-leiste-tief-rgb: 255, 255, 255;
+    --dbt-flaeche: #ffffff; --dbt-flaeche-tief: #f5f6f8; --dbt-flaeche-hoch: #eef0f3; --dbt-flaeche-mitte: #e5e7eb;
+    --dbt-rand: #e3e6ea; --dbt-rand-stark: #c9ced6;
+    --dbt-text: #111111; --dbt-text-2: #374151; --dbt-text-3: #6b7280; --dbt-akzent-text: #111827;
+    --dbt-fg-rgb: 17, 17, 17; --dbt-tief-rgb: 100, 116, 139;
+    --dbt-ok-text: #15803d; --dbt-ok-flaeche: #f0fdf4; --dbt-ok-rand: #bbf7d0;
+    --dbt-fehler-text: #b91c1c; --dbt-fehler-flaeche: #fef2f2; --dbt-fehler-rand: #fecaca;
+    --dbt-warn-text: #a16207; --dbt-warn-flaeche: #fffbeb; --dbt-warn-rand: #fde68a;
+    --dbt-akzent-flaeche: #f3f4f6; --dbt-akzent-rand: #d1d5db;
+    --dbt-violett-text: #6d28d9; --dbt-violett-flaeche: #f5f3ff; --dbt-violett-rand: #ddd6fe;
+    --dbt-knopf: #111827; --dbt-knopf-hover: #000000; --dbt-akzent-rgb: 17, 24, 39;
+    --dbt-schrift: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --dbt-schrift-mono: ui-monospace, Consolas, "Cascadia Mono", monospace;
+    /* Bootstrap: Verweise, Rahmen, Grundfarben */
+    --bs-body-bg: #ffffff; --bs-body-color: #111111; --bs-border-color: #e3e6ea;
+    --bs-link-color-rgb: 17, 24, 39; --bs-link-hover-color-rgb: 0, 0, 0;
+    color: #111111;
+}
+body[data-theme="weiss"] .db-content { color: #111111; }
+body[data-theme="weiss"] .sidebar { border-right: 1px solid #e3e6ea; }
+body[data-theme="weiss"] .btn-outline-light {
+    --bs-btn-color: #374151; --bs-btn-border-color: #d1d5db;
+    --bs-btn-hover-color: #111111; --bs-btn-hover-bg: #f3f4f6; --bs-btn-hover-border-color: #c9ced6;
+    --bs-btn-active-color: #111111; --bs-btn-active-bg: #e5e7eb; --bs-btn-active-border-color: #c9ced6;
+}
+body[data-theme="weiss"] .form-check-input:checked { background-color: #111827; border-color: #111827; }
+body[data-theme="weiss"] .btn-primary {
+    --bs-btn-bg: #111827; --bs-btn-border-color: #111827;
+    --bs-btn-hover-bg: #000000; --bs-btn-hover-border-color: #000000;
+    --bs-btn-active-bg: #000000; --bs-btn-active-border-color: #000000;
+}
 
 body[data-theme="cyber"] {
     --db-bg: #050818; --db-fg: #c8e6ff; --db-accent: #00f0ff;

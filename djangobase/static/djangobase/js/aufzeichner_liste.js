@@ -103,7 +103,7 @@ export class AufzeichnungsListe {
              + ` title="Name ändern – wird beim Verlassen des Feldes gespeichert"></td>`;
       case 'start':
         return `<td data-sort="${esc(e.start)}">${esc(zeit(e.start))}`
-             + `${e.laeuft ? ' <b style="color:#f87171">läuft</b>' : ''}</td>`;
+             + `${e.laeuft ? ' <b style="color:var(--dbt-fehler-text, #f87171)">läuft</b>' : ''}</td>`;
       case 'dauer':
         return `<td class="num" data-sort="${e.dauer_s}">${esc(dauer(e.dauer_s))}</td>`;
       case 'schritte':

@@ -19,29 +19,29 @@ nachpruefbar bleibt und nicht zur Behauptung wird.
 .wf-kopf { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;
            margin-bottom: 0.8rem; }
 .wf-zahl { font-size: 0.82rem; opacity: 0.75; }
-.wf-zahl b { color: var(--ct-accent, #38d4d8); font-weight: 600; }
-.wf-knopf { background: #1f6feb; color: #fff; border: 0; border-radius: 4px;
+.wf-zahl b { color: var(--ct-accent, var(--dbt-akzent-text, #38d4d8)); font-weight: 600; }
+.wf-knopf { background: var(--dbt-knopf, #1f6feb); color: #fff; border: 0; border-radius: 4px;
             padding: 0.4rem 1rem; font-size: 0.86rem; cursor: pointer; }
-.wf-knopf:hover { background: #2b7ef7; }
+.wf-knopf:hover { background: var(--dbt-knopf-hover, #2b7ef7); }
 
-.wf-schalter { display: inline-flex; border: 1px solid var(--ct-border, #2a3038);
+.wf-schalter { display: inline-flex; border: 1px solid var(--ct-border, var(--dbt-rand, #2a3038));
                border-radius: 5px; overflow: hidden; }
 .wf-schalter button { background: transparent; border: 0; cursor: pointer;
-    color: var(--ct-text-muted, #8b949e); padding: 0.35rem 0.9rem;
+    color: var(--ct-text-muted, var(--dbt-text-2, #8b949e)); padding: 0.35rem 0.9rem;
     font-size: 0.84rem; }
 .wf-schalter button.an { background: rgba(56,212,216,0.14);
-                         color: var(--ct-accent, #38d4d8); font-weight: 600; }
+                         color: var(--ct-accent, var(--dbt-akzent-text, #38d4d8)); font-weight: 600; }
 
 .wf-reiter { display: flex; gap: 0.3rem; flex-wrap: wrap;
-             border-bottom: 1px solid var(--ct-border, #2a3038);
+             border-bottom: 1px solid var(--ct-border, var(--dbt-rand, #2a3038));
              margin-bottom: 0.9rem; }
 .wf-reiter button {
     background: transparent; border: 0; border-bottom: 2px solid transparent;
-    color: var(--ct-text-muted, #8b949e); padding: 0.45rem 0.9rem;
+    color: var(--ct-text-muted, var(--dbt-text-2, #8b949e)); padding: 0.45rem 0.9rem;
     font-size: 0.88rem; cursor: pointer; }
-.wf-reiter button:hover { color: var(--ct-text, #e6edf3); }
+.wf-reiter button:hover { color: var(--ct-text, var(--dbt-text, #e6edf3)); }
 .wf-reiter button.an {
-    color: var(--ct-accent, #38d4d8);
+    color: var(--ct-accent, var(--dbt-akzent-text, #38d4d8));
     border-bottom-color: var(--ct-accent, #38d4d8); }
 .wf-reiter .wf-n { opacity: 0.6; font-size: 0.78rem; margin-left: 0.3rem; }
 
@@ -49,40 +49,40 @@ nachpruefbar bleibt und nicht zur Behauptung wird.
              gap: 1rem; align-items: start; }
 @media (max-width: 900px) { .wf-raster { grid-template-columns: 1fr; } }
 
-.wf-liste { border: 1px solid var(--ct-border, #2a3038); border-radius: 5px;
+.wf-liste { border: 1px solid var(--ct-border, var(--dbt-rand, #2a3038)); border-radius: 5px;
             overflow: hidden; }
 .wf-liste table { width: 100%; border-collapse: collapse; }
 .wf-liste td { padding: 5px 8px; font-size: 0.8rem;
-               border-bottom: 1px solid var(--ct-border, #2a3038); }
+               border-bottom: 1px solid var(--ct-border, var(--dbt-rand, #2a3038)); }
 .wf-liste tr { cursor: pointer; }
-.wf-liste tr:hover td { background: rgba(255,255,255,0.04); }
+.wf-liste tr:hover td { background: rgba(var(--dbt-fg-rgb, 255, 255, 255), 0.04); }
 .wf-liste tr.an td { background: rgba(56,212,216,0.10); }
 .wf-liste tr.an td:first-child { box-shadow: inset 3px 0 0 #38d4d8; }
 .wf-liste .wf-titel { word-break: break-all; }
 .wf-liste .wf-kl { text-align: right; font-variant-numeric: tabular-nums;
-                   color: var(--ct-accent, #38d4d8); font-weight: 600;
+                   color: var(--ct-accent, var(--dbt-akzent-text, #38d4d8)); font-weight: 600;
                    white-space: nowrap; }
 .wf-art { display: inline-block; font-size: 0.68rem; padding: 0 5px;
           border-radius: 8px; margin-right: 4px; opacity: 0.85; }
-.wf-art-seite  { background: rgba(56,212,216,0.18);  color: #38d4d8; }
-.wf-art-api    { background: rgba(139,123,216,0.18); color: #a99bea; }
-.wf-art-befehl { background: rgba(106,187,106,0.18); color: #6abb6a; }
-.wf-art-faden  { background: rgba(255,193,7,0.14);   color: #ffc107; }
+.wf-art-seite  { background: rgba(56,212,216,0.18);  color: var(--dbt-akzent-text, #38d4d8); }
+.wf-art-api    { background: rgba(139,123,216,0.18); color: var(--dbt-akzent-text, #a99bea); }
+.wf-art-befehl { background: rgba(106,187,106,0.18); color: var(--dbt-ok-text, #6abb6a); }
+.wf-art-faden  { background: rgba(255,193,7,0.14);   color: var(--dbt-warn-text, #ffc107); }
 
-.wf-buehne { border: 1px solid var(--ct-border, #2a3038); border-radius: 5px;
+.wf-buehne { border: 1px solid var(--ct-border, var(--dbt-rand, #2a3038)); border-radius: 5px;
              overflow: auto; max-height: 78vh;
-             background: var(--ct-bg, #0d1117); }
+             background: var(--ct-bg, var(--dbt-flaeche-tief, #0d1117)); }
 .wf-buehne svg { display: block; }
 .wf-fuss { font-size: 0.78rem; opacity: 0.7; margin-top: 0.5rem;
            display: flex; gap: 1.1rem; flex-wrap: wrap; }
 .wf-form { display: inline-block; width: 15px; height: 11px;
            vertical-align: middle; margin-right: 5px; border: 1px solid; }
-.wf-form-schritt  { background: #1a1f26; border-color: #2a3038; border-radius: 2px; }
-.wf-form-frage    { background: #241d33; border-color: #8b7bd8;
+.wf-form-schritt  { background: var(--dbt-flaeche, #1a1f26); border-color: var(--dbt-rand, #2a3038); border-radius: 2px; }
+.wf-form-frage    { background: var(--dbt-violett-flaeche, #241d33); border-color: #8b7bd8;
                     transform: skewX(-18deg); }
-.wf-form-ende     { background: #2a1d1d; border-color: #d87b7b; border-radius: 6px; }
-.wf-form-schleife { background: #1a2630; border-color: #38d4d8; border-radius: 2px; }
-.wf-form-sicher   { background: #2a2519; border-color: #d8b45e; border-radius: 2px; }
+.wf-form-ende     { background: var(--dbt-flaeche, #2a1d1d); border-color: #d87b7b; border-radius: 6px; }
+.wf-form-schleife { background: var(--dbt-flaeche, #1a2630); border-color: #38d4d8; border-radius: 2px; }
+.wf-form-sicher   { background: var(--dbt-warn-flaeche, #2a2519); border-color: #d8b45e; border-radius: 2px; }
 .wf-strich { display: inline-block; width: 22px; height: 0;
              border-top: 2px solid; vertical-align: middle;
              margin-right: 4px; }
@@ -172,7 +172,7 @@ nachpruefbar bleibt und nicht zur Behauptung wird.
       <div class="wf-fuss">
         <span><i class="wf-strich" style="border-color:#38d4d8"></i>Aufruf beim Namen</span>
         <span><i class="wf-strich" style="border-color:#8b7bd8"></i>über ein Feld, dessen Typ im Code steht</span>
-        <span><i class="wf-strich" style="border-color:#7a8a99;border-top-style:dashed"></i>über einen im Projekt eindeutigen Methodennamen — auf WELCHEM Objekt, steht nicht im Code</span>
+        <span><i class="wf-strich" style="border-color:var(--dbt-rand-stark, #7a8a99);border-top-style:dashed"></i>über einen im Projekt eindeutigen Methodennamen — auf WELCHEM Objekt, steht nicht im Code</span>
         {% if weg.offen %}
           <span title="{{ weg.offen|join:', ' }}">
             {{ weg.offen|length }} Namen blieben offen — mehrdeutig, darum nicht verbunden

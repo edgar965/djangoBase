@@ -74,81 +74,81 @@ _ls_vergleich (unten: der Vergleich zum Werkzeug Code Review).
 <style>
 .ls-seite { padding: .5rem 0 2rem; }
 .ls-card {
-    background: var(--card-bg, #1b2028);
-    border: 1px solid var(--card-border, #2b323d);
+    background: var(--card-bg, var(--dbt-flaeche, #1b2028));
+    border: 1px solid var(--card-border, var(--dbt-rand, #2b323d));
     border-radius: 10px; padding: 1rem 1.25rem 1.25rem; margin-bottom: 1.25rem;
 }
 .ls-card h3 { font-size: 1.05rem; margin: 0 0 .5rem; }
 .ls-meta { font-weight: 400; opacity: .65; font-size: .85rem; }
 .ls-intro { font-size: .88rem; opacity: .85; margin: 0 0 .85rem; line-height: 1.55; }
 .ls-leise { opacity: .6; font-size: .8rem; }
-.ls-fehlt { color: #e0a63c; font-size: .88rem; }
+.ls-fehlt { color: var(--dbt-warn-text, #e0a63c); font-size: .88rem; }
 .ls-stapel { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; margin: .5rem 0 .75rem; }
 .ls-batch, .ls-knopf {
     border: 0; border-radius: 5px; cursor: pointer; white-space: nowrap;
     font-size: .82rem; padding: .32rem .7rem;
 }
-.ls-batch { background: #2d6cdf; color: #fff; font-weight: 600; }
-.ls-batch:hover { background: #3a7cf0; }
+.ls-batch { background: var(--dbt-knopf, #2d6cdf); color: #fff; font-weight: 600; }
+.ls-batch:hover { background: var(--dbt-knopf-hover, #3a7cf0); }
 .ls-batch:disabled, .ls-knopf:disabled { opacity: .45; cursor: not-allowed; }
-.ls-knopf { background: transparent; color: inherit; border: 1px solid var(--card-border, #2b323d); }
-.ls-knopf:hover { background: rgba(255,255,255,.06); }
+.ls-knopf { background: transparent; color: inherit; border: 1px solid var(--card-border, var(--dbt-rand, #2b323d)); }
+.ls-knopf:hover { background: rgba(var(--dbt-fg-rgb, 255, 255, 255), 0.06); }
 .ls-warn:hover { background: rgba(208,83,83,.18); border-color: #d05353; }
 .ls-felder { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: .8rem 1.2rem; }
 .ls-feld label { display: block; font-size: .78rem; opacity: .7; margin-bottom: .15rem; }
 .ls-feld select, .ls-feld input[type=text], .ls-feld input[type=number] {
-    background: var(--input-bg, #11151b); color: inherit;
-    border: 1px solid var(--card-border, #2b323d); border-radius: 5px;
+    background: var(--input-bg, var(--dbt-flaeche-tief, #11151b)); color: inherit;
+    border: 1px solid var(--card-border, var(--dbt-rand, #2b323d)); border-radius: 5px;
     padding: .25rem .4rem; font-size: .82rem; width: 100%;
 }
 .ls-haken { font-size: .82rem; display: block; margin: .1rem 0; }
 .ls-textfeld {
     width: 100%; box-sizing: border-box; resize: vertical;
-    background: var(--input-bg, #11151b); color: inherit;
-    border: 1px solid var(--card-border, #2b323d); border-radius: 5px;
+    background: var(--input-bg, var(--dbt-flaeche-tief, #11151b)); color: inherit;
+    border: 1px solid var(--card-border, var(--dbt-rand, #2b323d)); border-radius: 5px;
     padding: .45rem .55rem; line-height: 1.5;
-    font-family: ui-monospace, Consolas, "Courier New", monospace; font-size: .8rem;
+    font-family: var(--dbt-schrift-mono, ui-monospace, Consolas, "Courier New", monospace); font-size: .8rem;
 }
-.ls-fehlerliste { font-size: .82rem; color: #e0a63c; margin: .6rem 0 0; padding-left: 1.2rem; }
+.ls-fehlerliste { font-size: .82rem; color: var(--dbt-warn-text, #e0a63c); margin: .6rem 0 0; padding-left: 1.2rem; }
 .ls-fehlerliste code { color: inherit; }
 .ls-regeln { width: 100%; border-collapse: collapse; font-size: .8rem; margin-top: .4rem; }
-.ls-regeln td { padding: .15rem .4rem; border-top: 1px solid var(--card-border, #2b323d); }
+.ls-regeln td { padding: .15rem .4rem; border-top: 1px solid var(--card-border, var(--dbt-rand, #2b323d)); }
 .ls-regeln select { font-size: .78rem; }
 .ls-kennzahlen { display: flex; gap: 1.2rem; flex-wrap: wrap; margin: .3rem 0 .8rem; }
 .ls-kennzahl { text-align: center; min-width: 5.5rem; }
 .ls-kennzahl b { display: block; font-size: 1.35rem; }
 .ls-kennzahl span { font-size: .74rem; opacity: .65; }
-.ls-error b { color: #e06060; } .ls-warning b { color: #e0a63c; } .ls-information b { color: #7fb0ff; }
-tr.ls-error td.ls-stufe { color: #e06060; font-weight: 600; }
-tr.ls-warning td.ls-stufe { color: #e0a63c; }
-tr.ls-information td.ls-stufe { color: #7fb0ff; }
+.ls-error b { color: var(--dbt-fehler-text, #e06060); } .ls-warning b { color: var(--dbt-warn-text, #e0a63c); } .ls-information b { color: var(--dbt-akzent-text, #7fb0ff); }
+tr.ls-error td.ls-stufe { color: var(--dbt-fehler-text, #e06060); font-weight: 600; }
+tr.ls-warning td.ls-stufe { color: var(--dbt-warn-text, #e0a63c); }
+tr.ls-information td.ls-stufe { color: var(--dbt-akzent-text, #7fb0ff); }
 .ls-datei { font-size: .78rem; }
 .ls-text { font-size: .82rem; }
 .ls-regel { font-size: .76rem; opacity: .8; white-space: nowrap; }
-.ls-ref { border: 1px solid var(--card-border, #2b323d); background: transparent; color: inherit;
+.ls-ref { border: 1px solid var(--card-border, var(--dbt-rand, #2b323d)); background: transparent; color: inherit;
           border-radius: 4px; cursor: pointer; padding: .05rem .3rem; }
-.ls-ref:hover { background: #2d6cdf; border-color: #2d6cdf; color: #fff; }
+.ls-ref:hover { background: var(--dbt-knopf-hover, #2d6cdf); border-color: var(--dbt-knopf-hover, #2d6cdf); color: #fff; }
 .ls-filter { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; margin: 0 0 .6rem; }
 .ls-filter input, .ls-filter select {
-    background: var(--input-bg, #11151b); color: inherit;
-    border: 1px solid var(--card-border, #2b323d); border-radius: 5px; padding: .22rem .4rem; font-size: .8rem;
+    background: var(--input-bg, var(--dbt-flaeche-tief, #11151b)); color: inherit;
+    border: 1px solid var(--card-border, var(--dbt-rand, #2b323d)); border-radius: 5px; padding: .22rem .4rem; font-size: .8rem;
 }
 .ls-liste { font-size: .82rem; columns: 2; column-gap: 2rem; margin: 0; padding-left: 1.2rem; }
 .ls-liste li { break-inside: avoid; }
 .ls-vergleich { width: 100%; border-collapse: collapse; font-size: .84rem; }
 .ls-vergleich th, .ls-vergleich td { text-align: left; vertical-align: top; padding: .4rem .6rem;
-    border-top: 1px solid var(--card-border, #2b323d); }
+    border-top: 1px solid var(--card-border, var(--dbt-rand, #2b323d)); }
 .ls-vergleich th { opacity: .75; font-weight: 600; }
 .ls-vergleich td:first-child { white-space: nowrap; font-weight: 600; }
 .ls-panel-kopf { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
 .ls-panel-kopf code { font-size: .8rem; }
 .ls-treffer { font-size: .82rem; margin: .5rem 0 0; padding-left: 1.2rem; max-height: 22rem; overflow: auto; }
 .ls-treffer code { font-size: .78rem; opacity: .85; }
-.ls-alt { color: #e06060; text-decoration: line-through; }
-.ls-neu { color: #6cc46c; }
+.ls-alt { color: var(--dbt-fehler-text, #e06060); text-decoration: line-through; }
+.ls-neu { color: var(--dbt-ok-text, #6cc46c); }
 .ls-meldung { font-size: .82rem; margin-top: .5rem; }
-.ls-meldung.ls-fehler { color: #e06060; }
-.ls-meldung.ls-ok { color: #6cc46c; }
+.ls-meldung.ls-fehler { color: var(--dbt-fehler-text, #e06060); }
+.ls-meldung.ls-ok { color: var(--dbt-ok-text, #6cc46c); }
 </style>
 {% endblock %}
 

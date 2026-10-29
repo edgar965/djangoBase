@@ -95,17 +95,17 @@ Datei: {{ datei }}</pre>
 </div>
 
 <style>
-.ak-hilfe { margin: 0 0 14px; border: 1px solid rgba(255,255,255,.14);
-  border-radius: 9px; background: rgba(255,255,255,.03); }
+.ak-hilfe { margin: 0 0 14px; border: 1px solid rgba(var(--dbt-fg-rgb, 255, 255, 255), 0.14);
+  border-radius: 9px; background: rgba(var(--dbt-fg-rgb, 255, 255, 255), 0.03); }
 .ak-hilfe > summary { cursor: pointer; padding: 9px 14px; font-weight: 600;
-  color: var(--db-accent, #4ea8f6); list-style: none; }
+  color: var(--db-accent, var(--dbt-akzent-text, #4ea8f6)); list-style: none; }
 .ak-hilfe > summary::-webkit-details-marker { display: none; }
 .ak-hilfe > summary::before { content: '▸ '; }
 .ak-hilfe[open] > summary::before { content: '▾ '; }
 .ak-hilfe-inhalt { padding: 2px 14px 12px; font-size: .9rem; line-height: 1.5; }
 .ak-hilfe-inhalt p { margin: .5rem 0; }
 .ak-hilfe-inhalt code { padding: .05rem .3rem; border-radius: 3px;
-  background: rgba(255,255,255,.08); }
+  background: rgba(var(--dbt-fg-rgb, 255, 255, 255), 0.08); }
 
 /* Feste dunkle Palette wie die übrigen Hilfe-Seiten (tests.html, logs.html) —
    djangoBase läuft in sechs Projekten mit verschiedenen Variablen-Welten, und
@@ -113,34 +113,34 @@ Datei: {{ datei }}</pre>
 .ak-page { padding: 1.25rem 1.5rem 4rem; max-width: 1200px; }
 .ak-kopf { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
 .ak-filter { display: flex; gap: 6px; flex-wrap: wrap; }
-.ak-chip { text-decoration: none; color: #8aa0b8; background: #0f1d31; border: 1px solid #1e3a5f;
+.ak-chip { text-decoration: none; color: var(--dbt-text-2, #8aa0b8); background: var(--dbt-flaeche, #0f1d31); border: 1px solid var(--dbt-rand, #1e3a5f);
     border-radius: 20px; padding: 4px 12px; font-size: .82rem; }
-.ak-chip:hover { color: #e9f0f8; border-color: #1e5bb8; }
-.ak-chip.aktiv { color: #fff; background: #1e5bb8; border-color: #1e5bb8; }
-.ak-knopf { background: #15406e; color: #dbeafe; border: 1px solid #1e5bb8; border-radius: 6px;
+.ak-chip:hover { color: var(--dbt-text, #e9f0f8); border-color: var(--dbt-knopf-hover, #1e5bb8); }
+.ak-chip.aktiv { color: #fff; background: var(--dbt-knopf, #1e5bb8); border-color: var(--dbt-knopf, #1e5bb8); }
+.ak-knopf { background: var(--dbt-flaeche-hoch, #15406e); color: var(--dbt-akzent-text, #dbeafe); border: 1px solid var(--dbt-knopf, #1e5bb8); border-radius: 6px;
     padding: 5px 12px; font-size: .8rem; cursor: pointer; }
 .ak-knopf:hover { background: #b91c1c; border-color: #b91c1c; color: #fff; }
 .ak-auto { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
-.ak-eintrag { background: #142136; border: 1px solid #1e3a5f; border-left: 3px solid #1e3a5f;
+.ak-eintrag { background: var(--dbt-flaeche, #142136); border: 1px solid var(--dbt-rand, #1e3a5f); border-left: 3px solid var(--dbt-rand, #1e3a5f);
     border-radius: 8px; padding: 10px 16px; margin-bottom: 10px; }
 .ak-zeile { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-.ak-titel { color: #e9f0f8; font-size: .95rem; }
-.ak-art { font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; color: #8aa0b8;
-    border: 1px solid #1e3a5f; border-radius: 4px; padding: 1px 6px; }
-.ak-meta { color: #8aa0b8; font-size: .78rem; margin-left: auto; }
-.ak-text { white-space: pre-wrap; word-break: break-word; color: #c9d1d9; background: #0d1117;
-    border: 1px solid #1e3a5f; border-radius: 6px; padding: 10px 12px; margin: 8px 0 0;
+.ak-titel { color: var(--dbt-text, #e9f0f8); font-size: .95rem; }
+.ak-art { font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; color: var(--dbt-text-2, #8aa0b8);
+    border: 1px solid var(--dbt-rand, #1e3a5f); border-radius: 4px; padding: 1px 6px; }
+.ak-meta { color: var(--dbt-text-2, #8aa0b8); font-size: .78rem; margin-left: auto; }
+.ak-text { white-space: pre-wrap; word-break: break-word; color: var(--dbt-text-2, #c9d1d9); background: var(--dbt-flaeche-tief, #0d1117);
+    border: 1px solid var(--dbt-rand, #1e3a5f); border-radius: 6px; padding: 10px 12px; margin: 8px 0 0;
     font-size: .8rem; max-height: 45vh; overflow: auto; }
 /* Farbe je Art am linken Rand — man sieht auf einen Blick, was ein Fund und
    was nur eine Notiz ist. */
 .ak-eintrag.art-befund  { border-left-color: #d97706; }
-.ak-eintrag.art-fix     { border-left-color: #15803d; }
-.ak-eintrag.art-messung { border-left-color: #1e5bb8; }
+.ak-eintrag.art-fix     { border-left-color: var(--dbt-ok-rand, #15803d); }
+.ak-eintrag.art-messung { border-left-color: var(--dbt-knopf, #1e5bb8); }
 .ak-eintrag.art-offen   { border-left-color: #b91c1c; }
 .ak-eintrag.art-frage   { border-left-color: #7c3aed; }
 .ak-chip.art-befund.aktiv  { background: #d97706; border-color: #d97706; }
-.ak-chip.art-fix.aktiv     { background: #15803d; border-color: #15803d; }
-.ak-chip.art-messung.aktiv { background: #1e5bb8; border-color: #1e5bb8; }
+.ak-chip.art-fix.aktiv     { background: #15803d; border-color: var(--dbt-ok-rand, #15803d); }
+.ak-chip.art-messung.aktiv { background: var(--dbt-knopf, #1e5bb8); border-color: var(--dbt-knopf, #1e5bb8); }
 .ak-chip.art-offen.aktiv   { background: #b91c1c; border-color: #b91c1c; }
 .ak-chip.art-frage.aktiv   { background: #7c3aed; border-color: #7c3aed; }
 </style>

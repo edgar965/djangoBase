@@ -35,7 +35,7 @@ das JS, nicht dieses Blatt.
    Millimeter Luft. Dieselben Werte wie die Review-Seite (`.rv-page`,
    `.rv-card`), damit die Hilfe-Seiten gleich aussehen. */
 .km-seite { padding: 1.25rem 1.5rem 4rem; max-width: 1600px; }
-.km-abschnitt { background: #142136; border: 1px solid #1e3a5f;
+.km-abschnitt { background: var(--dbt-flaeche, #142136); border: 1px solid var(--dbt-rand, #1e3a5f);
                 border-radius: 10px; padding: 16px 20px;
                 margin-bottom: 18px; }
 .km-abschnitt > :first-child { margin-top: 0; }
@@ -45,33 +45,33 @@ das JS, nicht dieses Blatt.
 .km-feld { display: flex; flex-direction: column; gap: 0.2rem; }
 .km-feld label { font-size: 0.78rem; opacity: 0.75; }
 .km-feld input, .km-feld select {
-    background: #10151b; color: #e6edf3; border: 1px solid #2b3540;
+    background: var(--dbt-flaeche-tief, #10151b); color: var(--dbt-text, #e6edf3); border: 1px solid var(--dbt-rand, #2b3540);
     border-radius: 4px; padding: 0.3rem 0.5rem; font-size: 0.85rem; }
-.km-knopf { background: #1f6feb; color: #fff; border: 0; border-radius: 4px;
+.km-knopf { background: var(--dbt-knopf, #1f6feb); color: #fff; border: 0; border-radius: 4px;
             padding: 0.45rem 1.1rem; font-size: 0.9rem; cursor: pointer; }
-.km-knopf:hover { background: #2b7ef7; }
-.km-knopf-matt { background: #2b3540; }
-.km-knopf-matt:hover { background: #3a4652; }
+.km-knopf:hover { background: var(--dbt-knopf-hover, #2b7ef7); }
+.km-knopf-matt { background: var(--dbt-flaeche-mitte, #2b3540); color: var(--dbt-text, #fff); }
+.km-knopf-matt:hover { background: var(--dbt-flaeche-hoch, #3a4652); }
 .km-stand { font-size: 0.78rem; opacity: 0.7; align-self: center; }
 .km-zahlen { display: flex; gap: 1.4rem; flex-wrap: wrap; margin: 0.6rem 0 1rem;
              font-size: 0.85rem; }
 .km-zahlen b { font-variant-numeric: tabular-nums; }
-.km-rahmen { border: 1px solid #2b3540; border-radius: 6px; overflow: auto;
-             max-height: 78vh; background: #12161c; }
+.km-rahmen { border: 1px solid var(--dbt-rand, #2b3540); border-radius: 6px; overflow: auto;
+             max-height: 78vh; background: var(--dbt-flaeche-tief, #12161c); }
 .km-bild { display: block; }
 .km-aeste { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
-.km-ast { background: #1b2129; border: 1px solid #2b3540; color: #e6edf3;
+.km-ast { background: var(--dbt-flaeche, #1b2129); border: 1px solid var(--dbt-rand, #2b3540); color: var(--dbt-text, #e6edf3);
           border-radius: 999px; padding: 0.18rem 0.7rem; font-size: 0.78rem;
           cursor: pointer; }
 .km-ast:hover { border-color: #7aa2c8; }
 .km-hinweis { opacity: 0.75; font-size: 0.85rem; line-height: 1.5;
               max-width: 62rem; }
-.km-leer { border: 1px solid #5a3a3a; background: #2a1c1c; border-radius: 6px;
+.km-leer { border: 1px solid var(--dbt-rand-stark, #5a3a3a); background: var(--dbt-flaeche, #2a1c1c); border-radius: 6px;
            padding: 0.7rem 1rem; font-size: 0.86rem; margin-bottom: 0.9rem; }
 /* Code Qualität ------------------------------------------------ */
 .km-verfahren {
-    border: 1px solid #30363d; border-radius: 6px;
-    padding: 0.7rem 0.9rem; margin-bottom: 0.9rem; background: #0d1117;
+    border: 1px solid var(--dbt-rand, #30363d); border-radius: 6px;
+    padding: 0.7rem 0.9rem; margin-bottom: 0.9rem; background: var(--dbt-flaeche-tief, #0d1117);
 }
 .km-verfahren-kopf {
     display: flex; gap: 0.6rem; align-items: baseline; flex-wrap: wrap;
@@ -79,26 +79,26 @@ das JS, nicht dieses Blatt.
 /* Gescheiterte Messungen: was fehlt, fällt sonst niemandem auf. */
 .km-verfahren-rot { border-color: #da3633; }
 .km-werkzeug {
-    font-family: monospace; font-size: 0.8rem; color: #58a6ff;
-    border: 1px solid #1f6feb; border-radius: 3px; padding: 0 0.35rem;
+    font-family: monospace; font-size: 0.8rem; color: var(--dbt-akzent-text, #58a6ff);
+    border: 1px solid var(--dbt-knopf, #1f6feb); border-radius: 3px; padding: 0 0.35rem;
 }
-.km-verfahren-satz { color: #e6edf3; }
+.km-verfahren-satz { color: var(--dbt-text, #e6edf3); }
 .km-verfahren-misst {
-    color: #8b949e; font-size: 0.86rem; margin: 0.25rem 0 0.55rem;
+    color: var(--dbt-text-2, #8b949e); font-size: 0.86rem; margin: 0.25rem 0 0.55rem;
 }
 .km-raenge { display: flex; gap: 0.35rem; flex-wrap: wrap;
              margin-bottom: 0.55rem; }
 .km-rang {
     font-size: 0.8rem; padding: 0.1rem 0.45rem; border-radius: 3px;
-    background: #161b22; border: 1px solid #30363d; color: #8b949e;
+    background: var(--dbt-flaeche-tief, #161b22); border: 1px solid var(--dbt-rand, #30363d); color: var(--dbt-text-2, #8b949e);
 }
 /* Von gut nach schlecht — radon vergibt A (1-5) bis F (über 40). */
-.km-rang-A { border-color: #238636; color: #3fb950; }
-.km-rang-B { border-color: #9e6a03; color: #d29922; }
-.km-rang-C, .km-rang-D { border-color: #bb8009; color: #e3b341; }
-.km-rang-E, .km-rang-F { border-color: #da3633; color: #f85149; }
+.km-rang-A { border-color: #238636; color: var(--dbt-ok-text, #3fb950); }
+.km-rang-B { border-color: #9e6a03; color: var(--dbt-warn-text, #d29922); }
+.km-rang-C, .km-rang-D { border-color: #bb8009; color: var(--dbt-warn-text, #e3b341); }
+.km-rang-E, .km-rang-F { border-color: #da3633; color: var(--dbt-fehler-text, #f85149); }
 .km-wert { text-align: right; font-variant-numeric: tabular-nums; }
-.km-summe td { border-top: 2px solid #30363d; font-weight: 600; }
+.km-summe td { border-top: 2px solid var(--dbt-rand, #30363d); font-weight: 600; }
 
 /* NAVIGATION OBEN UND KLEBEND (02.09.2026)
    Edgar: „bei reiter CodeQualität sind die anderen Reiter weg".
@@ -117,24 +117,24 @@ das JS, nicht dieses Blatt.
    durch (`--db-bg` ist die Farbe des Seitengrunds, gemessen
    rgb(13,17,23)). */
 .km-reiter { display: flex; gap: 0.3rem; flex-wrap: wrap;
-             border-bottom: 1px solid #2b3540; margin-bottom: 0.9rem;
+             border-bottom: 1px solid var(--dbt-rand, #2b3540); margin-bottom: 0.9rem;
              position: sticky; top: 0; z-index: 5;
-             background: #0d1117; padding-top: 0.35rem; }
+             background: var(--dbt-flaeche-tief, #0d1117); padding-top: 0.35rem; }
 .km-reiter-knopf {
     background: transparent; border: 1px solid transparent; border-bottom: 0;
-    color: #8b98a5; padding: 0.4rem 0.9rem; font-size: 0.85rem;
+    color: var(--dbt-text-2, #8b98a5); padding: 0.4rem 0.9rem; font-size: 0.85rem;
     cursor: pointer; border-radius: 5px 5px 0 0; }
-.km-reiter-knopf:hover { color: #e6edf3; }
+.km-reiter-knopf:hover { color: var(--dbt-text, #e6edf3); }
 .km-reiter-knopf.active {
-    color: #e6edf3; background: #1b2129; border-color: #2b3540;
+    color: var(--dbt-text, #e6edf3); background: var(--dbt-flaeche, #1b2129); border-color: var(--dbt-rand, #2b3540);
     margin-bottom: -1px; }
 /* Der Löschen-Knopf je Endung. Rot, aber nicht schreiend: Er löscht
    endgültig, und dennoch klickt man ihn im Zweifel zwanzigmal. */
 .km-loeschen {
-    background: transparent; border: 1px solid #5c2b2b; color: #d98b8b;
+    background: transparent; border: 1px solid var(--dbt-fehler-rand, #5c2b2b); color: var(--dbt-fehler-text, #d98b8b);
     border-radius: 5px; padding: 0.15rem 0.5rem; font-size: 0.82rem;
     cursor: pointer; }
-.km-loeschen:hover { background: #3a1d1d; color: #ffb3b3;
+.km-loeschen:hover { background: var(--dbt-fehler-flaeche, #3a1d1d); color: var(--dbt-fehler-text, #ffb3b3);
                      border-color: #8b3a3a; }
 .km-loeschen[disabled] { opacity: 0.4; cursor: default; }
 
@@ -157,9 +157,9 @@ das JS, nicht dieses Blatt.
    klickt man in die Tabelle und wundert sich, dass nichts geschieht. */
 body.km-wartet, body.km-wartet .km-loeschen, body.km-wartet .km-waehlen {
     cursor: wait; }
-.km-geschuetzt { color: #7ec699; opacity: .8; }
-.km-fertig { color: #7ec699; }
-.km-fehler { color: #ffb3b3; }
+.km-geschuetzt { color: var(--dbt-ok-text, #7ec699); opacity: .8; }
+.km-fertig { color: var(--dbt-ok-text, #7ec699); }
+.km-fehler { color: var(--dbt-fehler-text, #ffb3b3); }
 
 /* Die Aktionsleiste über der Tabelle — klebend unter der Reiterleiste.
    Ohne `sticky` verschwindet sie beim Blättern durch 25 Zeilen, und man
@@ -169,14 +169,14 @@ body.km-wartet, body.km-wartet .km-loeschen, body.km-wartet .km-waehlen {
     display: flex; gap: .7rem; align-items: center; flex-wrap: wrap;
     padding: .5rem .6rem; margin-bottom: .2rem;
     position: sticky; top: 2.9rem; z-index: 4;
-    background: #12161c; border-bottom: 1px solid #222a33; }
+    background: var(--dbt-flaeche-tief, #12161c); border-bottom: 1px solid var(--dbt-rand, #222a33); }
 /* Angehakte Zeilen sichtbar abheben — sonst zählt man Kästchen. */
-#km-uebrige tr:has(.km-waehlen:checked) td { background: #1d2733; }
+#km-uebrige tr:has(.km-waehlen:checked) td { background: var(--dbt-flaeche, #1d2733); }
 
 .km-liste { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
 .km-liste th, .km-liste td {
     text-align: left; padding: 0.32rem 0.6rem;
-    border-bottom: 1px solid #222a33; }
+    border-bottom: 1px solid var(--dbt-rand, #222a33); }
 /* ZAHLEN RECHTSBÜNDIG (02.09.2026, auf Meldung „zellen mit Zahlen rechts
    zentriert").
 
@@ -188,17 +188,17 @@ body.km-wartet, body.km-wartet .km-loeschen, body.km-wartet .km-waehlen {
    aus wie ein Versehen. */
 .km-liste td.km-wert, .km-liste th.km-wert {
     text-align: right; font-variant-numeric: tabular-nums; }
-.km-liste th { color: #8b98a5; font-weight: 600; position: sticky; top: 0;
-               background: #12161c; }
-.km-liste code { color: #9ecbff; font-size: 0.82rem; }
-.km-liste tr:hover td { background: #171d24; }
-.km-warn { color: #ffd479; }
+.km-liste th { color: var(--dbt-text-2, #8b98a5); font-weight: 600; position: sticky; top: 0;
+               background: var(--dbt-flaeche-tief, #12161c); }
+.km-liste code { color: var(--dbt-akzent-text, #9ecbff); font-size: 0.82rem; }
+.km-liste tr:hover td { background: var(--dbt-flaeche-tief, #171d24); }
+.km-warn { color: var(--dbt-warn-text, #ffd479); }
 /* Dringlichkeit auf einen Blick - dieselben drei Stufen wie im Bericht. */
 .km-stufe { display: inline-block; padding: 0 .4rem; border-radius: 3px;
             font-size: .74rem; border: 1px solid transparent; }
-.km-stufe-fehler  { color: #ff9492; border-color: #6b2b2b; background: #2a1618; }
-.km-stufe-warnung { color: #ffd479; border-color: #6b5320; background: #241f14; }
-.km-stufe-hinweis { color: #8b98a5; border-color: #2b3540; background: #171d24; }
+.km-stufe-fehler  { color: var(--dbt-fehler-text, #ff9492); border-color: var(--dbt-fehler-rand, #6b2b2b); background: var(--dbt-fehler-flaeche, #2a1618); }
+.km-stufe-warnung { color: var(--dbt-warn-text, #ffd479); border-color: var(--dbt-warn-rand, #6b5320); background: var(--dbt-warn-flaeche, #241f14); }
+.km-stufe-hinweis { color: var(--dbt-text-2, #8b98a5); border-color: var(--dbt-rand, #2b3540); background: var(--dbt-flaeche-tief, #171d24); }
 /* Werkzeug-Legende: Die beiden Textspalten tragen den Inhalt, die beiden
    linken sind Etiketten - ohne feste Breiten zerreisst der Satzbau. */
 .km-werkzeugtabelle td { vertical-align: top; line-height: 1.45; }
@@ -206,53 +206,53 @@ body.km-wartet, body.km-wartet .km-loeschen, body.km-wartet .km-waehlen {
 .km-werkzeugtabelle td:nth-child(2) { width: 13%; white-space: nowrap; }
 .km-werkzeugtabelle td:nth-child(3) { width: 35%; }
 .km-werkzeugtabelle th { position: static; }
-.km-js { color: #8b98a5; font-size: 0.78rem; }
+.km-js { color: var(--dbt-text-2, #8b98a5); font-size: 0.78rem; }
 .km-kategorien { display: grid; gap: 0.6rem; margin-bottom: 1rem;
     grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr)); }
-.km-kat { border: 1px solid #2b3540; border-radius: 6px; padding: 0.5rem 0.75rem;
-          background: #171d24; }
-.km-kat-warn { border-color: #6b5320; background: #241f14; }
+.km-kat { border: 1px solid var(--dbt-rand, #2b3540); border-radius: 6px; padding: 0.5rem 0.75rem;
+          background: var(--dbt-flaeche-tief, #171d24); }
+.km-kat-warn { border-color: var(--dbt-warn-rand, #6b5320); background: var(--dbt-warn-flaeche, #241f14); }
 .km-kat-kopf { font-size: 0.9rem; display: flex; justify-content: space-between;
                align-items: baseline; gap: 0.5rem; }
 .km-kat-kopf b { font-size: 1.15rem; font-variant-numeric: tabular-nums; }
-.km-anteil { color: #8b98a5; font-size: 0.75rem; font-variant-numeric: tabular-nums; }
-.km-kat-namen { color: #7d8894; font-size: 0.74rem; margin-top: 0.35rem;
+.km-anteil { color: var(--dbt-text-2, #8b98a5); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+.km-kat-namen { color: var(--dbt-text-3, #7d8894); font-size: 0.74rem; margin-top: 0.35rem;
                 line-height: 1.45; word-break: break-word; }
-.km-alle { margin-top: 1rem; border: 1px solid #2b3540; border-radius: 6px;
-           padding: 0.7rem 0.9rem; background: #12161c; }
+.km-alle { margin-top: 1rem; border: 1px solid var(--dbt-rand, #2b3540); border-radius: 6px;
+           padding: 0.7rem 0.9rem; background: var(--dbt-flaeche-tief, #12161c); }
 .km-alle-kopf { display: flex; align-items: center; gap: 0.7rem;
                 flex-wrap: wrap; margin-bottom: 0.6rem; }
-.km-alle-kopf input { background: #10151b; color: #e6edf3;
-    border: 1px solid #2b3540; border-radius: 4px; padding: 0.25rem 0.6rem;
+.km-alle-kopf input { background: var(--dbt-flaeche-tief, #10151b); color: var(--dbt-text, #e6edf3);
+    border: 1px solid var(--dbt-rand, #2b3540); border-radius: 4px; padding: 0.25rem 0.6rem;
     font-size: 0.83rem; min-width: 14rem; margin-left: auto; }
-.km-bereich { border-top: 1px solid #222a33; padding: 0.35rem 0; }
+.km-bereich { border-top: 1px solid var(--dbt-rand, #222a33); padding: 0.35rem 0; }
 .km-bereich summary { cursor: pointer; font-size: 0.85rem; padding: 0.15rem 0; }
-.km-bereich summary:hover { color: var(--km-strich, #7aa2c8); }
+.km-bereich summary:hover { color: var(--km-strich, var(--dbt-text-2, #7aa2c8)); }
 .km-namen { display: flex; flex-wrap: wrap; gap: 0.25rem;
             padding: 0.4rem 0 0.2rem; }
-.km-klasse[data-km-gewaehlt] { border-color: #1f6feb; color: #9ecbff; }
+.km-klasse[data-km-gewaehlt] { border-color: var(--dbt-knopf, #1f6feb); color: var(--dbt-akzent-text, #9ecbff); }
 .km-bereich[hidden], .km-klasse[hidden], .km-rolle[hidden] { display: none; }
-.km-rolle { border-top: 1px solid #2b3540; padding: 0.4rem 0; }
+.km-rolle { border-top: 1px solid var(--dbt-rand, #2b3540); padding: 0.4rem 0; }
 .km-rolle > summary { cursor: pointer; font-size: 0.95rem; padding: 0.2rem 0;
                       display: flex; align-items: baseline; gap: 0.6rem; }
-.km-rolle > summary:hover { color: var(--km-strich, #7aa2c8); }
-.km-rolle-zahl { font-size: 1.05rem; font-weight: 600; color: #9ecbff;
+.km-rolle > summary:hover { color: var(--km-strich, var(--dbt-text-2, #7aa2c8)); }
+.km-rolle-zahl { font-size: 1.05rem; font-weight: 600; color: var(--dbt-akzent-text, #9ecbff);
                  font-variant-numeric: tabular-nums; }
-.km-rolle .km-bereich { margin-left: 1.1rem; border-top: 1px solid #1c232b; }
+.km-rolle .km-bereich { margin-left: 1.1rem; border-top: 1px solid var(--dbt-rand, #1c232b); }
 /* Steckbrief-Fenster */
 .km-popup { position: fixed; z-index: 60; max-width: 30rem; max-height: 70vh;
-    overflow: auto; background: #1b2129; color: #e6edf3;
+    overflow: auto; background: var(--dbt-flaeche, #1b2129); color: var(--dbt-text, #e6edf3);
     border: 1px solid #7aa2c8; border-radius: 6px; padding: 0.8rem 1rem;
-    box-shadow: 0 8px 26px rgba(0,0,0,0.55); font-size: 0.84rem; }
+    box-shadow: 0 8px 26px rgba(var(--dbt-tief-rgb, 0, 0, 0), 0.55); font-size: 0.84rem; }
 .km-popup h4 { margin: 0 0 0.2rem; font-size: 1rem; }
 .km-popup dl { display: grid; grid-template-columns: auto 1fr;
                gap: 0.15rem 0.7rem; margin: 0.5rem 0 0; }
-.km-popup dt { color: #8b98a5; white-space: nowrap; }
+.km-popup dt { color: var(--dbt-text-2, #8b98a5); white-space: nowrap; }
 .km-popup dd { margin: 0; word-break: break-word; }
-.km-popup .km-zu { color: #9ecbff; cursor: pointer; text-decoration: underline;
+.km-popup .km-zu { color: var(--dbt-akzent-text, #9ecbff); cursor: pointer; text-decoration: underline;
                    text-underline-offset: 2px; }
 .km-popup-zu { position: absolute; top: 0.4rem; right: 0.6rem;
-    background: none; border: 0; color: #8b98a5; font-size: 1.1rem;
+    background: none; border: 0; color: var(--dbt-text-2, #8b98a5); font-size: 1.1rem;
     cursor: pointer; line-height: 1; }
 .km-kasten { cursor: pointer; }
 .km-kasten:hover rect { stroke-width: 2; }

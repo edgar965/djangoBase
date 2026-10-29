@@ -3,7 +3,8 @@
 Wiederverwendbares Django-Infrastruktur-Paket (App `djangobase`, Settings-Key `DJANGOBASE`).
 Liefert: Hilfe-Seiten (`/hilfe/versionen|logs|tests|jobs|einstellungen`), dunkles
 Sidebar-Layout (Bootstrap 5; Multi-Base-Templates `_shell.html` → `base_app.html` →
-`base.html`), Theme-System (`body[data-theme]`, 5 Paletten), Sidebar-Resizer,
+`base.html`), Theme-System (`body[data-theme]`, 7 Paletten inkl. `weiss`/`blau`; alle
+Farben/Schriften der Seiten über `var(--dbt-…, #alt)`, siehe Kopf von `themes.css`), Sidebar-Resizer,
 Toast-Stack, Logging-Helfer (`dblog.config`), LogClassifier, Einstellungen-Store
 (JSON in `BASE_DIR/.djangobase.json`, keine DB), optional: Benutzer/allauth,
 Traffic-Statistik, Übersetzungsmodul (deep_translator), Jobs-Seite.
@@ -423,6 +424,14 @@ oder, wo Tests verboten sind (shortlongx), wenigstens prüfen, ob Zeichenketten
 aus Tests noch im Quelltext vorkommen.
 
 ### Neue DJANGOBASE-Schlüssel
+
+`logo_bild` (29.10.2026, aus StayNestor): Static-Pfad eines Bildes (SVG/PNG) oben in der Seitenleiste statt
+`logo_icon`; 30×30 px, auch eingeklappt. Leer = Symbol wie bisher.
+
+Theme-Variablen (29.10.2026, aus StayNestor): 752 feste Farben in 33 Vorlagen/Stilblättern stehen als
+`var(--dbt-<rolle>, #alt)`; Themes `weiss` (setzt alle Rollen) und `blau` (früheres `light`). Andere
+Themes sehen über den Rückfallwert unverändert aus. Neue Seiten schreiben Farben gleich so;
+`tests/unit/test_theme_variablen.py` prüft, dass `weiss` jede benutzte Rolle setzt.
 
 `menu_provider` (14.10.2026, aus HumanBodyWeb: Mesh3D-AI hat je Job einen Menüeintrag, und die Jobs kommen zur Laufzeit): Funktion oder gepunkteter Pfad zu einer
 **Modulfunktion** `f(menue, request) -> Liste` im Format von `menu` (`context_processors._menue`, wie `hilfe_extra`; ein Klassenaufruf geht nicht, `import_string` zerlegt am

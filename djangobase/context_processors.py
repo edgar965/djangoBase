@@ -138,6 +138,7 @@ def djangobase(request):
             "titel": c["titel"],
             "untertitel": c["untertitel"],
             "logo_icon": c["logo_icon"],
+            "logo_bild": c.get("logo_bild", ""),
             "favicon": c.get("favicon", ""),
             # Mehrere Zeichen mit Cache-Kennung (26.08.2026, aus CamTrack).
             "favicons": c.get("favicons", ()),

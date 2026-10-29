@@ -50,18 +50,18 @@ Projekten ohne ein solches ändert sich an der Seite nichts.
 
 <link rel="stylesheet" href="{% static 'djangobase/css/review_befunde.css' %}">
 <style>
-.rv-werkzeuge { border-color: #2a5c96; }
-.rv-wz + .rv-wz { margin-top: 14px; padding-top: 14px; border-top: 1px solid #1e3a5f; }
+.rv-werkzeuge { border-color: var(--dbt-rand-stark, #2a5c96); }
+.rv-wz + .rv-wz { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--dbt-rand, #1e3a5f); }
 .rv-wz-kopf { flex-wrap: wrap; }
-.rv-wz-name { font-weight: 600; color: #e9f0f8; }
-.rv-wz-modell { color: #7f9bbb; font-size: .85rem; }
+.rv-wz-name { font-weight: 600; color: var(--dbt-text, #e9f0f8); }
+.rv-wz-modell { color: var(--dbt-text-2, #7f9bbb); font-size: .85rem; }
 .rv-wz-fuss { margin: 8px 0 0; }
 /* Die Ausgabe ist Werkzeug-Text: feste Breite, aber umbrechend — CodeRabbit
    schreibt Zeilen mit Dateipfaden, die sonst waagerecht scrollen. Farbe
    ausdrücklich gesetzt: ein <pre> ohne color steht sonst dunkel auf dunkel
    (dieselbe Falle wie auf den Befund-Seiten). */
-.rv-wz-ausgabe { margin: 10px 0 0; padding: 10px 12px; background: #0f1d31;
-    border: 1px solid #1e3a5f; border-radius: 8px; color: #cfe0f2;
+.rv-wz-ausgabe { margin: 10px 0 0; padding: 10px 12px; background: var(--dbt-flaeche, #0f1d31);
+    border: 1px solid var(--dbt-rand, #1e3a5f); border-radius: 8px; color: var(--dbt-text, #cfe0f2);
     font-size: .82rem; line-height: 1.45; white-space: pre-wrap;
     word-break: break-word; max-height: 60vh; overflow-y: auto; }
 </style>

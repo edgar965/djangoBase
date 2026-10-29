@@ -1,6 +1,6 @@
-<nav class="sidebar">
+{% load static %}<nav class="sidebar">
     <div class="sidebar-header">
-        <h4><i class="bi {{ djangobase.logo_icon }}"></i> {{ djangobase.titel }}</h4>
+        <h4>{% if djangobase.logo_bild %}<img class="sidebar-logo" src="{% static djangobase.logo_bild %}?v={{ djangobase.statik_v }}" alt="">{% else %}<i class="bi {{ djangobase.logo_icon }}"></i>{% endif %} {{ djangobase.titel }}</h4>
         {% if djangobase.version %}<div class="sidebar-user">
             <span class="sidebar-user-name"><i class="bi bi-tag"></i> Version {{ djangobase.version }}</span>
         </div>{% endif %}
