@@ -217,6 +217,12 @@ DEFAULTS = {
     # Default-Theme (body data-theme="..."). Fallback: erstes Element
     # aus theme_modes, sonst "".
     "theme_default": "",
+    # Einstellungen -> Theme (01.11.2026, aus StayNestor; ``theme_stil.py``): gespeicherte Farben und
+    # Schriftrollen je Theme (Store-Gruppe "theme"), Vorgaben des Projekts in derselben Form, und die
+    # Vorlage der Vorschau auf der Seite (leer = djangobase/hilfe/_theme_vorschau.html).
+    "theme_anpassung": {},
+    "theme_vorgaben": {},
+    "theme_vorschau": "",
     # Toast-Stack fuer Django-Messages. False = kein Stack rendern.
     "toast_stack": True,
     # Profil-Umschalter (Combobox + Anlegen/Loeschen) auf der Einstellungsseite.
@@ -327,6 +333,10 @@ DEFAULTS = {
     # Aktive Zielsprachen (Codes aus uebersetzung.SPRACHEN); wird über die
     # Seite Einstellungen → Übersetzung gepflegt (Store-Gruppe "uebersetzung").
     "uebersetzung_sprachen": [],
+    # Anbieter: "google" (kostenloser Endpunkt, Vorgabe) oder "azure" (Azure
+    # Translator, Schlüssel in settings.AZURE_TRANSLATOR_KEY/_REGION). Ohne
+    # Schlüssel fällt "azure" auf Google zurück.
+    "uebersetzung_anbieter": "google",
     # ----- Traffic-Statistik (djangobase.traffic + views/traffic.py) -------
     # Erfassung ist opt-in: TrafficMiddleware in MIDDLEWARE eintragen.
     # mmdb-Datei für den offline-Länder-Lookup (DB-IP Country Lite, CC BY 4.0).

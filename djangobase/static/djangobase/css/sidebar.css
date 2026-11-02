@@ -31,9 +31,13 @@ body { font-family: var(--dbt-schrift, -apple-system, BlinkMacSystemFont, "Segoe
 .sidebar-user-name i { margin-right: 0.35rem; opacity: 0.85; }
 
 .sidebar .nav { padding: 0.5rem 0; flex: 1; }
+/* Schriftrollen aus Einstellungen -> Theme (01.11.2026, theme_stil.py): --dbt-s-<rolle>-* mit dem
+   bisherigen Wert als Rückfall — ohne Anpassung sieht alles aus wie vorher. */
 .sidebar .nav-link {
-    color: rgba(var(--dbt-leiste-rgb, 255, 255, 255), 0.75);
-    padding: 0.6rem 1.25rem; font-size: 0.9rem;
+    color: var(--dbt-s-menue-farbe, rgba(var(--dbt-leiste-rgb, 255, 255, 255), 0.75));
+    padding: 0.6rem 1.25rem; font-size: var(--dbt-s-menue-groesse, 0.9rem);
+    font-family: var(--dbt-s-menue-art, inherit); font-weight: var(--dbt-s-menue-gewicht, inherit);
+    font-style: var(--dbt-s-menue-stil, inherit);
     transition: background-color 0.2s, color 0.2s;
     text-decoration: none; display: flex; align-items: center;
 }
@@ -43,7 +47,7 @@ body { font-family: var(--dbt-schrift, -apple-system, BlinkMacSystemFont, "Segoe
 .sidebar .menu-toggle .float-end { margin-left: auto; transition: transform 0.2s; font-size: 0.75rem; }
 .sidebar .menu-toggle[aria-expanded="true"] .float-end { transform: rotate(180deg); }
 .sidebar .submenu { padding: 0; background: rgba(var(--dbt-leiste-tief-rgb, 0, 0, 0), 0.18); }
-.sidebar .submenu .nav-link { padding-left: 2.6rem; font-size: 0.85rem; }
+.sidebar .submenu .nav-link { padding-left: 2.6rem; font-size: var(--dbt-s-menue-groesse, 0.85rem); }
 .sidebar .submenu .nav-link i { font-size: 0.85rem; }
 /* Dritte Ebene (verschachteltes untermenu): tiefere Einrückung + dunkler.
    Greift nur, wenn ein Projekt 3-stufige Menüs nutzt — 2-stufige Menüs
@@ -66,11 +70,13 @@ body { font-family: var(--dbt-schrift, -apple-system, BlinkMacSystemFont, "Segoe
    nächsten Layoutwechsel einzeln nachzuziehen gewesen wären. */
 .sidebar .nav-abschnitt {
     padding: 0.7rem 1rem 0.2rem 2.6rem;
-    color: rgba(var(--dbt-leiste-rgb, 255, 255, 255), 0.45);
-    font-size: 0.7rem;
+    color: var(--dbt-s-menue_abschnitt-farbe, rgba(var(--dbt-leiste-rgb, 255, 255, 255), 0.45));
+    font-size: var(--dbt-s-menue_abschnitt-groesse, 0.7rem);
+    font-family: var(--dbt-s-menue_abschnitt-art, inherit);
+    font-style: var(--dbt-s-menue_abschnitt-stil, normal);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    font-weight: 600;
+    font-weight: var(--dbt-s-menue_abschnitt-gewicht, 600);
     /* Kein Zeiger: Die Ueberschrift ist keine Schaltfläche. Ein Wort, das
        aussieht wie ein Verweis und keiner ist, kostet jeden Leser einen
        Klick ins Leere. */
@@ -97,7 +103,9 @@ body { font-family: var(--dbt-schrift, -apple-system, BlinkMacSystemFont, "Segoe
     border-bottom: 1px solid rgba(var(--dbt-leiste-rgb, 255, 255, 255), 0.1);
     position: sticky; top: 0; z-index: 500;
 }
-.topbar-title { color: var(--dbt-leiste-text, #fff); font-weight: 600; font-size: 1.05rem; display: flex; align-items: center; gap: 0.45rem; }
+.topbar-title { color: var(--dbt-s-seitenname-farbe, var(--dbt-leiste-text, #fff)); font-weight: var(--dbt-s-seitenname-gewicht, 600);
+    font-size: var(--dbt-s-seitenname-groesse, 1.05rem); font-family: var(--dbt-s-seitenname-art, inherit);
+    font-style: var(--dbt-s-seitenname-stil, normal); display: flex; align-items: center; gap: 0.45rem; }
 .topbar-title i { color: var(--db-accent); }
 .topbar-actions { display: flex; align-items: center; gap: 0.4rem; }
 .db-content { padding: 0; }

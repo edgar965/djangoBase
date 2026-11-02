@@ -42,6 +42,7 @@ class UebersetzungView(ZugriffMixin, View):
                     for c, n, f in uebersetzung.SPRACHEN
                 ],
                 "anzahl_quellen": anzahl_quellen,
+                "anbieter": uebersetzung.anbieter(),
                 "zeilen": zeilen,
                 "lauf": status,
                 "lauf_laeuft": bool(status.get("laeuft")),

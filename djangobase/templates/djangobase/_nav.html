@@ -32,6 +32,11 @@ Die <li>-Einträge werden in ein vorhandenes <ul class="nav"> eingehängt.
             <li><a class="nav-link {% if aktiv == 'einstellungen_email' %}active{% endif %}" href="{% url 'djangobase:einstellungen_email' %}">
                 <i class="bi bi-envelope"></i> E-Mail
             </a></li>
+            {% if djangobase.theme_modes %}{# Einstellungen -> Theme (01.11.2026), nur mit Themes #}
+            <li><a class="nav-link {% if aktiv == 'einstellungen_theme' %}active{% endif %}" href="{% url 'djangobase:einstellungen_theme' %}">
+                <i class="bi bi-palette"></i> Theme
+            </a></li>
+            {% endif %}
             {% if djangobase.benutzer_verwaltung %}
             <li><a class="nav-link {% if aktiv == 'einstellungen_benutzer' %}active{% endif %}" href="{% url 'djangobase:benutzer' %}">
                 <i class="bi bi-people"></i> Benutzer

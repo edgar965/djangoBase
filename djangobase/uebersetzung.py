@@ -1,7 +1,9 @@
 """Übersetzungsmodul für die öffentliche User-Seite (Basis-Sprache: Deutsch).
 
 Engine: deep_translator.GoogleTranslator – kostenloser Google-Endpoint ohne
-API-Key (wie in CleanOrga und auf schwanenburg.de). Die Katalog-Logik mit
+API-Key (wie auf schwanenburg.de). Umschaltbar auf Azure Translator mit
+DJANGOBASE["uebersetzung_anbieter"] = "azure" (uebersetzer_azure.py, wie
+CleanOrga); ohne Einstellung bleibt Google. Die Katalog-Logik mit
 Quelltext-Hash zur Änderungserkennung und den Modi fehlend / veraltet / alle
 stammt aus dem Schwanenburg-WordPress-Plugin.
 
@@ -16,7 +18,6 @@ Funktionsweise:
 """
 
 import hashlib
-import re
 import threading
 import time
 
@@ -25,6 +26,11 @@ from django.db import connection
 
 from .conf import conf
 from .pause import Pause
+from .uebersetzer_azure import AzureUebersetzer
+from .uebersetzer_google import (
+    TAG_RE as _TAG_RE,  # noqa: F401 – Tests prüfen die Tag-Zerlegung hier
+    GoogleUebersetzer,
+)
 
 #: Schonpausen zum Endpunkt — im Test ``uebersetzung.PAUSE = Pause.sofort()``.
 PAUSE = Pause()
@@ -73,56 +79,27 @@ def sprache_aus_request(request):
     return s
 
 
-# ------------------------------------------------------------- Google-Engine
-_translators = {}
+# ------------------------------------------------------------------ Anbieter
+ANBIETER = [("google", "Google (kostenloser Endpunkt)"), ("azure", "Azure Translator")]
 
 
-def _translator(ziel):
-    """GoogleTranslator pro Sprachpaar cachen (CleanOrga-Muster)."""
-    if ziel not in _translators:
-        from deep_translator import GoogleTranslator
-
-        _translators[ziel] = GoogleTranslator(source=BASIS, target=ziel)
-    return _translators[ziel]
-
-
-MAX_LAENGE = 4500  # Limit des Google-Endpoints (~5000) mit Puffer
-_TAG_RE = re.compile(r"(<[^>]+>)")
-
-
-def _uebersetze_klartext(text, ziel):
-    if not text.strip():
-        return text
-    if len(text) <= MAX_LAENGE:
-        return _translator(ziel).translate(text) or text
-    # Lange Texte an Satz-/Absatzgrenzen stückeln
-    teile, aktuell = [], ""
-    for stueck in re.split(r"(?<=[.!?\n])\s+", text):
-        if len(aktuell) + len(stueck) > MAX_LAENGE and aktuell:
-            teile.append(aktuell)
-            aktuell = stueck
-        else:
-            aktuell = f"{aktuell} {stueck}".strip()
-    if aktuell:
-        teile.append(aktuell)
-    return " ".join(_translator(ziel).translate(t) or t for t in teile)
+def anbieter():
+    """Eingestellter Anbieter: ``DJANGOBASE["uebersetzung_anbieter"]`` — "google" (Vorgabe) oder "azure"
+    (nur mit ``settings.AZURE_TRANSLATOR_KEY``, sonst Google)."""
+    if conf().get("uebersetzung_anbieter") == "azure" and AzureUebersetzer.aktiv():
+        return "azure"
+    return "google"
 
 
 def uebersetze(text, ziel):
-    """Deutsch → Zielsprache. HTML wird an den Tags zerlegt und nur der
-    Text dazwischen übersetzt (Markup bleibt unangetastet) – gleiche Idee
-    wie die Shortcode-Zerlegung des Schwanenburg-Plugins."""
-    if "<" not in text:
-        return _uebersetze_klartext(text, ziel)
-    teile = _TAG_RE.split(text)
-    out = []
-    for teil in teile:
-        if teil.startswith("<") or not teil.strip():
-            out.append(teil)
-        else:
-            out.append(_uebersetze_klartext(teil, ziel))
-            PAUSE.warten(0.15)  # Endpoint schonen
-    return "".join(out)
+    """Deutsch → Zielsprache über den eingestellten Anbieter (``anbieter()``).
+    Azure übersetzt HTML selbst (Tags bleiben); liefert es nichts (Kontingent,
+    Zeitlimit, Netz), übernimmt Google wie bisher."""
+    if anbieter() == "azure":
+        ergebnis = AzureUebersetzer.uebersetze(text, BASIS, ziel)
+        if ergebnis:
+            return ergebnis
+    return GoogleUebersetzer.uebersetze(text, BASIS, ziel, PAUSE)
 
 
 # ------------------------------------------------------- Katalog (mit Cache)

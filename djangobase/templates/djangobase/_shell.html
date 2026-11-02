@@ -130,6 +130,10 @@
     {% for path in djangobase.extra_css %}
         <link rel="stylesheet" href="{% static path %}?v={% firstof JS_VERSION STATIC_V djangobase.statik_v %}">
     {% endfor %}
+    {% comment %}Einstellungen -> Theme (01.11.2026): Farben und Schriftrollen je Theme als Variablen, NACH
+    extra_css (gewinnt bei gleicher Spezifität gegen die Paletten). Nur geprüfte Werte (theme_bereinigung.py);
+    ohne Anpassung und Vorgaben kein Block — die Seite sieht aus wie vorher.{% endcomment %}
+    {% if djangobase.theme_css %}<style id="dbt-theme-anpassung">{{ djangobase.theme_css|safe }}</style>{% endif %}
 
     {% comment %}extra_js_head: Frueh-im-Head-Scripts (htmx, importmap-
     Snippets). Eintrag = String (Static-Pfad) ODER Dict mit static-Key
@@ -220,12 +224,22 @@
         {% block topbar %}
         <div class="topbar">
             <div class="topbar-title">
+                {% comment %}Zwei Blöcke für feste Teile der Kopfleiste (30.10.2026, StayNestor):
+                topbar_umschalter ersetzt den Knopf „Sidebar ein-/ausblenden“ durch eine eigene
+                Form (die Kennung sidebar-toggle braucht sidebar.js für die Handy-Ansicht);
+                topbar_nach_titel trägt Links, die auf jeder Seite hinter dem Seitennamen
+                stehen. Eigene Blöcke, weil jede Seite topbar_title ganz ersetzt — dort
+                hineingelegt, wären die Links auf allen Seiten weg. Leer bzw. unverändert
+                ändern beide nichts.{% endcomment %}
+                {% block topbar_umschalter %}
                 <button type="button" id="sidebar-toggle" class="btn btn-sm btn-outline-light" style="margin-right:.5rem;"
                         title="Sidebar ein-/ausblenden"
                         onclick="window.toggleSidebar ? window.toggleSidebar() : document.body.classList.toggle('sidebar-collapsed')">
                     <i class="bi bi-list"></i>
                 </button>
+                {% endblock %}
                 {% block topbar_title %}{{ djangobase.titel }}{% endblock %}
+                {% block topbar_nach_titel %}{% endblock %}
             </div>
             <div class="topbar-actions">
                 {% block topbar_actions %}{% endblock %}

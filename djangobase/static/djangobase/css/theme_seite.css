@@ -1,0 +1,88 @@
+/* Einstellungen -> Theme (01.11.2026, theme.html, theme_seite.js). Links die Bereiche, rechts die Vorschau, die
+   beim Scrollen stehen bleibt. Farben über --dbt-* mit dunklem Rückfall wie die übrigen djangoBase-Seiten. */
+
+.dbt-theme { padding: 1.25rem 1.5rem 4rem; color: var(--dbt-text, #e9f0f8); }
+.dbt-theme-kopf { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: .9rem; }
+.dbt-theme-titel { font-size: 1.4rem; font-weight: 700; }
+.dbt-theme-unterzeile, .dbt-theme-bereich-kopf span, .dbt-theme-vorschau-kopf span, .dbt-theme-wo { color: var(--dbt-text-3, #8aa0b8); font-size: .82rem; }
+.dbt-theme-aktionen { display: flex; align-items: center; gap: .5rem; }
+.dbt-theme-status { font-size: .82rem; color: var(--dbt-warn-text, #f0b429); }
+.dbt-theme-knopf { display: inline-flex; align-items: center; gap: .35rem; border: 1px solid var(--dbt-rand-stark, #2a466e); border-radius: 8px;
+    padding: .45rem .9rem; font-weight: 600; font-size: .86rem; cursor: pointer; }
+.dbt-theme-primaer { background: var(--dbt-knopf, #1f6feb); border-color: var(--dbt-knopf, #1f6feb); color: #fff; }
+.dbt-theme-geist { background: transparent; color: var(--dbt-text, #e9f0f8); }
+.dbt-theme-hinweis { border: 1px solid var(--dbt-warn-rand, #6b5212); background: var(--dbt-warn-flaeche, #2b2208); border-radius: 8px; padding: .7rem 1rem; }
+
+/* Theme-Wahl: die Knöpfe tragen .theme-pick — base_app.html setzt damit body[data-theme], das Projekt ggf. seinen Cookie. */
+.dbt-theme-wahl { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.1rem; }
+.dbt-theme-wahlknopf { display: inline-flex; align-items: center; gap: .45rem; padding: .45rem .9rem; border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--dbt-rand-stark, #2a466e); background: var(--dbt-flaeche, #142136); color: var(--dbt-text, #e9f0f8); font-weight: 600; font-size: .88rem; }
+.dbt-theme-wahlknopf.aktiv { border-color: var(--dbt-knopf, #1f6feb); box-shadow: 0 0 0 2px rgba(var(--dbt-akzent-rgb, 78, 168, 246), 0.3); }
+
+.dbt-theme-raster { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 38%); gap: 1.2rem; align-items: start; }
+@media (max-width: 1100px) { .dbt-theme-raster { grid-template-columns: 1fr; } }
+.dbt-theme-bereich, .dbt-theme-vorschau { background: var(--dbt-flaeche, #142136); border: 1px solid var(--dbt-rand, #1e3a5f); border-radius: 10px;
+    padding: .8rem 1rem; margin-bottom: 1rem; }
+.dbt-theme-bereich-kopf, .dbt-theme-vorschau-kopf { margin-bottom: .6rem; display: flex; gap: .6rem; align-items: baseline; flex-wrap: wrap; }
+.dbt-theme-vorschau { position: sticky; top: 4.2rem; max-height: calc(100vh - 5.5rem); overflow: auto; }
+
+.dbt-theme-farben { display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; margin-bottom: .6rem; }
+.dbt-theme-farbe { display: inline-flex; align-items: center; gap: .4rem; font-size: .88rem; }
+.dbt-theme input[type="color"] { width: 34px; height: 26px; padding: 0; border: 1px solid var(--dbt-rand-stark, #2a466e); border-radius: 6px; background: none; cursor: pointer; }
+.dbt-theme-farbwahl { display: inline-flex; align-items: center; gap: .25rem; }
+.dbt-theme-weg { border: none; background: transparent; color: var(--dbt-text-3, #8aa0b8); cursor: pointer; font-size: .95rem; padding: 0 .25rem; }
+.dbt-theme-weg[hidden] { display: none; }
+/* Ungesetzt: das Farbfeld zeigt die Farbe des Themes, aber blass — erst eine eigene Angabe ist voll. */
+.dbt-theme input[type="color"].vorgabe { opacity: .45; }
+
+/* Rollentabellen: eine Gruppe mit festen, gleichen Spalten (theme_seite.js); zu schmal -> waagerecht scrollen. */
+.dbt-theme-tabelle { overflow-x: auto; }
+.dbt-theme-rollen { font-size: .86rem; }
+table.dbt-theme-rollen td { vertical-align: middle; white-space: normal; }
+.dbt-theme-rollen select, .dbt-theme-rollen input[type="number"] { font-size: .84rem; padding: .2rem .35rem; max-width: 100%; }
+.dbt-theme-rollen input[type="number"] { width: 4.6rem; }
+.dbt-theme-rollen tr.markiert td { background: rgba(var(--dbt-akzent-rgb, 78, 168, 246), 0.08); }
+.dbt-theme-nr { display: inline-flex; align-items: center; justify-content: center; min-width: 1.5rem; height: 1.5rem; border-radius: 999px;
+    background: var(--dbt-knopf, #1f6feb); color: #fff; font-size: .75rem; font-weight: 700; font-style: normal; }
+
+/* Nummern an den Beispielen der Vorschau (data-nr setzt theme_seite.js) und die Markierung beim Zeigen. */
+.dbt-theme-vorschau [data-nr]::before { content: attr(data-nr); display: inline-flex; align-items: center; justify-content: center;
+    min-width: 1.15rem; height: 1.15rem; margin-right: .35rem; border-radius: 999px; background: var(--dbt-knopf, #1f6feb); color: #fff;
+    font: 700 10px/1 system-ui, sans-serif; letter-spacing: 0; text-transform: none; vertical-align: middle; }
+.dbt-markiert { outline: 2px dashed var(--dbt-warn-text, #f0b429) !important; outline-offset: 2px; }
+
+/* Allgemeine Vorschau (_theme_vorschau.html): Beispiele mit den Rollen gebunden, alter Wert als Rückfall. */
+.dbt-muster { display: grid; gap: .55rem; }
+.dbt-muster-h1 { margin: 0; font-size: var(--dbt-s-h1-groesse, 1.45rem); font-weight: var(--dbt-s-h1-gewicht, 700); font-family: var(--dbt-s-h1-art, inherit);
+    font-style: var(--dbt-s-h1-stil, normal); color: var(--dbt-s-h1-farbe, var(--dbt-s-alle-farbe, inherit)); }
+.dbt-muster-h2 { margin: .4rem 0 0; font-size: var(--dbt-s-h2-groesse, 1.08rem); font-weight: var(--dbt-s-h2-gewicht, 700); font-family: var(--dbt-s-h2-art, inherit);
+    font-style: var(--dbt-s-h2-stil, normal); color: var(--dbt-s-h2-farbe, var(--dbt-s-alle-farbe, inherit)); }
+.dbt-muster-h3 { font-size: var(--dbt-s-h3-groesse, 1rem); font-weight: var(--dbt-s-h3-gewicht, 700); font-family: var(--dbt-s-h3-art, inherit);
+    font-style: var(--dbt-s-h3-stil, normal); color: var(--dbt-s-h3-farbe, var(--dbt-s-alle-farbe, inherit)); margin-bottom: .3rem; }
+.dbt-muster-abschnitt { text-transform: uppercase; letter-spacing: .04em; font-size: var(--dbt-s-abschnitt-groesse, .72rem); font-weight: var(--dbt-s-abschnitt-gewicht, 600);
+    font-family: var(--dbt-s-abschnitt-art, inherit); font-style: var(--dbt-s-abschnitt-stil, normal);
+    color: var(--dbt-s-abschnitt-farbe, var(--dbt-s-alle-farbe, var(--dbt-text-3, #8aa0b8))); margin-bottom: .3rem; }
+.dbt-muster-text { margin: 0; font-size: var(--dbt-s-text-groesse, .92rem); font-weight: var(--dbt-s-text-gewicht, 400); font-family: var(--dbt-s-text-art, inherit);
+    font-style: var(--dbt-s-text-stil, normal); color: var(--dbt-s-text-farbe, var(--dbt-s-alle-farbe, inherit)); }
+.dbt-muster-hinweis { font-size: var(--dbt-s-hinweis-groesse, .85rem); font-weight: var(--dbt-s-hinweis-gewicht, 400); font-family: var(--dbt-s-hinweis-art, inherit);
+    font-style: var(--dbt-s-hinweis-stil, normal); color: var(--dbt-s-hinweis-farbe, var(--dbt-s-alle-farbe, var(--dbt-text-3, #8aa0b8))); }
+.dbt-muster-karte { border: 1px solid var(--dbt-rand, #1e3a5f); border-radius: 8px; padding: .6rem .7rem; background: var(--dbt-flaeche-hoch, rgba(255, 255, 255, 0.03)); }
+/* Rahmen und Abstände kommen von table.data (djangoBase-Tabelle), hier nur die Schriftrollen. */
+table.data.dbt-muster-tabelle { width: 100%; }
+table.data.dbt-muster-tabelle th { font-size: var(--dbt-s-tabellenkopf-groesse, .76rem); font-weight: var(--dbt-s-tabellenkopf-gewicht, 700); font-family: var(--dbt-s-tabellenkopf-art, inherit);
+    font-style: var(--dbt-s-tabellenkopf-stil, normal); color: var(--dbt-s-tabellenkopf-farbe, var(--dbt-s-alle-farbe, var(--dbt-akzent-text, #4ea8f6))); text-transform: uppercase; }
+table.data.dbt-muster-tabelle td { font-size: var(--dbt-s-tabelle-groesse, .87rem); font-weight: var(--dbt-s-tabelle-gewicht, 400); font-family: var(--dbt-s-tabelle-art, inherit);
+    font-style: var(--dbt-s-tabelle-stil, normal); color: var(--dbt-s-tabelle-farbe, var(--dbt-s-alle-farbe, inherit)); }
+.dbt-muster-beschriftung { font-size: var(--dbt-s-beschriftung-groesse, .85rem); font-weight: var(--dbt-s-beschriftung-gewicht, 600); font-family: var(--dbt-s-beschriftung-art, inherit);
+    font-style: var(--dbt-s-beschriftung-stil, normal); color: var(--dbt-s-beschriftung-farbe, var(--dbt-s-alle-farbe, inherit)); }
+.dbt-muster-eingabe { background: var(--dbt-s-eingabe-flaeche, var(--dbt-flaeche-tief, #0d1117)); border: 1px solid var(--dbt-rand-stark, #2a466e); border-radius: 6px; padding: .3rem .5rem;
+    font-size: var(--dbt-s-eingabe-groesse, .88rem); font-weight: var(--dbt-s-eingabe-gewicht, 400); font-family: var(--dbt-s-eingabe-art, inherit);
+    font-style: var(--dbt-s-eingabe-stil, normal); color: var(--dbt-s-eingabe-farbe, var(--dbt-s-alle-farbe, var(--dbt-text, #e9f0f8))); }
+.dbt-muster-reiter { display: flex; gap: 1rem; border-bottom: 1px solid var(--dbt-rand, #1e3a5f); }
+.dbt-muster-reiter span { padding: .35rem 0; font-size: var(--dbt-s-reiter-groesse, .96rem); font-weight: var(--dbt-s-reiter-gewicht, 600); font-family: var(--dbt-s-reiter-art, inherit);
+    font-style: var(--dbt-s-reiter-stil, normal); color: var(--dbt-s-reiter-farbe, var(--dbt-s-alle-farbe, var(--dbt-text-3, #8aa0b8))); }
+.dbt-muster-reiter span.aktiv { color: var(--dbt-akzent-text, #4ea8f6); border-bottom: 2px solid var(--dbt-knopf, #1f6feb); }
+.dbt-muster-knoepfe { display: flex; gap: .5rem; }
+.dbt-muster-knopf { border: 1px solid var(--dbt-rand-stark, #2a466e); border-radius: 8px; padding: .4rem .9rem; background: transparent; color: var(--dbt-text, #e9f0f8);
+    font-size: var(--dbt-s-knopf-groesse, .88rem); font-weight: var(--dbt-s-knopf-gewicht, 600); font-family: var(--dbt-s-knopf-art, inherit); font-style: var(--dbt-s-knopf-stil, normal); }
+.dbt-muster-knopf.primaer { background: var(--dbt-knopf, #1f6feb); border-color: var(--dbt-knopf, #1f6feb); color: #fff; }

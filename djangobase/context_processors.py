@@ -5,8 +5,27 @@ from .basiswurzel import Basiswurzel
 from .conf import conf
 from .pflichtmenue import PFLICHTSEITEN
 from .statik import Statik
+from .theme_bereinigung import ThemeBereinigung
+from .theme_stil import ThemeStil
 
 log = logging.getLogger("djangobase.nav")
+
+
+def _theme_css(c):
+    """Stilblock aus Einstellungen -> Theme (``theme_stil.py``). Gespeichertes UND Vorgaben gehen noch einmal
+    durch die Prüfung: Die Werte landen roh in einem ``<style>`` — eine von Hand bearbeitete Store-Datei
+    oder ein Tippfehler in den Settings darf dort nichts anderes hineinschreiben als Farben und Größen."""
+    themes = [m[0] if isinstance(m, (list, tuple)) else str(m) for m in c.get("theme_modes") or []]
+    if not themes:
+        return ""
+    try:
+        pruefung = ThemeBereinigung(themes)
+        anpassung = pruefung.bereinigen(c.get("theme_anpassung"))
+        vorgaben = pruefung.bereinigen(c.get("theme_vorgaben"))
+        return ThemeStil.css(anpassung, vorgaben, themes)
+    except Exception:
+        log.exception("theme_css: nicht berechnet")
+        return ""
 
 
 def _hilfe_extra(c):
@@ -152,6 +171,8 @@ def djangobase(request):
             "sidebar_template": c["sidebar_template"] or "djangobase/_sidebar.html",
             "theme_modes": c["theme_modes"],
             "theme_default": c["theme_default"],
+            # Einstellungen -> Theme: Variablen je Theme fuer den Stilblock in _shell.html (leer = keiner).
+            "theme_css": _theme_css(c),
             "toast_stack": c["toast_stack"],
             "resizable_sidebar": c["resizable_sidebar"],
             "sidebar_default": c["sidebar_default"],

@@ -42,6 +42,7 @@ from .views.languageserver import LanguageServerView
 from .views.languageserver_referenzen import LanguageServerReferenzenView
 from .views.languageserver_status import LanguageServerStatusView
 from .views.review_kontext import ReviewKontextView
+from .views.theme_seite import ThemeSeite
 from .views.uebrige_putz import UebrigePutzView
 
 app_name = "djangobase"
@@ -133,6 +134,7 @@ urlpatterns = [
     ),
     path("einstellungen/website/", EinstellungenView.as_view(gruppe="website"), name="einstellungen_website"),
     path("einstellungen/email/", EinstellungenView.as_view(gruppe="email"), name="einstellungen_email"),
+    path("einstellungen/theme/", ThemeSeite.as_view(), name="einstellungen_theme"),
     path("traffic/", TrafficView.as_view(), name="traffic"),
     path("einstellungen/uebersetzung/", UebersetzungView.as_view(), name="uebersetzung"),
     path("einstellungen/benutzer/", BenutzerListeView.as_view(), name="benutzer"),

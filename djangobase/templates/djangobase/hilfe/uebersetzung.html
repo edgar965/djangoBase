@@ -54,7 +54,7 @@
         <div class="uz-hint">
             Basis-Sprache der Website ist <strong>Deutsch 🇩🇪</strong>. Gewählte Sprachen
             erscheinen im Flaggen-Menü der User-Seite und werden beim Übersetzungslauf gefüllt
-            (Google Translate, kostenlos, kein API-Key).
+            ({% if anbieter == "azure" %}Azure Translator, Rückfall Google{% else %}Google Translate, kostenlos, kein API-Key{% endif %}).
         </div>
         <form method="post">
             {% csrf_token %}

@@ -158,6 +158,16 @@ GRUPPEN = {
             ("email_from", "text", "Absender-Adresse (From)"),
         ],
     },
+    "theme": {
+        "label": "Theme",
+        "icon": "bi-palette",
+        "titel": "Einstellungen · Theme",
+        "beschreibung": "Farben und Schriftrollen je Theme (eigene Seite: views/theme_seite.py, "
+        "kein Generik-Formular; geprüft von theme_bereinigung.py).",
+        "felder": [
+            ("theme_anpassung", "json", "Anpassung je Theme"),
+        ],
+    },
 }
 
 # Flache Whitelist aller einstellbaren Keys (von conf() + speichern genutzt).

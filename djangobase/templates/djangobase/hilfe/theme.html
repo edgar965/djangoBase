@@ -1,0 +1,98 @@
+{% extends djangobase.base_template|default:"djangobase/base.html" %}
+{% load static %}
+{% comment %}Einstellungen -> Theme (01.11.2026, views/theme_seite.py). Oben das Theme umschalten (Knöpfe mit
+.theme-pick wie der Umschalter in base_app.html), darunter je Bereich des Bildschirms (theme_stil.BEREICHE) seine
+Farben und Schriftrollen, rechts die Vorschau des Projekts. Die Felder füllt theme_seite.js mit den Werten des
+aktiven Themes; jede Änderung wirkt sofort auf die ganze Seite. Gespeichert wird beim Klick auf „Speichern“.
+Die Rollentabellen sind EINE Gruppe (TabellenBreiten, ein Schlüssel): gleiche Spalten, gleiche Breite, Ziehen wirkt
+auf alle. Gebunden werden sie von theme_seite.js — data-djb-gebunden hält tabellen_auto.js davon ab, jede einzeln
+zu binden. Die Griffe brauchen tabellen.css; die Middleware bringt nur das Skript.{% endcomment %}
+
+{% block title_extra %} · Theme{% endblock %}
+{% block topbar_title %}<i class="bi bi-palette"></i> Einstellungen · Theme{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'djangobase/css/tabellen.css' %}?v={{ djangobase.statik_v }}">
+<link rel="stylesheet" href="{% static 'djangobase/css/theme_seite.css' %}?v={{ djangobase.statik_v }}">
+<div class="dbt-theme" id="dbt-theme">
+    <div class="dbt-theme-kopf">
+        <div>
+            <div class="dbt-theme-titel">Theme</div>
+            <div class="dbt-theme-unterzeile">Umschalten, dann Farben und Schriften des aktiven Themes einstellen. Leer heißt: Vorgabe des Themes.</div>
+        </div>
+        <div class="dbt-theme-aktionen">
+            <span class="dbt-theme-status" data-status></span>
+            <label class="dbt-theme-knopf dbt-theme-geist" title="Setzt die Farbe jeder Schrift dieses Themes auf einmal, auch die der Seitenleiste (Knöpfe behalten ihre Schrift)">
+                <input type="color" data-alle-farben aria-label="Alle Schriftfarben"> Alle Schriftfarben
+            </label>
+            <button type="button" class="dbt-theme-knopf dbt-theme-geist" data-zuruecksetzen title="Alle Angaben dieses Themes entfernen (Vorgaben bleiben)"><i class="bi bi-arrow-counterclockwise"></i> Theme zurücksetzen</button>
+            <button type="submit" form="dbt-theme-form" class="dbt-theme-knopf dbt-theme-primaer"><i class="bi bi-check2"></i> Speichern</button>
+        </div>
+    </div>
+
+    {% if theme_modes %}
+    <div class="dbt-theme-wahl" role="group" aria-label="Theme wählen">
+        {% for slug, label, farbe in theme_modes %}
+        <button type="button" class="theme-pick dbt-theme-wahlknopf" data-theme="{{ slug }}"><i class="bi bi-circle-fill" style="color:{{ farbe }}"></i> {{ label }}</button>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="dbt-theme-hinweis">Dieses Projekt führt keine Themes (<code>DJANGOBASE["theme_modes"]</code>) — es gibt nichts einzustellen.</div>
+    {% endif %}
+
+    <div class="dbt-theme-raster">
+        <form method="post" id="dbt-theme-form" class="dbt-theme-bereiche">{% csrf_token %}
+            <input type="hidden" name="daten" data-daten>
+            {% for b in definition.bereiche %}
+            <section class="dbt-theme-bereich" data-bereich="{{ b.schluessel }}">
+                <div class="dbt-theme-bereich-kopf"><b>{{ b.titel }}</b> <span>{{ b.erklaerung }}</span></div>
+                {% if b.farben %}
+                <div class="dbt-theme-farben">
+                    {% for f in b.farben %}
+                    <label class="dbt-theme-farbe" data-farbe-zeile="{{ f.schluessel }}">
+                        <input type="color" data-farbe="{{ f.schluessel }}" aria-label="{{ b.titel }}: {{ f.name }}">
+                        <span>{{ f.name }}</span>
+                        <button type="button" class="dbt-theme-weg" data-weg-farbe="{{ f.schluessel }}" title="Vorgabe des Themes">×</button>
+                    </label>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% if b.rollen %}
+                <div class="dbt-theme-tabelle">
+                <table class="data tb-breiten dbt-theme-rollen" data-sort-aus data-sort-key="djangobase-theme-rollen" data-djb-gebunden="1">
+                    <thead><tr><th data-key="nr">Nr.</th><th data-key="schrift">Schrift</th><th data-key="art">Art</th><th data-key="groesse">Größe</th><th data-key="farbe">Farbe</th><th data-key="gewicht">Gewicht</th><th data-key="kursiv">Kursiv</th><th data-key="weg"></th></tr></thead>
+                    <tbody>
+                    {% for r in b.rollen %}
+                    <tr data-rolle-zeile="{{ r.rolle }}">
+                        <td><span class="dbt-theme-nr">{{ r.nr }}</span></td>
+                        <td><b>{{ r.name }}</b><div class="dbt-theme-wo">{{ r.wo }}</div></td>
+                        <td>{% if "art" in r.attribute %}<select data-rolle="{{ r.rolle }}" data-attr="art" aria-label="{{ r.name }}: Schriftart">{% for wert, name in definition.schriftarten %}<option value="{{ wert }}">{{ name }}</option>{% endfor %}</select>{% endif %}</td>
+                        <td>{% if "groesse" in r.attribute %}<input type="number" min="7" max="40" step="0.5" data-rolle="{{ r.rolle }}" data-attr="groesse" aria-label="{{ r.name }}: Größe in px"> <span class="dbt-theme-wo">px</span>{% endif %}</td>
+                        <td>{% if "farbe" in r.attribute %}<span class="dbt-theme-farbwahl"><input type="color" data-rolle="{{ r.rolle }}" data-attr="farbe" aria-label="{{ r.name }}: Farbe"><button type="button" class="dbt-theme-weg" data-weg-rolle="{{ r.rolle }}" title="Vorgabe">×</button></span>{% endif %}</td>
+                        <td>{% if "gewicht" in r.attribute %}<select data-rolle="{{ r.rolle }}" data-attr="gewicht" aria-label="{{ r.name }}: Gewicht"><option value="">Vorgabe</option><option value="normal">normal</option><option value="fett">fett</option></select>{% endif %}</td>
+                        <td>{% if "kursiv" in r.attribute %}<input type="checkbox" data-rolle="{{ r.rolle }}" data-attr="kursiv" aria-label="{{ r.name }}: kursiv">{% endif %}</td>
+                        <td><button type="button" class="dbt-theme-weg" data-weg-zeile="{{ r.rolle }}" title="Ganze Zeile auf Vorgabe">↺</button></td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                </div>
+                {% endif %}
+            </section>
+            {% endfor %}
+        </form>
+        <aside class="dbt-theme-vorschau">
+            <div class="dbt-theme-vorschau-kopf"><b>Vorschau</b> <span>Nummern wie links; Maus über eine Zeile zeigt, wo die Schrift steht.</span></div>
+            <div class="dbt-theme-vorschau-inhalt">{% include vorschau %}</div>
+        </aside>
+    </div>
+</div>
+{{ definition|json_script:"dbt-theme-definition" }}
+{{ anpassung|json_script:"dbt-theme-gespeichert" }}
+{{ vorgaben|json_script:"dbt-theme-vorgaben" }}
+{% endblock %}
+
+{% block body_scripts %}
+{{ block.super }}
+<script type="module" src="{% static 'djangobase/js/theme_seite.js' %}?v={{ djangobase.statik_v }}"></script>
+{% endblock %}

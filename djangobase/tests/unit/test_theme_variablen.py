@@ -15,6 +15,10 @@ THEMES = PAKET / "static" / "djangobase" / "css" / "themes.css"
 BENUTZT = re.compile(r"var\(\s*(--dbt-[a-z0-9-]+)")
 GESETZT = re.compile(r"(--dbt-[a-z0-9-]+)\s*:")
 OHNE_RUECKFALL = re.compile(r"var\(\s*--dbt-[a-z0-9-]+\s*\)")
+#: Schriftrollen aus Einstellungen -> Theme (theme_stil.py, 01.11.2026): bewusst in KEINEM Theme gesetzt —
+#: ohne Angabe gilt der Rückfallwert, gesetzt werden sie nur vom Stilblock der Seite. ``--dbt-schrift`` zählt
+#: nicht dazu (kein Bindestrich nach dem s).
+SCHRIFTROLLEN = "--dbt-s-"
 
 
 def _weiss_block(text):
@@ -38,8 +42,14 @@ class ThemeVariablenGedeckt(SimpleTestCase):
         fehlend = {}
         for pfad in _dateien("*.html", "*.css", "*.js"):
             for name in set(BENUTZT.findall(_lesen(pfad))) - gesetzt:
-                fehlend.setdefault(name, []).append(pfad.name)
+                if not name.startswith(SCHRIFTROLLEN):
+                    fehlend.setdefault(name, []).append(pfad.name)
         self.assertEqual(fehlend, {}, "Rollen ohne Wert im Theme weiss")
+
+    def test_schriftrollen_ausgenommen_schrift_nicht(self):
+        css = ".x { font-size: var(--dbt-s-h1-groesse, 1rem); font-family: var(--dbt-schrift, serif); }"
+        geprueft = {n for n in BENUTZT.findall(css) if not n.startswith(SCHRIFTROLLEN)}
+        self.assertEqual(geprueft, {"--dbt-schrift"})
 
     def test_gegenprobe_findet_eine_fehlende_rolle(self):
         gesetzt = set(GESETZT.findall('body[data-theme="weiss"] { --dbt-text: #111; }'))

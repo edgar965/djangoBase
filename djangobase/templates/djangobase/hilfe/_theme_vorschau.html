@@ -1,0 +1,22 @@
+{% comment %}Allgemeine Vorschau der Theme-Seite (theme.html) — nur, wenn das Projekt keine eigene hat
+(DJANGOBASE["theme_vorschau"]). Jedes Beispiel trägt data-rolle="<rolle>" (theme_stil.ROLLEN); theme_seite.js
+setzt daran die Nummer und markiert es, wenn die Maus über der Zeile steht. Die Klassen .dbt-muster-* binden die
+Schriftrollen in theme_seite.css — ein Projekt mit eigener Vorschau zeigt dort seine echten Klassen.{% endcomment %}
+<div class="dbt-muster">
+    <h1 class="dbt-muster-h1" data-rolle="h1">Übersicht</h1>
+    <div class="dbt-muster-hinweis" data-rolle="hinweis">Stand heute, alle Bereiche</div>
+    <h2 class="dbt-muster-h2" data-rolle="h2">Abschnitt</h2>
+    <p class="dbt-muster-text" data-rolle="text">Fließtext einer Seite: so liest sich ein Absatz mit ein paar Wörtern.</p>
+    <div class="dbt-muster-karte">
+        <div class="dbt-muster-h3" data-rolle="h3">Kartentitel</div>
+        <div class="dbt-muster-abschnitt" data-rolle="abschnitt">Gruppe</div>
+        <table class="data dbt-muster-tabelle" data-sort-aus data-sort-key="djangobase-theme-vorschau">
+            <thead><tr><th data-rolle="tabellenkopf">Name</th><th>Wert</th></tr></thead>
+            <tbody><tr><td data-rolle="tabelle">Erste Zeile</td><td>12,50</td></tr><tr><td>Zweite Zeile</td><td>7,00</td></tr></tbody>
+        </table>
+    </div>
+    <label class="dbt-muster-beschriftung" data-rolle="beschriftung">Beschriftung</label>
+    <input class="dbt-muster-eingabe" data-rolle="eingabe" value="Eingabe" aria-label="Beispiel Eingabe">
+    <div class="dbt-muster-reiter"><span class="aktiv" data-rolle="reiter">Reiter</span><span>Zweiter</span></div>
+    <div class="dbt-muster-knoepfe"><button type="button" class="dbt-muster-knopf primaer" data-rolle="knopf">Speichern</button><button type="button" class="dbt-muster-knopf">Abbrechen</button></div>
+</div>
