@@ -155,6 +155,21 @@ table.sortable thead th.tsort-kopf:has(.tb-griff) { padding-right: calc(2em + 0.
 body.lg-zieht { cursor: col-resize !important; user-select: none !important; }
 body.lg-zieht * { cursor: col-resize !important; }
 
+/* Spalten umstellen (tabellen_reihenfolge.js, Einstellungen -> Tabellen):
+   gegriffene Spalte blass, ein Strich in Akzentfarbe zeigt die Landestelle. */
+body.djb-spalten-zieht { cursor: grabbing !important; user-select: none !important; }
+body.djb-spalten-zieht * { cursor: grabbing !important; }
+table.djb-spalten-verschiebbar thead th.djb-spalte-gezogen { opacity: 0.45; }
+.djb-spalte-ziel {
+  position: fixed;
+  width: 3px;
+  margin-left: -1.5px;
+  border-radius: 2px;
+  background: var(--accent, #60a5fa);
+  z-index: 5000;
+  pointer-events: none;
+}
+
 /* Ziehbare Breiten brauchen border-box, sonst springen die Spalten beim
    Einfrieren um das Zellen-Padding (dokumentiert in tabellen_breiten.js). */
 table.sortable th, table.sortable td,

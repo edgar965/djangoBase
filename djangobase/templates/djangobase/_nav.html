@@ -37,6 +37,12 @@ Die <li>-Einträge werden in ein vorhandenes <ul class="nav"> eingehängt.
                 <i class="bi bi-palette"></i> Theme
             </a></li>
             {% endif %}
+            {% comment %}"as": ohne die Adresse (Server vor dem 04.11.2026 gestartet) fehlt nur der Eintrag
+            statt NoReverseMatch auf jeder Seite.{% endcomment %}
+            {% url 'djangobase:einstellungen_tabellen' as djb_tabellen_url %}{% if djb_tabellen_url %}
+            <li><a class="nav-link {% if aktiv == 'einstellungen_tabellen' %}active{% endif %}" href="{{ djb_tabellen_url }}">
+                <i class="bi bi-table"></i> Tabellen
+            </a></li>{% endif %}
             {% if djangobase.benutzer_verwaltung %}
             <li><a class="nav-link {% if aktiv == 'einstellungen_benutzer' %}active{% endif %}" href="{% url 'djangobase:benutzer' %}">
                 <i class="bi bi-people"></i> Benutzer

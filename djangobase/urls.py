@@ -42,6 +42,8 @@ from .views.languageserver import LanguageServerView
 from .views.languageserver_referenzen import LanguageServerReferenzenView
 from .views.languageserver_status import LanguageServerStatusView
 from .views.review_kontext import ReviewKontextView
+from .views.tabellen_einstellung_speichern import TabellenEinstellungSpeichern
+from .views.tabellen_seite import TabellenSeite
 from .views.theme_seite import ThemeSeite
 from .views.uebrige_putz import UebrigePutzView
 
@@ -135,6 +137,9 @@ urlpatterns = [
     path("einstellungen/website/", EinstellungenView.as_view(gruppe="website"), name="einstellungen_website"),
     path("einstellungen/email/", EinstellungenView.as_view(gruppe="email"), name="einstellungen_email"),
     path("einstellungen/theme/", ThemeSeite.as_view(), name="einstellungen_theme"),
+    # Einstellungen -> Tabellen (04.11.2026): Spalten verschieben / anpassen; Speicher je Benutzer.
+    path("einstellungen/tabellen/", TabellenSeite.as_view(), name="einstellungen_tabellen"),
+    path("tabellen/einstellung/", TabellenEinstellungSpeichern.as_view(), name="tabellen_einstellung"),
     path("traffic/", TrafficView.as_view(), name="traffic"),
     path("einstellungen/uebersetzung/", UebersetzungView.as_view(), name="uebersetzung"),
     path("einstellungen/benutzer/", BenutzerListeView.as_view(), name="benutzer"),

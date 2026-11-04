@@ -39,6 +39,8 @@
    Kopfzelle gerettet, und ein Klick auf den Griff sortiert nicht mit. */
 
 import { Sortierklick } from '/static/djangobase/js/tabellen_sortierklick.js';
+// Wo gemerkt wird (localStorage; opt-in je Benutzer beim Server) - tabellen_speicher.js.
+import { TabellenSpeicher } from './tabellen_speicher.js';
 
 const SPEICHER = 'dbTabSort:';
 
@@ -281,16 +283,14 @@ export class TabellenSortierung {
     const kopf = TabellenSortierung._kopfzeile(tabelle);
     const th = kopf && kopf.cells[idx];
     const sk = th && th.dataset.key ? th.dataset.key : '';
-    try {
-      localStorage.setItem(k, JSON.stringify({ idx: idx, auf: auf, key: sk }));
-    } catch (e) {}
+    TabellenSpeicher.schreiben(k, JSON.stringify({ idx: idx, auf: auf, key: sk }));
   }
 
   static _gemerktesAnwenden(tabelle) {
     const k = TabellenSortierung._key(tabelle);
     if (!k) return;
     let s = null;
-    try { s = JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return; }
+    try { s = JSON.parse(TabellenSpeicher.lesen(k) || 'null'); } catch (e) { return; }
     if (!s || typeof s.idx !== 'number' || s.idx < 0) return;
     const kopf = TabellenSortierung._kopfzeile(tabelle);
     if (!kopf) return;
@@ -317,7 +317,7 @@ export class TabellenSortierung {
   /** Gemerkte Sortierung einer Tabelle vergessen. */
   static vergessen(tabelle) {
     const k = TabellenSortierung._key(tabelle);
-    if (k) { try { localStorage.removeItem(k); } catch (e) {} }
+    if (k) TabellenSpeicher.entfernen(k);
   }
 }
 

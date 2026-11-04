@@ -168,6 +168,17 @@ GRUPPEN = {
             ("theme_anpassung", "json", "Anpassung je Theme"),
         ],
     },
+    "tabellen": {
+        "label": "Tabellen",
+        "icon": "bi-table",
+        "titel": "Einstellungen · Tabellen",
+        "beschreibung": "Spalten verschieben und Spaltenbreiten anpassen, für alle Tabellen (eigene Seite: "
+        "views/tabellen_seite.py).",
+        "felder": [
+            ("tabellen_spalten_verschieben", "bool", "Spalten verschieben"),
+            ("tabellen_spalten_anpassen", "bool", "Spalten anpassen"),
+        ],
+    },
 }
 
 # Flache Whitelist aller einstellbaren Keys (von conf() + speichern genutzt).

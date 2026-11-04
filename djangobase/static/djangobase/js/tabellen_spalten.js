@@ -14,9 +14,11 @@
  * AUSGEBLENDETE SPALTEN bleiben im DOM (nur mit `display:none`). Die Sortierung arbeitet
  * über die Position der Spalte, deshalb bleibt sie auch bei ausgeblendeten Spalten richtig.
  *
- * GEMERKT wird je Tabelle in localStorage unter dem Schlüssel `db-spalten:<data-sort-key>`.
- * Ohne localStorage (private Fenster, gesperrter Speicher) gilt die Standardansicht.
+ * GEMERKT wird je Tabelle im TabellenSpeicher (localStorage; opt-in je Benutzer beim Server,
+ * `tabellen_speicher.js`) unter dem Schlüssel `db-spalten:<data-sort-key>`.
+ * Ohne Speicher (private Fenster, gesperrter Speicher) gilt die Standardansicht.
  */
+import { TabellenSpeicher } from './tabellen_speicher.js';
 
 const VORSATZ = 'db-spalten:';
 
@@ -41,7 +43,7 @@ export class TabellenSpalten {
 
   static _gemerkt(tabelle) {
     try {
-      const roh = localStorage.getItem(TabellenSpalten._speicherschluessel(tabelle));
+      const roh = TabellenSpeicher.lesen(TabellenSpalten._speicherschluessel(tabelle));
       return roh ? JSON.parse(roh) : [];
     } catch (e) {
       return [];   // Speicher nicht lesbar: Standardansicht
@@ -49,11 +51,7 @@ export class TabellenSpalten {
   }
 
   static _merken(tabelle, ausgeblendet) {
-    try {
-      localStorage.setItem(TabellenSpalten._speicherschluessel(tabelle), JSON.stringify(ausgeblendet));
-    } catch (e) {
-      // Speicher voll oder gesperrt: die Auswahl gilt nur für diese Ansicht
-    }
+    TabellenSpeicher.schreiben(TabellenSpalten._speicherschluessel(tabelle), JSON.stringify(ausgeblendet));
   }
 
   /** Blendet die Spalten aus, deren Schlüssel in `ausgeblendet` steht. */

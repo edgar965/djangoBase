@@ -22,11 +22,14 @@
      Ziehen wird der Ist-Zustand der Gruppe eingefroren (table-layout:fixed).
      WICHTIG dabei: th/td brauchen box-sizing:border-box (CSS der Seite), sonst
      springen die Breiten beim Einfrieren um das Zellen-Padding.
-   - Breiten liegen in localStorage je Gruppen-Key + Spalten-Key und ueberleben F5.
+   - Breiten liegen im TabellenSpeicher (localStorage; opt-in je Benutzer beim
+     Server, tabellen_speicher.js) je Gruppen-Key + Spalten-Key und ueberleben F5.
    - Der Griff sitzt INNERHALB der Kopfzelle (right:0) - er darf nicht ueberstehen,
      weil table-layout:fixed Ueberstehendes kappt und der Griff unklickbar wuerde.
    - Griff faengt click/mousedown ab (Sortier-Klick bleibt getrennt); Doppelklick
      setzt die gemerkten Breiten der ganzen Gruppe zurueck. */
+import { TabellenSpeicher } from './tabellen_speicher.js';
+
 export class TabellenBreiten {
   /** Schmaler darf keine Spalte gezogen werden.
    *
@@ -59,7 +62,7 @@ export class TabellenBreiten {
    *  Ziehen, nicht auf das, was schon im Browser steht. */
   _laden() {
     let b;
-    try { b = JSON.parse(localStorage.getItem(this.key) || '{}'); } catch (e) { return {}; }
+    try { b = JSON.parse(TabellenSpeicher.lesen(this.key) || '{}'); } catch (e) { return {}; }
     for (const k of Object.keys(b)) {
       if (b[k] < TabellenBreiten.MIN_PX) b[k] = TabellenBreiten.MIN_PX;
     }
@@ -69,7 +72,7 @@ export class TabellenBreiten {
   _merken(sk, px) {
     const b = this._laden();
     b[sk] = Math.round(px);
-    try { localStorage.setItem(this.key, JSON.stringify(b)); } catch (e) {}
+    TabellenSpeicher.schreiben(this.key, JSON.stringify(b));
   }
 
   /** ALLE Spaltenbreiten der Gruppe merken - nicht nur die gezogene.
@@ -91,7 +94,7 @@ export class TabellenBreiten {
       const px = Math.round(th.getBoundingClientRect().width);
       if (px >= TabellenBreiten.MIN_PX) b[this._sk(th, i)] = px;
     });
-    try { localStorage.setItem(this.key, JSON.stringify(b)); } catch (e) {}
+    TabellenSpeicher.schreiben(this.key, JSON.stringify(b));
   }
 
   /** Die Kopfzellen der UNTERSTEN <thead>-Zeile.
@@ -171,7 +174,7 @@ export class TabellenBreiten {
   }
 
   zuruecksetzen() {
-    try { localStorage.removeItem(this.key); } catch (e) {}
+    TabellenSpeicher.entfernen(this.key);
     this.ts.forEach(t => {
       t.style.tableLayout = '';
       t.style.width = '';
@@ -181,7 +184,10 @@ export class TabellenBreiten {
   }
 
   binden() {
-    const b = this._laden();
+    // Einstellungen -> Tabellen -> „Spalten anpassen“ aus (04.11.2026): keine
+    // Griffe und keine gemerkten Breiten - nur die Vorgaben der Seite gelten.
+    const anpassen = TabellenSpeicher.anpassen();
+    const b = anpassen ? this._laden() : {};
     const fest = Object.keys(b).length > 0 || !!this.vorgaben;
     this.ts.forEach(t => {
       if (!t.tHead) return;
@@ -194,7 +200,7 @@ export class TabellenBreiten {
         th.style.position = 'relative';
         // Griff an JEDER Spalte - auch der letzten (Ansage 05.08.2026): seit die
         // Tabelle exakt die Spalten-Summe breit ist, gibt es keine „Rest-Spalte".
-        if (!th.querySelector('.tb-griff')) th.appendChild(this._griff(th, sk));
+        if (anpassen && !th.querySelector('.tb-griff')) th.appendChild(this._griff(th, sk));
       });
       // Spalten OHNE Vorgabe/gemerkte Breite bekommen ihre Ist-Breite fest zugewiesen,
       // BEVOR die Tabellenbreite aus der Summe entsteht - sonst misst _summeSetzen eine
@@ -270,6 +276,7 @@ export class TabellenBreiten {
 
   /** Fehlende Griffe nachruesten (nach innerHTML-Neuaufbau der Kopfzellen). */
   nachruesten() {
+    if (!TabellenSpeicher.anpassen()) return;
     this.ts.forEach(t => {
       this._ths(t).forEach((th, i) => {
         if (th.querySelector('.tb-griff')) return;

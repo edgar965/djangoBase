@@ -123,12 +123,26 @@ class AufzeichnungMiddleware(ZweiwegMiddleware):
             "aufzeichner.js",
             "aufzeichner_leiste.js",
             "aufzeichner_abspieler.js",
-            "tabellen_auto.js",
         ):
             teile.append(
                 '<script type="module" src="%s?v=%s"></script>' % (static("djangobase/js/%s" % modul), v)
             )
+        teile.append('<script type="module" src="%s"></script>' % self._tabellen_auto(v))
         return ("\n" + "\n".join(teile) + "\n").encode("utf-8")
+
+    @staticmethod
+    def _tabellen_auto(v):
+        """``tabellen_auto.js`` MIT FASSUNG IM PFAD, wo ``djangobase.fassungsstatik`` eingehängt ist
+        (04.11.2026): Seine Nachbarmodule (Sortierung, Breiten, Reihenfolge, Speicher) lädt es relativ — sie
+        erben so die Fassung und kommen nach einer Änderung sofort an. Mit ``?v=`` erbten sie nichts und
+        blieben bis zu sieben Tage aus dem Zwischenspeicher (nginx ``expires 7d`` auf ``/static/``). Ohne
+        Fassungspfad wie bisher."""
+        from .cachekonzept import Cachekonzept
+        from .fassungsstatik import Fassungsstatik
+
+        if Cachekonzept.fassungspfad_eingehaengt():
+            return Fassungsstatik.pfad("djangobase/js/tabellen_auto.js")
+        return "%s?v=%s" % (static("djangobase/js/tabellen_auto.js"), v)
 
     def _einhaengen(self, antwort):
         inhalt = antwort.content

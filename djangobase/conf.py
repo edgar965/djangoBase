@@ -223,6 +223,14 @@ DEFAULTS = {
     "theme_anpassung": {},
     "theme_vorgaben": {},
     "theme_vorschau": "",
+    # Einstellungen -> Tabellen (04.11.2026, aus StayNestor; Store-Gruppe "tabellen",
+    # ``views/tabellen_seite.py``): Spalten an der Ueberschrift umstellen (``tabellen_reihenfolge.js``) und
+    # Spaltenbreiten ziehen/merken.
+    # ``tabellen_je_benutzer``: Breiten, Sortierung, Spaltenwahl und Reihenfolge je Benutzer in der Datenbank
+    # (``TabellenEinstellung``) statt im Browser — braucht ``migrate djangobase``.
+    "tabellen_spalten_verschieben": False,
+    "tabellen_spalten_anpassen": True,
+    "tabellen_je_benutzer": False,
     # Toast-Stack fuer Django-Messages. False = kein Stack rendern.
     "toast_stack": True,
     # Profil-Umschalter (Combobox + Anlegen/Loeschen) auf der Einstellungsseite.

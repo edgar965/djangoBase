@@ -5,6 +5,7 @@ from .basiswurzel import Basiswurzel
 from .conf import conf
 from .pflichtmenue import PFLICHTSEITEN
 from .statik import Statik
+from .tabellen_element import TabellenElement
 from .theme_bereinigung import ThemeBereinigung
 from .theme_stil import ThemeStil
 
@@ -220,6 +221,10 @@ def djangobase(request):
             # zusaetzlich ``route`` fuer das Aktiv-Kennzeichen, und das
             # Uebergabeformat der Menue-Bauer bleibt davon unberuehrt.
             "pflichtseiten": PFLICHTSEITEN,
+            # Einstellungen -> Tabellen (04.11.2026): ``#djb-tabellen`` für ``_shell.html``; als Aufruf, damit
+            # es nur auf Seiten mit der Hülle gerechnet wird (Grund gegen eine Tag-Bibliothek dort:
+            # ``tabellen_element.py``).
+            "tabellen_element": lambda: TabellenElement.html(request),
         }
     }
 

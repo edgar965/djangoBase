@@ -19,6 +19,8 @@ import re
 from django.conf import settings
 from django.db import models
 
+from .tabellen_einstellung import TabellenEinstellung  # noqa: F401 (eigene Datei, 04.11.2026)
+
 
 class BasisProfil(models.Model):
     """Abstrakte Basis: gemeinsame Stammdaten jedes Nutzers."""

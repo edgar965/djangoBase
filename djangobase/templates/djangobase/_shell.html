@@ -259,6 +259,11 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{% static 'djangobase/js/sidebar.js' %}"></script>
     {% if djangobase.resizable_sidebar %}<script src="{% static 'djangobase/js/sidebar_resizer.js' %}"></script>{% endif %}
+    {% comment %}Einstellungen -> Tabellen (04.11.2026): Schalter und Einstellungen je Benutzer für
+    tabellen_speicher.js — bei den Vorgaben leer. Über den Kontextprozessor, NIE über {% load %} einer neuen
+    Tag-Bibliothek: die kennt ein laufender Server erst nach dem Neustart, jede Seite aller Projekte warf sonst
+    TemplateSyntaxError (shortlongx, 04.11.2026; tabellen_element.py).{% endcomment %}
+    {{ djangobase.tabellen_element }}
     {% comment %}
     AUFZEICHNUNG: NICHT MEHR HIER (Befund 21.08.2026, gemeldet aus CamTrack)
 

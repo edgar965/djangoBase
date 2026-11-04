@@ -1,545 +1,138 @@
 # CLAUDE.md — djangoBase
 
 Wiederverwendbares Django-Infrastruktur-Paket (App `djangobase`, Settings-Key `DJANGOBASE`).
-Liefert: Hilfe-Seiten (`/hilfe/versionen|logs|tests|jobs|einstellungen`), dunkles
-Sidebar-Layout (Bootstrap 5; Multi-Base-Templates `_shell.html` → `base_app.html` →
-`base.html`), Theme-System (`body[data-theme]`, 7 Paletten inkl. `weiss`/`blau`; alle
-Farben/Schriften der Seiten über `var(--dbt-…, #alt)`, siehe Kopf von `themes.css`), Sidebar-Resizer,
-Toast-Stack, Logging-Helfer (`dblog.config`), LogClassifier, Einstellungen-Store
-(JSON in `BASE_DIR/.djangobase.json`, keine DB), optional: Benutzer/allauth,
-Traffic-Statistik, Übersetzungsmodul (deep_translator/Google; seit 31.10.2026 umschaltbar auf Azure
-Translator mit `DJANGOBASE["uebersetzung_anbieter"] = "azure"` + `settings.AZURE_TRANSLATOR_KEY`/`_REGION`,
-`uebersetzer_azure.py`; Vorgabe bleibt Google, liefert Azure nichts, übernimmt Google — erster Nutzer
-StayNestor), Jobs-Seite.
+Liefert: Hilfe-Seiten (`/hilfe/versionen|logs|tests|jobs|einstellungen`), dunkles Sidebar-Layout (Bootstrap 5;
+Multi-Base-Templates `_shell.html` → `base_app.html` → `base.html`), Theme-System (`body[data-theme]`, 7 Paletten inkl.
+`weiss`/`blau`; alle Farben/Schriften der Seiten über `var(--dbt-…, #alt)`, siehe Kopf von `themes.css`),
+Sidebar-Resizer, Toast-Stack, Logging-Helfer (`dblog.config`), LogClassifier, Einstellungen-Store (JSON in
+`BASE_DIR/.djangobase.json`, keine DB), optional: Benutzer/allauth, Traffic-Statistik, Übersetzungsmodul
+(deep_translator/Google; seit 31.10.2026 umschaltbar auf Azure Translator mit `DJANGOBASE["uebersetzung_anbieter"] =
+"azure"` + `settings.AZURE_TRANSLATOR_KEY`/`_REGION`, `uebersetzer_azure.py`; Vorgabe bleibt Google, liefert Azure
+nichts, übernimmt Google — erster Nutzer StayNestor), Jobs-Seite.
 
 ## Repo & Workflow
-- GitHub: `edgar965/djangoBase` (privat), EIN Branch `main` — direkt committen/pushen,
-  keine Feature-Branches/PRs (explizite User-Vorgabe).
-- Kein Version-Bump (`pyproject.toml`) und kein Commit/Push ohne explizite Anweisung
-  (siehe globale `C:\Users\e\.claude\CLAUDE.md`).
-- Theme-Integrations-Doku: `HOWTO_INTEGRATION_THEMING.md` (hier im Repo).
+- GitHub `edgar965/djangoBase` (privat), EIN Branch `main` — keine Feature-Branches/PRs.
+- Kein Version-Bump (`pyproject.toml`) und kein Commit/Push ohne ausdrückliche Anweisung.
+- Theme-Integrations-Doku: `HOWTO_INTEGRATION_THEMING.md`; ausführliche Entwurfsdoku in `doku/` (unten).
 
 ## Vor Änderungen (Breaking-Check)
-- Shell-Templates (`base.html`, `base_app.html`, `_shell.html`, `_sidebar.html`,
-  `_nav.html`, `sidebar.css`) treffen ALLE Konsumenten — nur additiv/opt-in ändern.
-  Am assistant nie etwas kaputt machen.
-- Tests laufen im Host-Kontext (kein Standalone-Runner): Wegwerf-Host `A:\tmp_dbhost`
-  (py3.10-venv `venv310`, `DJANGO_SETTINGS_MODULE=settings python -m django test
-  djangobase`, ~90 s). Teststruktur: `djangobase/tests/{unit,component,integration,
-  konform}`, Basisklasse `BasisTest` (+ `StoreIsolationMixin` lenkt den Store auf
-  eine Temp-Datei). Stand 18.09.2026: 1757 Tests grün, 25 übersprungen (24
-  Konform-Klassen, weil der Wirt kein Konsument ist, und `tomllib` auf 3.10).
-  Der Wirt braucht die Extras `codequalitaet` (radon, pyflakes, pycodestyle, ruff),
-  sonst werden deren Prüfungen übersprungen; seine `urls_host.py` hängt
-  `djangobase.fassungsstatik` ein, sonst meldet `cachekonzept` den Wirt im Leeren.
-  Prüfungen dürfen nichts vom Wirt erwarten (Dateien, LOGGING): `test_fassungsstatik`
-  bringt seinen Statik-Baum seit heute selbst mit (`Wegwerfordner.neu` +
-  `Fassungsstatik.vergessen()`), `test_protokoll_ergebnis` filtert die
-  Einstellungs-Befunde über `Anlassfall.dateibezogen`.
-- Schneller Konsumenten-Realitäts-Check:
-  `cd A:\assistant && pythonVENV\Scripts\python.exe manage.py check`
-- Nach djangoBase-Update beim Konsumenten ggf. `pip install -e A:/shared/djangoBase
-  --no-deps` neu ausführen (sonst bleibt die Metadaten-Version stale).
+- Shell-Templates (`base.html`, `base_app.html`, `_shell.html`, `_sidebar.html`, `_nav.html`, `sidebar.css`) treffen
+  ALLE Konsumenten — nur additiv/opt-in ändern. Am assistant nie etwas kaputt machen.
+- Tests laufen im Host-Kontext (kein Standalone-Runner): Wegwerf-Host `A:\tmp_dbhost` (py3.10-venv `venv310`,
+  `DJANGO_SETTINGS_MODULE=settings python -m django test djangobase`, ~90 s). Teststruktur
+  `djangobase/tests/{unit,component,integration,konform}`, Basisklasse `BasisTest` (+ `StoreIsolationMixin` lenkt den
+  Store auf eine Temp-Datei). Stand 18.09.2026: 1757 grün, 25 übersprungen (24 Konform-Klassen, weil der Wirt kein
+  Konsument ist; `tomllib` auf 3.10). Der Wirt braucht die Extras `codequalitaet` (radon, pyflakes, pycodestyle,
+  ruff), sonst werden deren Prüfungen übersprungen; seine `urls_host.py` hängt `djangobase.fassungsstatik` ein, sonst
+  meldet `cachekonzept` den Wirt im Leeren. Prüfungen dürfen nichts vom Wirt erwarten (Dateien, LOGGING):
+  `test_fassungsstatik` bringt seinen Statik-Baum selbst mit (`Wegwerfordner.neu` + `Fassungsstatik.vergessen()`),
+  `test_protokoll_ergebnis` filtert die Einstellungs-Befunde über `Anlassfall.dateibezogen`.
+- Schneller Konsumenten-Check: `cd A:\assistant && pythonVENV\Scripts\python.exe manage.py check`.
+- Nach einem Update beim Konsumenten ggf. `pip install -e A:/shared/djangoBase --no-deps` (sonst bleibt die
+  Metadaten-Version stale).
+- Vor jedem Commit `ruff check .` und `ruff format --check .` (djangoBase ist seit 18.09.2026 ruff-sauber;
+  `doku/werkzeugkaesten.md`).
 
 ## Static-/Cache-Fallen
-- Static-Edits (z.B. `sidebar.js`) kommen beim Konsumenten erst an nach
-  (a) runserver-Neustart UND (b) Service-Worker-Cache-Refresh (der assistant cached
-  `/static/` cache-first in `sw.js` → dort `CACHE_VERSION` bumpen). Ausgelieferte
-  Datei verifizieren mit Cache-Bust-Query (`?cb=<timestamp>`). Der Django-Autoreloader
-  watcht nur `.py`-Dateien.
-- `markActive` der generischen Menü-Sidebar keyed auf **pathname** — Menüeinträge, die
-  sich nur per `?query`/`#fragment` unterscheiden, kollidieren (z.B. HumanBodyWeb
-  `/humanbody/config/` vs. `#tab-creator`; spin1more `/ausfluege-karte/` vs. `?neu=1`).
+- Static-Edits (z. B. `sidebar.js`) kommen beim Konsumenten erst nach (a) runserver-Neustart UND (b)
+  Service-Worker-Refresh an (assistant cached `/static/` cache-first in `sw.js` → `CACHE_VERSION` bumpen).
+  Ausgelieferte Datei mit `?cb=<timestamp>` prüfen. Der Autoreloader watcht nur `.py`.
+- `markActive` der generischen Menü-Sidebar keyed auf **pathname** — Einträge, die sich nur per `?query`/`#fragment`
+  unterscheiden, kollidieren (HumanBodyWeb `/humanbody/config/` vs. `#tab-creator`; spin1more `/ausfluege-karte/` vs.
+  `?neu=1`).
+- Verbindliches Cache-Konzept: `djangobase/cachekonzept.py` (06.09.2026) mit drei Verbrauchern — Seite Hilfe → Cache
+  (`views/cacheseite.py`), Werkzeug `skills/cachekonzept.py`, Prüfung `tests/konform/test_cachekonzept.py`. Kern: HTML
+  `no-store`; Statik mit Fassung; ES-Module über `{% fassungspfad %}` (Fassung im Pfad, Importe erben sie), nie
+  `{% static %}?t=`; kein `?t={% now %}` an Statik; keine Kennung in Import-Adressen. `test_statik.py` zählt
+  `{% fassungspfad %}` als versionierte Einbindung (3DTools: alle 46 Stellen umgestellt).
 
 ## Integrations-Rezept (Kurzform)
 1. `pip install -e A:\shared\djangoBase`
-2. `INSTALLED_APPS += ['djangobase']`; Context-Processor
-   `djangobase.context_processors.djangobase`
+2. `INSTALLED_APPS += ['djangobase']`; Context-Processor `djangobase.context_processors.djangobase`
 3. `path('hilfe/', include('djangobase.urls'))`
 4. `LOGGING = dblog.config(BASE_DIR/'logs')` (rotierende django.log/error.log)
-5. `DJANGOBASE = {...}` konfiguriert alles (titel, farben, menu bzw. sidebar_template,
-   log_sources, repos, test_befehle, zugriff, theme_modes, resizable_sidebar, …)
+5. `DJANGOBASE = {...}` (titel, farben, menu bzw. sidebar_template, log_sources, repos, test_befehle, zugriff,
+   theme_modes, resizable_sidebar, …)
 6. `manage.py migrate djangobase`
+7. Prüflauf: `TEST_RUNNER = "djangobase.testlaeufer.Testlaeufer"` (Netzsperre + Ablageumleitung nur im Prüflauf;
+   `doku/werkzeugkaesten.md`, Bauformen aus gunSlinger)
 
-- Eigene Sidebar behalten: `DJANGOBASE['sidebar_template']` setzen + darin
-  `{% include "djangobase/_nav.html" %}` für den Einstellungen-/Hilfe-Block.
-- Repo-Slugs nicht hardcoden: leer (`""`) lassen → wird aus dem lokalen git-`origin`
-  abgeleitet; Geschwister-Repos mit absolutem Pfad eintragen.
-- Pro-Mandant-/Station-Logs: `DJANGOBASE['log_source_provider']` = Callable, liefert
-  pro Request `(verzeichnis, sources)`; Dateinamen dürfen absolut sein.
+- Eigene Sidebar: `DJANGOBASE['sidebar_template']` + darin `{% include "djangobase/_nav.html" %}`.
+- Repo-Slugs leer (`""`) lassen → aus dem lokalen git-`origin`; Geschwister-Repos mit absolutem Pfad.
+- Pro-Mandant-/Station-Logs: `DJANGOBASE['log_source_provider']` = Callable → je Request `(verzeichnis, sources)`.
 
-## Neue DJANGOBASE-Schlüssel
+## Tabellen: Einstellungen, Spalten verschieben, Speicher je Benutzer (04.11.2026, aus StayNestor)
+- **Einstellungen → Tabellen** (`/hilfe/einstellungen/tabellen/`, `views/tabellen_seite.py`, Store-Gruppe
+  `tabellen`): Schalter „Spalten verschieben“ (`tabellen_spalten_verschieben`, Vorgabe aus) und „Spalten
+  anpassen“ (`tabellen_spalten_anpassen`, Vorgabe an = Breiten ziehen wie bisher). Aus heißt: keine Griffe bzw.
+  kein Umstellen.
+- `{{ djangobase.tabellen_element }}` (`tabellen_element.py` über den Kontextprozessor, in `_shell.html`;
+  `{% djb_tabellen %}` für eigene Vorlagen) schreibt `#djb-tabellen` mit den Schaltern — bei den Vorgaben
+  NICHTS, andere Projekte bleiben gleich.
+- **Gemeinsame Vorlagen (`_shell.html`, `_nav.html`) nie mit `{% load %}` einer NEUEN Tag-Bibliothek und nie mit
+  `{% url %}` auf eine NEUE Adresse ohne `as`:** laufende Server kennen beides erst nach dem Neustart, Vorlagen
+  lesen sie sofort — am 04.11.2026 warf so jede Seite in shortlongx (`/depot/ib/`) TemplateSyntaxError. Neues
+  über den Kontextprozessor (fehlt → leer) und `{% url … as x %}{% if x %}`.
+- `tabellen_speicher.js`: Breiten, Sortierung, Spaltenwahl, Reihenfolge über EINEN Speicher (localStorage wie
+  bisher). Mit `DJANGOBASE["tabellen_je_benutzer"] = True` je Benutzer in `TabellenEinstellung`
+  (`tabellen_einstellung.py`, Migration 0009 — Projekte brauchen `migrate djangobase`), POST
+  `djangobase:tabellen_einstellung`; Browser-Werte werden beim ersten Lesen übernommen.
+- `tabellen_reihenfolge.js`: Überschrift greifen und ziehen, Zellen werden im DOM umgehängt, nachgeladene Zeilen
+  ordnet ein MutationObserver ein; `data-spalten-fest` nimmt eine Tabelle aus, mehrzeilige Köpfe/`colspan` bleiben
+  fest. Auch je Tabelle einschaltbar mit `data-spalten-verschieben`.
+- `tabellen_auto.js` importiert seine Nachbarn relativ und kommt über die Middleware mit Fassung im Pfad
+  (`/statik/v-…/`, wo `fassungsstatik` eingehängt ist) — vorher blieben geänderte Nachbarmodule bis zu 7 Tage im
+  Browser (nginx `expires 7d` auf `/static/`).
 
-`logo_bild` (29.10.2026, aus StayNestor): Static-Pfad eines Bildes (SVG/PNG) oben in der Seitenleiste statt
-`logo_icon`; 30×30 px, auch eingeklappt. Leer = Symbol wie bisher.
+## DJANGOBASE-Schlüssel (neuere)
+- `logo_bild` (29.10.2026, StayNestor): Static-Pfad eines Bildes (SVG/PNG) oben in der Seitenleiste statt
+  `logo_icon`; 30×30 px, auch eingeklappt.
+- Theme-Variablen (29.10.2026, StayNestor): 752 feste Farben in 33 Vorlagen/Stilblättern als `var(--dbt-<rolle>, #alt)`;
+  Themes `weiss` (setzt alle Rollen) und `blau` (früheres `light`). Neue Seiten schreiben Farben gleich so;
+  `tests/unit/test_theme_variablen.py` prüft, dass `weiss` jede benutzte Rolle setzt.
+- **Einstellungen → Theme** (01.11.2026, StayNestor, `/hilfe/einstellungen/theme/`): Farben und Schriftrollen je Theme,
+  Ablage im Store (`theme_anpassung`), Ausgabe `<style id="dbt-theme-anpassung">` nach `extra_css`; Schlüssel
+  `theme_vorgaben` und `theme_vorschau`; Schriftrollen `--dbt-s-*` in keinem Theme gesetzt. Einzelheiten:
+  `doku/theme_seite.md`.
+- `menu_provider` (14.10.2026, HumanBodyWeb): **Modulfunktion** `f(menue, request) -> Liste` im Format von `menu`
+  (`context_processors._menue`, wie `hilfe_extra`; ein Klassenaufruf geht nicht, `import_string` zerlegt am letzten
+  Punkt). Bekommt die feste Liste und baut Kopien;
+  wirft sie oder liefert keine Liste, bleibt das feste Menü und `djangobase.nav` loggt. Läuft bei JEDER Seite —
+  leichte Quellen nehmen. Tests und `testdeckung` lesen nur den festen Teil.
+- `skills2_register` (Vorgabe `["fn"]`), `skills2_abrufklassen` (`["Serverabruf"]`), `skills2_funktionsgrenze` (90),
+  `skills2_ignorieren`, `jobs_ausschluss` (Befehle, die auf der Jobs-Seite nicht als Ablauf gelten), `struktur`
+  (Grenzen, Schalter, Bestandslisten der Strukturtests), `test_bereiche`/`test_kategorien` (`doku/hilfe_tests.md`).
+- **Settings-Konstanten** (nur Tests): `DJANGOBASE_KONFORM_AUS` (Datenordner, die keine Prüfung ansieht),
+  `DJANGOBASE_KONFORM_TABELLEN_AUS` (Dateien bewusst ohne Tabellen-Raster), `DJANGOBASE_NETZ_ERLAUBT` (Rechner, die
+  der Prüflauf anfahren darf), `DJANGOBASE_NETZSPERRE` (`False` = Sperre aus), `DJANGOBASE_KONFORM` (`False` = Wirt
+  ist kein Konsument), `DJANGOBASE_JOBAUFZEICHNUNG` (`False` = Jobs nicht aufzeichnen).
 
-Theme-Variablen (29.10.2026, aus StayNestor): 752 feste Farben in 33 Vorlagen/Stilblättern stehen als
-`var(--dbt-<rolle>, #alt)`; Themes `weiss` (setzt alle Rollen) und `blau` (früheres `light`). Andere
-Themes sehen über den Rückfallwert unverändert aus. Neue Seiten schreiben Farben gleich so;
-`tests/unit/test_theme_variablen.py` prüft, dass `weiss` jede benutzte Rolle setzt.
-
-**Einstellungen → Theme** (01.11.2026, aus StayNestor; `/hilfe/einstellungen/theme/`, `views/theme_seite.py`):
-Theme umschalten (Knöpfe mit `.theme-pick`) und je Theme Farben und Schriftrollen einstellen, nach Bereichen des
-Bildschirms geordnet (Grundschrift, Seitenleiste, Kopfleiste, Inhalt, Tabellen, Formulare, Knöpfe und Reiter),
-rechts eine Vorschau, jede Änderung wirkt sofort auf die ganze Seite. Definition `theme_stil.py` (9 Farben → je
-mehrere Variablen samt RGB-Form, 16 Schriftrollen wie Überschrift I–III, Text, Hinweis, Tabellenkopf …), Prüfung
-`theme_bereinigung.py` (nur `#rrggbb`, bekannte Rollen/Attribute, 7–40 px — auch beim Ausgeben, denn die Werte
-stehen roh im `<style>`). Ablage im Store, Gruppe `theme`, Schlüssel `theme_anpassung` (keine Migration).
-Ausgabe: `djangobase.theme_css` (Kontextprozessor) als `<style id="dbt-theme-anpassung">` in `_shell.html` NACH
-`extra_css`; ohne Anpassung und Vorgaben kein Block. Schriftrollen heißen `--dbt-s-<rolle>-art|groesse|farbe|
-gewicht|stil` und sind in KEINEM Theme gesetzt (`test_theme_variablen` nimmt das Präfix `--dbt-s-` aus).
-djangoBase bindet Seitenleiste und Seitenname (`sidebar.css`, alter Wert als Rückfall); die Seiten eines Projekts
-binden ihre Klassen selbst (StayNestor: `staynestor/css/schriften.css`). Neue Schlüssel: `theme_vorgaben` (gleiche
-Form wie die Ablage, z. B. StayNestor „weiss“: Schrift schwarz) und `theme_vorschau` (Vorlage mit den echten
-Klassen des Projekts und `data-rolle="<rolle>"` je Beispiel; leer = `hilfe/_theme_vorschau.html`). Nav-Eintrag
-„Theme“ unter Einstellungen nur bei `theme_modes`. Tests `tests/unit/test_theme_stil.py` (nicht gelaufen).
-Die Rollentabellen sind EINE `TabellenBreiten`-Gruppe mit Vorgaben (`theme_seite.js`, `SPALTEN`; „Schrift“ füllt den
-Rest): gleiche Spalten und Breite in allen Bereichen; `data-djb-gebunden` im Markup hält `tabellen_auto.js` ab.
-Die Seite lädt `tabellen.css` selbst: die Middleware bringt nur `tabellen_auto.js`, ohne das CSS sind die Griffe
-0 px breit (01.11.2026 gemessen, auch auf allen StayNestor-Seiten — StayNestor lädt `tabellen.css` nirgends).
-Knopf „Alle Schriftfarben“ setzt jede Rolle mit Farbe und `leiste_text` auf einmal (Knopf-Rolle hat keine Farbe).
-
-`menu_provider` (14.10.2026, aus HumanBodyWeb: Mesh3D-AI hat je Job einen Menüeintrag, und die Jobs kommen zur Laufzeit): Funktion oder gepunkteter Pfad zu einer
-**Modulfunktion** `f(menue, request) -> Liste` im Format von `menu` (`context_processors._menue`, wie `hilfe_extra`; ein Klassenaufruf geht nicht, `import_string` zerlegt am
-letzten Punkt). Sie bekommt die feste Liste und baut Kopien; wirft sie oder liefert keine Liste, bleibt das feste Menü und `djangobase.nav` loggt. Läuft bei JEDER Seite —
-leichte Quellen nehmen. Ohne Angabe ändert sich nichts; Tests und `testdeckung` lesen weiter nur den festen Teil. Nicht gegen die djangoBase-Suite gelaufen.
-`skills2_register` (Vorgabe `["fn"]`), `skills2_abrufklassen`
-(`["Serverabruf"]`), `skills2_funktionsgrenze` (90), `skills2_ignorieren`,
-`jobs_ausschluss` (Befehle, die auf der Jobs-Seite nicht als Ablauf
-gelten — Liste oder eine Angabe je Zeile), `struktur` (Grenzen, Schalter und
-Bestandslisten der Strukturtests, s. o.).
-
-Als **Settings-Konstanten** (nicht im `DJANGOBASE`-Dict, weil sie nur Tests
-betreffen): `DJANGOBASE_KONFORM_AUS` (Datenordner, die keine Prüfung ansieht),
-`DJANGOBASE_KONFORM_TABELLEN_AUS` (einzelne Dateien, die bewusst kein
-Tabellen-Raster bekommen — Druckansichten, feste Gliederungen, Tabellen mit
-eigener serverseitiger Sortierung), `DJANGOBASE_NETZ_ERLAUBT` (Rechner, die
-der Prüflauf anfahren darf), `DJANGOBASE_NETZSPERRE` (`False` = Sperre für
-diesen Lauf aus) und `DJANGOBASE_KONFORM` (`False` = dieser Wirt ist kein
-Konsument, Konformitätsprüfungen überspringen).
-
-## Konsumenten (Stand 2026-07-07)
-Alle als **editable Install** (`pip install -e A:\shared\djangoBase`) — Änderungen hier
-wirken SOFORT live in allen Projekten:
+## Konsumenten
+Alle als **editable Install** — Änderungen hier wirken SOFORT in allen Projekten:
 
 | Projekt | Pfad | Besonderheit |
 |---|---|---|
-| assistant | `A:\assistant` (:8001) | eigene Sidebar `search/_sidebar.html`; voll integriert: INSTALLED_APPS, `/hilfe/`-URLs, `djangobase.jobs`, Resizer mit Server-Persistenz |
-| WalkHop (ex spin1more/kachel) | `A:\WalkHop\djangoCode` | Standard-Shell; Multi-Brand walkhop.com + spin1more.com; wrappt den djangobase-Context-Processor pro Marke |
-| NoiseSpy | `A:\NoiseSpy\NoiseSpy` | eigene Sidebar `tracker/_sidebar.html`; Server bindet per `sys.path` ein (Private-Repo, kein `pip git+`) |
-| HumanBodyWeb | `A:\3DTools\HumanBodyWeb` (:4040) | Standard-Shell (`DJANGOBASE["menu"]`) |
-| shortlongx | `A:\shortlongx\shortlongxWeb` (:5020) | Standard-Shell, 3-Ebenen-Menü, nutzt Jobs-Seite (cron_runner) |
+| assistant | `A:\assistant` (:8001) | eigene Sidebar `search/_sidebar.html`; voll integriert (`/hilfe/`, `djangobase.jobs`, Resizer mit Server-Persistenz) |
+| WalkHop (ex spin1more/kachel) | `A:\WalkHop\djangoCode` | Standard-Shell; Multi-Brand walkhop.com + spin1more.com; wrappt den Context-Processor je Marke |
+| NoiseSpy | `A:\NoiseSpy\NoiseSpy` | eigene Sidebar `tracker/_sidebar.html`; Server bindet per `sys.path` ein (Private-Repo, kein `pip git+`; Dateikopie) |
+| HumanBodyWeb | `A:\3DTools\HumanBodyWeb` (:8081; früher hier :4040) | Standard-Shell (`DJANGOBASE["menu"]`, `menu_provider`) |
+| shortlongx | `A:\shortlongx\shortlongxWeb` (:5020) | Standard-Shell, 3-Ebenen-Menü, Jobs-Seite (cron_runner) |
 | CamTrack | `A:\CamTrack\CamTrackDjango` | eigene Sidebar `app/_sidebar.html` |
-| SchweizerMakler | `A:\SchweizerMakler\server` (:8092) | Standard-Shell mit **4-Ebenen-Menü** (dafür rendert `_sidebar.html` seit 19.09.2026 eine vierte Stufe, additiv; `sidebar.css` rückt sie ein), Settings-Paket nach Themen, `Testlaeufer`, Strukturtests; angelegt 19.09.2026 |
-
-Enumeration prüfen: ripgrep respektiert `.gitignore` und übersieht dabei Projekte
-(ist mit shortlongx passiert) — für vollständige Suchen `rg --no-ignore` oder `grep -r`.
-
-## Werkzeugkästen (skills / skills2 / umbau)
-
-Drei Pakete, drei Zwecke — nicht vermischen:
-
-| Paket | Was drin ist | Aufruf |
-|---|---|---|
-| `djangobase/skills/` | 12 Python-/Endpunkt-Werkzeuge (3DTools-Durchgang) | Hilfe→Skills |
-| `djangobase/skills2/` | Python-Prüfer + **6 Frontend-Prüfer** (JS/Vorlagen) | Hilfe→Skills2 |
-| `djangobase/umbau/` | Werkzeuge, die Quelltext **ändern** — kein Web-Knopf | `python -m djangobase.umbau.<name>` |
-
-### Die sechs Frontend-Prüfer in skills2 (16.08.2026, aus 3DTools)
-
-| Kennung | Findet | Belegter Fall |
-|---|---|---|
-| `jssyntax` | kaputte ES-Module (kopiert nach `.mjs`, dann `node --check`) | 3 Dateien mit Import mitten in einem Import — als `.js` grün, als `.mjs` rot |
-| `jswaisen` | Module, die niemand lädt; Importe ins Leere | 3 verwaiste Module, die Funktionen anmeldeten → 3 tote Seitenzweige |
-| `jsregistrierung` | `fn.x()` ohne `fn.x = …` | 4 Namen gerufen, nie angemeldet |
-| `jsfaenger` | werfende Server-Abrufe ohne `try` | 16 von 101; zwei direkt hinter einem Nutzerklick |
-| `jsfunktionen` | Funktionen ab N Zeilen (`skills2_funktionsgrenze`) | `loadClothUI` mit 245 Zeilen |
-| `jsbefunde` | 10 zählbare Auffälligkeiten in `.js`/`.html` | 3.290 Befunde erhoben, davon `.ok`-Prüfung 71→0, `console.log` 144→0, `var` 157→0 |
-| `jsstumm` | verschluckte Rückmeldungen: Meldung hängt an einem fehlenden Element, `catch` ohne Inhalt, `.catch(() => {})`, `if (!antwort.ok) return;` | assistant 67 → 0. Anlass: ein Sync-Knopf gab 31 s keine Rückmeldung, weil `if (!el) return;` in der Anzeige-Methode stand (17.08.2026) |
-
-### Fixer, der schreibt: `fix-ausnahme` (17.08.2026, aus assistant)
-
-Setzt in stumme `except`-Blöcke einen Log-Aufruf — Stufe aus dem Code abgeleitet
-(`debug` bei `continue` in Schleifen, `warning` bei erwarteten Typen wie
-ValueError/KeyError, `exception` mit Traceback bei `except Exception`) — und
-`# stumm gewollt: <Grund>` bei ImportError/KeyboardInterrupt. Die Meldung nennt
-nur Funktionsname und Typ, nie Variablen: So kann durch den Umbau nichts
-Geheimes ins Log geraten. Im Projekt assistant: 636 Blöcke in 205 Modulen,
-`protokoll` 656 → 0, danach 649 Tests grün.
-
-**Netz (nicht verhandelbar):** `compile()`, „`protokoll` sieht hier weniger", UND
-die Frage, ob der Name `logging` modulweit gebunden ist. Der letzte Punkt kostete
-einen Vorfall: In `mail/models.py` stand weiter unten `import logging as
-_logging`; der Fixer hielt das für den Import, die Datei kompilierte, und die
-Anwendung startete nicht mehr (`NameError`).
-
-### Hilfe → Review: Werkzeug statt Modell (31.08.2026)
-
-`review_partner` kennt neben `ziel: "lokal"|"online"` jetzt **`ziel: "werkzeug"`**
-(`djangobase/review/werkzeug_partner.py`). Statt eines Chat-Endpunkts wird ein
-lokales Programm gestartet, das den **Git-Stand** liest und Befunde ausgibt —
-eingerichtet ist die CodeRabbit-CLI in shortlongx.
-
-```python
-{"slug": "coderabbit", "name": "CodeRabbit", "ziel": "werkzeug",
- "modell": "CodeRabbit CLI",
- "befehl": [r"C:\Users\<du>\AppData\Local\Programs\coderabbit\cr.exe", "review"],
- "wurzel": r"A:\meinprojekt",          # das Repository, nicht review_wurzel
- "auswahlen": [{"wert": "uncommitted", "name": "Arbeitsstand",
-                "argumente": ["--uncommitted"]}, …],
- "umgebung": {"LOCALAPPDATA": r"C:\Users\<du>\AppData\Local"},
- "schluessel_datei": r"C:\Users\<du>\.coderabbit_key",   # Rückfall
- "schluessel_argument": "--api-key"}
-```
-
-Vier Dinge, die dabei Zeit gekostet haben und in jedem Projekt wiederkommen:
-
-- **Bereiche gelten nicht.** Das Werkzeug liest den Diff, nicht die
-  Bereichsdateien. Die Seite blendet Bereiche und Nachfass-Vorlagen aus und
-  zeigt stattdessen die Auswahl, WELCHER Stand geprüft wird. Ein Häkchen, das
-  nichts bewirkt, ist schlimmer als keins.
-- **EIN Werkzeug, EIN Faden** — auch bei drei angehakten Bereichen. Sonst
-  dreimal dasselbe Ergebnis und dreimal Kontingent (CodeRabbit frei: 3 Läufe/h,
-  Pro 5, Pro+ 10).
-- **Läuft der Server als Dienst, ist `Path.home()` das Dienstkonto-Profil**
-  (`C:\Windows\system32\config\systemprofile`). Befehlspfade nie daraus
-  ableiten, und die Anmeldung des Werkzeugs liegt dort auch nicht — dafür
-  `umgebung` mit `LOCALAPPDATA` auf das echte Profil.
-- **Aus dem Browser kommt nur der Schlüssel einer vorbereiteten Auswahl**, nie
-  ein Argument. Der Befehl steht ausschließlich in der Konfiguration.
-
-### Drei Bauformen aus gunSlinger (18.09.2026)
-
-Anlass: `A:\gunSlinger` (pytest, kein Django) hatte drei Dinge, die unsere
-Django-Projekte nur als Text kannten. Ansage Edgar: „baue das in djangoBase ein".
-
-| Bauform | Datei | Was sie tut |
-|---|---|---|
-| **Strukturregeln als Test** | `strukturtests.py` | `from djangobase.strukturtests import *` in `<app>/tests/automated/test_struktur.py`. Macht aus den Befunden von `skills/dateigroesse` und `skills/klassenjedatei` Zusicherungen — **keine eigene Eichung**, die Fehlalarm-Lehren der Werkzeuge gelten weiter. Auf Wunsch `test_je_klasse` (gunSlinger-Regel). **Ratsche:** `DJANGOBASE["struktur"]["bestand"]` = `{"groesse": [...], "klassen": [...], "tests": [...]}` — bekannte Verstöße, ausdrücklich; rot für alles Neue UND für jeden Eintrag, der kein Verstoß mehr ist. Die Liste kann nur schrumpfen. |
-| **Netzverbot im Prüflauf** | `netzsperre.py`, `testlaeufer.py` | **Nur im Prüflauf** (19.09.2026): `tests/__init__.py` richtet Sperre und Ablageumleitung nur ein, wenn `im_prueflauf()` wahr ist (`_TestState.saved_data`) — Hilfe → Tests importiert das Paket über `build_suite` IM SERVER, und der hatte danach kein Netz mehr (SchweizerMakler, Immobiliensuche). Sitzt an `socket.socket.connect` (trifft httpx, requests, smtplib, imaplib) UND an `sock_connect` der asyncio-Loops (der Proactor-Loop auf Windows geht am Socket vorbei). Loopback bleibt offen (Postgres, LiveServer). Ausweg für den einen Fall: `with Netzsperre.erlaubt():`; dauerhaft `DJANGOBASE_NETZ_ERLAUBT = [...]`; je Lauf aus mit `DJANGOBASE_NETZSPERRE = False`. Für Konsumenten: `TEST_RUNNER = "djangobase.testlaeufer.Testlaeufer"` (richtet auch die Ablageumleitung ein); wer einen eigenen Läufer hat (assistant), erbt davon oder ruft `Netzsperre.einrichten()` in `setup_test_environment`. djangoBase-eigene Suite: eingehängt in `tests/__init__.py`, 1805 Tests ohne einen gesperrten Zugriff. |
-| **Zeit als injizierbare Pause** | `pause.py` | `Pause().warten(s)` statt `time.sleep(s)`; `Pause.sofort()` im Test wartet nicht, zählt aber (`gewartet`, `gesamt`); `abbrechen()` beendet auch eine 90-s-Pause augenblicklich (Event). Erste Nutzer: `store._Sperre` (Test läuft jetzt mit allen 20 Versuchen statt heruntergedrehten 2) und `uebersetzung`. Neue Wartezeit im Paket nimmt diese Klasse, nicht `time.sleep`. |
-
-Warum ein Läufer und keine Basisklasse: Eine Basisklasse erreicht nur, wer von
-ihr erbt. Genau der Prüffall mit `unittest.TestCase` ist der, der nach draußen
-telefoniert. `setup_test_environment` läuft einmal je Prozess, für alle.
-
-### ruff als Werkzeug (18.09.2026)
-
-Vierte Bauform aus gunSlinger: `skills/ruffbefunde.py` (Hilfe → Skills → „ruff",
-direkt hinter `code-qualitaet`) fährt `ruff check` und `ruff format --check`
-über dieselbe Dateimenge wie jedes andere Werkzeug (Ausschlussliste,
-`.gitignore`, in Stapeln, weil Windows die Befehlszeile bei 32 k kappt) und
-ordnet die Antworten ein: undefinierte/doppelte Namen und Syntaxfehler
-`fehler`, B/UP/F-Rest `warnung`, E/W/I und „ungeformt" `hinweis`. F401 und
-F541 werden nur gezählt — die führen `tote-importe` und `fix-fzeichenkette`.
-
-**Regeln:** eigene Konfiguration des Projekts (`ruff.toml`, `.ruff.toml`,
-`[tool.ruff]` in `pyproject.toml`) schlägt die Vorgabe **`djangobase/ruff_vorgabe.toml`**
-(110 Zeichen, E/W/F/I/B/UP, Migrationen/`__init__`/Settings ausgenommen). Die
-Vorgabe hat bewusst KEIN `target-version`: mit festem `py310` meldete ruff im
-assistant (Python 3.14) 58 „Syntaxfehler" — f-String-Umbrüche seit 3.12. Das
-Werkzeug übergibt die Version des laufenden Interpreters. UP009/UP025/UP031
-(`coding`-Kopf, `u""`, `%`-Formatierung) sind aus: 86–96 % aller Meldungen in
-assistant/HumanBodyWeb/djangoBase, eine Hausschrift, die keiner beanstandet hat.
-
-Was sonst noch dazugehört: `ruff` steht im Extra `codequalitaet` und muss in der
-Umgebung des **Projekts** liegen (`sys.executable -m ruff`); fehlt es, ist das
-Ergebnis ein `FEHLER` mit Installationshinweis, kein leeres Grün — und der
-Anlassfall-Check übernimmt seit heute den Hinweis „FEHLER: …" eines
-Befund-Werkzeugs als Grund statt „blind: 0 statt 2" zu melden.
-Prüfungen: `tests/unit/test_skills_ruff.py` (drei Zustände wie bei
-`code-qualitaet`; Ausgabeform von `format --check` bis 0.15 und ab 0.16).
-
-**djangoBase selbst ist seit dem 18.09.2026 ruff-sauber** (`ruff check .` und
-`ruff format --check .` über 444 Dateien, Konfiguration `[tool.ruff]` in
-`pyproject.toml` → `extend = "djangobase/ruff_vorgabe.toml"`). Beides gehört vor
-jeden Commit; ruff liegt im gunSlinger-venv oder nach `pip install ruff` im
-Prüf-Wirt. Die Vorgabe heißt bewusst NICHT `ruff.toml`: Eine Datei dieses
-Namens im Paketordner hätte ruff als nächstgelegene Konfiguration für das
-Paket genommen und die `pyproject.toml` darüber ignoriert (so geschehen — die
-Ausnahme für `ki/messungen.py` griff nicht). Ergänzungen dort über
-`[tool.ruff.lint.extend-per-file-ignores]`, sonst ersetzen sie die Ausnahmen
-der Vorgabe. Was der Umbau nebenbei fand: 18 tote Importe, 35 Variablen namens
-`l`, ein `raise` ohne `from`, ein `yield`-Schleifchen — alles behoben.
-
-**Konsumenten (19.09.2026):** WalkHop, Roomguest, HumanBodyWeb, shortlongx und
-assistant haben je eine `ruff.toml` (`extend` auf die Vorgabe, `target-version`
-des Interpreters) und sind formatiert; die sicheren Fixes sind eingespielt.
-Zwei Lehren daraus: (1) **`ruff check --fix` entfernt keine Importe mehr**
-(`unfixable = ["F401"]` in der Vorgabe) — in shortlongx war
-`from .assets import ASSETS` ein Re-Export, `manage.py check` starb mit
-ImportError. (2) **Anführungszeichen sind Projektsache**: HumanBodyWeb und
-assistant schreiben einfache und haben `[format] quote-style = "single"` in
-ihrer `ruff.toml`; die Vorgabe (doppelt) brach dort 13 Tests, die den Quelltext
-lesen und `'…'`-Ausdrücke suchen. Vor einem Format-Lauf über ein Projekt also:
-Quote-Stil messen (`git grep -c "'"` gegen `'"'`) und die Suite danach fahren —
-oder, wo Tests verboten sind (shortlongx), wenigstens prüfen, ob Zeichenketten
-aus Tests noch im Quelltext vorkommen.
-
-## Hilfe → Tests
-
-### Testlaufzeiten je Testcase (Hilfe → Tests)
-
-`testdauern.Dauern` hängt `--durations 0` an (nur wenn der Interpreter des
-Projekts Python 3.12+ ist — sonst bricht der Lauf an einem unbekannten Argument
-ab) und liest die Laufzeiten aus der Ausgabe. `testhistorie.Testhistorie` hält
-die **letzten vier Läufe je Testcase und je Suite** mit Datum/Uhrzeit in
-`BASE_DIR/logs/testhistorie.json` (keine DB — die Seite muss auch beim
-Neuaufbau der Test-DB Zahlen zeigen). `testtabelle.Testtabelle` baut daraus die
-sortierbare Tabelle (`_tabelle.html`): Testcase · letzte · Ø · Trend ·
-letzte 4 Läufe · Run. Trend erst ab 25 % Abweichung, alles darunter ist Rauschen.
-
-Fehlt `DJANGOBASE["test_discover"]`, leitet die Seite die Labels aus denselben
-`test_befehle` ab — die Einzeltest-Reiter stehen damit in JEDEM Projekt. Die
-Discovery ist 10 Minuten gecacht (sie importiert jedes Testmodul).
-
-### Zwei Einteilungen: Kategorie und Bereich (17.08.2026)
-
-**Kategorie** = wie getestet wird (`unit`, `component`, `ui`, `automated`,
-`performance`, `longrunner`). Sie ist der ORDNER `app/tests/<art>/`; die
-Combo-Box „Verschieben" hängt die Testdatei um (`testverschieben.Verschieber`).
-
-**Bereich** = was getestet wird (Chat, Mail, Musik …). Den gibt **das Projekt**
-an, in `settings.py` oder unter Einstellungen → djangoBase (Feldtyp `zeilen`,
-eine Angabe je Zeile):
-
-    DJANGOBASE["test_bereiche"] = [
-        {"slug": "musik", "name": "Musik", "praefixe": ["search.tests.musik"],
-         "beschreibung": "…"},          # oder: "musik | Musik | search.tests.musik | …"
-    ]
-
-Ohne Angabe wird der Bereich aus dem Ordner abgeleitet (`app/tests/<bereich>/
-<art>/`, sonst die App). Die REIHENFOLGE der Angabe ist die Reihenfolge in der
-Tabelle; dasselbe gilt für `test_kategorien` („unit | Unit", nur bekannte Slugs).
-
-Darstellung: **EINE Tabelle je Kategorie**, Bereich als eigene Spalte, Zeilen
-danach vorsortiert, vor jedem Bereich eine Abschnittszeile mit „Auswählen" und
-„Bereich ausführen". Sortiert der Nutzer nach einer anderen Spalte, nimmt
-`tabellen_sortierung.js` die Abschnittszeilen heraus (`data-gruppe`) und meldet
-`tabelle:sortiert`; `tests_bereiche.js` setzt sie zurück, sobald wieder nach
-Bereich sortiert wird.
-
-**Ein Bereich, dessen Präfix über anderen liegt** (`search.tests` über
-`search.tests.chat`), ist KEIN Verschiebeziel — sonst landet die Datei in
-`search/tests/<art>/` und verschwindet aus der Gliederung. Genau das ist am
-17.08.2026 einmal passiert (`Bereiche.ziele`).
-
-Projektseiten mit eigenem Runner nehmen `Testtabelle(..., run_modus="knopf")`
-(rendert `<button data-run=…>` statt `?run=`-Link) und setzen
-`data-tests-auswahl="ereignis"` auf einen Vorfahren; die Auswahl meldet dann
-`tests:auswahl-lauf` statt zu posten. Laufzeiten aus einem fremden Runner gehen
-über `testmitschrift.Mitschrift` in dieselbe Historie.
-
-**Statische Dateien:** Vorlagen hängen `?v={{ djangobase.statik_v }}` an Skripte
-UND an ES-Importe (`statik.Statik` = jüngste mtime der djangoBase-JS/CSS). Ohne
-das liefert der Browser-Cache alte Module — gemessen: mit Cache-Buster kam die
-neue Fassung, ohne die alte, bei frisch aktiviertem Service Worker.
-
-**Logging:** Testläufe und Verschiebungen loggen auf `djangobase.tests` (nicht
-`django` — dort hängt `django.server` mit jeder Anfrage). Ein Konsument, der
-nichts konfiguriert, sieht davon nichts; im assistant liegt dafür
-`djangobase.log` samt Eintrag in `log_sources`.
-
-### Live-Lauf und Spalte „Nr." (17.08.2026)
-
-**Live-Lauf:** `POST /hilfe/tests/strom/` (`teststrom.Teststrom`) fährt die
-geprüften Ziele und streamt JSON-Zeilen: `start` → `log`/`progress` → `summary`.
-`tests_strom.js` fängt Run-Link, „Alle ausführen", „Bereich ausführen" und die
-Checkbox-Auswahl ab, schreibt ✓/✗ in **alle** Zeilen mit dieser Test-ID (der
-Fall steht im Kategorie-Reiter UND in „Alle") und am Ende die Laufzeiten. Die
-`?run=`-Links bleiben im HTML — ohne das Modul läuft es wie vorher mit
-Seitenwechsel.
-
-**Der Prozess darf nie zurückbleiben — drei Netze, nicht eins** (18.08.2026
-nachgezogen; das `finally` allein deckte den Fall nicht ab):
-
-1. `readline()` blockiert, also kommt `GeneratorExit` erst beim nächsten `yield`.
-   Ein Test, der hängt und nichts ausgibt, hätte den Prozess endlos gehalten →
-   **Wächter-Thread** (`threading.Timer`) beendet nach Ablauf der Frist ohne auf
-   Ausgabe zu warten. Gemessen an einem Prozess, der eine Zeile schreibt und dann
-   schläft: Abbruch nach 6,2 s bei Frist 6 s (vorher: 300 s).
-2. `kill()` trifft nur den einen Prozess; ein Testlauf hat Kinder
-   (`ProcessPoolExecutor`), und auf Windows sterben die NICHT mit dem Eltern-
-   prozess → `testtoeter.Toeter` beendet den **Baum** (`taskkill /F /T` bzw.
-   `os.killpg`; dafür startet der Lauf auf POSIX mit `start_new_session=True`).
-3. Endet der SERVER mitten im Lauf, wäre der Testprozess verwaist → `atexit`.
-
-Nebenbefund derselben Runde: `OpenProcess` gelingt auf Windows auch für einen
-BEENDETEN Prozess, solange noch ein Handle offen ist. „Läuft der noch?" fragt
-deshalb `GetExitCodeProcess` (259 = `STILL_ACTIVE`) — sonst hätte eine vergessene
-Sperre bis zur Frist gehalten.
-
-**EIN Lauf zur Zeit** über `testsperre.Laufsperre`: eine Datei
-(`logs/teststrom.lock`, `O_EXCL`) mit der Server-PID. Die JS-Sperre der ersten
-Fassung galt nur für den EINEN Tab — ein zweiter Tab startete munter einen
-zweiten Lauf auf derselben Testdatenbank. Stirbt der Server, gilt die Sperre
-nicht mehr (PID-Prüfung), spätestens nach `FRIST` verfällt sie. Der Knopf
-**„Abbrechen"** (`POST … {"abbrechen": true}`) beendet Baum und Sperre — ohne ihn
-hielte ein hängender Lauf eine Stunde.
-
-Den Fortschritt aus der Ausgabe liest `testzeilen.Testzeilen` — drei gemessene
-Fallen: Name und Ergebnis stehen nicht in einer Zeile, Zeitstempel können mitten
-in der Zeile stehen, und bei Tests mit Docstring zeigt `-v 2` dessen erste Zeile
-statt des Namens.
-
-**Was ausgeführt werden darf** steht an EINER Stelle: `testziele.Testziele`
-(entdeckte Test-IDs, Slugs konfigurierter Befehle, Karten-Labels; Form geprüft).
-Seiten-Lauf und Live-Lauf benutzen sie gemeinsam.
-
-**Spalte „Nr.":** der Platz in der Tabelle, änderbar.
-`POST /hilfe/tests/nummer/` bekommt Kennung, Nummer und die aktuell angezeigte
-Reihenfolge des Abschnitts; `testreihenfolge.Reihenfolge` ordnet um und speichert
-`logs/testreihenfolge.json`. Erst die Antwort hängt die Zeilen um — sonst gäbe es
-zwei Meinungen darüber, wo ein Test steht. Die Nummer gilt INNERHALB des
-Bereichs und wandert beim Verschieben mit. Sie ist keine
-Ausführungsreihenfolge — `manage.py test` bestimmt die selbst.
-
-**Spaltenordnung** (in `Testtabelle.SPALTEN`, und `testzeiten.js` muss dazu
-passen — Test `test_js_kennt_dieselben_spalten`):
-Auswahl · Nr. · Kategorie · Bereich · Testcase · Ziel · letzte · Ø · Trend ·
-letzte 4 Läufe · Run.
-
-### JS in der Testsuite: `djangobase.testhelfer.Webmodul`
-
-Lädt ein ES-Modul der Seite in Node — spiegelt die Importkette und biegt
-absolute `/static/…`-Pfade um (die Node sonst als `A:\static\…` sucht) sowie
-`?v=`-Anhänge. Ein Import ins Leere wirft, statt still zu überspringen. Ausnahme
-(20.10.2026): ein nackter Paketname der Importkarte (`three/addons/…/X.js`) ist keine
-Datei der Seite — ihn löst Node beim Laden auf und wirft dann selbst.
-
-### Konformitätsprüfungen: `djangobase.tests.konform` (21.08.2026)
-
-Neun Testdateien, die im KONSUMENTEN laufen (`manage.py test
-djangobase.tests.konform`) und fragen: erbt dieses Projekt djangoBase wirklich?
-Alle ohne Datenbank (`SimpleTestCase`, `databases = []`) — geprüft werden
-Einstellungen, Vorlagen und Quelltext, nicht Daten.
-
-**Ein Wirt, der kein Konsument ist, sagt das** (18.09.2026): `DJANGOBASE_KONFORM =
-False` in seinen Settings — dann überspringen die Klassen auf `konform/basis.py
-KonformTest` mit Grund, statt 19 rote Fälle über ein Projekt ohne Vorlagen, Menü
-und LOGGING zu melden. So steht es im Prüf-Wirt `A:\tmp_dbhost`. Die
-`GegenprobeTest`-Klassen (trifft das Muster das Gemeinte?) laufen überall.
-
-**Was sie durchsuchen dürfen, entscheidet `tests/konform/quellen.py`** — eine
-Stelle für alle Prüfer. Draußen bleiben: `TABU`-Ordner (Umgebungen, Caches),
-das djangoBase-Paket selbst, `MEDIA_ROOT` und alles aus dem neuen Schlüssel
-`DJANGOBASE_KONFORM_AUS` (Pfad-Teilstrings). Gelaufen wird mit `os.walk` und
-Ast-Abschnitt VOR dem Abstieg; das Ergebnis liegt im Zwischenspeicher.
-
-Der erste Lauf im `assistant` meldete **199 Verstöße, davon 6 echt**: 111 aus
-dem Chrome-Profil eines Verkaufs-Werkzeugs, 56 Vorlagen aus demselben Ordner,
-23 JS-Dateien aus der Virensuche-Quarantäne (Dateien, welche die App
-UNTERSUCHT). Laufzeit 81 s, weil `rglob` durch 84.442 archivierte Mails lief —
-je Suchmuster und je Testmethode erneut. Nach dem Umbau: 102 Tests, **1,0 s**.
-
-Drei Prüfer waren zudem selbst falsch geeicht (alle mit Gegenprobe repariert):
-
-| Fehlalarm | Ursache | Jetzt |
-|---|---|---|
-| „Seitenleiste leer" | nur `menu` gefragt | `sidebar_template` zählt genauso |
-| „Modul nirgends gebunden" | unter `BASE_DIR` gesucht | `tabellen_auto.js` zählt |
-| Kontrastfehler in Prosa | `pre|code` im ganzen Dokument | nur `<style>`-Blöcke |
-
-Umgekehrt hatte `test_statik` einen **blinden Fleck**: Es sah nur Adressen, die
-selbst auf `.js` enden — `src="{% static 'app/x.js' %}?v=3"` bricht am inneren
-Anführungszeichen ab. Damit war die häufigste Django-Schreibweise unsichtbar.
-
-## Frontend-Bausteine
-
-### Frontend-Klassen, die dazugehören
-
-`djangobase/static/djangobase/js/serverabruf.js` und `protokoll.js` sind die
-**kanonische Fassung** (die Umsteller schreiben Importe auf genau sie).
-Konsumenten mit vielen kurzen relativen Importen legen eine Weiterleitung an,
-statt zu kopieren:
-
-```js
-export { Serverabruf } from '/static/djangobase/js/serverabruf.js';
-```
-
-`Serverabruf` prüft `response.ok`, hängt bei Fehlern **Status, Rumpf und
-geparstes JSON** an die Ausnahme (`fehler.status/.rumpf/.daten`), setzt den
-CSRF-Kopf und kennt `senden`/`formular`/`jsonOderNull`. Cookiename über
-`Serverabruf.COOKIENAME` oder `<meta name="csrf-cookie">`.
-
-### Zwei Fallen in den Tabellen-Modulen, beide am 17.08.2026 behoben
-
-`TabellenBreiten` merkte beim Ziehen NUR die angefasste Spalte; nach F5 verteilte
-der Browser den Rest neu, und es sah aus wie „nicht gemerkt". Jetzt speichert
-`_merkenAlle()` die ganze Gruppe (gelesen aus einer SICHTBAREN Tabelle — in einem
-`display:none`-Panel ist jede Breite 0).
-
-`TabellenSortierung` merkte nur den Spalten-INDEX. Kommen Spalten dazu, zeigt er
-auf etwas anderes: Nach dem Einfügen von „Nr." und „Kategorie" sortierte die
-Seite nach „Nr." (einer `sortAus`-Spalte), und die Bereichs-Abschnitte
-verschwanden. Jetzt wird der Spalten-**Key** mitgespeichert, der Index daraus neu
-bestimmt, und ein Eintrag auf eine `sortAus`-Spalte wird verworfen.
-
-Regeln von `jsbefunde` stehen in `skills2/jsregeln.py` (eine Klasse je Regel),
-der Klammerzähler in `skills2/jsklammern.py` (Template-Strings über mehrere
-Zeilen, `} catch (e) {`).
-
-Tests: `djangobase/tests/unit/test_skills2_frontend.py` — je Werkzeug ein Fund
-UND eine Gegenprobe, dazu die vier Fehlalarme, die beim Bau aufgefallen sind.
-
-## Hilfe → Jobs: die Ablauf-Übersicht (26.08.2026)
-
-Die Seite hat **zwei Teile mit verschiedenen Fragen**:
-
-| Teil | Frage | Quelle |
-|---|---|---|
-| oben (alt) | Was tut der Daemon **gerade**? | `djangobase.jobs` — Registry, im Speicher, vom Projekt angemeldet |
-| unten (neu) | Was ist **passiert**? | `Jobkatalog` + `Jobverlauf` — Dateien, überleben den Neustart |
-
-Anlass war die Frage, ob ein iPaaS-Werkzeug (n8n, Activepieces) nötig ist.
-Antwort: Was fehlte, war keine Ablauf-**Steuerung**, sondern die
-Ablauf-**Übersicht** — „welcher Job wann zuletzt lief, wie lange er
-brauchte und ob er Fehler warf".
-
-**Vier Klassen, vier Zuständigkeiten:**
-
-- `joberkennung.Joberkennung` — findet die Jobs selbst: die
-  Management-Commands der Projekt-Apps plus die angemeldeten Daemons.
-  Django-eigene Befehle (`migrate`, `runserver`, …), Namen mit
-  führendem `_` und `DJANGOBASE["jobs_ausschluss"]` fallen heraus.
-- `jobkatalog.Jobkatalog` — merkt den Bestand in
-  `logs/jobkatalog.json`, **Frist ein Tag**. Grund: Für die
-  Beschreibung wird jede Befehlsklasse importiert (assistant: 93).
-  Der Knopf „Jetzt aktualisieren" erzwingt es sofort.
-- `jobverlauf.Jobverlauf` — `logs/joblaeufe.jsonl`, **eine Zeile je
-  Lauf**. Anhängen statt Umschreiben, weil Commands eigene Prozesse
-  sind und gleichzeitig schreiben; ein Umschreiber würde den anderen
-  verlieren.
-- `jobuebersicht.Jobuebersicht` — führt beides zusammen. Gescheiterte
-  zuerst, dann die Gelaufenen, dann die nie Gelaufenen.
-
-**Die Aufzeichnung** (`jobaufzeichnung.Jobaufzeichnung`) legt sich in
-`AppConfig.ready()` um `BaseCommand.execute` — einmal, für alle
-Befehle, auch für künftige. Sie **misst nur**: jede Ausnahme wird
-notiert und unverändert weitergereicht, jeder Fehler beim Aufzeichnen
-verschluckt. Abschalten: `DJANGOBASE_JOBAUFZEICHNUNG = False`.
-
-**Keine Migration** — bewusst. djangoBase steckt in sechs Projekten;
-eine Tabelle müsste jedes erst migrieren. Dateien neben den Logs gehen
-denselben Weg wie `logs/testhistorie.json`.
-
-Prüfungen: `tests/unit/test_job{verlauf,katalog,uebersicht,aufzeichnung}.py`
-— 61 Stück, nach Kriterium 19 („BDD ohne Gherkin") geschrieben: Die
-Klasse nennt die Ausgangslage (`EinBestandVonGestern`), die Methode das
-erwartete Verhalten (`test_wird_beim_lesen_neu_ermittelt`). Helfer in
-`tests/unit/jobwerkzeug.py`.
-
-## Hilfe → Cache und das Werkzeug `cachekonzept` (06.09.2026)
-
-Das Cache-Konzept steht an EINER Stelle: `djangobase/cachekonzept.py` (Regeln mit
-Vorgeschichte, Prüfer für Vorlagen, JavaScript und Einstellungen). Drei Verbraucher
-rufen es: die Seite **Hilfe → Cache** (`views/cacheseite.py`, Pflichtmenü, Zustand des
-Projekts + Befunde + Regeln + Anleitung für neue Projekte), das Befund-Werkzeug
-`skills/cachekonzept.py` (Hilfe → Skills / Review) und die Konformitätsprüfung
-`tests/konform/test_cachekonzept.py` (jede Vorlage, jedes Skript, dazu Middleware,
-Fassungspfad, ASGI-Hülle). Kern: HTML `no-store`; Statik mit Fassung; ES-Module über
-`{% fassungspfad %}` (Fassung im Pfad, die Importe erben sie), nie über
-`{% static %}?t=`; kein `?t={% now %}` an Statik (das ist „nie cachen"); keine Kennung
-in Import-Adressen. `test_statik.py` zählt `{% fassungspfad %}` seither als versionierte
-Einbindung — 3DTools hat alle 46 Stellen umgestellt und wäre sonst „ohne Einbindung"
-gewesen.
+| SchweizerMakler | `A:\SchweizerMakler\server` (:8092) | **4-Ebenen-Menü** (vierte Stufe in `_sidebar.html` seit 19.09.2026, additiv), Settings-Paket, `Testlaeufer`, Strukturtests |
+| StayNestor | `A:\staynestor\server` (:8095) | Standard-Shell, `logo_bild`, Theme-Vorgaben „weiss“, Azure-Übersetzung; live auf staynestor.com mit Dateikopie unter `/srv/shared/djangoBase` |
+
+Enumeration prüfen: ripgrep respektiert `.gitignore` und übersieht Projekte (bei shortlongx passiert) — für
+vollständige Suchen `rg --no-ignore` oder `grep -r`.
+
+## Weiterführende Doku (`doku/`, bei Arbeit am Thema lesen)
+- `doku/werkzeugkaesten.md` — `skills/` (Endpunkt-Werkzeuge), `skills2/` (Python- + 7 Frontend-Prüfer: jssyntax,
+  jswaisen, jsregistrierung, jsfaenger, jsfunktionen, jsbefunde, jsstumm), `umbau/` (Fixer wie `fix-ausnahme`, die
+  Quelltext ändern); Review mit `ziel: "werkzeug"` (CodeRabbit); Bauformen aus gunSlinger (Strukturtests mit Ratsche,
+  Netzsperre im Prüflauf, `Pause` statt `time.sleep`); ruff-Vorgabe `djangobase/ruff_vorgabe.toml` und ihre Fallen.
+- `doku/hilfe_tests.md` — Laufzeiten/Historie, Kategorie (Ordner) vs. Bereich (`test_bereiche`), Live-Lauf mit drei
+  Netzen gegen verwaiste Prozesse und `Laufsperre`, Spalte „Nr.“, `testhelfer.Webmodul`, Konformitätsprüfungen
+  `djangobase.tests.konform`.
+- `doku/frontend_bausteine.md` — `serverabruf.js`/`protokoll.js` als kanonische Fassung, Tabellen-Fallen.
+- `doku/hilfe_jobs.md` — Ablauf-Übersicht (Joberkennung, Jobkatalog, Jobverlauf, Aufzeichnung um
+  `BaseCommand.execute`; keine Migration).
+- `doku/theme_seite.md` — Einstellungen → Theme im Einzelnen.

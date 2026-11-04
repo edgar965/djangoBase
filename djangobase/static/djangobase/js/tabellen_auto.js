@@ -29,8 +29,15 @@
  * Ein ausdrückliches `data-sort-key` hat immer Vorrang — es überlebt auch ein
  * Umsortieren der Seite.
  */
-import { TabellenSortierung } from '/static/djangobase/js/tabellen_sortierung.js';
-import { TabellenBreiten } from '/static/djangobase/js/tabellen_breiten.js';
+// RELATIV, NICHT '/static/…' (04.11.2026): Die Middleware bindet dieses Modul
+// mit Fassung im Pfad ein (``/statik/v-<n>/…``, wo eingehaengt) - relative
+// Importe erben sie, und ein geaendertes Nachbarmodul kommt sofort an. Mit
+// '/static/…' blieb es bis zu sieben Tage aus dem Browser-Zwischenspeicher
+// (nginx ``expires 7d``), waehrend dieses Modul schon neu war.
+import { TabellenSortierung } from './tabellen_sortierung.js';
+import { TabellenBreiten } from './tabellen_breiten.js';
+// Spalten umstellen (Einstellungen -> Tabellen, ``tabellen_reihenfolge.js``).
+import { TabellenReihenfolge } from './tabellen_reihenfolge.js';
 
 /** Ein stabiler Speicher-Schlüssel für diese Tabelle. */
 function schluessel(tabelle, nr) {
@@ -96,6 +103,11 @@ export function tabellenBinden(wurzel) {
     }
     vergeben.add(k);
     t.dataset.sortKey = k;
+    // Vor den Breiten: vergibt jeder Kopfzelle einen ``data-key``, nach dem
+    // Breiten und Sortierung ihre Spalte auch nach dem Umstellen finden.
+    try {
+      if (TabellenReihenfolge.erlaubt(t)) TabellenReihenfolge.binden(t, k);
+    } catch (e) { /* siehe oben */ }
     try {
       new TabellenBreiten([t], k).binden();
     } catch (e) { /* siehe oben */ }

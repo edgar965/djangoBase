@@ -1,0 +1,23 @@
+{% extends djangobase.base_template|default:"djangobase/base.html" %}
+{% load static %}
+{% comment %}Einstellungen -> Tabellen (04.11.2026, views/tabellen_seite.py): je Schalter eine Zeile, die Checkbox
+schickt das Formular beim Umschalten selbst ab (kein Speichern-Knopf). Gilt für alle Tabellen, die
+tabellen_auto.js bindet; in die Seiten kommen die Werte über djangobase.tabellen_element (tabellen_element.py).{% endcomment %}
+
+{% block title_extra %} · Tabellen{% endblock %}
+{% block topbar_title %}<i class="bi bi-table"></i> Einstellungen · Tabellen{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'djangobase/css/tabellen.css' %}?v={{ djangobase.statik_v }}">
+<h2 class="sec">Tabellen</h2>
+<p class="subtle">Gilt für alle Tabellen dieser Anwendung. {% if je_benutzer %}Was jeder Benutzer verschiebt und anpasst, wird für ihn gemerkt (auf jedem Gerät).{% else %}Gemerkt wird im Browser.{% endif %}</p>
+<form method="post" id="djb-tabellen-form">{% csrf_token %}
+<div class="tbl-wrap"><table class="data sortable" data-sort-key="djangobase-einstellungen-tabellen">
+    <thead><tr><th data-key="einstellung">Einstellung</th><th data-key="beschreibung">Beschreibung</th><th data-key="aktiv">Aktiv</th></tr></thead>
+    <tbody>{% for z in zeilen %}
+    <tr><td><b>{{ z.label }}</b></td><td>{{ z.beschreibung }}</td>
+        <td data-sort="{{ z.an|yesno:'1,0' }}"><label><input type="checkbox" name="{{ z.key }}" value="1"{% if z.an %} checked{% endif %} onchange="this.form.submit()"> {{ z.an|yesno:"an,aus" }}</label></td></tr>
+    {% endfor %}</tbody>
+</table></div>
+</form>
+{% endblock %}
