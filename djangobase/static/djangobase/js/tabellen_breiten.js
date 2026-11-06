@@ -178,6 +178,7 @@ export class TabellenBreiten {
     this.ts.forEach(t => {
       t.style.tableLayout = '';
       t.style.width = '';
+      t.style.marginRight = '';
       this._ths(t).forEach(th => { th.style.width = ''; });
     });
     if (this.vorgaben) this.binden();       // zurück auf die einheitlichen Vorgaben
@@ -236,6 +237,15 @@ export class TabellenBreiten {
     return null;
   }
 
+  /** NUR DAS RECHTE ENDE BEWEGT SICH (Ansage Edgar, 05.11.2026): Ganz nach rechts
+   *  gerollt kappte der Browser beim Schmalerziehen ``scrollLeft`` (360 -> 324), alles
+   *  links der Spalte rutschte 36 px nach rechts. Der Rand hinter der Tabelle haelt den
+   *  Rollweg; er bleibt nach dem Loslassen, sonst springt die Tabelle dann. */
+  _randHalten(t, box, sx) {
+    t.style.marginRight = sx ? Math.max(0, sx + box.clientWidth - t.offsetWidth) + 'px' : '';
+    box.scrollLeft = sx;
+  }
+
   /** Griff fuer EINE Kopfzelle bauen (auch fuer nachruesten() nach Kopf-Neuaufbau). */
   _griff(th, sk) {
     const g = document.createElement('span');
@@ -256,15 +266,15 @@ export class TabellenBreiten {
       // Deshalb wird der Wunschwert festgehalten und nach jedem Setzen erneut gesetzt.
       const box = this._scroller(th);
       const sx = box ? box.scrollLeft : 0;
+      const t = th.closest('table');
       const move = ev => {
         this._setzen(sk, Math.max(TabellenBreiten.MIN_PX, Math.round(w0 + ev.clientX - x0)));
-        if (box) box.scrollLeft = sx;
+        if (box) this._randHalten(t, box, sx);
       };
       const up = () => {
         document.removeEventListener('mousemove', move);
         document.removeEventListener('mouseup', up);
         document.body.classList.remove('lg-zieht');
-        if (box) box.scrollLeft = sx;      // letzter Stand kann noch gekappt sein
         // Die ganze Gruppe, nicht nur `sk`: siehe `_merkenAlle`.
         this._merkenAlle();
       };

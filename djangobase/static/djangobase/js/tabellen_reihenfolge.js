@@ -34,6 +34,7 @@
    der Zellen ueber ihre Position anspricht (``row.cells[3]``, CSS
    ``td:nth-child(3)``), trifft nach dem Umstellen eine andere Spalte - solche
    Tabellen tragen ``data-spalten-fest``. */
+import { TabellenRandRollen } from './tabellen_rand_rollen.js';
 import { TabellenSpeicher } from './tabellen_speicher.js';
 
 const VORSATZ = 'tblReihe:';
@@ -201,6 +202,10 @@ export class TabellenReihenfolge {
       const y0 = e.clientY;
       let zieht = false;
       let ziel = null;
+      const rand = new TabellenRandRollen(this.t, (x) => {
+        ziel = this._zielPosition(kopf, x);
+        this._strich(kopf, ziel);
+      });
       const bewegen = (ev) => {
         if (!zieht) {
           if (Math.abs(ev.clientX - x0) < SCHWELLE_PX && Math.abs(ev.clientY - y0) < SCHWELLE_PX) return;
@@ -212,10 +217,12 @@ export class TabellenReihenfolge {
         ev.preventDefault();
         ziel = this._zielPosition(kopf, ev.clientX);
         this._strich(kopf, ziel);
+        rand.maus(ev.clientX);
       };
       const los = () => {
         document.removeEventListener('mousemove', bewegen);
         document.removeEventListener('mouseup', los);
+        rand.stopp();
         if (!zieht) return;
         th.classList.remove('djb-spalte-gezogen');
         document.body.classList.remove('djb-spalten-zieht');

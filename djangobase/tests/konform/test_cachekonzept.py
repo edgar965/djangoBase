@@ -21,8 +21,11 @@ Vier Pruefungen, je eine Regel, plus die Einstellungen:
        Fassungspfad muss es sein, sonst erben die Importe die Fassung nicht.
     2. Kein ``?t={% now %}`` an Skript- und Stildateien — das ist „nie cachen".
     3. Keine Kennung in JavaScript-Importen (ein Modul, eine Adresse).
-    4. Middleware, Fassungspfad und ASGI-Huelle sind eingehaengt.
+    4. Middleware, Fassungspfad und ASGI-Huelle sind eingehaengt, und die Huelle
+       wirkt auch unter dem ``runserver`` von Daphne.
 """
+
+from django.conf import settings
 
 from djangobase.cachekonzept import Cachekonzept
 from djangobase.tests.konform.quellen import dateien, wurzel
@@ -44,6 +47,20 @@ def _kurz(pfad):
         return str(pfad.relative_to(wurzel())).replace("\\", "/")
     except ValueError:
         return str(pfad)
+
+
+def _startskripte_ohne_nostatic(ordner):
+    """Die ``start*``-Skripte in ``ordner``, die ``runserver`` starten, ohne ``--nostatic`` zu setzen.
+    Kommentarzeilen zählen nicht: Dort darf der Schalter erklärt werden, ohne gesetzt zu sein."""
+    ohne = []
+    for wo in ordner:
+        for endung in ("ps1", "bat", "cmd", "sh"):
+            for pfad in sorted(wo.glob("start*." + endung)):
+                zeilen = _text(pfad).splitlines()
+                code = "\n".join(z for z in zeilen if not z.lstrip().startswith(("#", "::", "REM ")))
+                if "runserver" in code and "--nostatic" not in code:
+                    ohne.append(pfad)
+    return ohne
 
 
 def _befunde(regel, endung, pruefer):
@@ -82,6 +99,19 @@ class CachekonzeptTest(KonformTest):
         befunde = Cachekonzept.einstellungen()
         zeilen = ["%s: %s — %s" % (b["ort"], b["was"], Cachekonzept.regel(b["regel"]).wie) for b in befunde]
         self.assertEqual(befunde, [], "Einstellungen gegen das Cache-Konzept:\n" + "\n".join(zeilen))
+
+    def test_statik_huelle_wirkt_unter_daphne(self):
+        """Der Name ``StatikKopfzeilen`` in ``asgi.py`` reicht nicht: Mit ``daphne`` in ``INSTALLED_APPS``
+        legt ``runserver`` seinen eigenen Statik-Handler AUSSEN um die Anwendung, die Hülle sieht ``/static/``
+        nie. StayNestor, 06.11.2026: Hülle eingehängt, Prüfung grün, Antwort nur mit ``Last-Modified``."""
+        if "daphne" not in settings.INSTALLED_APPS:
+            self.skipTest("kein Daphne: runserver legt keinen eigenen Handler um asgi.py")
+        if "StatikKopfzeilen" not in (Cachekonzept.asgi_quelle() or ""):
+            self.skipTest("keine Hülle in asgi.py (meldet test_middleware_fassungspfad_und_asgi_huelle)")
+        ohne = _startskripte_ohne_nostatic([wurzel(), wurzel().parent])
+        self.assertEqual(
+            ohne, [], "Diese Startskripte brauchen `--nostatic`, sonst fehlt die Cache-Kopfzeile der Statik."
+        )
 
     def test_es_wurde_wirklich_gesucht(self):
         """Eine Pruefung ueber null Dateien ist keine Pruefung."""

@@ -182,7 +182,10 @@ class ModuleNutzenDenBauerTest(KonformTest):
 
     def test_gebaute_tabellen_sind_sortierbar(self):
         ohne = [
-            (p, a) for p, a in self.gebaut if "sortable" not in " ".join(_KLASSEN.findall(a)).lower().split()
+            (p, a)
+            for p, a in self.gebaut
+            if "sortable" not in " ".join(_KLASSEN.findall(a)).lower().split()
+            and "data-sort-aus" not in a.lower()  # Zeilenfolge zählt, wie in ``test_tabellen``
         ]
         if ohne:
             self.fail(

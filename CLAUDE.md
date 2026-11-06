@@ -44,7 +44,8 @@ nichts, übernimmt Google — erster Nutzer StayNestor), Jobs-Seite.
   (`views/cacheseite.py`), Werkzeug `skills/cachekonzept.py`, Prüfung `tests/konform/test_cachekonzept.py`. Kern: HTML
   `no-store`; Statik mit Fassung; ES-Module über `{% fassungspfad %}` (Fassung im Pfad, Importe erben sie), nie
   `{% static %}?t=`; kein `?t={% now %}` an Statik; keine Kennung in Import-Adressen. `test_statik.py` zählt
-  `{% fassungspfad %}` als versionierte Einbindung (3DTools: alle 46 Stellen umgestellt).
+  `{% fassungspfad %}` als versionierte Einbindung (3DTools: alle 46 Stellen umgestellt). Mit `daphne` in
+  `INSTALLED_APPS` wirkt `StatikKopfzeilen` nur mit `runserver --nostatic` (Startskript, geprüft im selben Test).
 
 ## Integrations-Rezept (Kurzform)
 1. `pip install -e A:\shared\djangoBase`
@@ -79,7 +80,8 @@ nichts, übernimmt Google — erster Nutzer StayNestor), Jobs-Seite.
   `djangobase:tabellen_einstellung`; Browser-Werte werden beim ersten Lesen übernommen.
 - `tabellen_reihenfolge.js`: Überschrift greifen und ziehen, Zellen werden im DOM umgehängt, nachgeladene Zeilen
   ordnet ein MutationObserver ein; `data-spalten-fest` nimmt eine Tabelle aus, mehrzeilige Köpfe/`colspan` bleiben
-  fest. Auch je Tabelle einschaltbar mit `data-spalten-verschieben`.
+  fest. Auch je Tabelle einschaltbar mit `data-spalten-verschieben`. `tabellen_rand_rollen.js` rollt beim Ziehen am
+  Rand mit, ab rechts neben sticky-Spalten.
 - `tabellen_auto.js` importiert seine Nachbarn relativ und kommt über die Middleware mit Fassung im Pfad
   (`/statik/v-…/`, wo `fassungsstatik` eingehängt ist) — vorher blieben geänderte Nachbarmodule bis zu 7 Tage im
   Browser (nginx `expires 7d` auf `/static/`).
@@ -103,7 +105,8 @@ nichts, übernimmt Google — erster Nutzer StayNestor), Jobs-Seite.
   `skills2_ignorieren`, `jobs_ausschluss` (Befehle, die auf der Jobs-Seite nicht als Ablauf gelten), `struktur`
   (Grenzen, Schalter, Bestandslisten der Strukturtests), `test_bereiche`/`test_kategorien` (`doku/hilfe_tests.md`).
 - **Settings-Konstanten** (nur Tests): `DJANGOBASE_KONFORM_AUS` (Datenordner, die keine Prüfung ansieht),
-  `DJANGOBASE_KONFORM_TABELLEN_AUS` (Dateien bewusst ohne Tabellen-Raster), `DJANGOBASE_NETZ_ERLAUBT` (Rechner, die
+  `DJANGOBASE_KONFORM_TABELLEN_AUS` (Dateien bewusst ohne Tabellen-Raster), `DJANGOBASE_KONFORM_EIGENES_HTML`
+  (öffentliche Seiten bewusst ohne Rahmen, Pfad klein geschrieben), `DJANGOBASE_NETZ_ERLAUBT` (Rechner, die
   der Prüflauf anfahren darf), `DJANGOBASE_NETZSPERRE` (`False` = Sperre aus), `DJANGOBASE_KONFORM` (`False` = Wirt
   ist kein Konsument), `DJANGOBASE_JOBAUFZEICHNUNG` (`False` = Jobs nicht aufzeichnen).
 

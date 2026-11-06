@@ -34,6 +34,7 @@ neuer Befund-Abschnitte ist das in diesem Projekt zweimal passiert.
 import re
 from pathlib import Path
 
+from django.conf import settings
 from django.test import SimpleTestCase
 
 from djangobase.tests.konform.quellen import TABU, dateien, text_von, wurzel  # noqa: F401
@@ -114,7 +115,9 @@ class ErbenTest(KonformTest):
             if any(w in pfad.name.lower() for w in EIGEN_ERLAUBT):
                 continue
             weg = str(pfad).replace("\\", "/").lower()
-            if any(w in weg for w in EIGEN_ERLAUBT_ORDNER):
+            # DJANGOBASE_KONFORM_EIGENES_HTML: Pfad-Teile, die das Projekt bewusst ohne Rahmen führt.
+            projekt = getattr(settings, "DJANGOBASE_KONFORM_EIGENES_HTML", ())
+            if any(w in weg for w in (*EIGEN_ERLAUBT_ORDNER, *projekt)):
                 continue
             text = text_von(pfad)
             if text is None:
@@ -147,6 +150,8 @@ class ErbenTest(KonformTest):
             if not m:
                 continue
             ziel = m.group(1)
+            if text[m.start(1) - 1] not in "\"'":
+                continue  # {% extends variable %}: Das Ziel steht erst zur Laufzeit fest.
             if ziel.startswith("djangobase/") or "{{" in ziel or "{%" in ziel:
                 continue  # djangoBase oder dynamisch
             if Path(ziel).name not in namen:

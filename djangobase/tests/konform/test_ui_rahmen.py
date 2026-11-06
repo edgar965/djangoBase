@@ -161,6 +161,8 @@ class MenueKonformTest(KonformTest):
         for name, p in _menue_durchgehen(_djangobase("menu")):
             if not p.get("label"):
                 luecken.append(name + ": kein label")
+            elif p.get("dynamisch") and _djangobase("menu_provider"):
+                continue  # Die Ziele setzt erst der ``menu_provider`` zur Laufzeit.
             elif not p.get("untermenu") and not p.get("url"):
                 luecken.append(name + ": weder url noch untermenu")
         self.assertFalse(luecken, "Unvollständige Menüpunkte: %s" % "; ".join(luecken[:8]))
@@ -198,7 +200,7 @@ class EigeneVorlagenTest(KonformTest):
     def basis_vorlagen(self):
         """Die Projekt-Vorlagen, die ihrerseits als Basis dienen."""
         for pfad in dateien(".html"):
-            if not pfad.name.startswith("base") or PAKET in pfad.parents:
+            if not pfad.name.startswith(("base", "basis")) or PAKET in pfad.parents:
                 continue
             yield pfad
 
