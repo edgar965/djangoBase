@@ -158,7 +158,25 @@ class Fassungsstatik:
         if wurzel:
             aus.append(str(wurzel))
         aus.extend(cls._app_ordner())
+        aus.extend(cls._eigener_ordner())
         return [o for o in aus if o and os.path.isdir(o)]
+
+    @classmethod
+    def _eigener_ordner(cls):
+        """Die Statik von djangoBase selbst, wenn es EDITIERBAR eingebunden ist.
+
+        Gemessen 11.11.2026 im assistant: ``A:\\shared\\djangoBase`` liegt
+        ausserhalb von ``BASE_DIR``, ``_app_ordner`` liess es deshalb aus. Ein
+        geaendertes ``tabellen_auto.js`` kam unter derselben Adresse
+        ``/statik/v-1794432846/…`` heraus — der Browser behielt das alte Modul
+        (``immutable``), obwohl der Server schon das neue lieferte. Aus
+        ``site-packages`` bleibt es draussen (siehe ``_ordner``).
+        """
+        ordner = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+        teile = ordner.replace("\\", "/").split("/")
+        if any(fremd in teile for fremd in cls.FREMD):
+            return []
+        return [ordner]
 
     #: Ein Wegweiser auf eine INSTALLIERTE Anwendung, auch wenn sie unterhalb
     #: von ``BASE_DIR`` liegt. Das ist der Normalfall bei einer virtuellen

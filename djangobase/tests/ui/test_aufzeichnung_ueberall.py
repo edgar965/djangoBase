@@ -56,6 +56,15 @@ class MiddlewareTest(SimpleTestCase):
         ):
             self.assertIn(modul, text, "Auf /kameras/ fehlt %r — genau der gemeldete Befund" % modul)
 
+    @override_settings(LOGIN_URL="/anmelden/")
+    def test_sitzung_abgelaufen_mit_anmeldung_vor_dem_aufzeichner(self):
+        """16.11.2026 (assistant Heizung): fetch und HTMX, die auf der Anmeldeseite landen, laden die Seite
+        neu (``sitzung_abgelaufen.js``). Das Modul kommt in jede Seite, trägt die Anmeldeadresse und steht
+        VOR dem Aufzeichner — der umhüllt fetch und setzt beim Stopp den vorigen Stand zurück."""
+        text = self._durch(HttpResponse(FREMDE_SEITE)).content.decode()
+        self.assertIn('data-djb-anmeldung="/anmelden/"', text)
+        self.assertLess(text.index("sitzung_abgelaufen.js"), text.index("aufzeichner.js"))
+
     def test_wird_vor_body_ende_eingehaengt(self):
         """Sonst stünde es hinter dem schließenden Tag - Browser verzeihen das,
         aber ein Modul-Script gehört in den Body."""

@@ -20,6 +20,16 @@ geparstes JSON** an die Ausnahme (`fehler.status/.rumpf/.daten`), setzt den
 CSRF-Kopf und kennt `senden`/`formular`/`jsonOderNull`. Cookiename über
 `Serverabruf.COOKIENAME` oder `<meta name="csrf-cookie">`.
 
+### Sitzung abgelaufen beim Nachladen (`sitzung_abgelaufen.js`, 16.11.2026)
+
+Die `AufzeichnungMiddleware` hängt das Modul in jede HTML-Seite (vor den Aufzeichner-Modulen, mit
+`data-djb-anmeldung="<resolve_url(LOGIN_URL)>"`). Es umhüllt `window.fetch` und hört auf `htmx:beforeSwap`:
+Landet ein Abruf derselben Herkunft per Umleitung auf der Anmeldeseite, fragt es die eigene Seite mit
+`redirect:'manual'`. Leitet auch sie um, ist die Sitzung weg: nichts einsetzen, Seite neu laden, `next=` zeigt
+dann auf die Seite statt aufs Fragment. Antwortet sie, geht die Antwort unverändert weiter (fehlendes Recht,
+keine Neuladeschleife). Anlass: assistant Heizung, nach dem Anmelden stand der Browser auf
+`/dashboard/heizung/inhalt/` ohne Rahmen und Menü. Seiten brauchen dafür nichts zu tun.
+
 ### Zwei Fallen in den Tabellen-Modulen, beide am 17.08.2026 behoben
 
 `TabellenBreiten` merkte beim Ziehen NUR die angefasste Spalte; nach F5 verteilte

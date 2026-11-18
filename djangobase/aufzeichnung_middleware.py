@@ -44,7 +44,9 @@ will, soll es können.
 import re
 
 from django.conf import settings
+from django.shortcuts import resolve_url
 from django.templatetags.static import static
+from django.utils.html import escape
 
 from .basiswurzel import Basiswurzel
 from .middleware_basis import ZweiwegMiddleware
@@ -74,7 +76,7 @@ class AufzeichnungMiddleware(ZweiwegMiddleware):
         # eine Seite kaputt machen. Die Aufzeichnung ist ein Werkzeug, kein
         # Bestandteil der Anwendung.
         if self._passt(request, antwort):
-            self._einhaengen(antwort)
+            self._einhaengen(antwort, self._darf_aufzeichnen(request))
 
     # ------------------------------------------------------------- Prüfungen
     def _passt(self, request, antwort):
@@ -99,8 +101,25 @@ class AufzeichnungMiddleware(ZweiwegMiddleware):
             return False
         return True
 
+    @staticmethod
+    def _darf_aufzeichnen(request):
+        """Darf der Benutzer die Steuer-Adresse ``tests/aufzeichnung/`` abrufen (dieselben Stufen wie
+        ``ZugriffMixin``, unbekannt = staff)? Sonst bekommt er die Aufzeichnungs-Module nicht: Sie fragten auf
+        jeder Seite dort nach und bekamen 403 — StayNestor 12.11.2026, vier 403 je Seite für jede Office-/
+        Admin-Kraft ohne Staff (UI-Test „rundgang“). Ohne ``request.user`` (keine Auth-Middleware) wie
+        bisher."""
+        from .conf import conf
+
+        benutzer = getattr(request, "user", None)
+        stufe = conf()["zugriff"]
+        if benutzer is None or stufe == "none":
+            return True
+        if not benutzer.is_authenticated:
+            return False
+        return stufe == "login" or benutzer.is_staff
+
     # ------------------------------------------------------------- Einhängen
-    def schnipsel(self):
+    def schnipsel(self, aufzeichnen=True):
         """Das einzuhängende HTML — einmal gebaut, dann gemerkt.
 
         Die Versionskennung hängt an ``Statik.kennung()``; im Entwicklungsbetrieb
@@ -112,6 +131,12 @@ class AufzeichnungMiddleware(ZweiwegMiddleware):
         v = Statik.kennung()
         teile = [
             '<link rel="stylesheet" href="%s?v=%s">' % (static("djangobase/css/aufzeichner.css"), v),
+            # ``sitzung_abgelaufen.js`` (16.11.2026, assistant Heizung): fetch und HTMX, die auf der
+            # Anmeldeseite landen, laden die Seite neu, statt das Anmeldeformular einzusetzen. Ein
+            # Baustein für überall wie ``tabellen_auto.js``; VOR den Aufzeichner-Modulen, weil der
+            # Aufzeichner fetch umhüllt und beim Stopp den vorigen Stand zurücksetzt.
+            '<script type="module" src="%s" data-djb-anmeldung="%s"></script>'
+            % (self._modulpfad("sitzung_abgelaufen.js", v), escape(self._anmeldung())),
         ]
         # ``tabellen_auto.js`` bindet Sortierung und ziehbare Spaltenbreiten
         # an ALLE passenden Tabellen der Seite (Befund 21.08.2026: 91 von 91
@@ -119,32 +144,38 @@ class AufzeichnungMiddleware(ZweiwegMiddleware):
         # es einzeln hätte tun müssen). Es gehört streng genommen nicht zur
         # Aufzeichnung - aber in denselben Kanal: Beides sind Bausteine, die
         # überall liegen müssen und die keine Vorlage einbinden soll.
-        for modul in (
-            "aufzeichner.js",
-            "aufzeichner_leiste.js",
-            "aufzeichner_abspieler.js",
-        ):
+        module = ("aufzeichner.js", "aufzeichner_leiste.js", "aufzeichner_abspieler.js")
+        for modul in module if aufzeichnen else ():
             teile.append(
                 '<script type="module" src="%s?v=%s"></script>' % (static("djangobase/js/%s" % modul), v)
             )
-        teile.append('<script type="module" src="%s"></script>' % self._tabellen_auto(v))
+        teile.append('<script type="module" src="%s"></script>' % self._modulpfad("tabellen_auto.js", v))
         return ("\n" + "\n".join(teile) + "\n").encode("utf-8")
 
     @staticmethod
-    def _tabellen_auto(v):
-        """``tabellen_auto.js`` MIT FASSUNG IM PFAD, wo ``djangobase.fassungsstatik`` eingehängt ist
-        (04.11.2026): Seine Nachbarmodule (Sortierung, Breiten, Reihenfolge, Speicher) lädt es relativ — sie
-        erben so die Fassung und kommen nach einer Änderung sofort an. Mit ``?v=`` erbten sie nichts und
-        blieben bis zu sieben Tage aus dem Zwischenspeicher (nginx ``expires 7d`` auf ``/static/``). Ohne
-        Fassungspfad wie bisher."""
+    def _anmeldung():
+        """Pfad der Anmeldeseite (``LOGIN_URL``, auch als URL-Name) — leer, wenn er sich nicht auflösen
+        lässt; ``sitzung_abgelaufen.js`` nimmt dann einen Pfad, der auf ``/login/`` endet."""
+        try:
+            return resolve_url(settings.LOGIN_URL)
+        except Exception:  # noqa: BLE001
+            return ""
+
+    @staticmethod
+    def _modulpfad(datei, v):
+        """Modul MIT FASSUNG IM PFAD, wo ``djangobase.fassungsstatik`` eingehängt ist (04.11.2026, damals
+        für ``tabellen_auto.js``): Nachbarmodule, die es relativ lädt (Sortierung, Breiten, Reihenfolge,
+        Speicher), erben so die Fassung und kommen nach einer Änderung sofort an. Mit ``?v=`` erbten sie
+        nichts und blieben bis zu sieben Tage aus dem Zwischenspeicher (nginx ``expires 7d`` auf
+        ``/static/``). Ohne Fassungspfad wie bisher."""
         from .cachekonzept import Cachekonzept
         from .fassungsstatik import Fassungsstatik
 
         if Cachekonzept.fassungspfad_eingehaengt():
-            return Fassungsstatik.pfad("djangobase/js/tabellen_auto.js")
-        return "%s?v=%s" % (static("djangobase/js/tabellen_auto.js"), v)
+            return Fassungsstatik.pfad("djangobase/js/" + datei)
+        return "%s?v=%s" % (static("djangobase/js/" + datei), v)
 
-    def _einhaengen(self, antwort):
+    def _einhaengen(self, antwort, aufzeichnen=True):
         inhalt = antwort.content
         treffer = list(_BODY_ENDE.finditer(inhalt))
         if not treffer:
@@ -152,6 +183,6 @@ class AufzeichnungMiddleware(ZweiwegMiddleware):
         if b"aufzeichner_leiste.js" in inhalt:
             return  # eine Vorlage bringt es schon mit
         stelle = treffer[-1].start()
-        antwort.content = inhalt[:stelle] + self.schnipsel() + inhalt[stelle:]
+        antwort.content = inhalt[:stelle] + self.schnipsel(aufzeichnen) + inhalt[stelle:]
         if antwort.has_header("Content-Length"):
             antwort["Content-Length"] = str(len(antwort.content))

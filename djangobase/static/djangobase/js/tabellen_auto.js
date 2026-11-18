@@ -36,8 +36,24 @@
 // (nginx ``expires 7d``), waehrend dieses Modul schon neu war.
 import { TabellenSortierung } from './tabellen_sortierung.js';
 import { TabellenBreiten } from './tabellen_breiten.js';
+// Alle Tabellen unter ``data-spalten-gemeinsam`` teilen ihre Spaltenbreiten (11.11.2026).
+import { TabellenBreitenGemeinsam } from './tabellen_breiten_gemeinsam.js';
 // Spalten umstellen (Einstellungen -> Tabellen, ``tabellen_reihenfolge.js``).
 import { TabellenReihenfolge } from './tabellen_reihenfolge.js';
+
+/** Element mit ``data-spalten-gemeinsam`` -> seine Breitengruppe. */
+const gemeinsam = new WeakMap();
+
+/** Die Breitengruppe des Rahmens; Speicher-Schluessel aus dem Attributwert, sonst aus dem Pfad. */
+function gruppeVon(rahmen) {
+  let g = gemeinsam.get(rahmen);
+  if (!g) {
+    const name = rahmen.dataset.spaltenGemeinsam || location.pathname.replace(/[^\w]+/g, '-');
+    g = new TabellenBreitenGemeinsam('gemeinsam-' + name);
+    gemeinsam.set(rahmen, g);
+  }
+  return g;
+}
 
 /** Ein stabiler Speicher-Schlüssel für diese Tabelle. */
 function schluessel(tabelle, nr) {
@@ -109,7 +125,9 @@ export function tabellenBinden(wurzel) {
       if (TabellenReihenfolge.erlaubt(t)) TabellenReihenfolge.binden(t, k);
     } catch (e) { /* siehe oben */ }
     try {
-      new TabellenBreiten([t], k).binden();
+      const rahmen = t.closest('[data-spalten-gemeinsam]');
+      if (rahmen) gruppeVon(rahmen).aufnehmen(t);
+      else new TabellenBreiten([t], k).binden();
     } catch (e) { /* siehe oben */ }
   });
 }
