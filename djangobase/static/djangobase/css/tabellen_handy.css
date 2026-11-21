@@ -1,0 +1,112 @@
+/* Tabellen auf dem Handy (21.11.2026, opt-in: laden, wer es will; Edgar: „Die Tabellen müssen aber noch
+   angepasst werden, damit sie auf dem Handy bedienbar sind").
+
+   1. KARTEN für Tabellen mit Handy-Rollen (Klasse ``db-handy``, ``tabellen_handy.py``): bis 768 px wird jede Zeile
+      eine Karte. Oben ``titel`` (groß, ohne Beschriftung) und ``kopf`` (klein beschriftet), darunter ``karte``
+      als „Beschriftung: Wert“, ``mehr`` erst nach dem Knopf „mehr“ (``js/tabellen_handy.js``). Der Tabellenkopf
+      ist aus — Spalten ziehen und verschieben kollidierte mit dem Wischen.
+   2. SEITLICH SCHIEBEN für alle übrigen Tabellen der Seite: Sie scrollen in ihrem Rahmen
+      (``.db-tabelle-rahmen``, tabellen.css), die erste Spalte bleibt stehen.
+
+   Die Breiten, die ``tabellen_breiten.js`` inline an Tabelle und Kopfzellen setzt, und die Rahmen aus
+   tabellen.css (``!important``) überstimmt hier ``!important`` mit höherem Gewicht. */
+
+@media (max-width: 768px) {
+    /* ---- 1. Karten -------------------------------------------------------------------------------- */
+    table.db-tabelle.db-handy,
+    table.db-tabelle.db-handy > tbody {
+        display: block;
+        width: 100% !important;
+        min-width: 0 !important;
+        table-layout: auto !important;
+    }
+    table.db-tabelle.db-handy > thead { display: none; }
+    table.db-tabelle.db-handy > tbody > tr {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 0.15rem 0.9rem;
+        margin: 0 0 0.6rem;
+        padding: 0.55rem 0.7rem;
+        border: 1px solid rgba(var(--fg-rgb, 128, 128, 128), 0.25);
+        border-radius: 10px;
+    }
+    table.db-tabelle.db-handy > tbody > tr > td {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.2rem 0.6rem;
+        border: 0 !important;
+        padding: 0.15rem 0 !important;
+        width: auto !important;
+        min-width: 0;
+        overflow: visible;
+        white-space: normal;
+        text-align: left;
+        background-clip: padding-box;
+    }
+    table.db-tabelle.db-handy > tbody > tr > td::before {
+        content: attr(data-label);
+        font-size: 0.78rem;
+        font-weight: 600;
+        opacity: 0.7;
+    }
+    table.db-tabelle.db-handy > tbody > tr > td[data-label=""]::before { content: none; }
+
+    table.db-tabelle.db-handy td[data-handy="titel"] {
+        order: 0;
+        flex: 1 1 100%;
+        font-size: 1.05rem;
+        font-weight: 600;
+    }
+    table.db-tabelle.db-handy td[data-handy="titel"]::before { content: none; }
+    table.db-tabelle.db-handy td[data-handy="kopf"] { order: 1; flex: 0 1 auto; font-weight: 600; }
+    table.db-tabelle.db-handy td[data-handy="karte"],
+    table.db-tabelle.db-handy td[data-handy="mehr"] {
+        order: 2;
+        flex: 1 1 100%;
+        justify-content: space-between;
+    }
+    table.db-tabelle.db-handy td[data-handy="karte"]:first-of-type,
+    table.db-tabelle.db-handy td[data-handy="kopf"] + td[data-handy="karte"] { margin-top: 0.3rem; }
+    table.db-tabelle.db-handy td[data-handy="mehr"] { order: 3; display: none; }
+    table.db-tabelle.db-handy tr.db-handy-offen > td[data-handy="mehr"] { display: flex; }
+    table.db-tabelle.db-handy td.db-handy-knopf { order: 4; flex: 1 1 100%; justify-content: flex-end; }
+    table.db-tabelle.db-handy td.db-handy-knopf::before { content: none; }
+    table.db-tabelle.db-handy .db-handy-mehr {
+        min-height: 44px;
+        padding: 0 1rem;
+        border: 1px solid rgba(var(--fg-rgb, 128, 128, 128), 0.35);
+        border-radius: 8px;
+        background: transparent;
+        color: inherit;
+    }
+    /* leere Tabelle: der Hinweis bleibt eine Zeile */
+    table.db-tabelle.db-handy td.db-leer { flex: 1 1 100%; justify-content: center; }
+    table.db-tabelle.db-handy td.db-leer::before { content: none; }
+
+    /* ---- 2. Seitlich schieben, erste Spalte steht ------------------------------------------------- */
+    table.db-tabelle:not(.db-handy) > * > tr > :first-child {
+        position: sticky;
+        left: 0;
+        z-index: 1;
+        background: var(--surface, var(--dbt-flaeche, #fff));
+    }
+}
+
+/* Der Knopf „mehr“ steht nur auf dem Handy in der Zeile (js/tabellen_handy.js). */
+@media (min-width: 769px) {
+    table.db-tabelle.db-handy td.db-handy-knopf { display: none; }
+    .db-handy-sortwahl { display: none; }
+}
+
+/* Auswahl „Sortieren“ über den Karten (js/tabellen_handy_sortierung.js, 21.11.2026): der Kopf ist auf dem Handy aus.
+   Felder schwarz auf weiß wie überall, Knöpfe mindestens 44 px hoch. */
+@media (max-width: 768px) {
+    .db-handy-sortwahl { display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem; margin: 0 0 0.5rem; }
+    .db-handy-sortwahl label { display: flex; align-items: center; gap: 0.4rem; margin: 0; font-size: 0.85rem; }
+    .db-handy-sortwahl select { min-height: 44px; padding: 0 0.5rem; border-radius: 8px; background: #fff; color: #000;
+        color-scheme: light; border: 1px solid rgba(var(--fg-rgb, 128, 128, 128), 0.35); }
+    .db-handy-sortwahl button { min-width: 44px; min-height: 44px; border-radius: 8px; background: transparent;
+        color: inherit; border: 1px solid rgba(var(--fg-rgb, 128, 128, 128), 0.35); }
+}

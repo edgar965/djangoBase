@@ -17,15 +17,20 @@ from __future__ import annotations
 from django.utils.html import escape, format_html
 
 from .sortierschluessel import Sortierschluessel
+from .tabellen_handy import TabellenHandy
 
 
 class TabellenDaten:
     """Ohne Zustand — baut nur die Wörterbücher, die die Vorlage liest."""
 
     @staticmethod
-    def spalte(label: str, key: str, num: bool = False, sort_aus: bool = False) -> dict:
-        """Eine Spalte; ``key`` benennt sie für gemerkte Breiten, Reihenfolge und Sortierung."""
-        return {"label": label, "key": key, "num": num, "sortAus": sort_aus}
+    def spalte(label: str, key: str, num: bool = False, sort_aus: bool = False, handy: str = "") -> dict:
+        """Eine Spalte; ``key`` benennt sie für gemerkte Breiten, Reihenfolge und Sortierung. ``handy``:
+        Rolle in der Handy-Karte (``titel``/``kopf``/``karte``/``mehr``, ``TabellenHandy``)."""
+        spalte = {"label": label, "key": key, "num": num, "sortAus": sort_aus}
+        if handy:
+            spalte["handy"] = handy
+        return spalte
 
     @staticmethod
     def zelle(text, sort=None, klasse: str = "", fett: bool = False) -> dict:
@@ -41,8 +46,13 @@ class TabellenDaten:
     @staticmethod
     def tabelle(kennung: str, spalten: list, zeilen: list, leer: str = "keine Einträge") -> dict:
         """Eine Tabelle. ``kennung`` ist ihr Name für die Vorlage (``key`` dort) — nicht zu
-        verwechseln mit dem ``key`` einer Spalte."""
-        return {"key": kennung, "spalten": spalten, "zeilen": zeilen, "leer": leer}
+        verwechseln mit dem ``key`` einer Spalte. Haben Spalten eine Handy-Rolle, werden die Zellen
+        beschriftet und die Tabelle bekommt die Klasse ``db-handy`` (``TabellenHandy``)."""
+        tabelle = {"key": kennung, "spalten": spalten, "zeilen": zeilen, "leer": leer}
+        klasse = TabellenHandy.vorbereiten(spalten, zeilen)
+        if klasse:
+            tabelle["klasse"] = klasse
+        return tabelle
 
 
 #: Kurznamen, unter denen die Aufrufer sie seit 09.09.2026 kennen

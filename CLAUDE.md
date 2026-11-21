@@ -44,7 +44,8 @@ Weitere Schlüssel in der Vollfassung.
 ## Tabellen
 Einstellungen → Tabellen: „Spalten verschieben“ (Vorgabe aus), „Spalten anpassen“ (an). `tabellen_speicher.js` ist der
 eine Speicher (localStorage, mit `tabellen_je_benutzer` in der DB). `data-spalten-gemeinsam="<name>"` lässt Tabellen
-die Spaltenbreiten teilen.
+die Spaltenbreiten teilen. Handy-Karten (opt-in): `spalte(handy="titel|kopf|karte|mehr")` (`tabellen_handy.py`), dazu
+`css/tabellen_handy.css` und `js/tabellen_handy.js` auf der Seite.
 
 ## Nutzer (alle editierbar eingebunden)
 assistant (:8001), WalkHop, NoiseSpy (Server per Dateikopie), HumanBodyWeb (:8081), shortlongx (:5020), CamTrack,

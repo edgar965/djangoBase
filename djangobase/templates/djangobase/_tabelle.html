@@ -44,6 +44,12 @@ ERWARTETE STRUKTUR (``tabelle``):
       "klasse": "",                      zusätzliche Klassen der <table>
     }
 
+HANDY-KARTEN (21.11.2026, opt-in): Spalten mit "handy": "titel"|"kopf"|"karte"|"mehr"
+(``TabellenDaten.spalte(handy=…)``) - ``TabellenHandy`` schreibt "label" und "handy" an jede
+Zelle (hier data-label/data-handy) und die Klasse ``db-handy`` an die Tabelle. Bis 768 px wird
+jede Zeile eine Karte, wenn die Seite ``css/tabellen_handy.css`` und ``js/tabellen_handy.js``
+(Knopf „mehr") lädt.
+
 Voraussetzung im Seiten-Template (einmal je Seite):
 
     {% block head_extra %}{{ block.super }}
@@ -96,7 +102,8 @@ zeigen, nicht die Aufmerksamkeit binden.
       <td{% if c.klasse %} class="{{ c.klasse }}"{% endif %}
          {% if c.colspan %} colspan="{{ c.colspan }}"{% endif %}
          {% if c.sort != None %} data-sort="{{ c.sort }}"{% endif %}
-         {% if c.titel %} title="{{ c.titel }}"{% endif %}>{{ c.html|safe }}</td>
+         {% if c.titel %} title="{{ c.titel }}"{% endif %}
+         {% if c.handy %} data-handy="{{ c.handy }}" data-label="{{ c.label }}"{% endif %}>{{ c.html|safe }}</td>
       {% endfor %}
     {% endif %}</tr>
     {% empty %}
