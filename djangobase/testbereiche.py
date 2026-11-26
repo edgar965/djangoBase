@@ -72,6 +72,8 @@ class Bereiche:
         self.angaben = []
         #: Ergebnis von :meth:`ziele` - siehe dort.
         self._ziele = None
+        #: {Praefix: Slug} fuer :meth:`slug_von`, beim ersten Aufruf aus `regeln` gebaut.
+        self._index = None
         self._lesen(angabe)
 
     def _lesen(self, angabe):
@@ -176,9 +178,19 @@ class Bereiche:
 
     def slug_von(self, test_id):
         """Bereichs-Slug einer Test-ID - ``""`` wenn keiner ableitbar."""
+        # Nachschlagen statt alle Regeln durchgehen (23.11.2026: die Tabelle fragt je Zeile viermal,
+        # in 3DTools 29.602 Aufrufe = 1,5 s). Gleichwertig: Ein Praefix trifft genau dann, wenn es aus
+        # den ersten Teilen der Kennung besteht; die Regeln stehen laengstes zuerst, also gewinnt das
+        # laengste (gleich lange, verschiedene koennen nicht beide treffen), bei doppelten das erste.
+        if self._index is None:
+            self._index = {}
+            for praefix, slug, _name in self.regeln:
+                self._index.setdefault(praefix, slug)
         kennung = str(test_id or "")
-        for praefix, slug, _name in self.regeln:
-            if kennung == praefix or kennung.startswith(praefix + "."):
+        teile = kennung.split(".")
+        for i in range(len(teile), 0, -1):
+            slug = self._index.get(".".join(teile[:i]))
+            if slug is not None:
                 return slug
         return self._aus_ordner(kennung)
 

@@ -150,8 +150,12 @@ class Testtabelle:
         from .testbereiche import Bereiche
 
         self.bereiche = Bereiche.aus_einstellungen()
-        # Die vom Nutzer gesetzten Plaetze (Spalte „Nr."). Einmal geladen, fuer
-        # alle Zeilen der Seite.
+        # Ebenso die Kategorien der Combo-Box (23.11.2026: je Zeile geholt las
+        # `conf()` 7.401-mal die Einstellungsdatei, 1,4 s in 3DTools).
+        from .testarten import Arten
+
+        self.arten = Arten.aus_einstellungen()
+        # Die vom Nutzer gesetzten Plaetze (Spalte „Nr."), fuer alle Zeilen.
         from .testreihenfolge import Reihenfolge
 
         self.reihenfolge = Reihenfolge()
@@ -452,7 +456,7 @@ class Testtabelle:
                 '„djangoBase-Testcases sichtbar“.">%s</span>' % escape(Verschieber.EIGENE_KATEGORIE)
             )
         art, datei = self.verschieber.moeglich(e.kennung)
-        wahl = Verschieber.auswahl(art, datei is not None)
+        wahl = Verschieber.auswahl(art, datei is not None, self.arten)
         if datei is None:
             return (
                 '<span class="ts-kat-fest" title="nicht verschiebbar — die '

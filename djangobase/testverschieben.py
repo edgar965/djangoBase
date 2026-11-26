@@ -357,8 +357,9 @@ class Verschieber:
     # ------------------------------------------------------------- Anzeige
 
     @classmethod
-    def auswahl(cls, art, moeglich):
-        """Die Einträge der Combo-Box - ``[(wert, name, ausgewaehlt)]``.
+    def auswahl(cls, art, moeglich, einteilung=None):
+        """Die Einträge der Combo-Box - ``[(wert, name, ausgewaehlt)]``; ``einteilung``: schon
+        geholte ``Arten`` (die Tabelle fragt je Zeile).
 
         Alle sechs Arten stehen drin, auch die, die im Projekt noch keinen Ordner
         hat: Der Ordner wird beim Verschieben angelegt. Ist der Fall nicht
@@ -369,7 +370,7 @@ class Verschieber:
         # dieselbe Sache waeren genau der Unterschied, der niemandem auffaellt.
         from .testarten import Arten
 
-        einteilung = Arten.aus_einstellungen()
+        einteilung = Arten.aus_einstellungen() if einteilung is None else einteilung
         if not moeglich:
             return [(art, einteilung.name_von(art) if art else "—", True)]
         return [(a, einteilung.name_von(a), a == art) for a in einteilung.liste()]
